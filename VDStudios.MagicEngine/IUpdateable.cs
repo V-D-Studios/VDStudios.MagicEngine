@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace VDStudios.MagicEngine;
 
 /// <summary>
-/// Represents a <see cref="Node"/> or <see cref="FunctionalComponent{TNode}"/> that is to be updated
+/// Represents a <see cref="Node"/> or <see cref="FunctionalComponent{TNode}"/> that is to be updated. <see cref="IUpdateableAsync"/> takes precedence if both are implemented
 /// </summary>
 public interface IUpdateable
 {
