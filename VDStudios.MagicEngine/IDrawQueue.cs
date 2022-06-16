@@ -76,7 +76,7 @@ public interface IDrawQueue
     /// </summary>
     /// <param name="items">The objects that are ready to draw and their priority</param>
     /// <param name="priority">The priority of all items</param>
-    public void EnqueueRangeAsync(IEnumerable<IDrawing> items, float priority);
+    public Task EnqueueRangeAsync(IEnumerable<IDrawing> items, float priority);
 
     /// <summary>
     /// Asynchronously enqueues a set of ready-to-draw objects into the Draw Queue
