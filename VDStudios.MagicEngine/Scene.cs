@@ -6,21 +6,8 @@
 /// <remarks>
 /// A scene can be the MainMenu, a Room, a Dungeon, and any number of things. It is a self-contained state of the <see cref="Game"/>
 /// </remarks>
-public class Scene
+public class Scene : GameObject
 {
-    /// <summary>
-    /// Instances a new Scene
-    /// </summary>
-    public Scene()
-    {
-        Game = Game.Instance;
-    }
-
-    /// <summary>
-    /// The <see cref="MagicEngine.Game"/> this <see cref="Scene"/> belongs to. Same as<see cref="SDL2.NET.SDLApplication{TApp}.Instance"/>
-    /// </summary>
-    protected Game Game { get; }
-
     internal Task InternalUpdate(TimeSpan delta);
     internal void InternalDraw(TimeSpan delta);
     internal Task InternalBegin(IServiceProvider services);
