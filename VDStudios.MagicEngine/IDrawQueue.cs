@@ -27,6 +27,36 @@ public interface IDrawQueue
     public void Enqueue(IDrawing drawing, float priority);
 
     /// <summary>
+    /// Enqueues a collection of ready-to-draw objects into the Draw Queue
+    /// </summary>
+    /// <param name="items">The object that are ready to draw and their priority</param>
+    public void EnqueueCollection(IReadOnlyCollection<(IDrawing drawing, float priority)> items);
+
+    /// <summary>
+    /// Asynchronously enqueues a collection of ready-to-draw objects into the Draw Queue
+    /// </summary>
+    /// <param name="items">The objects that are ready to draw and their priority</param>
+    public Task EnqueueCollectionAsync(IReadOnlyCollection<(IDrawing drawing, float priority)> items);
+
+    /// <summary>
+    /// Enqueues a set of ready-to-draw objects into the Draw Queue
+    /// </summary>
+    /// <param name="items">The objects that are ready to draw and their priority</param>
+    public void EnqueueRange(IEnumerable<(IDrawing drawing, float priority)> items);
+
+    /// <summary>
+    /// Asynchronously enqueues a set of ready-to-draw objects into the Draw Queue
+    /// </summary>
+    /// <param name="items">The objects that are ready to draw and their priority</param>
+    public Task EnqueueRangeAsync(IEnumerable<(IDrawing drawing, float priority)> items);
+
+    /// <summary>
+    /// Asynchronously enqueues a set of ready-to-draw objects into the Draw Queue
+    /// </summary>
+    /// <param name="items">The objects that are ready to draw and their priority</param>
+    public Task EnqueueAsyncRange(IAsyncEnumerable<(IDrawing drawing, float priority)> items);
+
+    /// <summary>
     /// Ensures that the Draw Queue has the necessary capacity to host incoming operations
     /// </summary>
     /// <remarks>
@@ -50,7 +80,7 @@ public interface IDrawQueue
     /// Ensures that the Draw Queue has the necessary free space to host incoming operations
     /// </summary>
     /// <remarks>
-    /// Sets the capacity of the Queue to <c><paramref name="freeSpace"/> + currentCapacity</c>. Calling this method is only useful if you're going to add a batch of new items and know the amount beforehand
+    /// Sets the capacity of the Queue to <c><paramref name="freeSpace"/> + currentCapacity</c>. Calling this method is only useful if you're going to add a batch of new items and know the amount beforehand. Consider using <see cref="EnqueueCollection"/> instead
     /// </remarks>
     /// <param name="freeSpace">The amount of free space the queue needs to have</param>
     /// <returns></returns>
@@ -60,7 +90,7 @@ public interface IDrawQueue
     /// Asynchronously ensures that the Draw Queue has the necessary free space to host incoming operations
     /// </summary>
     /// <remarks>
-    /// Sets the capacity of the Queue to <c><paramref name="freeSpace"/> + currentCapacity</c>. Calling this method is only useful if you're going to add a batch of new items and know the amount beforehand
+    /// Sets the capacity of the Queue to <c><paramref name="freeSpace"/> + currentCapacity</c>. Calling this method is only useful if you're going to add a batch of new items and know the amount beforehand. Consider using <see cref="EnqueueCollectionAsync"/> instead
     /// </remarks>
     /// <param name="freeSpace">The amount of free space the queue needs to have</param>
     /// <returns></returns>
