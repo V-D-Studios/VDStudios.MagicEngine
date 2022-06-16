@@ -68,4 +68,4 @@ public delegate void FunctionalComponentEvent(FunctionalComponent component, Tim
 /// <param name="node">The node that experienced the change</param>
 /// <param name="component">The component that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-public delegate void NodeFunctionalComponentAttachmentEvent(Node node, FunctionalComponent component, TimeSpan timestamp);
+public delegate void NodeFunctionalComponentInstallEvent(Node node, FunctionalComponent component, TimeSpan timestamp);

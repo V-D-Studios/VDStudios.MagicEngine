@@ -8,7 +8,7 @@ public interface IFunctionalComponent
     /// <summary>
     /// Internal use only
     /// </summary>
-    public void InternalDetach();
+    public void InternalUninstall();
 
     /// <summary>
     /// Internal use only

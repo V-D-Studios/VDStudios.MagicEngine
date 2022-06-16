@@ -31,21 +31,21 @@ public abstract class FunctionalComponent<TNode> : GameObject, IDisposable, IFun
     /// </remarks>
     public IServiceProvider Services => serviceScope?.ServiceProvider ?? throw new InvalidOperationException("This FunctionalComponent does not have a Service Provider attached. Is it detached?");
 
-    internal void InternalAttach(TNode node, IServiceScope services, int index)
+    internal void InternalInstall(TNode node, IServiceScope services, int index)
     {
         serviceScope = services;
-        Attach(node, services.ServiceProvider);
+        Install(node, services.ServiceProvider);
         AttachedNode = node;
         Index = index;
     }
 
-    internal void InternalDetach()
+    internal void InternalUninstall()
     {
         serviceScope?.Dispose();
-        Detach();
+        Uninstall();
         AttachedNode = null;
     }
-    void IFunctionalComponent.InternalDetach() => InternalDetach();
+    void IFunctionalComponent.InternalUninstall() => InternalUninstall();
 
     /// <summary>
     /// Attaches this component's functionality into <paramref name="node"/>
@@ -53,17 +53,17 @@ public abstract class FunctionalComponent<TNode> : GameObject, IDisposable, IFun
     /// <param name="services">The services of the <see cref="Game"/>, scoped for this Component</param>
     /// <param name="node">The node this component is currently being attached to</param>
     /// <remarks>
-    /// <see cref="AttachedNode"/> will be set after this method is called, and <see cref="Node.FunctionalComponentAttached"/> will fire after that
+    /// <see cref="AttachedNode"/> will be set after this method is called, and <see cref="Node.FunctionalComponentInstalled"/> will fire after that
     /// </remarks>
-    protected virtual void Attach(TNode node, IServiceProvider services) { }
+    protected virtual void Install(TNode node, IServiceProvider services) { }
 
     /// <summary>
     /// Detaches this component's functionality from <see cref="AttachedNode"/>
     /// </summary>
     /// <remarks>
-    /// <see cref="AttachedNode"/> will be null'd after this method is called, and <see cref="Node.FunctionalComponentDetached"/> will fire after that
+    /// <see cref="AttachedNode"/> will be null'd after this method is called, and <see cref="Node.FunctionalComponentUninstalled"/> will fire after that
     /// </remarks>
-    protected virtual void Detach() { }
+    protected virtual void Uninstall() { }
 
     #region IDisposable
 
