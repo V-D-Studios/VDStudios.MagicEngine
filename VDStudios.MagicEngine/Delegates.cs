@@ -54,3 +54,18 @@ public delegate void GameMainWindowCreatedEvent(Game game, TimeSpan timestamp, W
 /// <param name="scene">The scene that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 public delegate void SceneEvent(Scene scene, TimeSpan timestamp);
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="FunctionalComponent"/>
+/// </summary>
+/// <param name="component">The component that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+public delegate void FunctionalComponentEvent(FunctionalComponent component, TimeSpan timestamp);
+
+/// <summary>
+/// 
+/// </summary>
+/// <param name="node">The node that experienced the change</param>
+/// <param name="component">The component that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+public delegate void NodeFunctionalComponentAttachmentEvent(Node node, FunctionalComponent component, TimeSpan timestamp);
