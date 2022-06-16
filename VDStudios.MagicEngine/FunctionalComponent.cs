@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
 
@@ -8,14 +9,19 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// Remember to implement <see cref="IUpdateable"/> or <see cref="IUpdateableAsync"/> to let your component be Updated
 /// </remarks>
-public abstract class FunctionalComponent : GameObject, IDisposable
+public abstract class FunctionalComponent<TNode> : GameObject, IDisposable, IFunctionalComponent where TNode : Node
 {
     private IServiceScope? serviceScope;
 
     /// <summary>
     /// The <see cref="Node"/> this <see cref="FunctionalComponent"/> is currently attached to, if any
     /// </summary>
-    protected Node? AttachedNode { get; private set; }
+    protected TNode? AttachedNode { get; private set; }
+
+    /// <summary>
+    /// Represents the internal Component Index in the currently attached node
+    /// </summary>
+    public int Index { get; private set; }
 
     /// <summary>
     /// The current <see cref="IServiceProvider"/> for this <see cref="FunctionalComponent"/>
@@ -25,11 +31,12 @@ public abstract class FunctionalComponent : GameObject, IDisposable
     /// </remarks>
     public IServiceProvider Services => serviceScope?.ServiceProvider ?? throw new InvalidOperationException("This FunctionalComponent does not have a Service Provider attached. Is it detached?");
 
-    internal void InternalAttach(Node node, IServiceScope services)
+    internal void InternalAttach(TNode node, IServiceScope services, int index)
     {
         serviceScope = services;
         Attach(node, services.ServiceProvider);
         AttachedNode = node;
+        Index = index;
     }
 
     internal void InternalDetach()
@@ -38,6 +45,7 @@ public abstract class FunctionalComponent : GameObject, IDisposable
         Detach();
         AttachedNode = null;
     }
+    void IFunctionalComponent.InternalDetach() => InternalDetach();
 
     /// <summary>
     /// Attaches this component's functionality into <paramref name="node"/>
@@ -47,7 +55,7 @@ public abstract class FunctionalComponent : GameObject, IDisposable
     /// <remarks>
     /// <see cref="AttachedNode"/> will be set after this method is called, and <see cref="Node.FunctionalComponentAttached"/> will fire after that
     /// </remarks>
-    protected virtual void Attach(Node node, IServiceProvider services) { }
+    protected virtual void Attach(TNode node, IServiceProvider services) { }
 
     /// <summary>
     /// Detaches this component's functionality from <see cref="AttachedNode"/>
@@ -68,7 +76,7 @@ public abstract class FunctionalComponent : GameObject, IDisposable
     {
         if (!disposedValue)
         {
-            serviceScope.Dispose();
+            serviceScope?.Dispose();
             disposedValue = true;
         }
     }
@@ -88,4 +96,15 @@ public abstract class FunctionalComponent : GameObject, IDisposable
     }
 
     #endregion
+}
+
+/// <summary>
+/// Represents encapsulated functionality of a Node that accepts any <see cref="Node"/>
+/// </summary>
+/// <remarks>
+/// Remember to implement <see cref="IUpdateable"/> or <see cref="IUpdateableAsync"/> to let your component be Updated
+/// </remarks>
+public abstract class FunctionalComponent : FunctionalComponent<Node>
+{
+
 }
