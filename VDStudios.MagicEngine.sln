@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32516.85
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VDStudios.MagicEngine", "VDStudios.MagicEngine\VDStudios.MagicEngine.csproj", "{938DC9C7-9226-4B4B-9B13-802E25686BD7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.MagicEngine", "VDStudios.MagicEngine\VDStudios.MagicEngine.csproj", "{938DC9C7-9226-4B4B-9B13-802E25686BD7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
