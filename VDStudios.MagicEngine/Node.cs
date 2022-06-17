@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
@@ -9,7 +10,7 @@ namespace VDStudios.MagicEngine;
 /// Represents an active object in the <see cref="Game"/>
 /// </summary>
 /// <remarks>
-/// A <see cref="Node"/> can be an entity, a bullet, code to update another <see cref="Node"/>'s values, or any kind of active game object that is not a <see cref="FunctionalComponent"/>. To make a <see cref="Node"/> updateable, have it implement one of <see cref="IUpdateableNode"/> or <see cref="IAsyncUpdateableNode"/>. To make a <see cref="Node"/> drawable, have it implement one of <see cref="IDrawableNode"/> or <see cref="IAsyncDrawableNode"/>
+/// A <see cref="Node"/> can be an entity, a bullet, code to update another <see cref="Node"/>'s values, or any kind of active game object that is not a <see cref="FunctionalComponent"/>. To make a <see cref="Node"/> updateable, have it implement one of <see cref="IUpdateableNode"/> or <see cref="IAsyncUpdateableNode"/>. To make a <see cref="Node"/> drawable, have it implement one of <see cref="IDrawableNode"/> or <see cref="IAsyncDrawableNode"/>. A <see cref="Node"/> is responsible for updating its own <see cref="FunctionalComponent{TNode}"/>
 /// </remarks>
 public abstract class Node : GameObject, IDisposable
 {
@@ -144,6 +145,41 @@ public abstract class Node : GameObject, IDisposable
             DetachNoLock();
     }
 
+    private void InternalInstall(FunctionalComponent component)
+    {
+        if (!ComponentFilter(component, out var rfj))
+            throw new FunctionalComponentRejectedException(rfj ?? "Unknown reason", this, component);
+
+        ComponentInstalling(component);
+
+        if (component is AsynchronousFunctionalComponent afc)
+            _asyncComponents.Add(afc);
+        else if (component is SynchronousFunctionalComponent sfc)
+            _syncComponents.Add(sfc);
+    }
+
+    /// <summary>
+    /// Instances and installs a <see cref="FunctionalComponent"/> into this <see cref="Node"/>
+    /// </summary>
+    /// <typeparam name="TComponent">The type of FunctionalComponent to instance and install</typeparam>
+    public void Install<TComponent>() where TComponent : FunctionalComponent, new()
+        => InternalInstall(new TComponent());
+
+    /// <summary>
+    /// Instances and installs the <see cref="FunctionalComponent"/> returned by <paramref name="factory"/> into this <see cref="Node"/>
+    /// </summary>
+    /// <typeparam name="TComponent">The type of FunctionalComponent to instance and install</typeparam>
+    /// <param name="factory">The method that will instance the component</param>
+    public void Install<TComponent>(Func<TComponent> factory) where TComponent : FunctionalComponent
+        => InternalInstall(factory());
+
+    /// <summary>
+    /// Installs <paramref name="component"/> into this <see cref="Node"/>
+    /// </summary>
+    /// <param name="component">The component to install</param>
+    public void Install(FunctionalComponent component)
+        => InternalInstall(component);
+
     /// <summary>
     /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is not attached to another <see cref="Node"/> or <see cref="Scene"/>
     /// </summary>
@@ -218,7 +254,23 @@ public abstract class Node : GameObject, IDisposable
     }
     private Scene? root;
 
-    private List<IFunctionalComponent> Components { get; }
+    /// <summary>
+    /// Represents an internal list of this <see cref="Node"/>'s synchronous components
+    /// </summary>
+    /// <remarks>
+    /// A node is entirely responsible for updating its own components
+    /// </remarks>
+    protected IReadOnlyList<SynchronousFunctionalComponent> SynchronousComponents => _syncComponents;
+    private List<SynchronousFunctionalComponent> _syncComponents = new();
+
+    /// <summary>
+    /// Represents an internal list of this <see cref="Node"/>'s asynchronous components
+    /// </summary>
+    /// <remarks>
+    /// A node is entirely responsible for updating its own components
+    /// </remarks>
+    protected IReadOnlyList<AsynchronousFunctionalComponent> AsynchronousComponents => _asyncComponents;
+    private List<AsynchronousFunctionalComponent> _asyncComponents = new();
 
     /// <summary>
     /// Represents the Children or Subnodes of this <see cref="Node"/>
@@ -298,6 +350,28 @@ public abstract class Node : GameObject, IDisposable
     /// Services adquired through this <see cref="Node"/>'s <see cref="IServiceProvider"/> will become invalid after this method returns. This method is called before <see cref="NodeDetached"/> is fired
     /// </remarks>
     protected virtual void Detached() { }
+
+    /// <summary>
+    /// Runs when a <see cref="FunctionalComponent"/> is being installed into this <see cref="Node"/>
+    /// </summary>
+    /// <remarks>
+    /// The component will be sorted into either <see cref="SynchronousComponents"/> or <see cref="AsynchronousComponents"/> after this method returns.
+    /// </remarks>
+    protected virtual void ComponentInstalling(FunctionalComponent component) { }
+
+    /// <summary>
+    /// Runs before a <see cref="FunctionalComponent"/> is installed into this <see cref="Node"/>
+    /// </summary>
+    /// <remarks>
+    /// The component will proceed to installation and <see cref="ComponentInstalling(FunctionalComponent)"/> after this method returns <c>true</c> and will throw an <see cref="FunctionalComponentRejectedException"/> if it returns <c>false</c>
+    /// </remarks>
+    /// <param name="component">The component that is to be installed</param>
+    /// <param name="reasonForRejection">If this method returns true, describe the rejection here</param>
+    protected virtual bool ComponentFilter(FunctionalComponent component, [NotNullWhen(false)] out string? reasonForRejection) 
+    {
+        reasonForRejection = null;
+        return true;
+    }
 
     /// <summary>
     /// Runs when a <see cref="Node"/>'s parent is detached from its parent
@@ -390,6 +464,13 @@ public abstract class Node : GameObject, IDisposable
                 FunctionalComponentInstalled = null;
                 FunctionalComponentUninstalled = null;
 
+                for (int i = 0; i < AsynchronousComponents.Count; i++)
+                    _asyncComponents[i].UninstallFromNode();
+                _asyncComponents = null!;
+                for (int i = 0; i < SynchronousComponents.Count; i++)
+                    _syncComponents[i].UninstallFromNode();
+                _syncComponents = null!;
+
                 disposedValue = true;
             }
         }
@@ -399,7 +480,7 @@ public abstract class Node : GameObject, IDisposable
     /// Runs when the object is being disposed. Don't call this! It'll be called automatically! Call <see cref="Dispose()"/> instead
     /// </summary>
     /// <remarks>
-    /// This <see cref="Node"/> will dispose of all of its children (and those children of theirs), Detach, drop both <see cref="Parents"/> and <see cref="Children"/>, and finally clear all of its events after this method returns
+    /// This <see cref="Node"/> will dispose of all of its children (and those children of theirs), Detach, drop both <see cref="Parents"/> and <see cref="Children"/>, uninstall and clear its components, and finally clear all of its events after this method returns
     /// </remarks>
     protected virtual void Dispose(bool disposing) { }
 
