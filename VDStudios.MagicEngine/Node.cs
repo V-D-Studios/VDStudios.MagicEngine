@@ -10,7 +10,7 @@ namespace VDStudios.MagicEngine;
 /// Represents an active object in the <see cref="Game"/>
 /// </summary>
 /// <remarks>
-/// A <see cref="Node"/> can be an entity, a bullet, code to update another <see cref="Node"/>'s values, or any kind of active game object that is not a <see cref="FunctionalComponent"/>. To make a <see cref="Node"/> updateable, have it implement one of <see cref="IUpdateableNode"/> or <see cref="IAsyncUpdateableNode"/>. To make a <see cref="Node"/> drawable, have it implement one of <see cref="IDrawableNode"/> or <see cref="IAsyncDrawableNode"/>. A <see cref="Node"/> is responsible for updating its own <see cref="FunctionalComponent{TNode}"/>
+/// A <see cref="Node"/> can be an entity, a bullet, code to update another <see cref="Node"/>'s values, or any kind of active game object that is not a <see cref="FunctionalComponent"/>. To make a <see cref="Node"/> updateable, have it implement one of <see cref="IUpdateableNode"/> or <see cref="IAsyncUpdateableNode"/>. To make a <see cref="Node"/> drawable, have it implement one of <see cref="IDrawableNode"/> or <see cref="IAsyncDrawableNode"/>. A <see cref="Node"/> is responsible for updating its own <see cref="FunctionalComponent"/>
 /// </remarks>
 public abstract class Node : GameObject, IDisposable
 {
@@ -19,21 +19,7 @@ public abstract class Node : GameObject, IDisposable
     private readonly object sync = new();
 
     private IServiceScope? services;
-
-    private event Action<Node, int>? ParentDetachedEvent;
-    private event Action<Node, Node, int>? ParentAttachedEvent;
-
-    private void InternalParentDetached(Node parent, int parentIndex)
-    {
-        Root = null;
-        ParentDetached(parent, parentIndex);
-    }
-
-    private void InternalParentAttached(Node parent, Node grandParent, int parentIndex)
-    {
-        Root = parent.Root;
-        ParentAttached(parent, grandParent, parentIndex);
-    }
+    private event Action<Scene, bool>? AttachedToSceneEvent;
 
     private void DetachNoLock()
     {
@@ -43,6 +29,7 @@ public abstract class Node : GameObject, IDisposable
 
         if (Parent is Node parent)
         {
+            parent.AttachedToSceneEvent -= AttachedToScene;
             services?.Dispose();
             int ind = Index;
             Index = -1;
@@ -51,12 +38,6 @@ public abstract class Node : GameObject, IDisposable
 
             for (int i = 0; i < parent.Children.Count; i++)
                 parent.Children[i].Index = i;
-
-            parent.ParentAttachedEvent -= InternalParentAttached;
-            parent.ParentAttachedEvent -= ParentAttachedEvent;
-
-            parent.ParentDetachedEvent -= InternalParentDetached;
-            parent.ParentDetachedEvent -= ParentDetachedEvent;
         }
 
         if (Root is Scene root)
@@ -95,25 +76,21 @@ public abstract class Node : GameObject, IDisposable
             for (int i = 0; i < Parents.Count; i++)
                 if (ReferenceEquals(parent.Parents[i], this))
                     throw new ArgumentException("Can't attach a node to one of its children", nameof(parent));
-            Root = parent.Root;
 
             services = parent.services?.ServiceProvider.CreateScope();
             Index = parent.Children.Count;
             parent.Children.Add(this);
 
-            parent.ParentAttachedEvent += ParentAttached;
-            parent.ParentAttachedEvent += ParentAttachedEvent;
-
-            parent.ParentDetachedEvent += ParentDetached;
-            parent.ParentDetachedEvent += ParentDetachedEvent;
+            parent.AttachedToSceneEvent += AttachedToScene;
 
             Parents = parent.Parents.Clone(sync);
             Parents.Add(parent);
         }
 
+        Root = parent.Root;
+
         Attached(parent, Index, services?.ServiceProvider);
         NodeAttached?.Invoke(this, Game.TotalTime);
-        ParentAttachedEvent?.Invoke(this, parent, Depth);
     }
 
     /// <summary>
@@ -126,14 +103,15 @@ public abstract class Node : GameObject, IDisposable
         lock (sync)
         {
             ThrowIfAttached();
-            Root = root;
 
 #error Add Update, UpdateAsync, Draw and DrawAsync events in the same manner to wire. Each node should attach and detach directly to Root
 
             Depth = 0;
         }
-        NodeDetached?.Invoke(this, Game.TotalTime);
-        ParentDetachedEvent?.Invoke(this, Depth);
+        
+        AttachedToScene(root, true);
+        Root = root;
+        NodeAttached?.Invoke(this, Game.TotalTime);
     }
 
     /// <summary>
@@ -231,7 +209,7 @@ public abstract class Node : GameObject, IDisposable
     /// Represents the Root <see cref="Scene"/> for this <see cref="Node"/>
     /// </summary>
     /// <remarks>
-    /// Valid (not null) as long as this <see cref="Node"/> is attached
+    /// Valid (not null) as long as this <see cref="Node"/> is attached to a root <see cref="Scene"/> at any point up the tree
     /// </remarks>
     public Scene? Root
     {
@@ -245,10 +223,10 @@ public abstract class Node : GameObject, IDisposable
             {
                 var prev = root;
                 root = value;
-                NodeDetachedFromScene?.Invoke(this, Game.TotalTime, prev!);
             }
 
             root = value!;
+            AttachedToSceneEvent?.Invoke(root, false);
             NodeAttachedToScene?.Invoke(this, Game.TotalTime, root);
         }
     }
@@ -335,13 +313,21 @@ public abstract class Node : GameObject, IDisposable
     /// <summary>
     /// Runs when a <see cref="Node"/> is attached to a parent <see cref="Scene"/>
     /// </summary>
-    /// <param name="parent">The parent <see cref="Scene"/></param>
+    /// <param name="root">The parent <see cref="Scene"/></param>
     /// <param name="index">The <see cref="Index"/> of this <see cref="Node"/> in its parent</param>
     /// <param name="services">The services for this <see cref="Game"/> scoped for this node. If this node gets detached, the services will be invalidated and will need to be obtained again once its attached again. May be null if the parent <see cref="Node"/> is not attached</param>
+    /// <param name="isDirectParent">Whether or not this scene is the direct parent of this <see cref="Node"/></param>
     /// <remarks>
     /// This method is called before <see cref="NodeAttached"/> is fired
     /// </remarks>
-    protected virtual void Attached(Scene parent, int index, IServiceProvider? services) { }
+    protected virtual void Attached(Scene root, int index, bool isDirectParent, IServiceProvider? services) { }
+
+    private void AttachedToScene(Scene root, bool isDirectParent)
+    {
+        Attached(root, Index, isDirectParent, services!.ServiceProvider);
+        Root = root;
+        AttachedToSceneEvent?.Invoke(root, false);
+    }
 
     /// <summary>
     /// Runs when a <see cref="Node"/> is detached from its parent
@@ -374,21 +360,6 @@ public abstract class Node : GameObject, IDisposable
     }
 
     /// <summary>
-    /// Runs when a <see cref="Node"/>'s parent is detached from its parent
-    /// </summary>
-    /// <param name="parentIndex">The index of the parent <see cref="Node"/></param>
-    /// <param name="parent">The parent <see cref="Node"/> that was detached</param>
-    protected virtual void ParentDetached(Node parent, int parentIndex) { }
-
-    /// <summary>
-    /// Runs when a <see cref="Node"/>'s parent is attached into another parent
-    /// </summary>
-    /// <param name="parent">The parent <see cref="Node"/> that was attached</param>
-    /// <param name="grandParent">The new parent of <paramref name="parent"/></param>
-    /// <param name="parentIndex">The index of <paramref name="parent"/>. <paramref name="grandParent"/>'s index should be <paramref name="parentIndex"/> + 1</param>
-    protected virtual void ParentAttached(Node parent, Node grandParent, int parentIndex) { }
-
-    /// <summary>
     /// Runs when this <see cref="Node"/>'s Index changes
     /// </summary>
     /// <param name="oldIndex">The previous <see cref="Index"/></param>
@@ -403,11 +374,6 @@ public abstract class Node : GameObject, IDisposable
     public event NodeSceneEvent? NodeAttachedToScene;
 
     /// <summary>
-    /// Fired when this <see cref="Node"/> is detached from its <see cref="Root"/> <see cref="Scene"/>
-    /// </summary>
-    public event NodeSceneEvent? NodeDetachedFromScene;
-
-    /// <summary>
     /// Fired when this <see cref="Node"/> is attached to either a parent <see cref="Node"/> or <see cref="Scene"/>
     /// </summary>
     public event NodeEvent? NodeAttached;
@@ -415,6 +381,9 @@ public abstract class Node : GameObject, IDisposable
     /// <summary>
     /// Fired when this <see cref="Node"/> is detached from its parent <see cref="Node"/> or <see cref="Scene"/>
     /// </summary>
+    /// <remarks>
+    /// When a <see cref="Node"/> is detached from its parent, it is also detached from the <see cref="Scene"/>
+    /// </remarks>
     public event NodeEvent? NodeDetached;
 
     /// <summary>
@@ -454,10 +423,8 @@ public abstract class Node : GameObject, IDisposable
                 Parents = null!;
                 Children = null!;
 
-                ParentDetachedEvent = null;
-                ParentAttachedEvent = null;
+                AttachedToSceneEvent = null;
                 NodeAttachedToScene = null;
-                NodeDetachedFromScene = null;
                 NodeAttached = null;
                 NodeDetached = null;
                 IndexChanged = null;
