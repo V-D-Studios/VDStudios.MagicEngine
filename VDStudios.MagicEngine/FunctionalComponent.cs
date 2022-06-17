@@ -6,22 +6,17 @@ namespace VDStudios.MagicEngine;
 /// <summary>
 /// Represents encapsulated functionality of a Node
 /// </summary>
-public abstract class FunctionalComponent<TNode> : GameObject, IDisposable, IFunctionalComponent where TNode : Node
+public abstract class FunctionalComponent<TNode> : FunctionalComponentBase, IDisposable where TNode : Node
 {
     private IServiceScope? serviceScope;
 
     /// <summary>
-    /// The <see cref="Node"/> this <see cref="FunctionalComponent"/> is currently attached to, if any
+    /// The <see cref="Node"/> this <see cref="FunctionalComponent{TNode}"/> is currently attached to, if any
     /// </summary>
     protected TNode? AttachedNode { get; private set; }
 
     /// <summary>
-    /// Represents the internal Component Index in the currently attached node
-    /// </summary>
-    public int Index { get; private set; }
-
-    /// <summary>
-    /// The current <see cref="IServiceProvider"/> for this <see cref="FunctionalComponent"/>
+    /// The current <see cref="IServiceProvider"/> for this <see cref="FunctionalComponent{TNode}"/>
     /// </summary>
     /// <remarks>
     /// This provider will become invalid if this gets detached. Will become valid anew once it's reattached to a <see cref="Node"/>
@@ -39,10 +34,18 @@ public abstract class FunctionalComponent<TNode> : GameObject, IDisposable, IFun
     internal void InternalUninstall()
     {
         serviceScope?.Dispose();
+        serviceScope = null;
         Uninstall();
         AttachedNode = null;
     }
-    void IFunctionalComponent.InternalUninstall() => InternalUninstall();
+
+    /// <inheritdoc/>
+    public override void UninstallFromNode()
+    {
+        if (AttachedNode is null)
+            throw new InvalidOperationException("This FunctionalComponent is not installed in any Node");
+        AttachedNode.Uninstall(this);
+    }
 
     /// <summary>
     /// Attaches this component's functionality into <paramref name="node"/>
@@ -60,22 +63,17 @@ public abstract class FunctionalComponent<TNode> : GameObject, IDisposable, IFun
     /// <remarks>
     /// <see cref="AttachedNode"/> will be null'd after this method is called, and <see cref="Node.FunctionalComponentUninstalled"/> will fire after that
     /// </remarks>
-    protected virtual void Uninstall() { }
+    protected void Uninstall() { }
 
     #region IDisposable
 
     private bool disposedValue;
     /// <summary>
-    /// Disposes this <see cref="FunctionalComponent"/>'s resources. If overriding, make sure to to call base.Dispose()
+    /// Disposes this <see cref="FunctionalComponent{TNode}"/>'s resources
     /// </summary>
     /// <param name="disposing"></param>
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposedValue)
-        {
-            serviceScope?.Dispose();
-            disposedValue = true;
-        }
     }
 
     /// <inheritdoc/>
@@ -84,12 +82,15 @@ public abstract class FunctionalComponent<TNode> : GameObject, IDisposable, IFun
         Dispose(disposing: false);
     }
 
-    /// <inheritdoc/>
-    public void Dispose()
+    internal override void InternalDispose()
     {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
+        if (!disposedValue)
+        {
+            Dispose(true);
+
+            serviceScope?.Dispose();
+            disposedValue = true;
+        }
     }
 
     #endregion
