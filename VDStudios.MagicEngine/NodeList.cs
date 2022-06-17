@@ -16,8 +16,10 @@ namespace VDStudios.MagicEngine;
 /// </remarks>
 public sealed class NodeList : IReadOnlyList<Node>
 {
-    internal readonly AsyncLock sync = new();
-    internal NodeList() { }
+    internal static readonly NodeList Empty = new(new());
+
+    internal readonly object _sync;
+    private NodeList(object sync) => _sync = sync;
 
     public Node this[int index] { get; }
 
@@ -44,6 +46,11 @@ public sealed class NodeList : IReadOnlyList<Node>
     }
 
     internal void Clear()
+    {
+        throw new NotImplementedException();
+    }
+
+    internal NodeList Clone(object sync)
     {
         throw new NotImplementedException();
     }
