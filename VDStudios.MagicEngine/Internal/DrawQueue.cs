@@ -11,20 +11,20 @@ internal sealed class DrawQueue : IDrawQueue
 {
     #region Fields
 
-    private readonly PriorityQueue<IDrawing, float> _queue = new(20, new PriorityComparer());
+    private readonly PriorityQueue<IDrawOperation, float> _queue = new(20, new PriorityComparer());
     private readonly AsyncLock _lock = new();
 
     #endregion
 
     public int Count { get; }
 
-    public async Task EnqueueAsync(IDrawing drawing, float priority)
+    public async Task EnqueueAsync(IDrawOperation drawing, float priority)
     {
         using (await _lock.LockAsync())
             _queue.Enqueue(drawing, priority);
     }
 
-    public void Enqueue(IDrawing drawing, float priority)
+    public void Enqueue(IDrawOperation drawing, float priority)
     {
         using (_lock.Lock())
             _queue.Enqueue(drawing, priority);
@@ -54,7 +54,7 @@ internal sealed class DrawQueue : IDrawQueue
             _queue.EnsureCapacity(_queue.Count + freeSpace);
     }
 
-    public void EnqueueCollection(IReadOnlyCollection<(IDrawing drawing, float priority)> items)
+    public void EnqueueCollection(IReadOnlyCollection<(IDrawOperation drawing, float priority)> items)
     {
         using (_lock.Lock())
         {
@@ -63,7 +63,7 @@ internal sealed class DrawQueue : IDrawQueue
         }
     }
 
-    public async Task EnqueueCollectionAsync(IReadOnlyCollection<(IDrawing drawing, float priority)> items)
+    public async Task EnqueueCollectionAsync(IReadOnlyCollection<(IDrawOperation drawing, float priority)> items)
     {
         using (await _lock.LockAsync())
         {
@@ -72,26 +72,26 @@ internal sealed class DrawQueue : IDrawQueue
         }
     }
 
-    public void EnqueueRange(IEnumerable<(IDrawing drawing, float priority)> items)
+    public void EnqueueRange(IEnumerable<(IDrawOperation drawing, float priority)> items)
     {
         using (_lock.Lock())
             _queue.EnqueueRange(items);
     }
 
-    public async Task EnqueueRangeAsync(IEnumerable<(IDrawing drawing, float priority)> items)
+    public async Task EnqueueRangeAsync(IEnumerable<(IDrawOperation drawing, float priority)> items)
     {
         using (await _lock.LockAsync())
             _queue.EnqueueRange(items);
     }
 
-    public async Task EnqueueAsyncRange(IAsyncEnumerable<(IDrawing drawing, float priority)> items)
+    public async Task EnqueueAsyncRange(IAsyncEnumerable<(IDrawOperation drawing, float priority)> items)
     {
         await foreach (var (drawing, priority) in items)
             using(await _lock.LockAsync())
                 _queue.Enqueue(drawing, priority);
     }
 
-    public void EnqueueCollection(IReadOnlyCollection<IDrawing> items, float priority)
+    public void EnqueueCollection(IReadOnlyCollection<IDrawOperation> items, float priority)
     {
         using (_lock.Lock())
         {
@@ -100,7 +100,7 @@ internal sealed class DrawQueue : IDrawQueue
         }
     }
 
-    public async Task EnqueueCollectionAsync(IReadOnlyCollection<IDrawing> items, float priority)
+    public async Task EnqueueCollectionAsync(IReadOnlyCollection<IDrawOperation> items, float priority)
     {
         using (await _lock.LockAsync())
         {
@@ -109,19 +109,19 @@ internal sealed class DrawQueue : IDrawQueue
         }
     }
 
-    public void EnqueueRange(IEnumerable<IDrawing> items, float priority)
+    public void EnqueueRange(IEnumerable<IDrawOperation> items, float priority)
     {
         using (_lock.Lock())
             _queue.EnqueueRange(items, priority);
     }
 
-    public async Task EnqueueRangeAsync(IEnumerable<IDrawing> items, float priority)
+    public async Task EnqueueRangeAsync(IEnumerable<IDrawOperation> items, float priority)
     {
         using (await _lock.LockAsync())
             _queue.EnqueueRange(items, priority);
     }
 
-    public async Task EnqueueAsyncRange(IAsyncEnumerable<IDrawing> items, float priority)
+    public async Task EnqueueAsyncRange(IAsyncEnumerable<IDrawOperation> items, float priority)
     {
         await foreach (var drawing in items)
             using (await _lock.LockAsync())

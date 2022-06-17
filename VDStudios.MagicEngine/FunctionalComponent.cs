@@ -6,9 +6,6 @@ namespace VDStudios.MagicEngine;
 /// <summary>
 /// Represents encapsulated functionality of a Node
 /// </summary>
-/// <remarks>
-/// Remember to implement <see cref="IUpdateable"/> or <see cref="IUpdateableAsync"/> to let your component be Updated
-/// </remarks>
 public abstract class FunctionalComponent<TNode> : GameObject, IDisposable, IFunctionalComponent where TNode : Node
 {
     private IServiceScope? serviceScope;
@@ -102,7 +99,7 @@ public abstract class FunctionalComponent<TNode> : GameObject, IDisposable, IFun
 /// Represents encapsulated functionality of a Node that accepts any <see cref="Node"/>
 /// </summary>
 /// <remarks>
-/// Remember to implement <see cref="IUpdateable"/> or <see cref="IUpdateableAsync"/> to let your component be Updated
+/// Remember to implement <see cref="IUpdateableNode"/> or <see cref="IAsyncUpdateableNode"/> to let your component be Updated
 /// </remarks>
 public abstract class FunctionalComponent : FunctionalComponent<Node>
 {

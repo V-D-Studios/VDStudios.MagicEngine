@@ -7,7 +7,7 @@ namespace VDStudios.MagicEngine;
 /// Represents an active object in the <see cref="Game"/>
 /// </summary>
 /// <remarks>
-/// A <see cref="Node"/> can be an entity, a bullet, code to update another <see cref="Node"/>'s values, or any kind of active game object that is not a <see cref="FunctionalComponent"/>. To make a <see cref="Node"/> updateable, have it implement one of <see cref="IUpdateable"/> or <see cref="IUpdateableAsync"/>. To make a <see cref="Node"/> drawable, have it implement one of <see cref="IDrawable"/> or <see cref="IDrawableAsync"/>
+/// A <see cref="Node"/> can be an entity, a bullet, code to update another <see cref="Node"/>'s values, or any kind of active game object that is not a <see cref="FunctionalComponent"/>. To make a <see cref="Node"/> updateable, have it implement one of <see cref="IUpdateableNode"/> or <see cref="IAsyncUpdateableNode"/>. To make a <see cref="Node"/> drawable, have it implement one of <see cref="IDrawableNode"/> or <see cref="IAsyncDrawableNode"/>
 /// </remarks>
 public abstract class Node : GameObject
 {
