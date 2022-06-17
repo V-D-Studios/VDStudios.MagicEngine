@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
 
@@ -9,7 +11,7 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// A <see cref="Node"/> can be an entity, a bullet, code to update another <see cref="Node"/>'s values, or any kind of active game object that is not a <see cref="FunctionalComponent"/>. To make a <see cref="Node"/> updateable, have it implement one of <see cref="IUpdateableNode"/> or <see cref="IAsyncUpdateableNode"/>. To make a <see cref="Node"/> drawable, have it implement one of <see cref="IDrawableNode"/> or <see cref="IAsyncDrawableNode"/>
 /// </remarks>
-public abstract class Node : GameObject
+public abstract class Node : GameObject, IDisposable
 {
     #region private
 
@@ -32,6 +34,39 @@ public abstract class Node : GameObject
         ParentAttached(parent, grandParent, parentIndex);
     }
 
+    private void DetachNoLock()
+    {
+        ThrowIfDisposed();
+        ThrowIfNotAttached();
+        var prevParent = Parent!;
+
+        if (Parent is Node parent)
+        {
+            services?.Dispose();
+            int ind = Index;
+            Index = -1;
+
+            parent.Children.Remove(ind);
+
+            for (int i = 0; i < parent.Children.Count; i++)
+                parent.Children[i].Index = i;
+
+            parent.ParentAttachedEvent -= InternalParentAttached;
+            parent.ParentAttachedEvent -= ParentAttachedEvent;
+
+            parent.ParentDetachedEvent -= InternalParentDetached;
+            parent.ParentDetachedEvent -= ParentDetachedEvent;
+        }
+
+        if (Root is Scene root)
+        {
+#error not wired
+        }
+
+        Root = null;
+        Parent = null;
+        Parents = NodeList.Empty;
+    }
 
     #endregion
 
@@ -52,6 +87,7 @@ public abstract class Node : GameObject
     /// </remarks>
     public void Attach(Node parent)
     {
+        ThrowIfDisposed();
         lock (sync)
         {
             ThrowIfAttached();
@@ -85,6 +121,7 @@ public abstract class Node : GameObject
     /// <param name="root"></param>
     public void Attach(Scene root)
     {
+        ThrowIfDisposed();
         lock (sync)
         {
             ThrowIfAttached();
@@ -104,36 +141,7 @@ public abstract class Node : GameObject
     public void Detach()
     {
         lock (sync)
-        {
-            ThrowIfNotAttached();
-            var prevParent = Parent!;
-
-            if (Parent is Node parent)
-            {
-                services?.Dispose();
-                int ind = Index;
-                Index = -1;
-
-                parent.Children.Remove(ind);
-
-                for (int i = 0; i < parent.Children.Count; i++)
-                    parent.Children[i].Index = i;
-
-                parent.ParentAttachedEvent -= InternalParentAttached;
-                parent.ParentAttachedEvent -= ParentAttachedEvent;
-
-                parent.ParentDetachedEvent -= InternalParentDetached;
-                parent.ParentDetachedEvent -= ParentDetachedEvent;
-            }
-            else if (Root is Scene root)
-            {
-#error not wired
-            }
-
-            Root = null;
-            Parent = null;
-            Parents = NodeList.Empty;
-        }
+            DetachNoLock();
     }
 
     /// <summary>
@@ -145,6 +153,25 @@ public abstract class Node : GameObject
         if (Index is -1)
             throw new InvalidOperationException("This Node is not attached to anything");
     }
+
+    /// <summary>
+    /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of
+    /// </summary>
+    protected void ThrowIfDisposed()
+    {
+        if (disposedValue)
+            throw new ObjectDisposedException(GetType().FullName);
+    }
+
+
+    /// <summary>
+    /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of, otherwise, returns the passed value
+    /// </summary>
+    /// <remarks>
+    /// This method is useful to ensure disposed safety in an expression body
+    /// </remarks>
+    [return: NotNullIfNotNull("v")]
+    protected T? ThrowIfDisposed<T>(T? v) => disposedValue ? throw new ObjectDisposedException(GetType().FullName) : v;
 
     /// <summary>
     /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is attached to another <see cref="Node"/> or <see cref="Scene"/>
@@ -172,7 +199,7 @@ public abstract class Node : GameObject
     /// </remarks>
     public Scene? Root
     {
-        get => root;
+        get => ThrowIfDisposed(root);
         private set
         {
             if (ReferenceEquals(root, value))
@@ -191,13 +218,15 @@ public abstract class Node : GameObject
     }
     private Scene? root;
 
+    private List<IFunctionalComponent> Components { get; }
+
     /// <summary>
     /// Represents the Children or Subnodes of this <see cref="Node"/>
     /// </summary>
     /// <remarks>
     /// Due to thread safety concerns, the list is locked during reads
     /// </remarks>
-    public NodeList Children { get; }
+    public NodeList Children { get; private set; }
 
     /// <summary>
     /// Represents the Parents or Supernodes of this <see cref="Node"/>. The lower the number, the closer this parent is to the root
@@ -228,7 +257,7 @@ public abstract class Node : GameObject
     /// </remarks>
     public int Index 
     { 
-        get => index; 
+        get => ThrowIfDisposed(index); 
         private set
         {
             if (index == value)
@@ -328,6 +357,61 @@ public abstract class Node : GameObject
     /// Fired when a <see cref="Node"/> has one of its <see cref="FunctionalComponent"/>s uninstalled
     /// </summary>
     public event NodeFunctionalComponentInstallEvent? FunctionalComponentUninstalled;
+
+    #endregion
+
+    #region IDisposable
+
+    private bool disposedValue;
+
+    private void InternalDispose(bool disposing)
+    {
+        lock (sync)
+        {
+            if (!disposedValue)
+            {
+                Dispose(disposing);
+
+                for (int i = 0; i < Children.Count; i++)
+                    Children[i].Dispose();
+
+                DetachNoLock();
+
+                Parents = null!;
+                Children = null!;
+
+                ParentDetachedEvent = null;
+                ParentAttachedEvent = null;
+                NodeAttachedToScene = null;
+                NodeDetachedFromScene = null;
+                NodeAttached = null;
+                NodeDetached = null;
+                IndexChanged = null;
+                FunctionalComponentInstalled = null;
+                FunctionalComponentUninstalled = null;
+
+                disposedValue = true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Runs when the object is being disposed. Don't call this! It'll be called automatically! Call <see cref="Dispose()"/> instead
+    /// </summary>
+    /// <remarks>
+    /// This <see cref="Node"/> will dispose of all of its children (and those children of theirs), Detach, drop both <see cref="Parents"/> and <see cref="Children"/>, and finally clear all of its events after this method returns
+    /// </remarks>
+    protected virtual void Dispose(bool disposing) { }
+
+    /// <summary>
+    /// Disposes of this <see cref="Node"/> and all of its currently attached children
+    /// </summary>
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 
     #endregion
 }
