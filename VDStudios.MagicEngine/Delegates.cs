@@ -56,6 +56,15 @@ public delegate void GameMainWindowCreatedEvent(Game game, TimeSpan timestamp, W
 public delegate void SceneEvent(Scene scene, TimeSpan timestamp);
 
 /// <summary>
+/// Represents an event in the game regarding a <see cref="Node"/>'s index
+/// </summary>
+/// <param name="node">The node that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="oldIndex">The previous <see cref="Node.Index"/> of <paramref name="node"/></param>
+/// <param name="newIndex">The new <see cref="Node.Index"/>of <paramref name="node"/></param>
+public delegate void NodeIndexChangedEvent(Node node, TimeSpan timestamp, int oldIndex, int newIndex);
+
+/// <summary>
 /// Represents an event in the game regarding a <see cref="FunctionalComponent"/>
 /// </summary>
 /// <param name="component">The component that experienced the change</param>
