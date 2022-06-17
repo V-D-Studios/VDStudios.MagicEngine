@@ -72,6 +72,14 @@ public delegate void NodeIndexChangedEvent(Node node, TimeSpan timestamp, int ol
 public delegate void NodeEvent(Node node, TimeSpan timestamp);
 
 /// <summary>
+/// Represents an event in the game regarding a <see cref="Node"/> interacting with a <see cref="Scene"/>
+/// </summary>
+/// <param name="node">The Node that that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="scene">The Scene in question</param>
+public delegate void NodeSceneEvent(Node node, TimeSpan timestamp, Scene scene);
+
+/// <summary>
 /// Represents an event in the game regarding a <see cref="FunctionalComponent"/>
 /// </summary>
 /// <param name="component">The component that experienced the change</param>
