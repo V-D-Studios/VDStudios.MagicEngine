@@ -62,14 +62,41 @@ public abstract class Node : GameObject, IDisposable
     }
 
     /// <summary>
+    /// Attaches <paramref name="child"/> to a this. This method is used for collection initialization syntax and is the same as calling <see cref="Attach(Node)"/>
+    /// </summary>
+    /// <remarks>
+    /// This method checks for circular references
+    /// </remarks>
+    /// <param name="child">The child to attach</param>
+    public void Add(Node child) => Attach(child);
+
+    /// <summary>
+    /// Attaches <paramref name="child"/> to a this
+    /// </summary>
+    /// <remarks>
+    /// This method checks for circular references
+    /// </remarks>
+    /// <param name="child">The child to attach</param>
+    public void Attach(Node child)
+    {
+        lock (sync)
+        {
+            child.AttachTo(this);
+        }
+    }
+
+    /// <summary>
     /// Attaches this <see cref="Node"/> to a parent
     /// </summary>
     /// <remarks>
     /// This method checks for circular references
     /// </remarks>
-    public void Attach(Node parent)
+    public void AttachTo(Node parent)
     {
+        parent.ThrowIfDisposed();
         ThrowIfDisposed();
+        if (ReferenceEquals(this, parent))
+            throw new ArgumentException("A node can't be attached to itself", nameof(parent));
         lock (sync)
         {
             ThrowIfAttached();
@@ -97,15 +124,12 @@ public abstract class Node : GameObject, IDisposable
     /// Attaches this <see cref="Node"/> to a <see cref="Scene"/>
     /// </summary>
     /// <param name="root"></param>
-    public void Attach(Scene root)
+    public void AttachTo(Scene root)
     {
         ThrowIfDisposed();
         lock (sync)
         {
             ThrowIfAttached();
-
-#error Add Update, UpdateAsync, Draw and DrawAsync events in the same manner to wire. Each node should attach and detach directly to Root
-
             Depth = 0;
         }
         
@@ -134,6 +158,16 @@ public abstract class Node : GameObject, IDisposable
             _asyncComponents.Add(afc);
         else if (component is SynchronousFunctionalComponent sfc)
             _syncComponents.Add(sfc);
+    }
+
+    private void AttachedToScene(Scene root, bool isDirectParent)
+    {
+        Attached(root, Index, isDirectParent, services!.ServiceProvider);
+        Root = root;
+        AttachedToSceneEvent?.Invoke(root, false);
+
+#error Add Update, UpdateAsync, Draw and DrawAsync events in the same manner to wire. Each node should attach and detach directly to Root
+
     }
 
     /// <summary>
@@ -300,6 +334,16 @@ public abstract class Node : GameObject, IDisposable
     private int index;
 
     /// <summary>
+    /// Runs when a <see cref="Node"/> is attached to this <see cref="Node"/>
+    /// </summary>
+    /// <remarks>
+    /// This method is called before the child's <see cref="Attached(Node, int, IServiceProvider?)"/> is called
+    /// </remarks>
+    /// <param name="child">The child that is being attached</param>
+    /// <param name="index">The index the child will have</param>
+    protected virtual void ChildAttached(Node child, int index) { }
+
+    /// <summary>
     /// Runs when a <see cref="Node"/> is attached to a parent <see cref="Node"/>
     /// </summary>
     /// <param name="parent">The parent <see cref="Node"/></param>
@@ -321,13 +365,6 @@ public abstract class Node : GameObject, IDisposable
     /// This method is called before <see cref="NodeAttached"/> is fired
     /// </remarks>
     protected virtual void Attached(Scene root, int index, bool isDirectParent, IServiceProvider? services) { }
-
-    private void AttachedToScene(Scene root, bool isDirectParent)
-    {
-        Attached(root, Index, isDirectParent, services!.ServiceProvider);
-        Root = root;
-        AttachedToSceneEvent?.Invoke(root, false);
-    }
 
     /// <summary>
     /// Runs when a <see cref="Node"/> is detached from its parent
