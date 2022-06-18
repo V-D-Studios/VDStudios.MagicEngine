@@ -47,21 +47,21 @@ public class Game : SDLApplication<Game>
             isSDLStarted = true;
         }
 
-        if (services is null)
-            Log.Logger = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
-
-        if (services is null)
-        {
-            var serv = CreateServiceCollection();
-            ConfigureServices(serv);
-            // Put here any default services
-            services = serv.BuildServiceProvider(true);
-        }
+        Log = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
+        var serv = CreateServiceCollection();
+        ConfigureServices(serv);
+        // Put here any default services
+        services = serv.BuildServiceProvider(true);
     }
 
     #endregion
 
     #region Properties
+
+    /// <summary>
+    /// A Logger that belongs to this <see cref="Game"/>
+    /// </summary>
+    public ILogger Log { get; }
 
     /// <summary>
     /// Represents the current Frames-per-second value calculated while the game is running
