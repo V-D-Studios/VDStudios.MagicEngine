@@ -9,6 +9,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using VDStudios.MagicEngine.Internal;
+using System.Numerics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace VDStudios.MagicEngine;
 
@@ -29,9 +32,44 @@ public class Game : SDLApplication<Game>
     private bool isStarted;
     private bool isSDLStarted;
 
+    /// <summary>
+    /// Instances a new <see cref="Game"/>
+    /// </summary>
+    /// <remarks>
+    /// This method calls <see cref="ConfigureServices(IServiceCollection)"/>, <see cref="SetupSDL"/>, <see cref="ConfigureLogger(LoggerConfiguration)"/> and <see cref="CreateServiceCollection"/>
+    /// </remarks>
+    protected Game()
+    {
+        if (!isSDLStarted)
+        {
+            SetupSDL();
+            isSDLStarted = true;
+        }
+
+        if (services is null)
+            Log.Logger = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
+
+        if (services is null)
+        {
+            var serv = CreateServiceCollection();
+            ConfigureServices(serv);
+            // Put here any default services
+            services = serv.BuildServiceProvider(true);
+        }
+    }
+
     #endregion
 
     #region Properties
+
+    /// <summary>
+    /// Represents the current Frames-per-second value calculated while the game is running
+    /// </summary>
+    /// <remarks>
+    /// This value is only updated while the game is running, also not during <see cref="Load(Progress{float}, IServiceProvider)"/> or any of the other methods
+    /// </remarks>
+    public float FPS => _fps;
+    private float _fps;
 
     /// <summary>
     /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame{TScene}"/> is called
@@ -143,11 +181,10 @@ public class Game : SDLApplication<Game>
     /// Executes custom logic when starting the game
     /// </summary>
     /// <param name="firstScene">The first scene of the game</param>
-    /// <param name="services">The services for this <see cref="Game"/> scoped for this call alone</param>
     /// <remarks>
     /// Don't call this manually, place here code that should run when starting the game. Is called after <see cref="Load"/>
     /// </remarks>
-    protected virtual void Start(Scene firstScene, IServiceProvider services) { }
+    protected virtual void Start(Scene firstScene) { }
 
     /// <summary>
     /// Launches SDL's Window for the <see cref="Game"/>
@@ -200,33 +237,17 @@ public class Game : SDLApplication<Game>
                 throw new InvalidOperationException("Can't start a game that is already running");
             isStarted = true;
 
-            if (services is null)
-                Log.Logger = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
-
-            if (!isSDLStarted)
-            {
-                SetupSDL();
-                isSDLStarted = true;
-            }
-
-            if (services is null)
-            {
-                var serv = CreateServiceCollection();
-                ConfigureServices(serv);
-                // Put here any default services
-                services = serv.BuildServiceProvider(true);
-            }
         }
-
-        IServiceScope scope = services.CreateScope();
 
         //
 
         GameLoading?.Invoke(this, TotalTime);
 
-        Load(Preload(), scope.ServiceProvider);
+        Load(Preload(), Services);
         
         GameLoaded?.Invoke(this, TotalTime);
+
+        SetupScenes?.Invoke(this, Services);
 
         //
 
@@ -237,7 +258,9 @@ public class Game : SDLApplication<Game>
 
         GameStarting?.Invoke(this, TotalTime);
 
-        Start(firstScene, scope.ServiceProvider);
+        _fps = 0;
+        Start(firstScene);
+        _fps = 0;
 
         GameStarted?.Invoke(this, TotalTime);
 
@@ -252,6 +275,8 @@ public class Game : SDLApplication<Game>
         await Run(lifetime).ConfigureAwait(true);
 
         //
+
+        StopScenes?.Invoke();
 
         GameUnloading?.Invoke(this, TotalTime);
 
@@ -268,12 +293,17 @@ public class Game : SDLApplication<Game>
         Stop();
 
         GameStopped?.Invoke(this, TotalTime);
-
-        scope.Dispose();
     }
 
     private async Task Run(IGameLifetime lifetime)
     {
+        var drawqueue = new DrawQueue();
+        ulong last = Performance.PerformanceCounter;
+        ulong now;
+        float elapsed;
+        TimeSpan delta = default;
+        Scene scene;
+
         while (lifetime.ShouldRun)
         {
             if (nextScene is not null)
@@ -290,12 +320,30 @@ public class Game : SDLApplication<Game>
                 nextScene = null;
                 SceneChanged?.Invoke(this, TotalTime, currentScene, prev!);
             }
+
+            scene = CurrentScene;
+            await scene.Update(delta);
+            await scene.Draw(drawqueue);
+
+            using (await drawqueue._lock.LockAsync())
+                while (drawqueue.Count > 0)
+                    drawqueue.Dequeue().Draw(Vector2.Zero, MainRenderer);
+
+            elapsed = last - (now = Performance.PerformanceCounter);
+            _fps = Performance.PerformanceFrequency / elapsed;
+            delta = TimeSpan.FromMilliseconds(elapsed);
+            last = now;
         }
+
+#error Game Ending Scene.End
     }
 
     #endregion
 
     #region Events
+
+    internal GameSetupScenesEvent? SetupScenes;
+    internal Action? StopScenes;
 
     /// <summary>
     /// Fired when the <see cref="Game"/> <see cref="CurrentScene"/> changes
