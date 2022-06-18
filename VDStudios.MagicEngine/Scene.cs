@@ -114,6 +114,12 @@ public abstract class Scene : GameObject, IDisposable
         SceneEnded?.Invoke(this, Game.TotalTime);
     }
 
+    internal async ValueTask End()
+    {
+        await Ended();
+        SceneEnded?.Invoke(this, Game.TotalTime);
+    }
+
     #region Node Connections
 
     internal void ConnectNode(Node node)
@@ -367,11 +373,17 @@ public abstract class Scene : GameObject, IDisposable
     protected virtual ValueTask Began() => ValueTask.CompletedTask;
 
     /// <summary>
-    /// Runs when this <see cref="Scene"/> is ended
+    /// Runs when this <see cref="Scene"/> is ended, and the next one is about to begin
     /// </summary>
     /// <param name="next">The next scene to begin</param>
     /// <returns>If this method is async, mark it as such. Otherwise, returning <see cref="ValueTask.CompletedTask"/> is enough</returns>
     protected virtual ValueTask Ended(Scene next) => ValueTask.CompletedTask;
+
+    /// <summary>
+    /// Runs when this <see cref="Scene"/> is ended, and the <see cref="Game"/> is stopping
+    /// </summary>
+    /// <returns>If this method is async, mark it as such. Otherwise, returning <see cref="ValueTask.CompletedTask"/> is enough</returns>
+    protected virtual ValueTask Ended() => ValueTask.CompletedTask;
 
     #endregion
 

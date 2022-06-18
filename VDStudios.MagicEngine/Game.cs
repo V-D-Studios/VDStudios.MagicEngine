@@ -331,7 +331,7 @@ public class Game : SDLApplication<Game>
             _fps = 1000 / sw.ElapsedMilliseconds;
         }
 
-#error Game Ending Scene.End
+        await CurrentScene.End();
     }
 
     #endregion
