@@ -41,7 +41,11 @@ public abstract class Node : GameObject, IDisposable
         }
 
         if (Root is Scene root)
+        {
+            if (Parent is null)
+                root.InternalDetachNode(this);
             root.DisconnectNode(this);
+        }
 
         Root = null;
         Parent = null;
@@ -130,7 +134,10 @@ public abstract class Node : GameObject, IDisposable
             ThrowIfAttached();
             Depth = 0;
         }
-        
+
+        Index = root.Nodes.Count;
+        root.Nodes.Add(this);
+
         AttachedToScene(root, true);
         Root = root;
         NodeAttached?.Invoke(this, Game.TotalTime);
