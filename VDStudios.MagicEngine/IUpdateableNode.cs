@@ -12,7 +12,7 @@ namespace VDStudios.MagicEngine;
 public interface IUpdateableNode
 {
     /// <summary>
-    /// Updates the <see cref="Node"/> or <see cref="FunctionalComponent{TNode}"/>
+    /// Updates the <see cref="Node"/> or <see cref="FunctionalComponent"/>
     /// </summary>
     /// <param name="delta">The amount of time that has passed since the last update batch call</param>
     public void Update(TimeSpan delta);
