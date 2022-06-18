@@ -58,6 +58,7 @@ public abstract class FunctionalComponent : GameObject, IDisposable
         Index = index;
         node.NodeAttachedToScene += InternalNodeAttachedToSceneEventHandler;
         node.NodeDetached += InternalNodeDetachedHandler;
+        InstalledOntoNode?.Invoke(this, Game.TotalTime, node);
     }
 
     private void InternalNodeDetachedHandler(Node node, TimeSpan timestamp)
@@ -78,8 +79,9 @@ public abstract class FunctionalComponent : GameObject, IDisposable
     internal void InternalUninstall()
     {
         Uninstalling();
-        AttachedNode!.NodeAttachedToScene += InternalNodeAttachedToSceneEventHandler;
-        AttachedNode.NodeDetached += InternalNodeDetachedHandler;
+        AttachedNode!.NodeAttachedToScene -= InternalNodeAttachedToSceneEventHandler;
+        AttachedNode.NodeDetached -= InternalNodeDetachedHandler;
+        UninstalledFromNode?.Invoke(this, Game.TotalTime, AttachedNode);
         AttachedNode = null;
     }
 
@@ -127,6 +129,16 @@ public abstract class FunctionalComponent : GameObject, IDisposable
     /// Fired when this <see cref="FunctionalComponent"/>'s <see cref="Index"/> changes
     /// </summary>
     public event FunctionalComponentIndexChangedEvent? IndexChanged;
+
+    /// <summary>
+    /// Fired when this <see cref="FunctionalComponent"/> is installed onto a <see cref="Node"/>
+    /// </summary>
+    public event FunctionalComponentNodeEvent? InstalledOntoNode;
+
+    /// <summary>
+    /// Fired when this <see cref="FunctionalComponent"/> is uninstalled from a <see cref="Node"/>
+    /// </summary>
+    public event FunctionalComponentNodeEvent? UninstalledFromNode;
 
     #endregion
 
