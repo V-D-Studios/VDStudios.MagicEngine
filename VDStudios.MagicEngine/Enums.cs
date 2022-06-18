@@ -14,30 +14,30 @@ public enum UpdateBatch
     /// <summary>
     /// The first update batch, will be updated first
     /// </summary>
-    Batch1,
+    First,
 
     /// <summary>
-    /// The second update batch, will be updated after <see cref="Batch1"/>
+    /// The second update batch, will be updated after <see cref="First"/>
     /// </summary>
-    Batch2,
+    Second,
 
     /// <summary>
-    /// The third update batch, will be updated after <see cref="Batch2"/>
+    /// The third update batch, will be updated after <see cref="Second"/>
     /// </summary>
-    Batch3,
+    Third,
 
     /// <summary>
-    /// The fourth update batch, will be updated after <see cref="Batch3"/>
+    /// The fourth update batch, will be updated after <see cref="Third"/>
     /// </summary>
-    Batch4,
+    Fourth,
 
     /// <summary>
-    /// The fifth update batch, will be updated after <see cref="Batch4"/>
+    /// The fifth update batch, will be updated after <see cref="Fourth"/>
     /// </summary>
-    Batch5,
+    Fifth,
 
     /// <summary>
-    /// The sixth update batch, will be updated after <see cref="Batch5"/>
+    /// The sixth update batch, will be updated after <see cref="Fifth"/> and all others
     /// </summary>
-    Batch6
+    Last
 }
