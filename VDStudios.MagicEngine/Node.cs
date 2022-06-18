@@ -18,7 +18,7 @@ public abstract class Node : GameObject, IDisposable
 
     private readonly object sync = new();
 
-    private IServiceScope? services;
+    internal IServiceScope? services;
     private event Action<Scene, bool>? AttachedToSceneEvent;
 
     private void DetachNoLock()
@@ -41,9 +41,7 @@ public abstract class Node : GameObject, IDisposable
         }
 
         if (Root is Scene root)
-        {
-#error not wired
-        }
+            root.DisconnectNode(this);
 
         Root = null;
         Parent = null;
@@ -155,19 +153,61 @@ public abstract class Node : GameObject, IDisposable
         ComponentInstalling(component);
 
         if (component is AsynchronousFunctionalComponent afc)
+        {
+            component.Index = _asyncComponents.Count;
             _asyncComponents.Add(afc);
+        }
         else if (component is SynchronousFunctionalComponent sfc)
+        {
+            component.Index = _syncComponents.Count;
             _syncComponents.Add(sfc);
+        }
+
+        FunctionalComponentInstalled?.Invoke(this, component, Game.TotalTime);
+    }
+
+    /// <summary>
+    /// Uninstalls the given component from this <see cref="Node"/> if it was already installed
+    /// </summary>
+    /// <param name="component">The component to uninstall</param>
+    /// <exception cref="ArgumentException">If the component is not installed in this <see cref="Node"/></exception>
+    public void Uninstall(FunctionalComponent component)
+    {
+        if (!ReferenceEquals(component.AttachedNode, this))
+            throw new ArgumentException("The specified component is not installed in this Node", nameof(component));
+
+        ComponentUninstalling(component);
+
+        component.InternalUninstall();
+
+        if (component is AsynchronousFunctionalComponent afc)
+        {
+            for (int i = 0; i < _asyncComponents.Count; i++)
+            {
+                var c = _asyncComponents[i];
+                if (i != c.Index)
+                    c.Index = i;
+            }
+        }
+        else if (component is SynchronousFunctionalComponent sfc)
+        {
+            for (int i = 0; i < _syncComponents.Count; i++)
+            {
+                var c = _syncComponents[i];
+                if (i != c.Index)
+                    c.Index = i;
+            }
+        }
+
+        FunctionalComponentUninstalled?.Invoke(this, component, Game.TotalTime);
     }
 
     private void AttachedToScene(Scene root, bool isDirectParent)
     {
         Attached(root, Index, isDirectParent, services!.ServiceProvider);
+        root.ConnectNode(this);
         Root = root;
         AttachedToSceneEvent?.Invoke(root, false);
-
-#error Add Update, UpdateAsync, Draw and DrawAsync events in the same manner to wire. Each node should attach and detach directly to Root
-
     }
 
     /// <summary>
@@ -314,7 +354,7 @@ public abstract class Node : GameObject, IDisposable
     public bool IsAttached => Index == -1;
 
     /// <summary>
-    /// This <see cref="Node"/>'s Index in its parents
+    /// This <see cref="Node"/>'s Index in its parents. This property is subject to change when another child is detached
     /// </summary>
     /// <remarks>
     /// Valid for as long as this <see cref="Node"/> is attached. -1 means a <see cref="Node"/> is not attached
@@ -381,6 +421,14 @@ public abstract class Node : GameObject, IDisposable
     /// The component will be sorted into either <see cref="SynchronousComponents"/> or <see cref="AsynchronousComponents"/> after this method returns.
     /// </remarks>
     protected virtual void ComponentInstalling(FunctionalComponent component) { }
+
+    /// <summary>
+    /// Runs when a <see cref="FunctionalComponent"/> is being uninstalled from this <see cref="Node"/>
+    /// </summary>
+    /// <remarks>
+    /// The component will be taken out of either <see cref="SynchronousComponents"/> or <see cref="AsynchronousComponents"/> after this method returns.
+    /// </remarks>
+    protected virtual void ComponentUninstalling(FunctionalComponent component) { }
 
     /// <summary>
     /// Runs before a <see cref="FunctionalComponent"/> is installed into this <see cref="Node"/>
