@@ -15,16 +15,37 @@ public abstract class Scene : GameObject, IDisposable
     /// </summary>
     public Scene()
     {
-        gamescope = Game.Services;
         Nodes = NodeList.Empty.Clone(sync);
+
+        Game.SetupScenes += OnGameSetupScenes;
+        Game.StopScenes += OnGameStopScenes;
+
+        serviceScope = Game.Services.CreateScope();
     }
 
     #region Private (and internal) fields and methods
 
     private readonly object sync = new();
-    
-    private IServiceScope? services;
-    private IServiceProvider gamescope;
+
+    private IServiceScope serviceScope;
+
+    /// <summary>
+    /// This <see cref="Scene"/>'s scoped <see cref="IServiceProvider"/>
+    /// </summary>
+    /// <remarks>
+    /// It's better to ues it once only during the construction of this <see cref="Scene"/>
+    /// </remarks>
+    public IServiceProvider Services => serviceScope.ServiceProvider;
+
+    internal void OnGameSetupScenes(Game game, IServiceProvider gamescope)
+    {
+        GameLoaded();
+    }
+
+    internal void OnGameStopScenes() 
+    {
+        GameUnloading();
+    }
 
     internal async ValueTask Draw(IDrawQueue queue)
     {
@@ -83,18 +104,13 @@ public abstract class Scene : GameObject, IDisposable
 
     internal async ValueTask Begin()
     {
-        IServiceScope servs = gamescope.CreateScope();
-        services = servs;
-
-        await Began(servs.ServiceProvider);
+        await Began();
         SceneBegan?.Invoke(this, Game.TotalTime);
     }
 
     internal async ValueTask End(Scene next)
     {
         await Ended(next);
-        services!.Dispose();
-        services = null;
         SceneEnded?.Invoke(this, Game.TotalTime);
     }
 
@@ -295,6 +311,19 @@ public abstract class Scene : GameObject, IDisposable
     #region Public overridable methods
 
     /// <summary>
+    /// Runs when the <see cref="Game"/> is loaded and this (and all other) <see cref="Scene"/>s should be set up
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="Game"/> automatically takes care of both <see cref="Scene"/>s that were instanced before the <see cref="Game"/> was loaded and <see cref="Scene"/>s that were instanced afterwards
+    /// </remarks>
+    protected virtual void GameLoaded() { }
+
+    /// <summary>
+    /// Runs when the <see cref="Game"/> is about to be unloaded (before <see cref="Game.GameUnloading"/> is fired) and this (and all other) <see cref="Scene"/>s should stop as well
+    /// </summary>
+    protected virtual void GameUnloading() { }
+
+    /// <summary>
     /// Runs when this <see cref="Scene"/> is about to be updated
     /// </summary>
     /// <remarks>
@@ -334,9 +363,8 @@ public abstract class Scene : GameObject, IDisposable
     /// <summary>
     /// Runs when this <see cref="Scene"/> begins
     /// </summary>
-    /// <param name="services">This <see cref="Scene"/>'s service provider</param>
     /// <returns>If this method is async, mark it as such. Otherwise, returning <see cref="ValueTask.CompletedTask"/> is enough</returns>
-    protected virtual ValueTask Began(IServiceProvider services) => ValueTask.CompletedTask;
+    protected virtual ValueTask Began() => ValueTask.CompletedTask;
 
     /// <summary>
     /// Runs when this <see cref="Scene"/> is ended
@@ -406,6 +434,8 @@ public abstract class Scene : GameObject, IDisposable
 
                 for (int i = 0; i < Nodes.Count; i++)
                     Nodes[i].Dispose();
+
+                serviceScope.Dispose();
 
                 Nodes = null!;
 
