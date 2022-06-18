@@ -106,7 +106,6 @@ public abstract class Node : GameObject, IDisposable
                 if (ReferenceEquals(parent.Parents[i], this))
                     throw new ArgumentException("Can't attach a node to one of its children", nameof(parent));
 
-            services = parent.services?.ServiceProvider.CreateScope();
             Index = parent.Children.Count;
             parent.Children.Add(this);
 
@@ -118,7 +117,7 @@ public abstract class Node : GameObject, IDisposable
 
         Root = parent.Root;
 
-        Attached(parent, Index, services?.ServiceProvider);
+        Attached(parent, Index);
         NodeAttached?.Invoke(this, Game.TotalTime);
     }
 
@@ -211,7 +210,8 @@ public abstract class Node : GameObject, IDisposable
 
     private void AttachedToScene(Scene root, bool isDirectParent)
     {
-        Attached(root, Index, isDirectParent, services!.ServiceProvider);
+        services = root.Services.CreateScope();
+        Attached(root, Index, isDirectParent, services.ServiceProvider);
         root.ConnectNode(this);
         Root = root;
         AttachedToSceneEvent?.Invoke(root, false);
@@ -257,7 +257,6 @@ public abstract class Node : GameObject, IDisposable
         if (disposedValue)
             throw new ObjectDisposedException(GetType().FullName);
     }
-
 
     /// <summary>
     /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of, otherwise, returns the passed value
@@ -395,11 +394,10 @@ public abstract class Node : GameObject, IDisposable
     /// </summary>
     /// <param name="parent">The parent <see cref="Node"/></param>
     /// <param name="index">The <see cref="Index"/> of this <see cref="Node"/> in its parent</param>
-    /// <param name="services">The services for this <see cref="Game"/> scoped for this node. If this node gets detached, the services will be invalidated and will need to be obtained again once its attached again. May be null if the parent <see cref="Node"/> is not attached</param>
     /// <remarks>
     /// This method is called before <see cref="NodeAttached"/> is fired
     /// </remarks>
-    protected virtual void Attached(Node parent, int index, IServiceProvider? services) { }
+    protected virtual void Attached(Node parent, int index) { }
 
     /// <summary>
     /// Runs when a <see cref="Node"/> is attached to a parent <see cref="Scene"/>
