@@ -50,6 +50,8 @@ public delegate void GameMainWindowCreatedEvent(Game game, TimeSpan timestamp, W
 /// <param name="lifetime">The <see cref="IGameLifetime"/> that is the object of the event</param>
 public delegate void GameLifetimeChangedEvent(Game game, TimeSpan timestamp, IGameLifetime lifetime);
 
+internal delegate void GameSetupScenesEvent(Game game, IServiceProvider gamescope);
+
 #endregion
 
 #region IGameLifetime Delegates
@@ -116,6 +118,14 @@ public delegate void FunctionalComponentEvent(FunctionalComponent component, Tim
 /// <param name="oldIndex">The previous <see cref="FunctionalComponent.Index"/> of <paramref name="component"/></param>
 /// <param name="newIndex">The new <see cref="FunctionalComponent.Index"/>of <paramref name="component"/></param>
 public delegate void FunctionalComponentIndexChangedEvent(FunctionalComponent component, TimeSpan timestamp, int oldIndex, int newIndex);
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="FunctionalComponent"/>'s <see cref="FunctionalComponent.AttachedNode"/>
+/// </summary>
+/// <param name="component">The component that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="node">The <see cref="Node"/> that experienced the change</param>
+public delegate void FunctionalComponentNodeEvent(FunctionalComponent component, TimeSpan timestamp, Node node);
 
 #endregion
 
