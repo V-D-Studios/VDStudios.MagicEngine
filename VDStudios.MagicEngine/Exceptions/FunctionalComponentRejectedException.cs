@@ -21,6 +21,8 @@ public class FunctionalComponentRejectedException : Exception
     public FunctionalComponentRejectedException(string reason, Node node, FunctionalComponent component) 
         : base($"FunctionalComponent of type {component.GetType().Name} was rejected by Node of type {node.GetType().Name} and could not be installed: {reason}") 
     { }
+
+    /// <inheritdoc/>
     protected FunctionalComponentRejectedException(
       System.Runtime.Serialization.SerializationInfo info,
       System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
