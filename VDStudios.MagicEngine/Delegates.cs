@@ -43,12 +43,12 @@ public delegate void GameEvent(Game game, TimeSpan timestamp);
 public delegate void GameMainWindowCreatedEvent(Game game, TimeSpan timestamp, Window window, Renderer renderer);
 
 /// <summary>
-/// Represents an event in the game regarding its <see cref="IGameLifetime"/>
+/// Represents an event in the game regarding the <see cref="Game"/>'s <see cref="IGameLifetime"/>
 /// </summary>
 /// <param name="game">The <see cref="Game"/> that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 /// <param name="lifetime">The <see cref="IGameLifetime"/> that is the object of the event</param>
-public delegate void GameLifetimeEvent(Game game, TimeSpan timestamp, IGameLifetime lifetime);
+public delegate void GameLifetimeChangedEvent(Game game, TimeSpan timestamp, IGameLifetime lifetime);
 
 #endregion
 
@@ -59,7 +59,7 @@ public delegate void GameLifetimeEvent(Game game, TimeSpan timestamp, IGameLifet
 /// </summary>
 /// <param name="lifetime">The <see cref="IGameLifetime"/> that experienced the change</param>
 /// <param name="shouldRun">Whether the <see cref="IGameLifetime"/> still describes that it should run</param>
-public delegate void GameLifeTimeEvent(IGameLifetime lifetime, bool shouldRun);
+public delegate void GameLifetimeEvent(IGameLifetime lifetime, bool shouldRun);
 
 #endregion
 

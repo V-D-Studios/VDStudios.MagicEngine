@@ -356,7 +356,7 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Fired when the game has its <see cref="IGameLifetime"/> attached
     /// </summary>
-    public event GameLifetimeEvent? LifetimeAttached;
+    public event GameLifetimeChangedEvent? LifetimeAttached;
 
     /// <summary>
     /// Fired when the main <see cref="Window"/> and <see cref="Renderer"/> are created, or found by the <see cref="Game"/>. This will fire before <see cref="GameStarting"/> and after <see cref="GameLoaded"/>
