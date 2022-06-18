@@ -24,7 +24,7 @@ public class Game : SDLApplication<Game>
 
     private readonly object _lock = new();
     
-    private IServiceProvider? services;
+    internal IServiceProvider? services;
     private IGameLifetime? lifetime;
     private bool isStarted;
     private bool isSDLStarted;
@@ -120,17 +120,17 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Configures the lifestime of a game
     /// </summary>
-    /// <param name="serviceProvider"></param>
     /// <returns>The configured <see cref="IGameLifetime"/></returns>
     /// <remarks>
     /// Defaults to <see cref="DefaultGameLifetime.OnWindowClose"/>
     /// </remarks>
-    protected virtual IGameLifetime ConfigureGameLifetime(IServiceProvider serviceProvider)
+    protected virtual IGameLifetime ConfigureGameLifetime()
         => DefaultGameLifetime.OnWindowClose;
 
     /// <summary>
     /// Sets up SDL's libraries
     /// </summary>
+    /// <remarks>This method, by default, calls: <see cref="SDLApplication{TApp}.InitializeVideo"/>, <see cref="SDLApplication{TApp}.InitializeEvents"/>, <see cref="SDLApplication{TApp}.InitializeAndOpenAudioMixer(MixerInitFlags, int, int, int, ushort?)"/> (passing: <see cref="MixerInitFlags.OGG"/> and <see cref="MixerInitFlags.OPUS"/>), and <see cref="SDLApplication{TApp}.InitializeTTF"/></remarks>
     protected virtual void SetupSDL()
     {
         this.InitializeVideo()
@@ -171,27 +171,29 @@ public class Game : SDLApplication<Game>
     /// </summary>
     /// <param name="services">The services for this <see cref="Game"/> scoped for this call alone</param>
     /// <remarks>
-    /// Don't call this manually, place here code that should run when unloading the game. Is called when <see cref="StopGame"/> is called
+    /// Don't call this manually, place here code that should run when unloading the game.
     /// </remarks>
     protected virtual void Unload(IServiceProvider services) { }
 
     /// <summary>
     /// Executes custom logic when stopping the game
     /// </summary>
-    /// <param name="services">The services for this <see cref="Game"/> scoped for this call alone</param>
     /// <remarks>
     /// Don't call this manually, place here code that should run when stopping the game. Is called after <see cref="Unload"/>
     /// </remarks>
-    protected virtual void Stop(IServiceProvider services) { }
+    protected virtual void Stop() { }
 
     /// <summary>
     /// Initiates the process of starting the game. Launches the main Renderer and Window if not already created. This method will not return until the <see cref="Game"/>'s <see cref="IGameLifetime"/> ends
     /// </summary>
+    /// <typeparam name="TScene">The first scene of the game. It must have a parameterless constructor, and it must be constructed by the <see cref="Game"/>. Later <see cref="Scene"/>s can be constructed manually after the game has started</typeparam>
     /// <remarks>
     /// This method forces concurrency by locking, and will throw if called twice before calling the game is stopped. Still a good idea to call it from the thread that initialized SDL
     /// </remarks>
-    public async Task StartGame(Scene firstScene)
+    public async Task StartGame<TScene>() where TScene : Scene, new()
     {
+        var firstScene = new TScene();
+
         lock (_lock)
         {
             if (isStarted)
@@ -216,15 +218,13 @@ public class Game : SDLApplication<Game>
             }
         }
 
-        IServiceScope scope;
+        IServiceScope scope = services.CreateScope();
 
         //
 
         GameLoading?.Invoke(this, TotalTime);
 
-        scope = services.CreateScope();
         Load(Preload(), scope.ServiceProvider);
-        scope.Dispose();
         
         GameLoaded?.Invoke(this, TotalTime);
 
@@ -237,35 +237,27 @@ public class Game : SDLApplication<Game>
 
         GameStarting?.Invoke(this, TotalTime);
 
-        scope = services.CreateScope();
         Start(firstScene, scope.ServiceProvider);
-        scope.Dispose();
 
         GameStarted?.Invoke(this, TotalTime);
 
         //
 
-        scope = services.CreateScope();
-        lifetime = ConfigureGameLifetime(scope.ServiceProvider);
-        scope.Dispose();
+        lifetime = ConfigureGameLifetime();
 
         LifetimeAttached?.Invoke(this, TotalTime, lifetime);
 
         //
 
-        scope = services.CreateScope();
-
-        await Run(lifetime, scope.ServiceProvider).ConfigureAwait(true);
-
-        scope.Dispose();
+        await Run(lifetime).ConfigureAwait(true);
 
         //
 
         GameUnloading?.Invoke(this, TotalTime);
 
-        scope = services.CreateScope();
-        Unload(scope.ServiceProvider);
-        scope.Dispose();
+        IServiceScope unloadScope = services.CreateScope();
+        Unload(unloadScope.ServiceProvider);
+        unloadScope.Dispose();
 
         GameUnloaded?.Invoke(this, TotalTime);
 
@@ -273,14 +265,14 @@ public class Game : SDLApplication<Game>
 
         GameStopping?.Invoke(this, TotalTime);
 
-        scope = services.CreateScope();
-        Stop(services!);
-        scope.Dispose();
+        Stop();
 
         GameStopped?.Invoke(this, TotalTime);
+
+        scope.Dispose();
     }
 
-    private async Task Run(IGameLifetime lifetime, IServiceProvider services)
+    private async Task Run(IGameLifetime lifetime)
     {
         while (lifetime.ShouldRun)
         {
@@ -288,10 +280,10 @@ public class Game : SDLApplication<Game>
             {
                 var prev = currentScene!;
 
-                await prev.InternalEnd(nextScene).ConfigureAwait(true);
+                await prev.End(nextScene).ConfigureAwait(true);
 
-                var scope = services.CreateScope();
-                await nextScene.InternalBegin(scope.ServiceProvider).ConfigureAwait(true);
+                var scope = services!.CreateScope();
+                await nextScene.Begin().ConfigureAwait(true);
                 scope.Dispose();
 
                 currentScene = nextScene;
