@@ -12,6 +12,7 @@ using System.Collections.Concurrent;
 using VDStudios.MagicEngine.Internal;
 using System.Numerics;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 
 namespace VDStudios.MagicEngine;
 
@@ -297,15 +298,13 @@ public class Game : SDLApplication<Game>
 
     private async Task Run(IGameLifetime lifetime)
     {
+        var sw = new Stopwatch();
         var drawqueue = new DrawQueue();
-        ulong last = Performance.PerformanceCounter;
-        ulong now;
-        float elapsed;
-        TimeSpan delta = default;
         Scene scene;
 
         while (lifetime.ShouldRun)
         {
+            sw.Restart();
             if (nextScene is not null)
             {
                 var prev = currentScene!;
@@ -322,17 +321,14 @@ public class Game : SDLApplication<Game>
             }
 
             scene = CurrentScene;
-            await scene.Update(delta);
-            await scene.Draw(drawqueue);
+            await scene.Update(sw.Elapsed).ConfigureAwait(true);
+            await scene.Draw(drawqueue).ConfigureAwait(true);
 
-            using (await drawqueue._lock.LockAsync())
+            using (await drawqueue._lock.LockAsync().ConfigureAwait(true))
                 while (drawqueue.Count > 0)
                     drawqueue.Dequeue().Draw(Vector2.Zero, MainRenderer);
 
-            elapsed = last - (now = Performance.PerformanceCounter);
-            _fps = Performance.PerformanceFrequency / elapsed;
-            delta = TimeSpan.FromMilliseconds(elapsed);
-            last = now;
+            _fps = 1000 / sw.ElapsedMilliseconds;
         }
 
 #error Game Ending Scene.End
