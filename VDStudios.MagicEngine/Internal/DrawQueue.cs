@@ -12,11 +12,13 @@ internal sealed class DrawQueue : IDrawQueue
     #region Fields
 
     private readonly PriorityQueue<IDrawOperation, float> _queue = new(20, new PriorityComparer());
-    private readonly AsyncLock _lock = new();
+    internal readonly AsyncLock _lock = new();
 
     #endregion
 
-    public int Count { get; }
+    internal IDrawOperation Dequeue() => _queue.Dequeue();
+
+    public int Count => _queue.Count;
 
     public async Task EnqueueAsync(IDrawOperation drawing, float priority)
     {
