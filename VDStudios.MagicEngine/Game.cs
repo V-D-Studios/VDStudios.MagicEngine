@@ -118,14 +118,14 @@ public class Game : SDLApplication<Game>
     protected virtual void Load(Progress<float> progressTracker, IServiceProvider services) { }
 
     /// <summary>
-    /// Configures the lifestime of a game
+    /// Configures the lifetime of a game
     /// </summary>
     /// <returns>The configured <see cref="IGameLifetime"/></returns>
     /// <remarks>
-    /// Defaults to <see cref="GameLifetime.OnWindowClose"/>
+    /// This method is called right before the <see cref="Game"/> starts running. Theoretically, when everything is already set up. Defaults to <see cref="GameLifeTimeOnWindowCloses"/>
     /// </remarks>
     protected virtual IGameLifetime ConfigureGameLifetime()
-        => GameLifetime.OnWindowClose;
+        => new GameLifeTimeOnWindowCloses(MainWindow);
 
     /// <summary>
     /// Sets up SDL's libraries
