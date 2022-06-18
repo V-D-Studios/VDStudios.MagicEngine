@@ -34,7 +34,7 @@ public class Game : SDLApplication<Game>
     #region Properties
 
     /// <summary>
-    /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame(Scene)"/> is called
+    /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame{TScene}"/> is called
     /// </summary>
     public IGameLifetime Lifetime => lifetime ?? throw new InvalidOperationException("The game has not had its lifetime attached yet");
 
@@ -47,7 +47,7 @@ public class Game : SDLApplication<Game>
     /// The current service provider for this <see cref="Game"/>
     /// </summary>
     /// <remarks>
-    /// Invalid until <see cref="ConfigureServices(IServiceCollection)"/> is called by <see cref="StartGame(Scene)"/>, invalid again after <see cref="StopGame"/>
+    /// Invalid until <see cref="ConfigureServices(IServiceCollection)"/> is called by <see cref="StartGame{TScene}"/>, invalid again after the game stops
     /// </remarks>
     public IServiceProvider Services => isStarted ? services! : throw new InvalidOperationException("The game has not been started");
 
@@ -55,7 +55,7 @@ public class Game : SDLApplication<Game>
     /// The current Scene of the <see cref="Game"/>
     /// </summary>
     /// <remarks>
-    /// Invalid until <see cref="ConfigureServices(IServiceCollection)"/> is called by <see cref="StartGame(Scene)"/>, invalid again after <see cref="StopGame"/>
+    /// Invalid until <see cref="ConfigureServices(IServiceCollection)"/> is called by <see cref="StartGame{TScene}"/>, invalid again after the game stops
     /// </remarks>
     public Scene CurrentScene => isStarted ? currentScene! : throw new InvalidOperationException("The game has not been started");
     private Scene? currentScene;
@@ -122,10 +122,10 @@ public class Game : SDLApplication<Game>
     /// </summary>
     /// <returns>The configured <see cref="IGameLifetime"/></returns>
     /// <remarks>
-    /// Defaults to <see cref="DefaultGameLifetime.OnWindowClose"/>
+    /// Defaults to <see cref="GameLifetime.OnWindowClose"/>
     /// </remarks>
     protected virtual IGameLifetime ConfigureGameLifetime()
-        => DefaultGameLifetime.OnWindowClose;
+        => GameLifetime.OnWindowClose;
 
     /// <summary>
     /// Sets up SDL's libraries
@@ -362,7 +362,7 @@ public class Game : SDLApplication<Game>
     /// Fired when the main <see cref="Window"/> and <see cref="Renderer"/> are created, or found by the <see cref="Game"/>. This will fire before <see cref="GameStarting"/> and after <see cref="GameLoaded"/>
     /// </summary>
     /// <remarks>
-    /// The <see cref="Game"/> checks if the <see cref="Window"/> and <see cref="Renderer"/> are created when calling <see cref="StartGame(Scene)"/>, and if so, fires this event. If not, creates them first and then fires this event
+    /// The <see cref="Game"/> checks if the <see cref="Window"/> and <see cref="Renderer"/> are created when calling <see cref="StartGame{TScene}"/>, and if so, fires this event. If not, creates them first and then fires this event
     /// </remarks>
     public event GameMainWindowCreatedEvent? WindowObtained;
 
