@@ -49,13 +49,6 @@ public delegate void GameLifetimeEvent(Game game, TimeSpan timestamp, IGameLifet
 public delegate void GameMainWindowCreatedEvent(Game game, TimeSpan timestamp, Window window, Renderer renderer);
 
 /// <summary>
-/// Represents an event in the game regarding a <see cref="Scene"/>
-/// </summary>
-/// <param name="scene">The scene that experienced the change</param>
-/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-public delegate void SceneEvent(Scene scene, TimeSpan timestamp);
-
-/// <summary>
 /// Represents an event in the game regarding a <see cref="Node"/>'s index
 /// </summary>
 /// <param name="node">The node that experienced the change</param>
@@ -102,3 +95,18 @@ public delegate void NodeFunctionalComponentInstallEvent(Node node, FunctionalCo
 /// <param name="oldIndex">The previous <see cref="FunctionalComponent.Index"/> of <paramref name="component"/></param>
 /// <param name="newIndex">The new <see cref="FunctionalComponent.Index"/>of <paramref name="component"/></param>
 public delegate void FunctionalComponentIndexChangedEvent(FunctionalComponent component, TimeSpan timestamp, int oldIndex, int newIndex);
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="Scene"/>
+/// </summary>
+/// <param name="scene">The scene that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+public delegate void SceneEvent(Scene scene, TimeSpan timestamp);
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="Scene"/> and a <see cref="Node"/>
+/// </summary>
+/// <param name="scene">The scene that experienced the change</param>
+/// <param name="node">The node that experienced the change alongside <paramref name="scene"/></param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+public delegate void SceneNodeEvent(Scene scene, TimeSpan timestamp, Node node);
