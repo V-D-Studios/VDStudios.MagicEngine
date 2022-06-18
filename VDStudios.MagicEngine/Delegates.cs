@@ -93,3 +93,12 @@ public delegate void FunctionalComponentEvent(FunctionalComponent component, Tim
 /// <param name="component">The component that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 public delegate void NodeFunctionalComponentInstallEvent(Node node, FunctionalComponent component, TimeSpan timestamp);
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="FunctionalComponent"/>'s index
+/// </summary>
+/// <param name="component">The component that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="oldIndex">The previous <see cref="FunctionalComponent.Index"/> of <paramref name="component"/></param>
+/// <param name="newIndex">The new <see cref="FunctionalComponent.Index"/>of <paramref name="component"/></param>
+public delegate void FunctionalComponentIndexChangedEvent(FunctionalComponent component, TimeSpan timestamp, int oldIndex, int newIndex);
