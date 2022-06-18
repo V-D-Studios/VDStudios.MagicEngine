@@ -115,7 +115,7 @@ public interface IDrawQueue
     /// Ensures that the Draw Queue has the necessary free space to host incoming operations
     /// </summary>
     /// <remarks>
-    /// Sets the capacity of the Queue to <c><paramref name="freeSpace"/> + <see cref="Count"/></c>. Calling this method is only useful if you're going to add a batch of new items and know the amount beforehand. Consider using <see cref="EnqueueCollection"/> instead
+    /// Sets the capacity of the Queue to <c><paramref name="freeSpace"/> + <see cref="Count"/></c>. Calling this method is only useful if you're going to add a batch of new items and know the amount beforehand. Consider using one of the Enqueue methods accepting collections instead
     /// </remarks>
     /// <param name="freeSpace">The amount of free space the queue needs to have</param>
     /// <returns></returns>
@@ -125,7 +125,7 @@ public interface IDrawQueue
     /// Asynchronously ensures that the Draw Queue has the necessary free space to host incoming operations
     /// </summary>
     /// <remarks>
-    /// Sets the capacity of the Queue to <c><paramref name="freeSpace"/> + <see cref="Count"/></c>. Calling this method is only useful if you're going to add a batch of new items and know the amount beforehand. Consider using <see cref="EnqueueCollectionAsync"/> instead
+    /// Sets the capacity of the Queue to <c><paramref name="freeSpace"/> + <see cref="Count"/></c>. Calling this method is only useful if you're going to add a batch of new items and know the amount beforehand. Consider using one of the Enqueue methods accepting collections instead
     /// </remarks>
     /// <param name="freeSpace">The amount of free space the queue needs to have</param>
     /// <returns></returns>
