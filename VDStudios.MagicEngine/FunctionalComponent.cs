@@ -1,84 +1,171 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
 
 /// <summary>
-/// Represents encapsulated functionality of a Node
+/// Represents encapsulated functionality of a Node. Will be disposed of after its uninstalled
 /// </summary>
 /// <remarks>
-/// Remember to implement <see cref="IUpdateable"/> or <see cref="IUpdateableAsync"/> to let your component be Updated
+/// User code can't directly inherit from this class. See <see cref="SynchronousFunctionalComponent"/> or <see cref="AsynchronousFunctionalComponent"/> instead
 /// </remarks>
-public abstract class FunctionalComponent<TNode> : GameObject, IDisposable, IFunctionalComponent where TNode : Node
+public abstract class FunctionalComponent : GameObject, IDisposable
 {
+    internal TimeSpan sdl_lastUpdate;
     private IServiceScope? serviceScope;
 
-    /// <summary>
-    /// The <see cref="Node"/> this <see cref="FunctionalComponent"/> is currently attached to, if any
-    /// </summary>
-    protected TNode? AttachedNode { get; private set; }
+    internal FunctionalComponent(bool isAsync)
+    {
+        IsAsync = isAsync;
+    }
 
     /// <summary>
     /// Represents the internal Component Index in the currently attached node
     /// </summary>
-    public int Index { get; private set; }
+    public int Index
+    {
+        get => index;
+        set
+        {
+            if (index == value)
+                return;
+            var prev = index;
+            index = value;
+            IndexChanged?.Invoke(this, Game.TotalTime, prev, value);
+        }
+    }
+    private int index;
 
     /// <summary>
-    /// The current <see cref="IServiceProvider"/> for this <see cref="FunctionalComponent"/>
+    /// Whether or not this <see cref="FunctionalComponent"/> is asynchronous
     /// </summary>
     /// <remarks>
-    /// This provider will become invalid if this gets detached. Will become valid anew once it's reattached to a <see cref="Node"/>
+    /// This property is <c>init</c> only and will not change after its constructed
     /// </remarks>
-    public IServiceProvider Services => serviceScope?.ServiceProvider ?? throw new InvalidOperationException("This FunctionalComponent does not have a Service Provider attached. Is it detached?");
+    public bool IsAsync { get; }
 
-    internal void InternalAttach(TNode node, IServiceScope services, int index)
+    /// <summary>
+    /// The <see cref="Node"/> this <see cref="FunctionalComponent"/> is currently attached to, if any
+    /// </summary>
+    public Node? AttachedNode { get; private set; }
+
+    internal void InternalInstall(Node node, int index)
     {
-        serviceScope = services;
-        Attach(node, services.ServiceProvider);
+        Installing(node);
         AttachedNode = node;
         Index = index;
+        node.NodeAttachedToScene += InternalNodeAttachedToSceneEventHandler;
+        node.NodeDetached += InternalNodeDetachedHandler;
+        InstalledOntoNode?.Invoke(this, Game.TotalTime, node);
     }
 
-    internal void InternalDetach()
+    private void InternalNodeDetachedHandler(Node node, TimeSpan timestamp)
     {
         serviceScope?.Dispose();
-        Detach();
+        NodeDetachedFromScene();
+    }
+
+    private void InternalNodeAttachedToSceneEventHandler(Node node, TimeSpan timestamp, Scene scene)
+    {
+        serviceScope = node.services!.ServiceProvider.CreateScope();
+        NodeAttachedToScene(serviceScope.ServiceProvider);
+    }
+
+    /// <summary>
+    /// Check <see cref="AttachedNode"/> first
+    /// </summary>
+    internal void InternalUninstall()
+    {
+        Uninstalling();
+        AttachedNode!.NodeAttachedToScene -= InternalNodeAttachedToSceneEventHandler;
+        AttachedNode.NodeDetached -= InternalNodeDetachedHandler;
+        UninstalledFromNode?.Invoke(this, Game.TotalTime, AttachedNode);
         AttachedNode = null;
     }
-    void IFunctionalComponent.InternalDetach() => InternalDetach();
 
     /// <summary>
-    /// Attaches this component's functionality into <paramref name="node"/>
+    /// Uninstalls the current <see cref="FunctionalComponent"/> from its <see cref="Node"/>
     /// </summary>
-    /// <param name="services">The services of the <see cref="Game"/>, scoped for this Component</param>
+    public void UninstallFromNode()
+    {
+        if (AttachedNode is null)
+            throw new InvalidOperationException("This FunctionalComponent is not installed in any Node");
+        AttachedNode.Uninstall(this);
+    }
+
+    /// <summary>
+    /// Runs when this component's functionality is attached into <paramref name="node"/>
+    /// </summary>
     /// <param name="node">The node this component is currently being attached to</param>
     /// <remarks>
-    /// <see cref="AttachedNode"/> will be set after this method is called, and <see cref="Node.FunctionalComponentAttached"/> will fire after that
+    /// <see cref="AttachedNode"/> will be set after this method is called, and <see cref="Node.FunctionalComponentInstalled"/> will fire after that
     /// </remarks>
-    protected virtual void Attach(TNode node, IServiceProvider services) { }
+    protected virtual void Installing(Node node) { }
 
     /// <summary>
-    /// Detaches this component's functionality from <see cref="AttachedNode"/>
+    /// Runs when this component's <see cref="AttachedNode"/> is attached to a <see cref="Scene"/>
+    /// </summary>
+    /// <param name="services">The <see cref="Scene"/>'s service provider scoped for <see cref="AttachedNode"/> scoped for this component</param>
+    protected virtual void NodeAttachedToScene(IServiceProvider services) { }
+
+    /// <summary>
+    /// Runs when this component's <see cref="AttachedNode"/> is detached from a <see cref="Scene"/>
+    /// </summary>
+    protected virtual void NodeDetachedFromScene() { }
+
+    /// <summary>
+    /// Runs when this component's functionality is detached from <see cref="AttachedNode"/>
     /// </summary>
     /// <remarks>
-    /// <see cref="AttachedNode"/> will be null'd after this method is called, and <see cref="Node.FunctionalComponentDetached"/> will fire after that
+    /// <see cref="AttachedNode"/> will be null'd after this method is called, and <see cref="Node.FunctionalComponentUninstalled"/> will fire after that, and finally the Component will be disposed
     /// </remarks>
-    protected virtual void Detach() { }
+    protected virtual void Uninstalling() { }
+
+    #region Events
+
+    /// <summary>
+    /// Fired when this <see cref="FunctionalComponent"/>'s <see cref="Index"/> changes
+    /// </summary>
+    public event FunctionalComponentIndexChangedEvent? IndexChanged;
+
+    /// <summary>
+    /// Fired when this <see cref="FunctionalComponent"/> is installed onto a <see cref="Node"/>
+    /// </summary>
+    public event FunctionalComponentNodeEvent? InstalledOntoNode;
+
+    /// <summary>
+    /// Fired when this <see cref="FunctionalComponent"/> is uninstalled from a <see cref="Node"/>
+    /// </summary>
+    public event FunctionalComponentNodeEvent? UninstalledFromNode;
+
+    #endregion
+
+    #region Helpers
+
+    /// <summary>
+    /// Throws a <see cref="NotImplementedException"/> exception if the given method is not implemented
+    /// </summary>
+    /// <remarks>
+    /// This method is useful to fill whichever update method you're not using
+    /// </remarks>
+    /// <param name="caller">Ignore this argument</param>
+    protected void ThrowNotImplemented([CallerMemberName] string? caller = null)
+        => throw new NotImplementedException($"Method {caller} is not implemented for this FunctionalComponent");
+
+    #endregion
 
     #region IDisposable
 
     private bool disposedValue;
+
     /// <summary>
-    /// Disposes this <see cref="FunctionalComponent"/>'s resources. If overriding, make sure to to call base.Dispose()
+    /// Disposes this <see cref="FunctionalComponent"/>'s resources
     /// </summary>
     /// <param name="disposing"></param>
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposedValue)
-        {
-            serviceScope?.Dispose();
-            disposedValue = true;
-        }
     }
 
     /// <inheritdoc/>
@@ -87,11 +174,20 @@ public abstract class FunctionalComponent<TNode> : GameObject, IDisposable, IFun
         Dispose(disposing: false);
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Disposes this <see cref="FunctionalComponent"/>'s resources
+    /// </summary>
     public void Dispose()
     {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        Dispose(disposing: true);
+        if (!disposedValue)
+        {
+            Dispose(true);
+
+            serviceScope?.Dispose();
+            AttachedNode = null;
+            disposedValue = true;
+        }
+
         GC.SuppressFinalize(this);
     }
 
@@ -99,12 +195,77 @@ public abstract class FunctionalComponent<TNode> : GameObject, IDisposable, IFun
 }
 
 /// <summary>
-/// Represents encapsulated functionality of a Node that accepts any <see cref="Node"/>
+/// Represents encapsulated functionality of a Node that is updated asynchronously
 /// </summary>
 /// <remarks>
-/// Remember to implement <see cref="IUpdateable"/> or <see cref="IUpdateableAsync"/> to let your component be Updated
+/// Remember that components are disposed of after they're uninstalled
 /// </remarks>
-public abstract class FunctionalComponent : FunctionalComponent<Node>
+public abstract class AsynchronousFunctionalComponent : FunctionalComponent
 {
+    /// <summary>
+    /// Instances and initiates a AsynchronousFunctionalComponent
+    /// </summary>
+    /// <remarks>
+    /// Remember to toss <see cref="IServiceProvider"/> dependent code into <see cref="FunctionalComponent.Installing(Node)"/>
+    /// </remarks>
+    protected AsynchronousFunctionalComponent() : base(true) { }
 
+    /// <summary>
+    /// This method is called after <see cref="UpdateAsync(TimeSpan)"/> and is where your code goes
+    /// </summary>
+    /// <param name="gameDelta">The amount of time that has passed since the last Update frame in the Game</param>
+    /// <param name="componentDelta">The amount of time that has passed since the last time this component was updated. Will be 0 the first time it's updated</param>
+    protected abstract ValueTask UpdateComponentAsync(TimeSpan gameDelta, TimeSpan componentDelta);
+
+    /// <summary>
+    /// Updates the current <see cref="FunctionalComponent"/>. Not all components are asynchronous, see <see cref="FunctionalComponent.IsAsync"/> to decide which method to call. 
+    /// </summary>
+    /// <param name="gameDelta">The amount of time that has passed since the last Update frame in the Game</param>
+    public ValueTask UpdateAsync(TimeSpan gameDelta)
+    {
+        if (sdl_lastUpdate == default)
+            return UpdateComponentAsync(gameDelta, TimeSpan.Zero);
+
+        var ot = sdl_lastUpdate;
+        sdl_lastUpdate = Game.TotalTime;
+        return UpdateComponentAsync(gameDelta, ot - sdl_lastUpdate);
+    }
+}
+
+/// <summary>
+/// Represents encapsulated functionality of a Node that is updated synchronously
+/// </summary>
+/// <remarks>
+/// Remember that components are disposed of after they're uninstalled
+/// </remarks>
+public abstract class SynchronousFunctionalComponent : FunctionalComponent
+{
+    /// <summary>
+    /// Instances and initiates a SynchronousFunctionalComponent
+    /// </summary>
+    /// <remarks>
+    /// Remember to toss <see cref="IServiceProvider"/> dependent code into <see cref="FunctionalComponent.Installing(Node)"/>
+    /// </remarks>
+    protected SynchronousFunctionalComponent() : base(false) { }
+
+    /// <summary>
+    /// Updates the current <see cref="FunctionalComponent"/>. Not all components are synchronous: see <see cref="FunctionalComponent.IsAsync"/> to decide which method to call. 
+    /// </summary>
+    /// <param name="gameDelta">The amount of time that has passed since the last Update frame in the Game</param>
+    public void Update(TimeSpan gameDelta)
+    {
+        if (sdl_lastUpdate == default)
+            UpdateComponent(gameDelta, TimeSpan.Zero);
+
+        var ot = sdl_lastUpdate;
+        sdl_lastUpdate = Game.TotalTime;
+        UpdateComponent(gameDelta, ot - sdl_lastUpdate);
+    }
+
+    /// <summary>
+    /// This method is called after <see cref="Update(TimeSpan)"/> and is where your code goes
+    /// </summary>
+    /// <param name="gameDelta">The amount of time that has passed since the last Update frame in the Game</param>
+    /// <param name="componentDelta">The amount of time that has passed since the last time this component was updated. Will be 0 the first time it's updated</param>
+    protected abstract void UpdateComponent(TimeSpan gameDelta, TimeSpan componentDelta);
 }

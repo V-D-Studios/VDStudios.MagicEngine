@@ -4,9 +4,9 @@ using System.Numerics;
 namespace VDStudios.MagicEngine;
 
 /// <summary>
-/// Represents a <see cref="Node"/> or <see cref="FunctionalComponent{TNode}"/> that is ready to be drawn
+/// Represents an operation that is ready to be draw
 /// </summary>
-public interface IDrawing
+public interface IDrawOperation
 {
     /// <summary>
     /// The method that will be used to draw the component
