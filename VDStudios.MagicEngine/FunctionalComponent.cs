@@ -211,7 +211,7 @@ public abstract class FunctionalComponent : GameObject, IDisposable
 public abstract class NonUpdatingFunctionalComponent : FunctionalComponent
 {
     /// <summary>
-    /// Instances and initiates a AsynchronousFunctionalComponent
+    /// Instances and initiates a NonUpdatingFunctionalComponent
     /// </summary>
     /// <remarks>
     /// Remember to toss <see cref="IServiceProvider"/> dependent code into <see cref="FunctionalComponent.Installing(Node)"/>
