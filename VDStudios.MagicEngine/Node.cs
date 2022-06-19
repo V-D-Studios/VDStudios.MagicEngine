@@ -151,7 +151,7 @@ public abstract class Node : GameObject, IDisposable
             DetachNoLock();
     }
 
-    private FunctionalComponent InternalInstall(FunctionalComponent component)
+    private void InternalInstall(FunctionalComponent component)
     {
         if (!ComponentFilter(component, out var rfj))
             throw new FunctionalComponentRejectedException(rfj ?? "Unknown reason", this, component);
@@ -170,8 +170,6 @@ public abstract class Node : GameObject, IDisposable
         }
 
         FunctionalComponentInstalled?.Invoke(this, component, Game.TotalTime);
-
-        return component;
     }
 
     /// <summary>
@@ -224,8 +222,12 @@ public abstract class Node : GameObject, IDisposable
     /// </summary>
     /// <returns>The newly installed <see cref="FunctionalComponent"/></returns>
     /// <typeparam name="TComponent">The type of FunctionalComponent to instance and install</typeparam>
-    public FunctionalComponent Install<TComponent>() where TComponent : FunctionalComponent, new()
-        => InternalInstall(new TComponent());
+    public TComponent Install<TComponent>() where TComponent : FunctionalComponent, new()
+    {
+        var comp = new TComponent();
+        InternalInstall(comp);
+        return comp;
+    }
 
     /// <summary>
     /// Instances and installs the <see cref="FunctionalComponent"/> returned by <paramref name="factory"/> into this <see cref="Node"/>
@@ -233,15 +235,19 @@ public abstract class Node : GameObject, IDisposable
     /// <returns>The newly installed <see cref="FunctionalComponent"/></returns>
     /// <typeparam name="TComponent">The type of FunctionalComponent to instance and install</typeparam>
     /// <param name="factory">The method that will instance the component</param>
-    public FunctionalComponent Install<TComponent>(Func<TComponent> factory) where TComponent : FunctionalComponent
-        => InternalInstall(factory());
+    public TComponent Install<TComponent>(Func<TComponent> factory) where TComponent : FunctionalComponent
+    {
+        var comp = factory();
+        InternalInstall(comp);
+        return comp;
+    }
 
     /// <summary>
     /// Installs <paramref name="component"/> into this <see cref="Node"/>
     /// </summary>
     /// <returns>The newly installed <see cref="FunctionalComponent"/></returns>
     /// <param name="component">The component to install</param>
-    public FunctionalComponent Install(FunctionalComponent component)
+    public void Install(FunctionalComponent component)
         => InternalInstall(component);
 
     /// <summary>
