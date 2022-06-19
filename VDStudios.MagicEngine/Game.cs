@@ -39,7 +39,7 @@ public class Game : SDLApplication<Game>
     /// <remarks>
     /// This method calls <see cref="ConfigureServices(IServiceCollection)"/>, <see cref="SetupSDL"/>, <see cref="ConfigureLogger(LoggerConfiguration)"/> and <see cref="CreateServiceCollection"/>
     /// </remarks>
-    protected Game()
+    public Game()
     {
         if (!isSDLStarted)
         {
