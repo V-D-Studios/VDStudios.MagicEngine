@@ -168,20 +168,14 @@ public abstract class FunctionalComponent : GameObject, IDisposable
     {
     }
 
-    /// <inheritdoc/>
-    ~FunctionalComponent()
-    {
-        Dispose(disposing: false);
-    }
-
-    /// <summary>
-    /// Disposes this <see cref="FunctionalComponent"/>'s resources
-    /// </summary>
-    public void Dispose()
+    private void IntDispose(bool disposing)
     {
         if (!disposedValue)
         {
-            Dispose(true);
+            if (AttachedNode is not null)
+                UninstallFromNode();
+
+            Dispose(disposing);
 
             serviceScope?.Dispose();
             AttachedNode = null;
@@ -191,7 +185,38 @@ public abstract class FunctionalComponent : GameObject, IDisposable
         GC.SuppressFinalize(this);
     }
 
+    /// <inheritdoc/>
+    ~FunctionalComponent()
+    {
+        IntDispose(false);
+    }
+
+    /// <summary>
+    /// Disposes this <see cref="FunctionalComponent"/>'s resources
+    /// </summary>
+    public void Dispose()
+    {
+        IntDispose(true);
+    }
+
     #endregion
+}
+
+/// <summary>
+/// Represents encapsulated functionality of a Node that is not updated
+/// </summary>
+/// <remarks>
+/// <see cref="NonUpdatingFunctionalComponent"/> are not internally added to a <see cref="Node"/>'s list, and must be held manually in a field, property or collection. Remember that components are disposed of after they're uninstalled
+/// </remarks>
+public abstract class NonUpdatingFunctionalComponent : FunctionalComponent
+{
+    /// <summary>
+    /// Instances and initiates a AsynchronousFunctionalComponent
+    /// </summary>
+    /// <remarks>
+    /// Remember to toss <see cref="IServiceProvider"/> dependent code into <see cref="FunctionalComponent.Installing(Node)"/>
+    /// </remarks>
+    public NonUpdatingFunctionalComponent(bool isAsync) : base(isAsync) { }
 }
 
 /// <summary>
