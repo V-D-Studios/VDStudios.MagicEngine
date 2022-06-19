@@ -305,6 +305,8 @@ public class Game : SDLApplication<Game>
         while (lifetime.ShouldRun)
         {
             sw.Restart();
+            UpdateEvents();
+
             if (nextScene is not null)
             {
                 var prev = currentScene!;
