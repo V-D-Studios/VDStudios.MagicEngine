@@ -5,6 +5,8 @@ VisualStudioVersion = 17.2.32516.85
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.MagicEngine", "VDStudios.MagicEngine\VDStudios.MagicEngine.csproj", "{938DC9C7-9226-4B4B-9B13-802E25686BD7}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.MagicEngine.Demo", "VDStudios.MagicEngine.Demo\VDStudios.MagicEngine.Demo.csproj", "{B3E46EAE-61CE-4873-8C44-7CBA99A51F4B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{938DC9C7-9226-4B4B-9B13-802E25686BD7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{938DC9C7-9226-4B4B-9B13-802E25686BD7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{938DC9C7-9226-4B4B-9B13-802E25686BD7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3E46EAE-61CE-4873-8C44-7CBA99A51F4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3E46EAE-61CE-4873-8C44-7CBA99A51F4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3E46EAE-61CE-4873-8C44-7CBA99A51F4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3E46EAE-61CE-4873-8C44-7CBA99A51F4B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
