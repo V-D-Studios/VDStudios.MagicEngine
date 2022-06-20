@@ -45,7 +45,7 @@ public class GameLifetime : IGameLifetime
             LifetimeChanged?.Invoke(this, value);
         }
     }
-    private bool _sr;
+    private bool _sr = true;
 
     /// <inheritdoc/>
     public bool TryStop()
