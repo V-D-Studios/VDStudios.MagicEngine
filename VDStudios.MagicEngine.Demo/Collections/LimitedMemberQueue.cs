@@ -12,13 +12,19 @@ public class LimitedMemberQueue<T> : IEnumerable<T>, IEnumerable, IReadOnlyColle
 
     public LimitedMemberQueue(int limit)
     {
+        if (limit <= 0)
+            throw new ArgumentException("limit must be larger than 0", nameof(limit));
         _q = new(limit);
+        Limit = limit;
     }
     
     public LimitedMemberQueue(IEnumerable<T> collection, int limit)
     {
+        if (limit <= 0)
+            throw new ArgumentException("limit must be larger than 0", nameof(limit));
         _q = new(collection);
         _q.EnsureCapacity(limit);
+        Limit = limit;
     }
 
     public void CopyTo(Array array, int index)
