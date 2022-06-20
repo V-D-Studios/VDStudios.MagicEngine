@@ -285,7 +285,7 @@ public abstract class Node : GameObject, IDisposable
     protected void ThrowIfAttached()
     {
         if (Index != -1)
-            throw new InvalidOperationException("This Node is not already attached");
+            throw new InvalidOperationException("This Node is already attached");
     }
 
     /// <summary>
@@ -388,7 +388,7 @@ public abstract class Node : GameObject, IDisposable
             IndexChanged?.Invoke(this, Game.TotalTime, prev, value);
         }
     }
-    private int index;
+    private int index = -1;
 
     /// <summary>
     /// Runs when a <see cref="Node"/> is attached to this <see cref="Node"/>
