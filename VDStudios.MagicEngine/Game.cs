@@ -28,7 +28,7 @@ public class Game : SDLApplication<Game>
 
     private readonly object _lock = new();
     
-    internal IServiceProvider? services;
+    internal IServiceProvider services;
     private IGameLifetime? lifetime;
     private bool isStarted;
     private bool isSDLStarted;
@@ -88,7 +88,7 @@ public class Game : SDLApplication<Game>
     /// <remarks>
     /// Invalid until <see cref="ConfigureServices(IServiceCollection)"/> is called by <see cref="StartGame{TScene}"/>, invalid again after the game stops
     /// </remarks>
-    public IServiceProvider Services => isStarted ? services! : throw new InvalidOperationException("The game has not been started");
+    public IServiceProvider Services => isStarted ? services : throw new InvalidOperationException("The game has not been started");
 
     /// <summary>
     /// The current Scene of the <see cref="Game"/>
@@ -230,8 +230,6 @@ public class Game : SDLApplication<Game>
     /// </remarks>
     public async Task StartGame<TScene>() where TScene : Scene, new()
     {
-        var firstScene = new TScene();
-
         lock (_lock)
         {
             if (isStarted)
@@ -248,14 +246,17 @@ public class Game : SDLApplication<Game>
         
         GameLoaded?.Invoke(this, TotalTime);
 
-        SetupScenes?.Invoke(this, Services);
-
         //
 
         WindowLaunch();
         WindowObtained?.Invoke(this, TotalTime, MainWindow, MainRenderer);
 
         //
+
+        var firstScene = new TScene();
+        currentScene = firstScene;
+
+        SetupScenes?.Invoke(this, Services);
 
         GameStarting?.Invoke(this, TotalTime);
 
@@ -301,9 +302,12 @@ public class Game : SDLApplication<Game>
         var sw = new Stopwatch();
         var drawqueue = new DrawQueue();
         Scene scene;
+        Renderer renderer;
 
         while (lifetime.ShouldRun)
         {
+            renderer = MainRenderer;
+            var (rw, rh) = renderer.OutputSize;
             sw.Restart();
             UpdateEvents();
 
@@ -326,11 +330,13 @@ public class Game : SDLApplication<Game>
             await scene.Update(sw.Elapsed).ConfigureAwait(true);
             await scene.Draw(drawqueue).ConfigureAwait(true);
 
+            renderer.Clear();
             using (await drawqueue._lock.LockAsync().ConfigureAwait(true))
                 while (drawqueue.Count > 0)
-                    drawqueue.Dequeue().Draw(Vector2.Zero, MainRenderer);
+                    drawqueue.Dequeue().Draw(new Vector2(rw / 2, rh / 2), renderer);
+            renderer.Present();
 
-            _fps = 1000 / sw.ElapsedMilliseconds;
+            _fps = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);
         }
 
         await CurrentScene.End();
