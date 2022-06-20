@@ -76,22 +76,22 @@ public abstract class Scene : GameObject, IDisposable
         if (t2 != null)
             await t2;
 
-        var t3 = RunAsyncUpdates(AsyncSceneUpdatingEvent1);
+        var t3 = RunAsyncUpdates(AsyncSceneUpdatingEvent3);
         SceneUpdatingEvent3?.Invoke(delta);
         if (t3 != null)
             await t3;
 
-        var t4 = RunAsyncUpdates(AsyncSceneUpdatingEvent1);
+        var t4 = RunAsyncUpdates(AsyncSceneUpdatingEvent4);
         SceneUpdatingEvent4?.Invoke(delta);
         if (t4 != null)
             await t4;
 
-        var t5 = RunAsyncUpdates(AsyncSceneUpdatingEvent1);
+        var t5 = RunAsyncUpdates(AsyncSceneUpdatingEvent5);
         SceneUpdatingEvent5?.Invoke(delta);
         if (t5 != null)
             await t5;
 
-        var t6 = RunAsyncUpdates(AsyncSceneUpdatingEvent1);
+        var t6 = RunAsyncUpdates(AsyncSceneUpdatingEvent6);
         SceneUpdatingEvent6?.Invoke(delta);
         if (t6 != null)
             await t6;
@@ -297,11 +297,13 @@ public abstract class Scene : GameObject, IDisposable
             node.AttachTo(this);
             NodeAttached(node);
         }
+        ChildAttached?.Invoke(this, Game.TotalTime, node);
     }
 
     internal void InternalDetachNode(Node node)
     {
         NodeDetached(node);
+        ChildDetached?.Invoke(this, Game.TotalTime, node);
     }
 
     /// <summary>
