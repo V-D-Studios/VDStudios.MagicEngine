@@ -81,11 +81,14 @@ public sealed class NodeList : IReadOnlyList<Node>
     internal NodeList Clone(object sync)
     {
         List<Node> nl;
-        lock (_sync)
-        {
-            nl = new List<Node>(nodes.Capacity + 1);
-            nl.AddRange(nodes);
-        }
+        if (_sync is null)
+            nl = new List<Node>(1);
+        else
+            lock (_sync)
+            {
+                nl = new List<Node>(nodes.Capacity + 1);
+                nl.AddRange(nodes);
+            }
         return new(sync, nl);
     }
 
