@@ -27,6 +27,7 @@ public sealed class NodeList : IReadOnlyList<Node>
     /// <summary>
     /// Gets the <see cref="Node"/> currently located at <paramref name="index"/>
     /// </summary>
+    /// <remarks>Indexing the Node list locks the collection and the owner <see cref="Node"/></remarks>
     /// <param name="index">The <see cref="Node.Index"/> in question</param>
     /// <returns>The <see cref="Node"/> located at <paramref name="index"/></returns>
     public Node this[int index]
@@ -39,6 +40,8 @@ public sealed class NodeList : IReadOnlyList<Node>
         }
     }
 
+    internal Node Get(int index) => nodes[index];
+
     /// <summary>
     /// The amount of <see cref="Node"/>s currently registered in this <see cref="NodeList"/>
     /// </summary>
@@ -48,7 +51,7 @@ public sealed class NodeList : IReadOnlyList<Node>
     /// Enumerates the <see cref="Node"/>s in this <see cref="NodeList"/>
     /// </summary>
     /// <remarks>
-    /// This does not include child <see cref="Node"/>s
+    /// This does not include child <see cref="Node"/>s. Adquiring an enumerator locks the collection and the owner <see cref="Node"/>
     /// </remarks>
     public IEnumerator<Node> GetEnumerator()
     {
@@ -78,6 +81,11 @@ public sealed class NodeList : IReadOnlyList<Node>
     internal void Clear()
         => nodes.Clear();
 
+    /// <summary>
+    /// Cloning the collection locks the collection and the owner <see cref="Node"/>
+    /// </summary>
+    /// <param name="sync"></param>
+    /// <returns></returns>
     internal NodeList Clone(object sync)
     {
         List<Node> nl;
