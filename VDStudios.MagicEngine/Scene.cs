@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System.Buffers;
+using static VDStudios.MagicEngine.Node;
 
 namespace VDStudios.MagicEngine;
 
@@ -49,57 +51,87 @@ public abstract class Scene : GameObject, IDisposable
 
     internal async ValueTask Draw(IDrawQueue queue)
     {
-        await Drawing();
-
-        var asyncev = AsyncSceneDrawingEvent;
-        Task? task = null;
-        if (asyncev != null)
-            task = Parallel.ForEachAsync(asyncev.GetInvocationList(), async (x, ct) => await ((Func<IDrawQueue, Task>)x).Invoke(queue));
-
-        SceneDrawingEvent?.Invoke(queue);
-
-        if (task != null)
-            await task;
+        await Drawing(); 
+        
+        var pool = ArrayPool<Task>.Shared;
+        int toAddToDrawQueue = Nodes.Count;
+        Task[] tasks = pool.Rent(toAddToDrawQueue);
+        try
+        {
+            lock (sync)
+            {
+                for (int i = 0; i < toAddToDrawQueue; i++)
+                    tasks[i] = Nodes.Get(i).PropagateDraw();
+            }
+            for (int i = 0; i < toAddToDrawQueue; i++)
+                await tasks[i];
+        }
+        finally
+        {
+            pool.Return(tasks, true);
+        }
     }
     
-    internal async ValueTask Update(TimeSpan delta)
+    internal async Task Update(TimeSpan delta)
     {
         await Updating(delta);
 
-        var t1 = RunAsyncUpdates(AsyncSceneUpdatingEvent1);
-        SceneUpdatingEvent1?.Invoke(delta);
-        if (t1 != null)
-            await t1;
+        var pool = ArrayPool<Task>.Shared;
+        int toUpdate = Nodes.Count;
+        Task[] tasks = pool.Rent(toUpdate);
+        try
+        {
+            lock (sync)
+            {
+                for (int i = 0; i < toUpdate; i++)
+                    tasks[i] = Nodes.Get(i).PropagateUpdate();
+            }
+            for (int i = 0; i < toUpdate; i++)
+                await tasks[i];
+        }
+        finally
+        {
+            pool.Return(tasks, true);
+        }
 
-        var t2 = RunAsyncUpdates(AsyncSceneUpdatingEvent2);
-        SceneUpdatingEvent2?.Invoke(delta);
-        if (t2 != null)
-            await t2;
+        #region Update batching (old)
 
-        var t3 = RunAsyncUpdates(AsyncSceneUpdatingEvent3);
-        SceneUpdatingEvent3?.Invoke(delta);
-        if (t3 != null)
-            await t3;
+        //var t1 = RunAsyncUpdates(AsyncSceneUpdatingEvent1);
+        //SceneUpdatingEvent1?.Invoke(delta);
+        //if (t1 != null)
+        //    await t1;
 
-        var t4 = RunAsyncUpdates(AsyncSceneUpdatingEvent4);
-        SceneUpdatingEvent4?.Invoke(delta);
-        if (t4 != null)
-            await t4;
+        //var t2 = RunAsyncUpdates(AsyncSceneUpdatingEvent2);
+        //SceneUpdatingEvent2?.Invoke(delta);
+        //if (t2 != null)
+        //    await t2;
 
-        var t5 = RunAsyncUpdates(AsyncSceneUpdatingEvent5);
-        SceneUpdatingEvent5?.Invoke(delta);
-        if (t5 != null)
-            await t5;
+        //var t3 = RunAsyncUpdates(AsyncSceneUpdatingEvent3);
+        //SceneUpdatingEvent3?.Invoke(delta);
+        //if (t3 != null)
+        //    await t3;
 
-        var t6 = RunAsyncUpdates(AsyncSceneUpdatingEvent6);
-        SceneUpdatingEvent6?.Invoke(delta);
-        if (t6 != null)
-            await t6;
+        //var t4 = RunAsyncUpdates(AsyncSceneUpdatingEvent4);
+        //SceneUpdatingEvent4?.Invoke(delta);
+        //if (t4 != null)
+        //    await t4;
 
-        Task? RunAsyncUpdates(Func<TimeSpan, Task>? ev) 
-            => ev != null
-               ? Parallel.ForEachAsync(ev.GetInvocationList(), async (x, ct) => await ((Func<TimeSpan, Task>)x).Invoke(delta))
-               : null;
+        //var t5 = RunAsyncUpdates(AsyncSceneUpdatingEvent5);
+        //SceneUpdatingEvent5?.Invoke(delta);
+        //if (t5 != null)
+        //    await t5;
+
+        //var t6 = RunAsyncUpdates(AsyncSceneUpdatingEvent6);
+        //SceneUpdatingEvent6?.Invoke(delta);
+        //if (t6 != null)
+        //    await t6;
+
+        //Task? RunAsyncUpdates(Func<TimeSpan, Task>? ev) 
+        //    => ev != null
+        //       ? Parallel.ForEachAsync(ev.GetInvocationList(), async (x, ct) => await ((Func<TimeSpan, Task>)x).Invoke(delta))
+        //       : null;
+
+        #endregion
     }
 
     internal async ValueTask Begin()
@@ -120,164 +152,39 @@ public abstract class Scene : GameObject, IDisposable
         SceneEnded?.Invoke(this, Game.TotalTime);
     }
 
-    #region Node Connections
+    #endregion
 
-    internal void ConnectNode(Node node)
+    #region Node Related
+
+    #region Update Handling
+
+    #region Internally Managed Methods
+
+    internal void InternalSort(Node node)
     {
+        Sorted sorted = 0;
         if (node is IAsyncUpdateableNode aun)
-            ConnectAsyncUpdateable(aun);
-        else if (node is IUpdateableNode un)
-            ConnectUpdateable(un);
+        {
+            node.AsyncUpdateHandler = SortNode(aun);
+            sorted |= Sorted.AsyncUpdate;
+        }
+        else if (node is IUpdateableNode sun)
+        {
+            node.UpdateHandler = SortNode(sun);
+            sorted |= Sorted.Update;
+        }
 
         if (node is IAsyncDrawableNode adn)
-            AsyncSceneDrawingEvent += adn.AddToDrawQueueAsync;
-        else if (node is IDrawableNode dn)
-            SceneDrawingEvent += dn.AddToDrawQueue;
-    }
-
-    internal void DisconnectNode(Node node)
-    {
-        if (node is IAsyncUpdateableNode aun)
-            DisconnectAsyncUpdateable(aun);
-        else if (node is IUpdateableNode un)
-            DisconnectUpdateable(un);
-
-        if (node is IAsyncDrawableNode adn)
-            AsyncSceneDrawingEvent -= adn.AddToDrawQueueAsync;
-        else if (node is IDrawableNode dn)
-            SceneDrawingEvent -= dn.AddToDrawQueue;
-    }
-
-    private void ConnectAsyncUpdateable(IAsyncUpdateableNode node)
-    {
-        switch (node.UpdateBatch)
         {
-            case UpdateBatch.First:
-                AsyncSceneUpdatingEvent1 += node.UpdateAsync;
-                break;
-
-            case UpdateBatch.Second:
-                AsyncSceneUpdatingEvent2 += node.UpdateAsync;
-                break;
-
-            case UpdateBatch.Third:
-                AsyncSceneUpdatingEvent3 += node.UpdateAsync;
-                break;
-
-            case UpdateBatch.Fourth:
-                AsyncSceneUpdatingEvent4 += node.UpdateAsync;
-                break;
-
-            case UpdateBatch.Fifth:
-                AsyncSceneUpdatingEvent5 += node.UpdateAsync;
-                break;
-
-            case UpdateBatch.Last:
-                AsyncSceneUpdatingEvent6 += node.UpdateAsync;
-                break;
-
-            default:
-                throw new InvalidOperationException($"Unknown UpdateBatch {node.UpdateBatch}");
+            node.AsyncDrawHandler = SortNode(adn);
+            sorted |= Sorted.AsyncDraw;
         }
-    }
-
-    private void ConnectUpdateable(IUpdateableNode node)
-    {
-        switch (node.UpdateBatch)
+        else if (node is IDrawableNode sdn)
         {
-            case UpdateBatch.First:
-                SceneUpdatingEvent1 += node.Update;
-                break;
-
-            case UpdateBatch.Second:
-                SceneUpdatingEvent2 += node.Update;
-                break;
-
-            case UpdateBatch.Third:
-                SceneUpdatingEvent3 += node.Update;
-                break;
-
-            case UpdateBatch.Fourth:
-                SceneUpdatingEvent4 += node.Update;
-                break;
-
-            case UpdateBatch.Fifth:
-                SceneUpdatingEvent5 += node.Update;
-                break;
-
-            case UpdateBatch.Last:
-                SceneUpdatingEvent6 += node.Update;
-                break;
-
-            default:
-                throw new InvalidOperationException($"Unknown UpdateBatch {node.UpdateBatch}");
+            node.DrawHandler = SortNode(sdn);
+            sorted |= Sorted.Draw;
         }
-    }
-
-    private void DisconnectAsyncUpdateable(IAsyncUpdateableNode node)
-    {
-        switch (node.UpdateBatch)
-        {
-            case UpdateBatch.First:
-                AsyncSceneUpdatingEvent1 -= node.UpdateAsync;
-                break;
-
-            case UpdateBatch.Second:
-                AsyncSceneUpdatingEvent2 -= node.UpdateAsync;
-                break;
-
-            case UpdateBatch.Third:
-                AsyncSceneUpdatingEvent3 -= node.UpdateAsync;
-                break;
-
-            case UpdateBatch.Fourth:
-                AsyncSceneUpdatingEvent4 -= node.UpdateAsync;
-                break;
-
-            case UpdateBatch.Fifth:
-                AsyncSceneUpdatingEvent5 -= node.UpdateAsync;
-                break;
-
-            case UpdateBatch.Last:
-                AsyncSceneUpdatingEvent6 -= node.UpdateAsync;
-                break;
-
-            default:
-                throw new InvalidOperationException($"Unknown UpdateBatch {node.UpdateBatch}");
-        }
-    }
-
-    private void DisconnectUpdateable(IUpdateableNode node)
-    {
-        switch (node.UpdateBatch)
-        {
-            case UpdateBatch.First:
-                SceneUpdatingEvent1 -= node.Update;
-                break;
-
-            case UpdateBatch.Second:
-                SceneUpdatingEvent2 -= node.Update;
-                break;
-
-            case UpdateBatch.Third:
-                SceneUpdatingEvent3 -= node.Update;
-                break;
-
-            case UpdateBatch.Fourth:
-                SceneUpdatingEvent4 -= node.Update;
-                break;
-
-            case UpdateBatch.Fifth:
-                SceneUpdatingEvent5 -= node.Update;
-                break;
-
-            case UpdateBatch.Last:
-                SceneUpdatingEvent6 -= node.Update;
-                break;
-
-            default:
-                throw new InvalidOperationException($"Unknown UpdateBatch {node.UpdateBatch}");
-        }
+        node.SortedInto = sorted;
     }
 
     #endregion
@@ -285,6 +192,8 @@ public abstract class Scene : GameObject, IDisposable
     #endregion
 
     #region Public methods and properties
+
+    #region Attachment
 
     /// <summary>
     /// Attaches the given <see cref="Node"/> to this <see cref="Scene"/>
@@ -294,7 +203,8 @@ public abstract class Scene : GameObject, IDisposable
     {
         lock (sync)
         {
-            node.AttachTo(this);
+            node.AttachToScene(this);
+            Nodes.Add(node);
             NodeAttached(node);
         }
         ChildAttached?.Invoke(this, Game.TotalTime, node);
@@ -303,8 +213,16 @@ public abstract class Scene : GameObject, IDisposable
     internal void InternalDetachNode(Node node)
     {
         NodeDetached(node);
+
+        Nodes.Remove(node.Index);
+
+        for (int i = 0; i < Nodes.Count; i++)
+            Nodes.Get(i).Index = i;
+
         ChildDetached?.Invoke(this, Game.TotalTime, node);
     }
+
+    #endregion
 
     /// <summary>
     /// Represents the Children and the overall Node tree of this <see cref="Scene"/>
@@ -313,6 +231,72 @@ public abstract class Scene : GameObject, IDisposable
     /// Due to thread safety concerns, the list is locked during reads
     /// </remarks>
     public NodeList Nodes { get; private set; }
+
+    #endregion
+
+    #region Sorters
+
+    /// <summary>
+    /// Sorts <paramref name="node"/> into being handled by either a custom update handler or by <see cref="UpdateSynchronousNode(IUpdateableNode)"/>
+    /// </summary>
+    /// <param name="node">The <see cref="IUpdateableNode"/> node to sort</param>
+    /// <returns><c>null</c> to signal the use of <see cref="UpdateSynchronousNode(IUpdateableNode)"/>, a <see cref="NodeSynchronousUpdater{TNode}"/> of the appropriate type otherwise</returns>
+    protected virtual NodeSynchronousUpdater? SortNode(IUpdateableNode node) => null;
+
+    /// <summary>
+    /// Sorts <paramref name="node"/> into being handled by either a custom update handler or by <see cref="UpdateAsynchronousNode(IAsyncUpdateableNode)"/>
+    /// </summary>
+    /// <param name="node">The <see cref="IAsyncUpdateableNode"/> node to sort</param>
+    /// <returns><c>null</c> to signal the use of <see cref="UpdateAsynchronousNode(IAsyncUpdateableNode)"/>, a <see cref="NodeAsynchronousUpdater{TNode}"/> of the appropriate type otherwise</returns>
+    protected virtual NodeAsynchronousUpdater? SortNode(IAsyncUpdateableNode node) => null;
+
+    /// <summary>
+    /// Sorts <paramref name="node"/> into being handled by either a custom draw handler or by <see cref="DrawSynchronousNode(IDrawableNode)"/>
+    /// </summary>
+    /// <param name="node">The <see cref="IDrawableNode"/> node to sort</param>
+    /// <returns><c>null</c> to signal the use of <see cref="DrawSynchronousNode(IDrawableNode)"/>, a <see cref="NodeSynchronousDrawer{TNode}"/> of the appropriate type otherwise</returns>
+    protected virtual NodeSynchronousDrawer? SortNode(IDrawableNode node) => null;
+
+    /// <summary>
+    /// Sorts <paramref name="node"/> into being handled by either a custom draw handler or by <see cref="DrawAsynchronousNode(IAsyncDrawableNode)"/>
+    /// </summary>
+    /// <param name="node">The <see cref="IAsyncDrawableNode"/> node to sort</param>
+    /// <returns><c>null</c> to signal the use of <see cref="DrawAsynchronousNode(IAsyncDrawableNode)"/>, a <see cref="NodeSynchronousDrawer{TNode}"/> of the appropriate type otherwise</returns>
+    protected virtual NodeAsynchronousDrawer? SortNode(IAsyncDrawableNode node) => null;
+
+    #endregion
+
+    #region Default Handlers
+
+    /// <summary>
+    /// The default handler for <see cref="IUpdateableNode"/>s
+    /// </summary>
+    /// <param name="node">The node to be updated</param>
+    /// <returns><c>true</c> if the update sequence should be propagated into <paramref name="node"/>, <c>false</c> otherwise</returns>
+    protected internal virtual bool UpdateSynchronousNode(IUpdateableNode node) => true;
+
+    /// <summary>
+    /// The default handler for <see cref="IAsyncUpdateableNode"/>s
+    /// </summary>
+    /// <param name="node">The node to be updated</param>
+    /// <returns><c>true</c> if the update sequence should be propagated into <paramref name="node"/>, <c>false</c> otherwise</returns>
+    protected internal virtual Task<bool> UpdateAsynchronousNode(IAsyncUpdateableNode node) => AssortedHelpers.TrueResult;
+
+    /// <summary>
+    /// The default handler for <see cref="IDrawableNode"/>s
+    /// </summary>
+    /// <param name="node">The node to be updated</param>
+    /// <returns><c>true</c> if the update sequence should be propagated into <paramref name="node"/>, <c>false</c> otherwise</returns>
+    protected internal virtual bool DrawSynchronousNode(IDrawableNode node) => true;
+
+    /// <summary>
+    /// The default handler for <see cref="IAsyncDrawableNode"/>s
+    /// </summary>
+    /// <param name="node">The node to be updated</param>
+    /// <returns><c>true</c> if the update sequence should be propagated into <paramref name="node"/>, <c>false</c> otherwise</returns>
+    protected internal virtual Task<bool> DrawAsynchronousNode(IAsyncDrawableNode node) => AssortedHelpers.TrueResult;
+
+    #endregion
 
     #endregion
 
