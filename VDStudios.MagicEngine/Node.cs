@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Exceptions;
@@ -14,45 +15,17 @@ namespace VDStudios.MagicEngine;
 /// </remarks>
 public abstract class Node : GameObject, IDisposable
 {
-    #region private
+    #region Assorted Node Fields
 
     private readonly object sync = new();
 
     internal IServiceScope? services;
+
     private event Action<Scene, bool>? AttachedToSceneEvent;
 
-    private void DetachNoLock()
-    {
-        ThrowIfDisposed();
-        ThrowIfNotAttached();
-        var prevParent = Parent!;
-
-        if (Parent is Node parent)
-        {
-            parent.AttachedToSceneEvent -= AttachedToScene;
-            services?.Dispose();
-            int ind = Index;
-            Index = -1;
-
-            parent.Children.Remove(ind);
-
-            for (int i = 0; i < parent.Children.Count; i++)
-                parent.Children[i].Index = i;
-        }
-
-        if (Root is Scene root)
-        {
-            if (Parent is null)
-                root.InternalDetachNode(this);
-            root.DisconnectNode(this);
-        }
-
-        Root = null;
-        Parent = null;
-        Parents = NodeList.Empty;
-    }
-
     #endregion
+
+    #region Construction
 
     /// <summary>
     /// Instances and initializes a new <see cref="Node"/>
@@ -63,230 +36,27 @@ public abstract class Node : GameObject, IDisposable
         Children = NodeList.Empty.Clone(sync);
     }
 
-    /// <summary>
-    /// Attaches <paramref name="child"/> to a this. This method is used for collection initialization syntax and is the same as calling <see cref="Attach(Node)"/>
-    /// </summary>
-    /// <remarks>
-    /// This method checks for circular references
-    /// </remarks>
-    /// <param name="child">The child to attach</param>
-    public void Add(Node child) => Attach(child);
+    #endregion
 
-    /// <summary>
-    /// Attaches <paramref name="child"/> to a this
-    /// </summary>
-    /// <remarks>
-    /// This method checks for circular references
-    /// </remarks>
-    /// <param name="child">The child to attach</param>
-    public void Attach(Node child)
-    {
-        lock (sync)
-        {
-            child.AttachTo(this);
-        }
-    }
+    #region Scene Handlers
 
-    /// <summary>
-    /// Attaches this <see cref="Node"/> to a parent
-    /// </summary>
-    /// <remarks>
-    /// This method checks for circular references
-    /// </remarks>
-    public void AttachTo(Node parent)
-    {
-        parent.ThrowIfDisposed();
-        ThrowIfDisposed();
-        if (ReferenceEquals(this, parent))
-            throw new ArgumentException("A node can't be attached to itself", nameof(parent));
-        lock (sync)
-        {
-            ThrowIfAttached();
-            for (int i = 0; i < Parents.Count; i++)
-                if (ReferenceEquals(parent.Parents[i], this))
-                    throw new ArgumentException("Can't attach a node to one of its children", nameof(parent));
-
-            Index = parent.Children.Count;
-            parent.Children.Add(this);
-
-            parent.AttachedToSceneEvent += AttachedToScene;
-
-            Parents = parent.Parents.Clone(sync);
-            Parents.Add(parent);
-        }
-
-        Root = parent.Root;
-
-        Attached(parent, Index);
-        NodeAttached?.Invoke(this, Game.TotalTime);
-    }
-
-    /// <summary>
-    /// Attaches this <see cref="Node"/> to a <see cref="Scene"/>
-    /// </summary>
-    /// <param name="root"></param>
-    public void AttachTo(Scene root)
-    {
-        ThrowIfDisposed();
-        lock (sync)
-        {
-            ThrowIfAttached();
-            Depth = 0;
-        }
-
-        Index = root.Nodes.Count;
-        root.Nodes.Add(this);
-
-        AttachedToScene(root, true);
-        Root = root;
-        NodeAttached?.Invoke(this, Game.TotalTime);
-    }
-
-    /// <summary>
-    /// Detaches this <see cref="Node"/> from its parent
-    /// </summary>
-    public void Detach()
-    {
-        lock (sync)
-            DetachNoLock();
-    }
-
-    private void InternalInstall(FunctionalComponent component)
-    {
-        if (!ComponentFilter(component, out var rfj))
-            throw new FunctionalComponentRejectedException(rfj ?? "Unknown reason", this, component);
-
-        ComponentInstalling(component);
-
-        if (component is AsynchronousFunctionalComponent afc)
-        {
-            component.Index = _asyncComponents.Count;
-            _asyncComponents.Add(afc);
-        }
-        else if (component is SynchronousFunctionalComponent sfc)
-        {
-            component.Index = _syncComponents.Count;
-            _syncComponents.Add(sfc);
-        }
-
-        FunctionalComponentInstalled?.Invoke(this, component, Game.TotalTime);
-    }
-
-    /// <summary>
-    /// Uninstalls the given component from this <see cref="Node"/> if it was already installed
-    /// </summary>
-    /// <param name="component">The component to uninstall</param>
-    /// <exception cref="ArgumentException">If the component is not installed in this <see cref="Node"/></exception>
-    public void Uninstall(FunctionalComponent component)
-    {
-        if (!ReferenceEquals(component.AttachedNode, this))
-            throw new ArgumentException("The specified component is not installed in this Node", nameof(component));
-
-        ComponentUninstalling(component);
-
-        component.InternalUninstall();
-
-        if (component is AsynchronousFunctionalComponent afc)
-        {
-            for (int i = 0; i < _asyncComponents.Count; i++)
-            {
-                var c = _asyncComponents[i];
-                if (i != c.Index)
-                    c.Index = i;
-            }
-        }
-        else if (component is SynchronousFunctionalComponent sfc)
-        {
-            for (int i = 0; i < _syncComponents.Count; i++)
-            {
-                var c = _syncComponents[i];
-                if (i != c.Index)
-                    c.Index = i;
-            }
-        }
-
-        FunctionalComponentUninstalled?.Invoke(this, component, Game.TotalTime);
-    }
+    #region Internally Managed Methods
 
     private void AttachedToScene(Scene root, bool isDirectParent)
     {
         services = root.Services.CreateScope();
         Attached(root, Index, isDirectParent, services.ServiceProvider);
-        root.ConnectNode(this);
         Root = root;
         AttachedToSceneEvent?.Invoke(root, false);
     }
 
-    /// <summary>
-    /// Instances and installs a <see cref="FunctionalComponent"/> into this <see cref="Node"/>
-    /// </summary>
-    /// <returns>The newly installed <see cref="FunctionalComponent"/></returns>
-    /// <typeparam name="TComponent">The type of FunctionalComponent to instance and install</typeparam>
-    public TComponent Install<TComponent>() where TComponent : FunctionalComponent, new()
-    {
-        var comp = new TComponent();
-        InternalInstall(comp);
-        return comp;
-    }
+    #endregion
 
-    /// <summary>
-    /// Instances and installs the <see cref="FunctionalComponent"/> returned by <paramref name="factory"/> into this <see cref="Node"/>
-    /// </summary>
-    /// <returns>The newly installed <see cref="FunctionalComponent"/></returns>
-    /// <typeparam name="TComponent">The type of FunctionalComponent to instance and install</typeparam>
-    /// <param name="factory">The method that will instance the component</param>
-    public TComponent Install<TComponent>(Func<TComponent> factory) where TComponent : FunctionalComponent
-    {
-        var comp = factory();
-        InternalInstall(comp);
-        return comp;
-    }
+    #endregion
 
-    /// <summary>
-    /// Installs <paramref name="component"/> into this <see cref="Node"/>
-    /// </summary>
-    /// <returns>The newly installed <see cref="FunctionalComponent"/></returns>
-    /// <param name="component">The component to install</param>
-    public void Install(FunctionalComponent component)
-        => InternalInstall(component);
+    #region Internally Managed Properties
 
-    /// <summary>
-    /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is not attached to another <see cref="Node"/> or <see cref="Scene"/>
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void ThrowIfNotAttached()
-    {
-        if (Index is -1)
-            throw new InvalidOperationException("This Node is not attached to anything");
-    }
-
-    /// <summary>
-    /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of
-    /// </summary>
-    protected void ThrowIfDisposed()
-    {
-        if (disposedValue)
-            throw new ObjectDisposedException(GetType().FullName);
-    }
-
-    /// <summary>
-    /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of, otherwise, returns the passed value
-    /// </summary>
-    /// <remarks>
-    /// This method is useful to ensure disposed safety in an expression body
-    /// </remarks>
-    [return: NotNullIfNotNull("v")]
-    protected T? ThrowIfDisposed<T>(T? v) => disposedValue ? throw new ObjectDisposedException(GetType().FullName) : v;
-
-    /// <summary>
-    /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is attached to another <see cref="Node"/> or <see cref="Scene"/>
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void ThrowIfAttached()
-    {
-        if (Index != -1)
-            throw new InvalidOperationException("This Node is already attached");
-    }
+    #region Public API Properties
 
     /// <summary>
     /// Represents this <see cref="Node"/>'s parent
@@ -311,10 +81,7 @@ public abstract class Node : GameObject, IDisposable
                 return;
             
             if (value is null)
-            {
-                var prev = root;
                 root = value;
-            }
 
             root = value!;
             AttachedToSceneEvent?.Invoke(root, false);
@@ -322,24 +89,6 @@ public abstract class Node : GameObject, IDisposable
         }
     }
     private Scene? root;
-
-    /// <summary>
-    /// Represents an internal list of this <see cref="Node"/>'s synchronous components
-    /// </summary>
-    /// <remarks>
-    /// A node is entirely responsible for updating its own components
-    /// </remarks>
-    protected IReadOnlyList<SynchronousFunctionalComponent> SynchronousComponents => _syncComponents;
-    private List<SynchronousFunctionalComponent> _syncComponents = new();
-
-    /// <summary>
-    /// Represents an internal list of this <see cref="Node"/>'s asynchronous components
-    /// </summary>
-    /// <remarks>
-    /// A node is entirely responsible for updating its own components
-    /// </remarks>
-    protected IReadOnlyList<AsynchronousFunctionalComponent> AsynchronousComponents => _asyncComponents;
-    private List<AsynchronousFunctionalComponent> _asyncComponents = new();
 
     /// <summary>
     /// Represents the Children or Subnodes of this <see cref="Node"/>
@@ -379,7 +128,7 @@ public abstract class Node : GameObject, IDisposable
     public int Index 
     { 
         get => ThrowIfDisposed(index); 
-        private set
+        internal set
         {
             if (index == value)
                 return;
@@ -390,15 +139,330 @@ public abstract class Node : GameObject, IDisposable
     }
     private int index = -1;
 
+    #endregion
+
+    #region Node (Protected) API Properties
+
     /// <summary>
-    /// Runs when a <see cref="Node"/> is attached to this <see cref="Node"/>
+    /// Represents an internal list of this <see cref="Node"/>'s synchronous components
     /// </summary>
     /// <remarks>
-    /// This method is called before the child's <see cref="Attached(Node, int, IServiceProvider?)"/> is called
+    /// A node is entirely responsible for updating its own components
     /// </remarks>
-    /// <param name="child">The child that is being attached</param>
-    /// <param name="index">The index the child will have</param>
-    protected virtual void ChildAttached(Node child, int index) { }
+    protected IReadOnlyList<SynchronousFunctionalComponent> SynchronousComponents => _syncComponents;
+    private List<SynchronousFunctionalComponent> _syncComponents = new();
+
+    /// <summary>
+    /// Represents an internal list of this <see cref="Node"/>'s asynchronous components
+    /// </summary>
+    /// <remarks>
+    /// A node is entirely responsible for updating its own components
+    /// </remarks>
+    protected IReadOnlyList<AsynchronousFunctionalComponent> AsynchronousComponents => _asyncComponents;
+    private List<AsynchronousFunctionalComponent> _asyncComponents = new();
+
+    #endregion
+
+    #endregion
+
+    #region Self (Node) Handlers
+
+    /// <summary>
+    /// Runs when this <see cref="Node"/>'s Index changes
+    /// </summary>
+    /// <param name="oldIndex">The previous <see cref="Index"/></param>
+    /// <param name="newIndex">The new <see cref="Index"/></param>
+    protected virtual void NodeIndexChanged(int oldIndex, int newIndex) { }
+
+    #endregion
+
+    #region Child Node Handlers
+
+    #region Sorters
+
+    /// <summary>
+    /// Sorts <paramref name="node"/> into being handled by either a custom update handler or by <see cref="UpdateSynchronousNode(IUpdateableNode)"/>
+    /// </summary>
+    /// <param name="node">The <see cref="IUpdateableNode"/> node to sort</param>
+    /// <returns><c>null</c> to signal the use of <see cref="UpdateSynchronousNode(IUpdateableNode)"/>, a <see cref="NodeSynchronousUpdater{TNode}"/> of the appropriate type otherwise</returns>
+    protected virtual NodeSynchronousUpdater? SortNode(IUpdateableNode node) => null;
+
+    /// <summary>
+    /// Sorts <paramref name="node"/> into being handled by either a custom update handler or by <see cref="UpdateAsynchronousNode(IAsyncUpdateableNode)"/>
+    /// </summary>
+    /// <param name="node">The <see cref="IAsyncUpdateableNode"/> node to sort</param>
+    /// <returns><c>null</c> to signal the use of <see cref="UpdateAsynchronousNode(IAsyncUpdateableNode)"/>, a <see cref="NodeAsynchronousUpdater{TNode}"/> of the appropriate type otherwise</returns>
+    protected virtual NodeAsynchronousUpdater? SortNode(IAsyncUpdateableNode node) => null;
+
+    /// <summary>
+    /// Sorts <paramref name="node"/> into being handled by either a custom draw handler or by <see cref="DrawSynchronousNode(IDrawableNode)"/>
+    /// </summary>
+    /// <param name="node">The <see cref="IDrawableNode"/> node to sort</param>
+    /// <returns><c>null</c> to signal the use of <see cref="DrawSynchronousNode(IDrawableNode)"/>, a <see cref="NodeSynchronousDrawer{TNode}"/> of the appropriate type otherwise</returns>
+    protected virtual NodeSynchronousDrawer? SortNode(IDrawableNode node) => null;
+
+    /// <summary>
+    /// Sorts <paramref name="node"/> into being handled by either a custom draw handler or by <see cref="DrawAsynchronousNode(IAsyncDrawableNode)"/>
+    /// </summary>
+    /// <param name="node">The <see cref="IAsyncDrawableNode"/> node to sort</param>
+    /// <returns><c>null</c> to signal the use of <see cref="DrawAsynchronousNode(IAsyncDrawableNode)"/>, a <see cref="NodeSynchronousDrawer{TNode}"/> of the appropriate type otherwise</returns>
+    protected virtual NodeAsynchronousDrawer? SortNode(IAsyncDrawableNode node) => null;
+
+    #endregion
+
+    #region Default Handlers
+
+    /// <summary>
+    /// The default handler for <see cref="IUpdateableNode"/>s
+    /// </summary>
+    /// <param name="node">The node to be updated</param>
+    /// <returns><c>true</c> if the update sequence should be propagated into <paramref name="node"/>, <c>false</c> otherwise</returns>
+    protected virtual bool UpdateSynchronousNode(IUpdateableNode node) => true;
+
+    /// <summary>
+    /// The default handler for <see cref="IAsyncUpdateableNode"/>s
+    /// </summary>
+    /// <param name="node">The node to be updated</param>
+    /// <returns><c>true</c> if the update sequence should be propagated into <paramref name="node"/>, <c>false</c> otherwise</returns>
+    protected virtual Task<bool> UpdateAsynchronousNode(IAsyncUpdateableNode node) => AssortedHelpers.TrueResult;
+
+    /// <summary>
+    /// The default handler for <see cref="IDrawableNode"/>s
+    /// </summary>
+    /// <param name="node">The node to be updated</param>
+    /// <returns><c>true</c> if the update sequence should be propagated into <paramref name="node"/>, <c>false</c> otherwise</returns>
+    protected virtual bool DrawSynchronousNode(IDrawableNode node) => true;
+
+    /// <summary>
+    /// The default handler for <see cref="IAsyncDrawableNode"/>s
+    /// </summary>
+    /// <param name="node">The node to be updated</param>
+    /// <returns><c>true</c> if the update sequence should be propagated into <paramref name="node"/>, <c>false</c> otherwise</returns>
+    protected virtual Task<bool> DrawAsynchronousNode(IAsyncDrawableNode node) => AssortedHelpers.TrueResult;
+
+    #endregion
+
+    #region Sorted Node Lists and data
+
+    [Flags]
+    internal enum Sorted : byte
+    {
+        NotSorted = 0,
+        Update = 1 << 0,
+        AsyncUpdate = 1 << 1,
+        Draw = 1 << 2,
+        AsyncDraw = 1 << 3,
+    }
+
+    internal Sorted SortedInto;
+    internal NodeSynchronousUpdater? UpdateHandler;
+    internal NodeAsynchronousUpdater? AsyncUpdateHandler;
+    internal NodeAsynchronousDrawer? AsyncDrawHandler;
+    internal NodeSynchronousDrawer? DrawHandler;
+
+    #endregion
+
+    #region Internally Managed Methods
+
+    #region Child Perform Update
+
+    #endregion
+
+    internal async Task PropagateUpdate()
+    {
+        bool propagate = true;
+
+        if (SortedInto.HasFlag(Sorted.AsyncUpdate))
+            propagate = await (AsyncUpdateHandler?.PerformUpdate()
+                            ?? Parent?.UpdateAsynchronousNode((IAsyncUpdateableNode)this)
+                            ?? Root!.UpdateAsynchronousNode((IAsyncUpdateableNode)this));
+        else if (SortedInto.HasFlag(Sorted.Update))
+            propagate = UpdateHandler?.PerformUpdate()
+                        ?? Parent?.UpdateSynchronousNode((IUpdateableNode)this)
+                        ?? Root!.UpdateSynchronousNode((IUpdateableNode)this);
+
+        if (!propagate)
+            return;
+
+        var pool = ArrayPool<Task>.Shared;
+        int toUpdate = Children.Count;
+        Task[] tasks = pool.Rent(toUpdate);
+        try
+        {
+            lock (sync)
+            {
+                for (int i = 0; i < toUpdate; i++)
+                    tasks[i] = Children.Get(i).PropagateUpdate();
+            }
+            for (int i = 0; i < toUpdate; i++)
+                await tasks[i];
+        }
+        finally
+        {
+            pool.Return(tasks, true);
+        }
+    }
+
+    internal async Task PropagateDraw()
+    {
+        bool propagate = true;
+        if (SortedInto.HasFlag(Sorted.AsyncDraw))
+            propagate = await (AsyncDrawHandler?.PerformDraw()
+                            ?? Parent?.DrawAsynchronousNode((IAsyncDrawableNode)this)
+                            ?? Root!.DrawAsynchronousNode((IAsyncDrawableNode)this));
+        else if (SortedInto.HasFlag(Sorted.Draw))
+            propagate = DrawHandler?.PerformDraw()
+                        ?? Parent?.DrawSynchronousNode((IDrawableNode)this)
+                        ?? Root!.DrawSynchronousNode((IDrawableNode)this);
+
+        if (!propagate)
+            return;
+
+        var pool = ArrayPool<Task>.Shared;
+        int toAddToDrawQueue = Children.Count;
+        Task[] tasks = pool.Rent(toAddToDrawQueue);
+        try
+        {
+            lock (sync)
+            {
+                for (int i = 0; i < toAddToDrawQueue; i++)
+                    tasks[i] = Children.Get(i).PropagateDraw();
+            }
+            for (int i = 0; i < toAddToDrawQueue; i++)
+                await tasks[i];
+        }
+        finally
+        {
+            pool.Return(tasks, true);
+        }
+    }
+
+    private void InternalSort(Node node)
+    {
+        Sorted sorted = 0;
+        if (node is IAsyncUpdateableNode aun)
+        {
+            node.AsyncUpdateHandler = SortNode(aun);
+            sorted |= Sorted.AsyncUpdate;
+        }
+        else if (node is IUpdateableNode sun)
+        {
+            node.UpdateHandler = SortNode(sun);
+            sorted |= Sorted.Update;
+        }
+
+        if (node is IAsyncDrawableNode adn)
+        {
+            node.AsyncDrawHandler = SortNode(adn);
+            sorted |= Sorted.AsyncDraw;
+        }
+        else if (node is IDrawableNode sdn)
+        {
+            node.DrawHandler = SortNode(sdn);
+            sorted |= Sorted.Draw;
+        }
+        node.SortedInto = sorted;
+    }
+
+    #endregion
+
+    #region Attachment
+
+    #region Public Methods
+
+    /// <summary>
+    /// Attaches <paramref name="child"/> to a this. This method is used for collection initialization syntax and is the same as calling <see cref="Attach(Node)"/>
+    /// </summary>
+    /// <remarks>
+    /// This method checks for circular references
+    /// </remarks>
+    /// <param name="child">The child to attach</param>
+    public void Add(Node child) => Attach(child);
+
+    /// <summary>
+    /// Attaches <paramref name="child"/> to a this
+    /// </summary>
+    /// <remarks>
+    /// This method checks for circular references
+    /// </remarks>
+    /// <param name="child">The child to attach</param>
+    public void Attach(Node child)
+    {
+        lock (sync)
+            child.AttachTo(this);
+    }
+
+    /// <summary>
+    /// Attaches this <see cref="Node"/> to a parent
+    /// </summary>
+    /// <remarks>
+    /// This method checks for circular references
+    /// </remarks>
+    public void AttachTo(Node parent)
+    {
+        parent.ThrowIfDisposed();
+        ThrowIfDisposed();
+        if (ReferenceEquals(this, parent))
+            throw new ArgumentException("A node can't be attached to itself", nameof(parent));
+        lock (sync)
+        {
+            ThrowIfAttached();
+            for (int i = 0; i < Parents.Count; i++)
+                if (ReferenceEquals(parent.Parents[i], this))
+                    throw new ArgumentException("Can't attach a node to one of its children", nameof(parent));
+
+            Index = parent.Children.Count;
+            parent.Children.Add(this);
+
+            parent.AttachedToSceneEvent += AttachedToScene;
+
+            Parents = parent.Parents.Clone(sync);
+            Parents.Add(parent);
+        }
+
+        Root = parent.Root;
+
+        Attached(parent, Index);
+        NodeAttached?.Invoke(this, Game.TotalTime);
+        parent.InternalSort(this);
+    }
+
+    internal void AttachToScene(Scene root)
+    {
+        ThrowIfDisposed();
+        lock (sync)
+        {
+            ThrowIfAttached();
+            Depth = 0;
+        }
+        Index = root.Nodes.Count;
+        AttachedToScene(root, true);
+        Root = root;
+        NodeAttached?.Invoke(this, Game.TotalTime);
+        root.InternalSort(this);
+    }
+
+    /// <summary>
+    /// Attaches this <see cref="Node"/> to a <see cref="Scene"/>
+    /// </summary>
+    /// <param name="root"></param>
+    public void AttachTo(Scene root) 
+        => root.AttachNode(this);
+
+    /// <summary>
+    /// Detaches this <see cref="Node"/> from its parent
+    /// </summary>
+    public void Detach()
+    {
+        ThrowIfNotAttached();
+        lock (sync)
+            DetachNoLock();
+        Detached();
+    }
+
+    #endregion
+
+    #region Virtual Custom Handlers
 
     /// <summary>
     /// Runs when a <see cref="Node"/> is attached to a parent <see cref="Node"/>
@@ -430,6 +494,159 @@ public abstract class Node : GameObject, IDisposable
     /// </remarks>
     protected virtual void Detached() { }
 
+    #endregion
+
+    #region Internally Managed Methods
+
+    private void DetachNoLock()
+    {
+        if (Index == -1)
+            return;
+        ThrowIfDisposed();
+        var prevParent = Parent!;
+
+        if (Parent is Node parent)
+        {
+            parent.AttachedToSceneEvent -= AttachedToScene;
+            services?.Dispose();
+            int ind = Index;
+            Index = -1;
+
+            parent.Children.Remove(ind);
+
+            for (int i = 0; i < parent.Children.Count; i++)
+                parent.Children.Get(i).Index = i;
+        }
+
+        if (Root is Scene root)
+        {
+            if (Parent is null)
+                root.InternalDetachNode(this);
+            Index = -1;
+        }
+
+        UpdateHandler = null;
+        AsyncUpdateHandler = null;
+        AsyncDrawHandler = null;
+        DrawHandler = null;
+
+        Root = null;
+        Parent = null;
+        Parents = NodeList.Empty;
+    }
+
+    #endregion
+
+    #endregion
+
+    #endregion
+
+    #region FunctionalComponents
+
+    #region Public Methods
+
+    /// <summary>
+    /// Instances and installs a <see cref="FunctionalComponent"/> into this <see cref="Node"/>
+    /// </summary>
+    /// <returns>The newly installed <see cref="FunctionalComponent"/></returns>
+    /// <typeparam name="TComponent">The type of FunctionalComponent to instance and install</typeparam>
+    public TComponent Install<TComponent>() where TComponent : FunctionalComponent, new()
+    {
+        var comp = new TComponent();
+        InternalInstall(comp);
+        return comp;
+    }
+
+    /// <summary>
+    /// Instances and installs the <see cref="FunctionalComponent"/> returned by <paramref name="factory"/> into this <see cref="Node"/>
+    /// </summary>
+    /// <returns>The newly installed <see cref="FunctionalComponent"/></returns>
+    /// <typeparam name="TComponent">The type of FunctionalComponent to instance and install</typeparam>
+    /// <param name="factory">The method that will instance the component</param>
+    public TComponent Install<TComponent>(Func<TComponent> factory) where TComponent : FunctionalComponent
+    {
+        var comp = factory();
+        InternalInstall(comp);
+        return comp;
+    }
+
+    /// <summary>
+    /// Installs <paramref name="component"/> into this <see cref="Node"/>
+    /// </summary>
+    /// <returns>The newly installed <see cref="FunctionalComponent"/></returns>
+    /// <param name="component">The component to install</param>
+    public void Install(FunctionalComponent component)
+        => InternalInstall(component);
+
+    /// <summary>
+    /// Uninstalls the given component from this <see cref="Node"/> if it was already installed
+    /// </summary>
+    /// <param name="component">The component to uninstall</param>
+    /// <exception cref="ArgumentException">If the component is not installed in this <see cref="Node"/></exception>
+    public void Uninstall(FunctionalComponent component)
+    {
+        if (!ReferenceEquals(component.AttachedNode, this))
+            throw new ArgumentException("The specified component is not installed in this Node", nameof(component));
+
+        ComponentUninstalling(component);
+
+        component.InternalUninstall();
+
+        if (component is AsynchronousFunctionalComponent afc)
+        {
+            _asyncComponents.RemoveAt(afc.Index);
+            for (int i = 0; i < _asyncComponents.Count; i++)
+            {
+                var c = _asyncComponents[i];
+                if (i != c.Index)
+                    c.Index = i;
+            }
+        }
+        else if (component is SynchronousFunctionalComponent sfc)
+        {
+            _syncComponents.RemoveAt(sfc.Index);
+            for (int i = 0; i < _syncComponents.Count; i++)
+            {
+                var c = _syncComponents[i];
+                if (i != c.Index)
+                    c.Index = i;
+            }
+        }
+
+        FunctionalComponentUninstalled?.Invoke(this, component, Game.TotalTime);
+    }
+
+    #endregion
+
+    #region Internally Managed Methods
+
+    private void InternalInstall(FunctionalComponent component)
+    {
+        if (!ComponentFilter(component, out var rfj))
+            throw new FunctionalComponentRejectedException(rfj ?? "Unknown reason", this, component);
+
+        ComponentInstalling(component);
+
+        if (component is AsynchronousFunctionalComponent afc)
+        {
+            component.Index = _asyncComponents.Count;
+            _asyncComponents.Add(afc);
+        }
+        else if (component is SynchronousFunctionalComponent sfc)
+        {
+            component.Index = _syncComponents.Count;
+            _syncComponents.Add(sfc);
+        }
+
+        FunctionalComponentInstalled?.Invoke(this, component, Game.TotalTime);
+    }
+
+    #endregion
+
+    #region Virtual User Handlers
+
+    #region Installation
+
     /// <summary>
     /// Runs when a <see cref="FunctionalComponent"/> is being installed into this <see cref="Node"/>
     /// </summary>
@@ -446,6 +663,10 @@ public abstract class Node : GameObject, IDisposable
     /// </remarks>
     protected virtual void ComponentUninstalling(FunctionalComponent component) { }
 
+    #endregion
+
+    #region Other
+
     /// <summary>
     /// Runs before a <see cref="FunctionalComponent"/> is installed into this <see cref="Node"/>
     /// </summary>
@@ -460,12 +681,53 @@ public abstract class Node : GameObject, IDisposable
         return true;
     }
 
+    #endregion
+
+    #endregion
+
+    #endregion
+
+    #region Helper Methods
+
     /// <summary>
-    /// Runs when this <see cref="Node"/>'s Index changes
+    /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is not attached to another <see cref="Node"/> or <see cref="Scene"/>
     /// </summary>
-    /// <param name="oldIndex">The previous <see cref="Index"/></param>
-    /// <param name="newIndex">The new <see cref="Index"/></param>
-    protected virtual void NodeIndexChanged(int oldIndex, int newIndex) { }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected void ThrowIfNotAttached()
+    {
+        if (Index is -1)
+            throw new InvalidOperationException("This Node is not attached to anything");
+    }
+
+    /// <summary>
+    /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of
+    /// </summary>
+    protected void ThrowIfDisposed()
+    {
+        if (disposedValue)
+            throw new ObjectDisposedException(GetType().FullName);
+    }
+
+    /// <summary>
+    /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of, otherwise, returns the passed value
+    /// </summary>
+    /// <remarks>
+    /// This method is useful to ensure disposed safety in an expression body
+    /// </remarks>
+    [return: NotNullIfNotNull("v")]
+    protected T? ThrowIfDisposed<T>(T? v) => disposedValue ? throw new ObjectDisposedException(GetType().FullName) : v;
+
+    /// <summary>
+    /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is attached to another <see cref="Node"/> or <see cref="Scene"/>
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected void ThrowIfAttached()
+    {
+        if (Index != -1)
+            throw new InvalidOperationException("This Node is already attached");
+    }
+
+    #endregion
 
     #region Events
 
@@ -517,7 +779,7 @@ public abstract class Node : GameObject, IDisposable
                 Dispose(disposing);
 
                 for (int i = 0; i < Children.Count; i++)
-                    Children[i].Dispose();
+                    Children.Get(i).Dispose();
 
                 DetachNoLock();
 
