@@ -52,16 +52,16 @@ public abstract class Node : NodeBase
     #region Public Methods
 
     /// <summary>
-    /// Updates the <see cref="Node"/>
+    /// This method is called automatically when the <see cref="Node"/> is to be updated
     /// </summary>
     /// <param name="delta">The amount of time that has passed since the last update batch call</param>
     /// <returns>Whether the update sequence should be propagated into this <see cref="Node"/>'s children. If this is false, Update handlers for children will also be skipped</returns>
-    public virtual ValueTask<bool> Update(TimeSpan delta) => ValueTask.FromResult(true);
+    protected virtual ValueTask<bool> Updating(TimeSpan delta) => ValueTask.FromResult(true);
 
     /// <summary>
     /// The batch this <see cref="Node"/> should be assigned to
     /// </summary>
-    public UpdateBatch UpdateBatch { get; }
+    public UpdateBatch UpdateBatch { get; protected init; }
 
     #endregion
 
@@ -360,13 +360,24 @@ public abstract class Node : NodeBase
         await Detaching();
         drawer = null;
         updater = null;
-        if (Parent is Node pn)
+
+        foreach (var comp in Components)
+            comp.NodeDetachedFromScene();
+
+        if (TryGetParentNode(out var pn))
         {
+            pn.Children.Remove(Id);
+            Id = -1;
             pn.AttachedToSceneEvent -= WhenAttachedToScene;
             pn.DetachedFromSceneEvent -= WhenDetachedFromScene;
-            foreach (var comp in Components)
-                comp.NodeDetachedFromScene();
         }
+        else if (TryGetParentScene(out var ps))
+        {
+            ps.Children.Remove(Id);
+            Id = -1;
+            DetachedFromSceneEvent?.Invoke(ps, true);
+        }
+
         Root = null;
         Parent = null;
     }
@@ -530,7 +541,7 @@ public abstract class Node : NodeBase
 
     internal async ValueTask PropagateUpdate(TimeSpan delta)
     {
-        if (!await Update(delta))
+        if (!await Updating(delta))
             return;
 
         var pool = ArrayPool<ValueTask>.Shared;
