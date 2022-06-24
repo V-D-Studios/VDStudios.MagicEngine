@@ -9,42 +9,41 @@ namespace VDStudios.MagicEngine;
 /// Represents encapsulated functionality of a Node. Will be disposed of after its uninstalled
 /// </summary>
 /// <remarks>
-/// User code can't directly inherit from this class. See <see cref="SynchronousFunctionalComponent"/> or <see cref="AsynchronousFunctionalComponent"/> instead
+/// <see cref="FunctionalComponent"/>s update in respect to the <see cref="Node"/> they're installed onto. That is, rather than update themselves, <see cref="FunctionalComponent"/> should work to update the <see cref="Node"/> they're installed onto
 /// </remarks>
 public abstract class FunctionalComponent : GameObject, IDisposable
 {
     internal TimeSpan sdl_lastUpdate;
     private IServiceScope? serviceScope;
 
-    internal FunctionalComponent(bool isAsync)
+    internal FunctionalComponent()
     {
-        IsAsync = isAsync;
+
     }
+
+    /// <summary>
+    /// <c>true</c> if this <see cref="FunctionalComponent"/> is ready and should be updated. <c>false</c> otherwise
+    /// </summary>
+    /// <remarks>
+    /// If this property is <c>false</c>, this <see cref="FunctionalComponent"/> will be skipped. Defaults to <c>true</c> and must be set to <c>false</c> manually if desired
+    /// </remarks>
+    public bool IsReady { get; protected set; }
+
+    /// <summary>
+    /// This method is called automatically when this <see cref="FunctionalComponent"/> is to be updated
+    /// </summary>
+    /// <remarks>
+    /// <see cref="FunctionalComponent"/>s update in respect to the <see cref="Node"/> they're installed onto. That is, rather than update themselves, <see cref="FunctionalComponent"/> should work to update the <see cref="Node"/> they're installed onto
+    /// </remarks>
+    /// <param name="delta">The amount of time that has passed since the last update batch call</param>
+    /// <param name="componentDelta">The amount of time that has passed since the last time this <see cref="FunctionalComponent"/> was updated</param>
+    /// <returns></returns>
+    protected virtual ValueTask Update(TimeSpan delta, TimeSpan componentDelta) => ValueTask.CompletedTask;
 
     /// <summary>
     /// Represents the internal Component Index in the currently attached node
     /// </summary>
-    public int Index
-    {
-        get => index;
-        set
-        {
-            if (index == value)
-                return;
-            var prev = index;
-            index = value;
-            IndexChanged?.Invoke(this, Game.TotalTime, prev, value);
-        }
-    }
-    private int index;
-
-    /// <summary>
-    /// Whether or not this <see cref="FunctionalComponent"/> is asynchronous
-    /// </summary>
-    /// <remarks>
-    /// This property is <c>init</c> only and will not change after its constructed
-    /// </remarks>
-    public bool IsAsync { get; }
+    public int Id { get; internal set; }
 
     /// <summary>
     /// The <see cref="Node"/> this <see cref="FunctionalComponent"/> is currently attached to, if any
@@ -158,6 +157,15 @@ public abstract class FunctionalComponent : GameObject, IDisposable
 
     #region IDisposable
 
+    /// <summary>
+    /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of
+    /// </summary>
+    protected internal void ThrowIfDisposed()
+    {
+        if (disposedValue)
+            throw new ObjectDisposedException(GetType().FullName);
+    }
+
     private bool disposedValue;
 
     /// <summary>
@@ -181,8 +189,6 @@ public abstract class FunctionalComponent : GameObject, IDisposable
             AttachedNode = null;
             disposedValue = true;
         }
-
-        GC.SuppressFinalize(this);
     }
 
     /// <inheritdoc/>
@@ -197,100 +203,8 @@ public abstract class FunctionalComponent : GameObject, IDisposable
     public void Dispose()
     {
         IntDispose(true);
+        GC.SuppressFinalize(this);
     }
 
     #endregion
-}
-
-/// <summary>
-/// Represents encapsulated functionality of a Node that is not updated
-/// </summary>
-/// <remarks>
-/// <see cref="NonUpdatingFunctionalComponent"/> are not internally added to a <see cref="Node"/>'s list, and must be held manually in a field, property or collection. Remember that components are disposed of after they're uninstalled
-/// </remarks>
-public abstract class NonUpdatingFunctionalComponent : FunctionalComponent
-{
-    /// <summary>
-    /// Instances and initiates a NonUpdatingFunctionalComponent
-    /// </summary>
-    /// <remarks>
-    /// Remember to toss <see cref="IServiceProvider"/> dependent code into <see cref="FunctionalComponent.Installing(Node)"/>
-    /// </remarks>
-    public NonUpdatingFunctionalComponent(bool isAsync) : base(isAsync) { }
-}
-
-/// <summary>
-/// Represents encapsulated functionality of a Node that is updated asynchronously
-/// </summary>
-/// <remarks>
-/// Remember that components are disposed of after they're uninstalled
-/// </remarks>
-public abstract class AsynchronousFunctionalComponent : FunctionalComponent
-{
-    /// <summary>
-    /// Instances and initiates a AsynchronousFunctionalComponent
-    /// </summary>
-    /// <remarks>
-    /// Remember to toss <see cref="IServiceProvider"/> dependent code into <see cref="FunctionalComponent.Installing(Node)"/>
-    /// </remarks>
-    protected AsynchronousFunctionalComponent() : base(true) { }
-
-    /// <summary>
-    /// This method is called after <see cref="UpdateAsync(TimeSpan)"/> and is where your code goes
-    /// </summary>
-    /// <param name="gameDelta">The amount of time that has passed since the last Update frame in the Game</param>
-    /// <param name="componentDelta">The amount of time that has passed since the last time this component was updated. Will be 0 the first time it's updated</param>
-    protected abstract ValueTask UpdateComponentAsync(TimeSpan gameDelta, TimeSpan componentDelta);
-
-    /// <summary>
-    /// Updates the current <see cref="FunctionalComponent"/>. Not all components are asynchronous, see <see cref="FunctionalComponent.IsAsync"/> to decide which method to call. 
-    /// </summary>
-    /// <param name="gameDelta">The amount of time that has passed since the last Update frame in the Game</param>
-    public ValueTask UpdateAsync(TimeSpan gameDelta)
-    {
-        if (sdl_lastUpdate == default)
-            return UpdateComponentAsync(gameDelta, TimeSpan.Zero);
-
-        var ot = sdl_lastUpdate;
-        sdl_lastUpdate = Game.TotalTime;
-        return UpdateComponentAsync(gameDelta, ot - sdl_lastUpdate);
-    }
-}
-
-/// <summary>
-/// Represents encapsulated functionality of a Node that is updated synchronously
-/// </summary>
-/// <remarks>
-/// Remember that components are disposed of after they're uninstalled
-/// </remarks>
-public abstract class SynchronousFunctionalComponent : FunctionalComponent
-{
-    /// <summary>
-    /// Instances and initiates a SynchronousFunctionalComponent
-    /// </summary>
-    /// <remarks>
-    /// Remember to toss <see cref="IServiceProvider"/> dependent code into <see cref="FunctionalComponent.Installing(Node)"/>
-    /// </remarks>
-    protected SynchronousFunctionalComponent() : base(false) { }
-
-    /// <summary>
-    /// Updates the current <see cref="FunctionalComponent"/>. Not all components are synchronous: see <see cref="FunctionalComponent.IsAsync"/> to decide which method to call. 
-    /// </summary>
-    /// <param name="gameDelta">The amount of time that has passed since the last Update frame in the Game</param>
-    public void Update(TimeSpan gameDelta)
-    {
-        if (sdl_lastUpdate == default)
-            UpdateComponent(gameDelta, TimeSpan.Zero);
-
-        var ot = sdl_lastUpdate;
-        sdl_lastUpdate = Game.TotalTime;
-        UpdateComponent(gameDelta, ot - sdl_lastUpdate);
-    }
-
-    /// <summary>
-    /// This method is called after <see cref="Update(TimeSpan)"/> and is where your code goes
-    /// </summary>
-    /// <param name="gameDelta">The amount of time that has passed since the last Update frame in the Game</param>
-    /// <param name="componentDelta">The amount of time that has passed since the last time this component was updated. Will be 0 the first time it's updated</param>
-    protected abstract void UpdateComponent(TimeSpan gameDelta, TimeSpan componentDelta);
 }

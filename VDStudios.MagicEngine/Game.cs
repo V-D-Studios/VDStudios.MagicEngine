@@ -33,6 +33,19 @@ public class Game : SDLApplication<Game>
     private bool isStarted;
     private bool isSDLStarted;
 
+    internal IServiceScope NewScope()
+        => services.CreateScope();
+
+    static Game()
+    {
+        SDLAppBuilder.CreateInstance<Game>();
+    }
+
+    /// <summary>
+    /// Fetches the singleton instance of this <see cref="Game"/>
+    /// </summary>
+    new static public Game Instance => SDLApplication<Game>.Instance;
+
     /// <summary>
     /// Instances a new <see cref="Game"/>
     /// </summary>

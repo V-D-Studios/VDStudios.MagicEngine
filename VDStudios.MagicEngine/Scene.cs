@@ -10,7 +10,7 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// A scene can be the MainMenu, a Room, a Dungeon, and any number of things. It is a self-contained state of the <see cref="Game"/>. It's allowed to share states across <see cref="Scene"/>s, but doing so and managing it is your responsibility
 /// </remarks>
-public abstract class Scene : GameObject, IDisposable
+public abstract class Scene : NodeBase
 {
     /// <summary>
     /// Instances and Initializes the current <see cref="Scene"/>
@@ -49,90 +49,95 @@ public abstract class Scene : GameObject, IDisposable
         GameUnloading();
     }
 
-    internal async ValueTask Draw(IDrawQueue queue)
-    {
-        await Drawing(); 
-        
-        var pool = ArrayPool<Task>.Shared;
-        int toAddToDrawQueue = Nodes.Count;
-        Task[] tasks = pool.Rent(toAddToDrawQueue);
-        try
-        {
-            lock (sync)
-            {
-                for (int i = 0; i < toAddToDrawQueue; i++)
-                    tasks[i] = Nodes.Get(i).PropagateDraw();
-            }
-            for (int i = 0; i < toAddToDrawQueue; i++)
-                await tasks[i];
-        }
-        finally
-        {
-            pool.Return(tasks, true);
-        }
-    }
-    
-    internal async Task Update(TimeSpan delta)
+    #region Propagation
+
+    #region Update
+
+    internal async ValueTask Update(TimeSpan delta)
     {
         await Updating(delta);
 
-        var pool = ArrayPool<Task>.Shared;
-        int toUpdate = Nodes.Count;
-        Task[] tasks = pool.Rent(toUpdate);
+#pragma warning disable CA2012 // Just like Roslyn is so kind to warn us about, this code right here has the potential to offer some nasty asynchrony bugs. Be careful here, remember ValueTasks must only ever be consumed once
+
+        var pool = ArrayPool<ValueTask>.Shared;
+        int toUpdate = Children.Count;
+        ValueTask[] tasks = pool.Rent(toUpdate);
         try
         {
+            int ind = 0;
             lock (sync)
             {
                 for (int i = 0; i < toUpdate; i++)
-                    tasks[i] = Nodes.Get(i).PropagateUpdate();
+                {
+                    var child = Children.Get(i);
+                    if (child.IsReady)
+                        tasks[ind++] = InternalHandleChildUpdate(child, delta);
+                }
             }
-            for (int i = 0; i < toUpdate; i++)
+            for (int i = 0; i < ind; i++)
                 await tasks[i];
         }
         finally
         {
             pool.Return(tasks, true);
         }
-
-        #region Update batching (old)
-
-        //var t1 = RunAsyncUpdates(AsyncSceneUpdatingEvent1);
-        //SceneUpdatingEvent1?.Invoke(delta);
-        //if (t1 != null)
-        //    await t1;
-
-        //var t2 = RunAsyncUpdates(AsyncSceneUpdatingEvent2);
-        //SceneUpdatingEvent2?.Invoke(delta);
-        //if (t2 != null)
-        //    await t2;
-
-        //var t3 = RunAsyncUpdates(AsyncSceneUpdatingEvent3);
-        //SceneUpdatingEvent3?.Invoke(delta);
-        //if (t3 != null)
-        //    await t3;
-
-        //var t4 = RunAsyncUpdates(AsyncSceneUpdatingEvent4);
-        //SceneUpdatingEvent4?.Invoke(delta);
-        //if (t4 != null)
-        //    await t4;
-
-        //var t5 = RunAsyncUpdates(AsyncSceneUpdatingEvent5);
-        //SceneUpdatingEvent5?.Invoke(delta);
-        //if (t5 != null)
-        //    await t5;
-
-        //var t6 = RunAsyncUpdates(AsyncSceneUpdatingEvent6);
-        //SceneUpdatingEvent6?.Invoke(delta);
-        //if (t6 != null)
-        //    await t6;
-
-        //Task? RunAsyncUpdates(Func<TimeSpan, Task>? ev) 
-        //    => ev != null
-        //       ? Parallel.ForEachAsync(ev.GetInvocationList(), async (x, ct) => await ((Func<TimeSpan, Task>)x).Invoke(delta))
-        //       : null;
-
-        #endregion
+#pragma warning restore CA2012
     }
+
+    private async ValueTask InternalHandleChildUpdate(Node node, TimeSpan delta)
+    {
+        if (node.updater is NodeUpdater updater
+            ? await updater.PerformUpdate()
+            : await HandleChildUpdate(node))
+            await node.PropagateUpdate(delta);
+    }
+
+    #endregion
+
+    #region Draw
+
+    internal async ValueTask Draw(IDrawQueue queue)
+    {
+        await Drawing();
+
+#pragma warning disable CA2012 // Just like Roslyn is so kind to warn us about, this code right here has the potential to offer some nasty asynchrony bugs. Be careful here, remember ValueTasks must only ever be consumed once
+
+        var pool = ArrayPool<ValueTask>.Shared;
+        int toUpdate = Children.Count;
+        ValueTask[] tasks = pool.Rent(toUpdate);
+        try
+        {
+            int ind = 0;
+            lock (sync)
+            {
+                for (int i = 0; i < toUpdate; i++)
+                {
+                    var child = Children.Get(i);
+                    if (child.IsReady)
+                        tasks[ind++] = InternalHandleChildDraw(child, queue);
+                }
+            }
+            for (int i = 0; i < ind; i++)
+                await tasks[i];
+        }
+        finally
+        {
+            pool.Return(tasks, true);
+        }
+#pragma warning restore CA2012
+    }
+
+    private async ValueTask InternalHandleChildDraw(Node node, IDrawQueue queue)
+    {
+        if (node.drawer is NodeDrawer drawer
+            ? await drawer.PerformDraw()
+            : node.DrawableSelf is not IDrawableNode n || await HandleChildDraw(n))
+            await node.PropagateDraw(queue);
+    }
+
+    #endregion
+
+    #endregion
 
     internal async ValueTask Begin()
     {
@@ -247,8 +252,8 @@ public abstract class Scene : GameObject, IDisposable
     /// Sorts <paramref name="node"/> into being handled by either a custom update handler or by <see cref="UpdateAsynchronousNode(IAsyncUpdateableNode)"/>
     /// </summary>
     /// <param name="node">The <see cref="IAsyncUpdateableNode"/> node to sort</param>
-    /// <returns><c>null</c> to signal the use of <see cref="UpdateAsynchronousNode(IAsyncUpdateableNode)"/>, a <see cref="NodeAsynchronousUpdater{TNode}"/> of the appropriate type otherwise</returns>
-    protected virtual NodeAsynchronousUpdater? SortNode(IAsyncUpdateableNode node) => null;
+    /// <returns><c>null</c> to signal the use of <see cref="UpdateAsynchronousNode(IAsyncUpdateableNode)"/>, a <see cref="NodeUpdater{TNode}"/> of the appropriate type otherwise</returns>
+    protected virtual NodeUpdater? SortNode(IAsyncUpdateableNode node) => null;
 
     /// <summary>
     /// Sorts <paramref name="node"/> into being handled by either a custom draw handler or by <see cref="DrawSynchronousNode(IDrawableNode)"/>

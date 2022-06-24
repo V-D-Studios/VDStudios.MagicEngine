@@ -69,10 +69,15 @@ public sealed class NodeList : IReadOnlyList<Node>
     /// </remarks>
     public IEnumerable<Node> Flatten() => nodes.SelectMany(x => x.Children);
 
-    internal void Remove(int index)
-        => nodes.RemoveAt(index);
+    internal void Remove(int id)
+        => nodes.RemoveAt(id);
 
-    internal void Add(Node item)
+    /// <summary>
+    /// Returns the given Id for the node
+    /// </summary>
+    /// <param name="item"></param>
+    /// <returns></returns>
+    internal int Add(Node item)
         => nodes.Add(item);
 
     /// <summary>
