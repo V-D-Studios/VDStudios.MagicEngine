@@ -9,7 +9,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using VDStudios.MagicEngine.Exceptions;
-using static VDStudios.MagicEngine.OldNode;
 
 namespace VDStudios.MagicEngine;
 
@@ -134,12 +133,12 @@ public abstract class Node : NodeBase
 
         ComponentInstalling(comp);
 
-        comp.Id = components.Add(comp);
+        comp.Id = Components.Add(comp);
 
         ComponentInstalled?.Invoke(this, comp, Game.TotalTime);
     }
 
-    private FunctionalComponentList components = new();
+    private ComponentList Components = ComponentList.Empty.Clone();
 
     #endregion
 
@@ -497,15 +496,16 @@ public abstract class Node : NodeBase
 
         var pool = ArrayPool<ValueTask>.Shared;
 
+#pragma warning disable CA2012 // Just like Roslyn is so kind to warn us about, this code right here has the potential to offer some nasty asynchrony bugs. Be careful here, remember ValueTasks must only ever be consumed once
         {
-            int comps = components.Count;
+            int comps = Components.Count;
             ValueTask[] compTasks = pool.Rent(comps);
             try
             {
                 int ind = 0;
                 for (int i = 0; i < comps; i++)
                 {
-                    FunctionalComponent comp = components.Get(i);
+                    FunctionalComponent comp = Components.Get(i);
                     if (comp.IsReady && await ComponentUpdating(comp, delta)) 
                         compTasks[ind++] = comp.InternalUpdate(delta);
                 }
@@ -517,8 +517,6 @@ public abstract class Node : NodeBase
                 pool.Return(compTasks, true);
             }
         }
-
-#pragma warning disable CA2012 // Just like Roslyn is so kind to warn us about, this code right here has the potential to offer some nasty asynchrony bugs. Be careful here, remember ValueTasks must only ever be consumed once
 
         int toUpdate = Children.Count;
         ValueTask[] tasks = pool.Rent(toUpdate);
@@ -631,6 +629,8 @@ public abstract class Node : NodeBase
 
     internal override void InternalDispose(bool disposing)
     {
+        Components.Clear();
+        Components = null;
         updater = null;
         drawer = null;
         DrawableSelf = null;
