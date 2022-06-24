@@ -16,26 +16,35 @@ namespace VDStudios.MagicEngine;
 /// </remarks>
 public sealed class NodeList : IReadOnlyList<Node>
 {
-    internal static readonly NodeList Empty = new(null!, null!);
+    internal static readonly NodeList Empty = new();
 
-    internal readonly object _sync;
+    private int NextId => _nid++;
+    private int _nid;
 
-    private readonly List<Node> nodes = new();
+    private readonly object sync = new();
 
-    private NodeList(object sync, List<Node> nodes) => _sync = sync;
+    private readonly Dictionary<int, Node> nodes;
+
+    private NodeList()
+    {
+        nodes = new();
+        sync = null!;
+    }
+
+    private NodeList(Dictionary<int, Node> nodes) => this.nodes = nodes;
 
     /// <summary>
     /// Gets the <see cref="Node"/> currently located at <paramref name="index"/>
     /// </summary>
     /// <remarks>Indexing the Node list locks the collection and the owner <see cref="Node"/></remarks>
-    /// <param name="index">The <see cref="Node.Index"/> in question</param>
+    /// <param name="index">The <see cref="Node.Id"/> in question</param>
     /// <returns>The <see cref="Node"/> located at <paramref name="index"/></returns>
     public Node this[int index]
     {
         get
         {
             ThrowIfEmptyList();
-            lock (_sync)
+            lock (sync)
                 return nodes[index];
         }
     }
@@ -55,8 +64,8 @@ public sealed class NodeList : IReadOnlyList<Node>
     /// </remarks>
     public IEnumerator<Node> GetEnumerator()
     {
-        lock (_sync)
-            return nodes.GetEnumerator();
+        lock (sync)
+            return nodes.Values.GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -67,18 +76,25 @@ public sealed class NodeList : IReadOnlyList<Node>
     /// <remarks>
     /// This includes the entire node tree starting from this point: Every <see cref="Node"/>'s children, and their children as well. Since <see cref="Node"/>'s are protected against circular references, this <see cref="IEnumerable"/> will eventually finish. How long that takes is your responsibility.
     /// </remarks>
-    public IEnumerable<Node> Flatten() => nodes.SelectMany(x => x.Children);
+    public IEnumerable<Node> Flatten() => nodes.SelectMany(x => x.Value.Children);
 
     internal void Remove(int id)
-        => nodes.RemoveAt(id);
+        => nodes.Remove(id);
 
     /// <summary>
-    /// Returns the given Id for the node
+    /// Adding to the collection locks the collection and the owner <see cref="Node"/>
     /// </summary>
     /// <param name="item"></param>
-    /// <returns></returns>
+    /// <returns>The given Id for the node</returns>
     internal int Add(Node item)
-        => nodes.Add(item);
+    {
+        lock (sync)
+        {
+            var id = NextId;
+            nodes.Add(id, item);
+            return id;
+        }
+    }
 
     /// <summary>
     /// This method does NOT notify nodes of their detachment, nor does it detach them, for that matter
@@ -93,21 +109,22 @@ public sealed class NodeList : IReadOnlyList<Node>
     /// <returns></returns>
     internal NodeList Clone(object sync)
     {
-        List<Node> nl;
-        if (_sync is null)
-            nl = new List<Node>(1);
+        Dictionary<int, Node> nl;
+        if (sync is null)
+            nl = new Dictionary<int, Node>(1);
         else
-            lock (_sync)
+            lock (sync)
             {
-                nl = new List<Node>(nodes.Capacity + 1);
-                nl.AddRange(nodes);
+                nl = new Dictionary<int, Node>(nodes.Count + 2);
+                foreach (var (k, v) in nodes)
+                    nl.Add(k, v);
             }
-        return new(sync, nl);
+        return new(nl);
     }
 
     private void ThrowIfEmptyList()
     {
-        if (_sync is null)
+        if (sync is null)
             throw new InvalidOperationException("Cannot mutate the Empty NodeList. This is likely to be a library bug");
     }
 }
