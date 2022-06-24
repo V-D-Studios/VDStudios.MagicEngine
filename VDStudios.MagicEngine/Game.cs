@@ -269,7 +269,7 @@ public class Game : SDLApplication<Game>
         var firstScene = new TScene();
         currentScene = firstScene;
 
-        SetupScenes?.Invoke(this, Services);
+        SetupScenes?.Invoke();
 
         GameStarting?.Invoke(this, TotalTime);
 
@@ -359,7 +359,7 @@ public class Game : SDLApplication<Game>
 
     #region Events
 
-    internal GameSetupScenesEvent? SetupScenes;
+    internal Action? SetupScenes;
     internal Action? StopScenes;
 
     /// <summary>
