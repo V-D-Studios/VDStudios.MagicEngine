@@ -8,7 +8,7 @@ namespace VDStudios.MagicEngine;
 #region Update
 
 /// <summary>
-/// Represents a custom update procedure for a <see cref="IUpdateableNode"/>
+/// Represents a custom update procedure for a <see cref="Node"/>
 /// </summary>
 /// <remarks>
 /// You're not supposed to use this class directly. Instead, use <see cref="NodeUpdater{TNode}"/>
@@ -21,10 +21,10 @@ public abstract class NodeUpdater
 }
 
 /// <summary>
-/// Represents a custom update procedure for a <see cref="IUpdateableNode"/>
+/// Represents a custom update procedure for a <see cref="Node"/>
 /// </summary>
 /// <typeparam name="TNode">The type of <see cref="Node"/> this Updater will handle</typeparam>
-public sealed class NodeUpdater<TNode> : NodeUpdater where TNode : Node, IUpdateableNode
+public sealed class NodeUpdater<TNode> : NodeUpdater where TNode : Node
 {
     private readonly NodeUpdateHandler<TNode> Handler;
     private readonly TNode HandledNode;
@@ -49,7 +49,7 @@ public sealed class NodeUpdater<TNode> : NodeUpdater where TNode : Node, IUpdate
 /// <typeparam name="TNode">The type of <see cref="Node"/> this method expects</typeparam>
 /// <param name="node">The node in question</param>
 /// <returns><c>true</c> if the update sequence should be propagated into <paramref name="node"/>, <c>false</c> otherwise</returns>
-public delegate ValueTask<bool> NodeUpdateHandler<TNode>(TNode node) where TNode : Node, IUpdateableNode;
+public delegate ValueTask<bool> NodeUpdateHandler<TNode>(TNode node) where TNode : Node;
 
 #endregion
 
