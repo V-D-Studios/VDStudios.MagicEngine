@@ -74,14 +74,25 @@ public abstract class Node : NodeBase
     /// <summary>
     /// Instances and installs a <see cref="FunctionalComponent"/> into this <see cref="Node"/>
     /// </summary>
+    /// <remarks>
+    /// Due to C# generic constraint limitations, this method uses runtime reflection to check if <typeparamref name="TComponent"/> has a constructor accepting a single <see cref="Node"/> (or this instance's current derived type) as an argument. If it doesn't, this method WILL throw a runtime exception.
+    /// </remarks>
     /// <returns>The newly installed <see cref="FunctionalComponent"/></returns>
     /// <typeparam name="TComponent">The type of FunctionalComponent to instance and install</typeparam>
-    public TComponent Install<TComponent>() where TComponent : FunctionalComponent, new()
+    public TComponent Install<TComponent>() where TComponent : FunctionalComponent
     {
-        var comp = new TComponent();
+        TComponent comp;
+        var ctorQuery = new Type[] { GetType() };
+
+        var ctor = typeof(TComponent).GetConstructor(System.Reflection.BindingFlags.Public, ctorQuery) ??
+            typeof(TComponent).GetConstructor(System.Reflection.BindingFlags.Public, NodeConstructorQuery) ??
+            throw new InvalidOperationException($"FunctionalComponent of type {typeof(TComponent).FullName} does not have a constructor accepting a single Node or {GetType().Name}");
+
+        comp = (TComponent)ctor.Invoke(null, new object[] { this })!;
         InternalInstall(comp);
         return comp;
     }
+    private static readonly Type[] NodeConstructorQuery = new Type[] { typeof(Node) };
 
     /// <summary>
     /// Instances and installs the <see cref="FunctionalComponent"/> returned by <paramref name="factory"/> into this <see cref="Node"/>
@@ -89,20 +100,12 @@ public abstract class Node : NodeBase
     /// <returns>The newly installed <see cref="FunctionalComponent"/></returns>
     /// <typeparam name="TComponent">The type of FunctionalComponent to instance and install</typeparam>
     /// <param name="factory">The method that will instance the component</param>
-    public TComponent Install<TComponent>(Func<TComponent> factory) where TComponent : FunctionalComponent
+    public TComponent Install<TComponent>(Func<Node, TComponent> factory) where TComponent : FunctionalComponent
     {
-        var comp = factory();
+        var comp = factory(this);
         InternalInstall(comp);
         return comp;
     }
-
-    /// <summary>
-    /// Installs <paramref name="component"/> into this <see cref="Node"/>
-    /// </summary>
-    /// <returns>The newly installed <see cref="FunctionalComponent"/></returns>
-    /// <param name="component">The component to install</param>
-    public void Install(FunctionalComponent component)
-        => InternalInstall(component);
 
     /// <summary>
     /// Uninstalls and disposes of the given component from this <see cref="Node"/> if it was already installed
@@ -111,10 +114,11 @@ public abstract class Node : NodeBase
     /// <exception cref="ArgumentException">If the component is not installed in this <see cref="Node"/></exception>
     public void Uninstall(FunctionalComponent component)
     {
-        if (!ReferenceEquals(component.AttachedNode, this))
+        if (!ReferenceEquals(component.Owner, this))
             throw new ArgumentException("The specified component is not installed in this Node", nameof(component));
 
         ComponentUninstalling(component);
+        component.InternalUninstall();
         component.Dispose();
     }
 
@@ -132,6 +136,7 @@ public abstract class Node : NodeBase
             throw new NodeRejectedException(reason, comp, this);
 
         ComponentInstalling(comp);
+        comp.InternalInstall(this);
 
         comp.Id = Components.Add(comp);
 
@@ -324,8 +329,13 @@ public abstract class Node : NodeBase
             Id = parent.Children.Add(this);
 
         if (parent.Root is Scene root)
+        {
             AttachingToRoot(root, false);
+            foreach (var comp in Components)
+                comp.NodeAttachedToScene(root);
+        }
 
+        parent.DetachedFromSceneEvent += WhenDetachedFromScene;
         parent.AttachedToSceneEvent += WhenAttachedToScene;
         Parent = parent;
     }
@@ -351,7 +361,12 @@ public abstract class Node : NodeBase
         drawer = null;
         updater = null;
         if (Parent is Node pn)
+        {
             pn.AttachedToSceneEvent -= WhenAttachedToScene;
+            pn.DetachedFromSceneEvent -= WhenDetachedFromScene;
+            foreach (var comp in Components)
+                comp.NodeDetachedFromScene();
+        }
         Root = null;
         Parent = null;
     }
@@ -368,12 +383,26 @@ public abstract class Node : NodeBase
             throw new ParentNodeRejectedException(reason, this, scene);
 
         AttachingToRoot(scene, isDirectlyAttached);
+        foreach (var comp in Components)
+            comp.NodeAttachedToScene(scene);
         Root = scene;
         NodeTreeSceneChanged?.Invoke(this, Game.TotalTime, scene);
         AttachedToSceneEvent?.Invoke(scene, false);
     }
 
+    private void WhenDetachedFromScene(Scene scene, bool wasDirectlyAttached)
+    {
+        DetachingFromRoot(scene, wasDirectlyAttached);
+        foreach (var comp in Components)
+            comp.NodeDetachedFromScene();
+        Root = null;
+        NodeTreeSceneChanged?.Invoke(this, Game.TotalTime, null);
+        DetachedFromSceneEvent?.Invoke(scene, false);
+    }
+
     internal event Action<Scene, bool>? AttachedToSceneEvent;
+
+    internal event Action<Scene, bool>? DetachedFromSceneEvent;
 
     #endregion
 
@@ -419,6 +448,16 @@ public abstract class Node : NodeBase
     /// <param name="root">The <see cref="Scene"/> this tree was attached into</param>
     /// <param name="isDirectlyAttached">Whether this <see cref="Node"/> was directly attached to the <see cref="Scene"/></param>
     protected virtual void AttachingToRoot(Scene root, bool isDirectlyAttached) { }
+
+    /// <summary>
+    /// This method is called automatically when a <see cref="Node"/>'s tree is detaching from a <see cref="Scene"/>
+    /// </summary>
+    /// <remarks>
+    /// Called before <see cref="NodeTreeSceneChanged"/> is fired. A <see cref="Node"/>'s tree is considered attached if this <see cref="Node"/>, or one of this <see cref="Node"/>'s parents is attached to a <see cref="Scene"/>
+    /// </remarks>
+    /// <param name="root">The <see cref="Scene"/> this tree was attached into</param>
+    /// <param name="wasDirectlyAttached">Whether this <see cref="Node"/> was directly attached to the <see cref="Scene"/></param>
+    protected virtual void DetachingFromRoot(Scene root, bool wasDirectlyAttached) { }
 
     /// <summary>
     /// This method is called automatically when a <see cref="Node"/> is attaching onto another <see cref="Node"/>
@@ -630,7 +669,7 @@ public abstract class Node : NodeBase
     internal override void InternalDispose(bool disposing)
     {
         Components.Clear();
-        Components = null;
+        Components = null!;
         updater = null;
         drawer = null;
         DrawableSelf = null;
