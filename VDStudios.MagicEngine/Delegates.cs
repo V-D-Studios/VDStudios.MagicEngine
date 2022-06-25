@@ -68,13 +68,9 @@ public delegate void GameLifetimeEvent(IGameLifetime lifetime, bool shouldRun);
 #region Node Delegates
 
 /// <summary>
-/// Represents an event in the game regarding a <see cref="Node"/>'s index
 /// </summary>
 /// <param name="node">The node that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-/// <param name="oldIndex">The previous <see cref="Node.Index"/> of <paramref name="node"/></param>
-/// <param name="newIndex">The new <see cref="Node.Index"/>of <paramref name="node"/></param>
-public delegate void NodeIndexChangedEvent(Node node, TimeSpan timestamp, int oldIndex, int newIndex);
 
 /// <summary>
 /// Represents an event in the game regading a <see cref="Node"/> and its parent
@@ -112,20 +108,14 @@ public delegate void NodeFunctionalComponentInstallEvent(Node node, FunctionalCo
 #region FunctionalComponent Delegates
 
 /// <summary>
-/// Represents an event in the game regarding a <see cref="FunctionalComponent"/>
 /// </summary>
 /// <param name="component">The component that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-public delegate void FunctionalComponentEvent(FunctionalComponent component, TimeSpan timestamp);
 
 /// <summary>
-/// Represents an event in the game regarding a <see cref="FunctionalComponent"/>'s index
 /// </summary>
 /// <param name="component">The component that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-/// <param name="oldIndex">The previous <see cref="FunctionalComponent.Index"/> of <paramref name="component"/></param>
-/// <param name="newIndex">The new <see cref="FunctionalComponent.Index"/>of <paramref name="component"/></param>
-public delegate void FunctionalComponentIndexChangedEvent(FunctionalComponent component, TimeSpan timestamp, int oldIndex, int newIndex);
 
 /// <summary>
 /// Represents an event in the game regarding a <see cref="FunctionalComponent"/>'s <see cref="FunctionalComponent.Owner"/>
