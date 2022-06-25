@@ -50,6 +50,15 @@ public delegate void GameMainWindowCreatedEvent(Game game, TimeSpan timestamp, W
 /// <param name="lifetime">The <see cref="IGameLifetime"/> that is the object of the event</param>
 public delegate void GameLifetimeChangedEvent(Game game, TimeSpan timestamp, IGameLifetime lifetime);
 
+/// <summary>
+/// Represents an event in the game in which <see cref="Game.GameTitle"/> has changed
+/// </summary>
+/// <param name="game">The <see cref="Game"/> that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="newTitle">The newly set title of the game</param>
+/// <param name="oldTitle">The previously set title of the game</param>
+public delegate void GameTitleChangedEvent(Game game, TimeSpan timestamp, string newTitle, string oldTitle);
+
 internal delegate void GameSetupScenesEvent(Game game, IServiceProvider gamescope);
 
 #endregion

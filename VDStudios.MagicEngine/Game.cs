@@ -73,6 +73,24 @@ public class Game : SDLApplication<Game>
     #region Properties
 
     /// <summary>
+    /// The current title of the game
+    /// </summary>
+    /// <remarks>
+    /// Defaults to "Magic Engine Game"
+    /// </remarks>
+    public string GameTitle
+    {
+        get => gameTitle;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            var prev = gameTitle;
+            gameTitle = value;
+            GameTitleChanged?.Invoke(this, TotalTime, value, prev);
+        }
+    }
+    private string gameTitle = "Magic Engine Game";
+    /// <summary>
     /// A Logger that belongs to this <see cref="Game"/>
     /// </summary>
     public ILogger Log { get; }
