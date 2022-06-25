@@ -141,7 +141,7 @@ public abstract class FunctionalComponent : GameObject
     /// <remarks>
     /// If this property is <c>false</c>, this <see cref="FunctionalComponent"/> will be skipped. Defaults to <c>true</c> and must be set to <c>false</c> manually if desired
     /// </remarks>
-    public bool IsReady { get; protected set; }
+    public bool IsReady { get; protected set; } = true;
 
     #endregion
 

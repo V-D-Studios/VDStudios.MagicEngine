@@ -45,7 +45,7 @@ public abstract class Node : NodeBase
     /// <remarks>
     /// If this property is <c>false</c>, this <see cref="Node"/> and its children will be skipped, along with any handlers it may have. Defaults to <c>true</c> and must be set to <c>false</c> manually if desired
     /// </remarks>
-    public bool IsReady { get; protected set; }
+    public bool IsReady { get; protected set; } = true;
 
     #endregion
 
