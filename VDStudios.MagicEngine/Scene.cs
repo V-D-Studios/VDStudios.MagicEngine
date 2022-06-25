@@ -19,11 +19,24 @@ public abstract class Scene : NodeBase
     {
         Game.SetupScenes += OnGameSetupScenes;
         Game.StopScenes += OnGameStopScenes;
+        Game.awaitingSetup.Enqueue(this);
     }
 
     #endregion
 
     #region Scene Setup
+
+    #region Setup
+
+    /// <summary>
+    /// This method is called automatically at the beginning of a frame in the <see cref="Game"/> and is called exactly once per instance. This method is guaranteed to only be called by the framework once, and is guaranteed to run before the <see cref="Scene"/> is used for the first time
+    /// </summary>
+    /// <remarks>
+    /// Consider this method an asynchronous constructor for the <see cref="Scene"/>. You may attach nodes and request async services here. Exclusively synchronous work can and should be done in the type's constructor
+    /// </remarks>
+    protected internal virtual ValueTask ConfigureScene() => ValueTask.CompletedTask;
+
+    #endregion
 
     #region Reaction Methods
 
@@ -53,6 +66,21 @@ public abstract class Scene : NodeBase
     {
         GameUnloading();
     }
+
+    #endregion
+
+    #endregion
+
+    #region Nodes and Node Tree
+
+    #region Attachment
+
+    /// <summary>
+    /// Attaches <paramref name="child"/> into this <see cref="Scene"/>
+    /// </summary>
+    /// <param name="child">The child <see cref="Node"/> to attach into this <see cref="Scene"/></param>
+    public ValueTask Attach(Node child)
+        => child.AttachTo(this);
 
     #endregion
 
