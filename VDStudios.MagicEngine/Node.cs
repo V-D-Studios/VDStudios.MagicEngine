@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using VDStudios.MagicEngine.Exceptions;
+using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
 
@@ -36,6 +37,19 @@ public abstract class Node : NodeBase
     #endregion
 
     #region Updating
+
+    #region Update Batching
+
+    #region Fields
+
+    /// <summary>
+    /// This field belongs to this <see cref="Node"/>'s parent
+    /// </summary>
+    internal UpdateBatch UpdateAssignation = (UpdateBatch)(-1);
+
+    #endregion
+
+    #endregion
 
     #region Public Properties
 
@@ -327,6 +341,8 @@ public abstract class Node : NodeBase
         if (DrawableSelf is IDrawableNode dn)
             drawer = await parent.AssignDrawer(dn);
 
+        parent.AssignToUpdateBatch(this);
+
         Root = parent;
         Parent = parent;
     }
@@ -357,6 +373,8 @@ public abstract class Node : NodeBase
             foreach (var comp in Components)
                 comp.NodeAttachedToScene(root);
         }
+
+        parent.AssignToUpdateBatch(this);
 
         parent.DetachedFromSceneEvent += WhenDetachedFromScene;
         parent.AttachedToSceneEvent += WhenAttachedToScene;
@@ -389,6 +407,7 @@ public abstract class Node : NodeBase
 
         if (TryGetParentNode(out var pn))
         {
+            pn.ExtractFromUpdateBatch(this);
             pn.Children.Remove(Id);
             Id = -1;
             pn.AttachedToSceneEvent -= WhenAttachedToScene;
@@ -396,6 +415,7 @@ public abstract class Node : NodeBase
         }
         else if (TryGetParentScene(out var ps))
         {
+            ps.ExtractFromUpdateBatch(this);
             ps.Children.Remove(Id);
             Id = -1;
             DetachedFromSceneEvent?.Invoke(ps, true);
@@ -598,11 +618,13 @@ public abstract class Node : NodeBase
             int ind = 0;
             lock (sync)
             {
-                for (int i = 0; i < toUpdate; i++)
+                for (int bi = 0; bi < UpdateBatchCollection.BatchCount; bi++)
                 {
-                    var child = Children.Get(i);
-                    if (child.IsReady)
-                        tasks[ind++] = InternalHandleChildUpdate(child, delta);
+                    var batch = UpdateBatches[(UpdateBatch)bi];
+                    if (batch is not null and { Count: > 0 })
+                        foreach (var child in batch)
+                            if (child.IsReady)
+                                tasks[ind++] = InternalHandleChildUpdate(child, delta);
                 }
             }
             for (int i = 0; i < ind; i++)

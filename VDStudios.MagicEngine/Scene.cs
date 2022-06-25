@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
 
@@ -179,11 +180,13 @@ public abstract class Scene : NodeBase
             int ind = 0;
             lock (sync)
             {
-                for (int i = 0; i < toUpdate; i++)
+                for (int bi = 0; bi < UpdateBatchCollection.BatchCount; bi++)
                 {
-                    var child = Children.Get(i);
-                    if (child.IsReady)
-                        tasks[ind++] = InternalHandleChildUpdate(child, delta);
+                    var batch = UpdateBatches[(UpdateBatch)bi];
+                    if (batch is not null and { Count: > 0 })
+                        foreach (var child in batch)
+                            if (child.IsReady)
+                                tasks[ind++] = InternalHandleChildUpdate(child, delta);
                 }
             }
             for (int i = 0; i < ind; i++)

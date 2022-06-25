@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
 
@@ -69,16 +70,13 @@ public abstract class NodeBase : GameObject, IDisposable
     {
         foreach (var child in Children)
             child.Dispose();
-        Children = null;
+        Children = null!;
         scope.Dispose();
     }
 
     /// <summary>
     /// Runs when the object is being disposed. Don't call this! It'll be called automatically! Call <see cref="Dispose()"/> instead
     /// </summary>
-    /// <remarks>
-    /// This <see cref="Node"/> will dispose of all of its children (and those children of theirs), Detach, drop both <see cref="Parents"/> and <see cref="Children"/>, uninstall and clear its components, and finally clear all of its events after this method returns
-    /// </remarks>
     protected virtual void Dispose(bool disposing) { }
 
     #endregion
@@ -134,6 +132,47 @@ public abstract class NodeBase : GameObject, IDisposable
     /// <param name="node">The node about to be registered into the Draw Queue</param>
     /// <returns><c>true</c> if the drawing registration sequence should be propagated into <paramref name="node"/>, <c>false</c> otherwise</returns>
     protected virtual ValueTask<bool> HandleChildDraw(IDrawableNode node) => ValueTask.FromResult(true);
+
+    #endregion
+
+    #region Update Batching
+
+    #region Fields
+
+    internal UpdateBatchCollection UpdateBatches = new();
+
+    #endregion
+
+    #region Sorters
+
+    /// <summary>
+    /// This method is called automatically when a child node is attached and being registered in an update batch. It can be used to override <see cref="Node.UpdateBatch"/>
+    /// </summary>
+    /// <remarks>
+    /// Use this with care, as no attempts are made by the framework to notify <paramref name="node"/> if its preferred <see cref="UpdateBatch"/> is overriden. You may break something.
+    /// </remarks>
+    /// <param name="node"></param>
+    /// <returns>The <see cref="UpdateBatch"/> <paramref name="node"/> is going to be registered into</returns>
+    protected virtual UpdateBatch AssigningToUpdateBatch(Node node) => node.UpdateBatch;
+
+    #endregion
+
+    #region Internal
+
+    internal void AssignToUpdateBatch(Node node)
+    {
+        var ub = AssigningToUpdateBatch(node);
+        node.UpdateAssignation = ub;
+        UpdateBatches.Add(node, ub);
+    }
+
+    internal void ExtractFromUpdateBatch(Node node)
+    {
+        UpdateBatches.Remove(node, node.UpdateAssignation);
+        node.UpdateAssignation = (UpdateBatch)(-1);
+    }
+
+    #endregion
 
     #endregion
 
