@@ -651,9 +651,8 @@ public abstract class Node : NodeBase
 
     internal async ValueTask PropagateDraw(IDrawQueue queue)
     {
-        if (DrawableSelf is IDrawableNode ds)
-            if (!await ds.AddToDrawQueue(queue))
-                return;
+        if (DrawableSelf is not IDrawableNode ds || !await ds.AddToDrawQueue(queue))
+            return;
 
 #pragma warning disable CA2012 // Just like Roslyn is so kind to warn us about, this code right here has the potential to offer some nasty asynchrony bugs. Be careful here, remember ValueTasks must only ever be consumed once
 
