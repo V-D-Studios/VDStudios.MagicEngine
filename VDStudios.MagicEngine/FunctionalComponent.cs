@@ -141,7 +141,30 @@ public abstract class FunctionalComponent : GameObject
     /// <remarks>
     /// If this property is <c>false</c>, this <see cref="FunctionalComponent"/> will be skipped. Defaults to <c>true</c> and must be set to <c>false</c> manually if desired
     /// </remarks>
-    public bool IsReady { get; protected set; } = true;
+    public bool IsReady
+    {
+        get => isReady;
+        protected set
+        {
+            if (isReady == value)
+                return;
+            isReady = value;
+            ReadinessChanged?.Invoke(this, Game.TotalTime, value);
+        }
+    }
+    private bool isReady = true;
+
+    #endregion
+
+    #region Events
+
+    /// <summary>
+    /// Fired when this <see cref="FunctionalComponent"/>'s readiness to be updated changes
+    /// </summary>
+    /// <remarks>
+    /// Specifically, when this <see cref="FunctionalComponent.IsReady"/> changes
+    /// </remarks>
+    public FunctionalComponentReadinessChangedEvent? ReadinessChanged;
 
     #endregion
 

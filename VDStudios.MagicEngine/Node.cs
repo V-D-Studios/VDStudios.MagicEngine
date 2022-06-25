@@ -45,7 +45,30 @@ public abstract class Node : NodeBase
     /// <remarks>
     /// If this property is <c>false</c>, this <see cref="Node"/> and its children will be skipped, along with any handlers it may have. Defaults to <c>true</c> and must be set to <c>false</c> manually if desired
     /// </remarks>
-    public bool IsReady { get; protected set; } = true;
+    public bool IsReady
+    {
+        get => isReady;
+        protected set
+        {
+            if (isReady == value)
+                return;
+            isReady = value;
+            ReadinessChanged?.Invoke(this, Game.TotalTime, value);
+        }
+    }
+    private bool isReady = true;
+
+    #endregion
+
+    #region Events
+
+    /// <summary>
+    /// Fired when this <see cref="Node"/>'s readiness to be updated or drawn changes
+    /// </summary>
+    /// <remarks>
+    /// Specifically, when this <see cref="Node.IsReady"/> changes
+    /// </remarks>
+    public NodeReadinessChangedEvent? ReadinessChanged;
 
     #endregion
 

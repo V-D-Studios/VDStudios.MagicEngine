@@ -68,9 +68,12 @@ public delegate void GameLifetimeEvent(IGameLifetime lifetime, bool shouldRun);
 #region Node Delegates
 
 /// <summary>
+/// Represents an event in the game regarding a <see cref="Node"/>'s readiness, represented by <see cref="Node.IsReady"/>
 /// </summary>
 /// <param name="node">The node that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="isReady">Whether or not <paramref name="node"/> became ready at the time this event fired</param>
+public delegate void NodeReadinessChangedEvent(Node node, TimeSpan timestamp, bool isReady);
 
 /// <summary>
 /// Represents an event in the game regading a <see cref="Node"/> and its parent
@@ -108,14 +111,19 @@ public delegate void NodeFunctionalComponentInstallEvent(Node node, FunctionalCo
 #region FunctionalComponent Delegates
 
 /// <summary>
+/// Represents an event in the game regarding a <see cref="FunctionalComponent"/>'s readiness, represented by <see cref="FunctionalComponent.IsReady"/>
 /// </summary>
 /// <param name="component">The component that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="isReady">Whether or not <paramref name="component"/> became ready at the time this event fired</param>
+public delegate void FunctionalComponentReadinessChangedEvent(FunctionalComponent component, TimeSpan timestamp, bool isReady);
 
 /// <summary>
+/// Represents an event in the game regarding a <see cref="FunctionalComponent"/>
 /// </summary>
 /// <param name="component">The component that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+public delegate void FunctionalComponentEvent(FunctionalComponent component, TimeSpan timestamp);
 
 /// <summary>
 /// Represents an event in the game regarding a <see cref="FunctionalComponent"/>'s <see cref="FunctionalComponent.Owner"/>
