@@ -20,15 +20,32 @@ public interface IGameLifetime
     /// </summary>
     /// <returns>Whether the attempt was succesful or not</returns>
     public bool TryStop();
+
+    /// <summary>
+    /// Fired when this <see cref="IGameLifetime"/>'s status changes
+    /// </summary>
+    public event GameLifetimeEvent? LifetimeChanged;
 }
 
 /// <summary>
-/// Represents the default lifetime of a game
+/// Represents a lifetime of a game that can be manually killed
 /// </summary>
-public sealed class DefaultGameLifetime : IGameLifetime
+public class GameLifetime : IGameLifetime
 {
     /// <inheritdoc/>
-    public bool ShouldRun { get; set; }
+    public bool ShouldRun
+    {
+        get => _sr;
+        set
+        {
+            if (_sr == value)
+                return;
+            _sr = value;
+
+            LifetimeChanged?.Invoke(this, value);
+        }
+    }
+    private bool _sr = true;
 
     /// <inheritdoc/>
     public bool TryStop()
@@ -37,9 +54,29 @@ public sealed class DefaultGameLifetime : IGameLifetime
         return true;
     }
 
+    /// <inheritdoc/>
+    public event GameLifetimeEvent? LifetimeChanged;
+}
+
+/// <summary>
+/// Represents a lifetime of a game that can be manually killed, and ends automatically when the given <see cref="Window"/> closes
+/// </summary>
+/// <remarks>
+/// This is the default <see cref="IGameLifetime"/> used
+/// </remarks>
+public class GameLifeTimeOnWindowCloses : GameLifetime
+{
     /// <summary>
-    /// Represents a game lifestime that lasts until <see cref="SDLApplication{TApp}.MainWindow"/> is closed, or <see cref="ShouldRun"/> is set to false
+    /// Initializes a new instance of <see cref="GameLifeTimeOnWindowCloses"/> with the passed <see cref="Window"/>
     /// </summary>
-    public static IGameLifetime OnWindowClose { get; }
-#error not made
+    /// <param name="window"></param>
+    public GameLifeTimeOnWindowCloses(Window window)
+    {
+        window.Closed += Window_Closed;
+    }
+
+    private void Window_Closed(Window sender, TimeSpan timestamp)
+    {
+        ShouldRun = false;
+    }
 }

@@ -1,110 +1,249 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using VDStudios.MagicEngine.Internal;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using VDStudios.MagicEngine.Exceptions;
 
 namespace VDStudios.MagicEngine;
 
 /// <summary>
-/// Represents encapsulated functionality of a Node
+/// Represents encapsulated functionality of a Node. Will be disposed of after its uninstalled
 /// </summary>
 /// <remarks>
-/// Remember to implement <see cref="IUpdateable"/> or <see cref="IUpdateableAsync"/> to let your component be Updated
+/// <see cref="FunctionalComponent"/>s update in respect to the <see cref="Node"/> they're installed onto. That is, rather than update themselves, <see cref="FunctionalComponent"/> should work to update the <see cref="Node"/> they're installed onto
 /// </remarks>
-public abstract class FunctionalComponent<TNode> : GameObject, IDisposable, IFunctionalComponent where TNode : Node
+public abstract class FunctionalComponent : GameObject
 {
-    private IServiceScope? serviceScope;
+    #region Construction
 
     /// <summary>
-    /// The <see cref="Node"/> this <see cref="FunctionalComponent"/> is currently attached to, if any
+    /// Instances a new <see cref="FunctionalComponent"/> and installs it onto <see cref="Node"/>
     /// </summary>
-    protected TNode? AttachedNode { get; private set; }
+    /// <param name="node"></param>
+    public FunctionalComponent(Node node)
+    {
+        Owner = node;
+        scope = node.ServiceProvider.CreateScope();
+    }
+
+    #endregion
+
+    #region Services
+
+    private readonly IServiceScope scope;
+
+    /// <summary>
+    /// Represents a Service Provider scoped for this component's owner scoped for this component
+    /// </summary>
+    public IServiceProvider Services => scope.ServiceProvider;
+
+    #endregion
+
+    #region Node Tree
+
+    #region Reaction Methods
+
+    /// <summary>
+    /// This method is automatically called when this component's <see cref="Owner"/> is attached to a <see cref="Scene"/>
+    /// </summary>
+    /// <param name="scene">The <see cref="Scene"/> this component's node is being attached to</param>
+    protected internal virtual void NodeAttachedToScene(Scene scene) { }
+
+    /// <summary>
+    /// This method is automatically called when this component's <see cref="Owner"/> is detached from a <see cref="Scene"/>
+    /// </summary>
+    protected internal virtual void NodeDetachedFromScene() { }
+
+    #endregion
+
+    #endregion
+
+    #region Installation
+
+    #region Public Properties
 
     /// <summary>
     /// Represents the internal Component Index in the currently attached node
     /// </summary>
-    public int Index { get; private set; }
+    public int Id { get; internal set; }
 
     /// <summary>
-    /// The current <see cref="IServiceProvider"/> for this <see cref="FunctionalComponent"/>
+    /// The <see cref="Node"/> this <see cref="FunctionalComponent"/> is currently attached to, if any
     /// </summary>
-    /// <remarks>
-    /// This provider will become invalid if this gets detached. Will become valid anew once it's reattached to a <see cref="Node"/>
-    /// </remarks>
-    public IServiceProvider Services => serviceScope?.ServiceProvider ?? throw new InvalidOperationException("This FunctionalComponent does not have a Service Provider attached. Is it detached?");
+    public Node Owner { get; }
 
-    internal void InternalAttach(TNode node, IServiceScope services, int index)
-    {
-        serviceScope = services;
-        Attach(node, services.ServiceProvider);
-        AttachedNode = node;
-        Index = index;
-    }
+    #endregion
 
-    internal void InternalDetach()
-    {
-        serviceScope?.Dispose();
-        Detach();
-        AttachedNode = null;
-    }
-    void IFunctionalComponent.InternalDetach() => InternalDetach();
+    #region Reaction Methods
 
     /// <summary>
-    /// Attaches this component's functionality into <paramref name="node"/>
+    /// This method is called automatically when this component's functionality is attached into <paramref name="node"/>
     /// </summary>
-    /// <param name="services">The services of the <see cref="Game"/>, scoped for this Component</param>
     /// <param name="node">The node this component is currently being attached to</param>
     /// <remarks>
-    /// <see cref="AttachedNode"/> will be set after this method is called, and <see cref="Node.FunctionalComponentAttached"/> will fire after that
+    /// <see cref="Owner"/> will be set after this method is called, and <see cref="Node.ComponentInstalled"/> will fire after that
     /// </remarks>
-    protected virtual void Attach(TNode node, IServiceProvider services) { }
+    protected internal virtual void Installing(Node node) { }
 
     /// <summary>
-    /// Detaches this component's functionality from <see cref="AttachedNode"/>
+    /// This method is called automatically when this component's functionality is detached from <see cref="Owner"/>
     /// </summary>
     /// <remarks>
-    /// <see cref="AttachedNode"/> will be null'd after this method is called, and <see cref="Node.FunctionalComponentDetached"/> will fire after that
+    /// <see cref="Owner"/> will be null'd after this method is called, and <see cref="Node.ComponentUninstalled"/> will fire after that, and finally the Component will be disposed
     /// </remarks>
-    protected virtual void Detach() { }
+    protected internal virtual void Uninstalling() { }
+
+    #endregion
+
+    #region Filters
+
+    /// <summary>
+    /// This method is called automatically before this <see cref="FunctionalComponent"/> is installed onto <paramref name="node"/>
+    /// </summary>
+    /// <param name="node">The node this component is going to be installed onto</param>
+    /// <param name="reasonForRejection">If this method returns true, describe the rejection here</param>
+    protected internal virtual bool FilterNode(Node node, [NotNullWhen(false)] out string? reasonForRejection)
+    {
+        reasonForRejection = null;
+        return true;
+    }
+
+    #endregion
+
+    #region Internal
+
+    internal void InternalInstall(Node node) 
+    {
+        Installing(node);
+    }
+
+    internal void InternalUninstall()
+    {
+        Uninstalling();
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Update
+
+    #region Public Properties
+
+    /// <summary>
+    /// <c>true</c> if this <see cref="FunctionalComponent"/> is ready and should be updated. <c>false</c> otherwise
+    /// </summary>
+    /// <remarks>
+    /// If this property is <c>false</c>, this <see cref="FunctionalComponent"/> will be skipped. Defaults to <c>true</c> and must be set to <c>false</c> manually if desired
+    /// </remarks>
+    public bool IsReady
+    {
+        get => isReady;
+        protected set
+        {
+            if (isReady == value)
+                return;
+            isReady = value;
+            ReadinessChanged?.Invoke(this, Game.TotalTime, value);
+        }
+    }
+    private bool isReady = true;
+
+    #endregion
+
+    #region Events
+
+    /// <summary>
+    /// Fired when this <see cref="FunctionalComponent"/>'s readiness to be updated changes
+    /// </summary>
+    /// <remarks>
+    /// Specifically, when this <see cref="FunctionalComponent.IsReady"/> changes
+    /// </remarks>
+    public FunctionalComponentReadinessChangedEvent? ReadinessChanged;
+
+    #endregion
+
+    #region Reaction Methods
+
+    /// <summary>
+    /// This method is called automatically when this <see cref="FunctionalComponent"/> is to be updated
+    /// </summary>
+    /// <remarks>
+    /// <see cref="FunctionalComponent"/>s update in respect to the <see cref="Node"/> they're installed onto. That is, rather than update themselves, <see cref="FunctionalComponent"/> should work to update the <see cref="Node"/> they're installed onto
+    /// </remarks>
+    /// <param name="delta">The amount of time that has passed since the last update batch call</param>
+    /// <param name="componentDelta">The amount of time that has passed since the last time this <see cref="FunctionalComponent"/> was updated. Will be zero the first time the component is updated</param>
+    /// <returns></returns>
+    protected virtual ValueTask Update(TimeSpan delta, TimeSpan componentDelta) => ValueTask.CompletedTask;
+
+    #endregion
+
+    #region Internal
+
+    private Stopwatch stopwatch = new();
+
+    internal async ValueTask InternalUpdate(TimeSpan delta)
+    {
+        await Update(delta, stopwatch.Elapsed);
+        stopwatch.Restart();
+    }
+
+    #endregion
+
+    #endregion
 
     #region IDisposable
 
-    private bool disposedValue;
     /// <summary>
-    /// Disposes this <see cref="FunctionalComponent"/>'s resources. If overriding, make sure to to call base.Dispose()
+    /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of
+    /// </summary>
+    protected internal void ThrowIfDisposed()
+    {
+        if (disposedValue)
+            throw new ObjectDisposedException(GetType().FullName);
+    }
+
+    private bool disposedValue;
+
+    /// <summary>
+    /// Disposes this <see cref="FunctionalComponent"/>'s resources. FunctionalComponents don't explicitly implement <see cref="IDisposable"/> due to the fact that they are automatically disposed when uninstalled from their <see cref="Node"/>
     /// </summary>
     /// <param name="disposing"></param>
     protected virtual void Dispose(bool disposing)
     {
+    }
+
+    private void IntDispose(bool disposing)
+    {
         if (!disposedValue)
         {
-            serviceScope?.Dispose();
+            scope.Dispose();
+            stopwatch = null;
             disposedValue = true;
+
+            Dispose(disposing);
         }
     }
 
     /// <inheritdoc/>
     ~FunctionalComponent()
     {
-        Dispose(disposing: false);
+        IntDispose(false);
     }
 
-    /// <inheritdoc/>
-    public void Dispose()
+    /// <summary>
+    /// Disposes this <see cref="FunctionalComponent"/>'s resources
+    /// </summary>
+    internal void Dispose()
     {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        Dispose(disposing: true);
+        IntDispose(true);
         GC.SuppressFinalize(this);
     }
 
     #endregion
-}
-
-/// <summary>
-/// Represents encapsulated functionality of a Node that accepts any <see cref="Node"/>
-/// </summary>
-/// <remarks>
-/// Remember to implement <see cref="IUpdateable"/> or <see cref="IUpdateableAsync"/> to let your component be Updated
-/// </remarks>
-public abstract class FunctionalComponent : FunctionalComponent<Node>
-{
-
 }

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+	<!-- This makes sure that all the resources get copied to the project output resoruces folder -->
+	<ItemGroup>
+		<ContentWithTargetPath Include="Resources\Graphics\Animations\*.*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>Resources\Graphics\Animations\%(Filename)%(Extension)</TargetPath>
+		</ContentWithTargetPath>
+	</ItemGroup>
+	
+  <ItemGroup>
+    <ProjectReference Include="..\VDStudios.MagicEngine\VDStudios.MagicEngine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Components\" />
+    <Folder Include="Resources\" />
+  </ItemGroup>
+
+</Project>

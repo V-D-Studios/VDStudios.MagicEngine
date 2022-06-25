@@ -9,6 +9,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using VDStudios.MagicEngine.Internal;
+using System.Numerics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 
 namespace VDStudios.MagicEngine;
 
@@ -24,17 +28,66 @@ public class Game : SDLApplication<Game>
 
     private readonly object _lock = new();
     
-    private IServiceProvider? services;
+    internal IServiceProvider services;
     private IGameLifetime? lifetime;
     private bool isStarted;
     private bool isSDLStarted;
+    internal ConcurrentQueue<Scene> awaitingSetup = new();
+
+    internal IServiceScope NewScope()
+        => services.CreateScope();
+
+    static Game()
+    {
+        SDLAppBuilder.CreateInstance<Game>();
+    }
+
+    /// <summary>
+    /// Fetches the singleton instance of this <see cref="Game"/>
+    /// </summary>
+    new static public Game Instance => SDLApplication<Game>.Instance;
+
+    /// <summary>
+    /// Instances a new <see cref="Game"/>
+    /// </summary>
+    /// <remarks>
+    /// This method calls <see cref="ConfigureServices(IServiceCollection)"/>, <see cref="SetupSDL"/>, <see cref="ConfigureLogger(LoggerConfiguration)"/> and <see cref="CreateServiceCollection"/>
+    /// </remarks>
+    public Game()
+    {
+        if (!isSDLStarted)
+        {
+            SetupSDL();
+            isSDLStarted = true;
+        }
+
+        Log = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
+        var serv = CreateServiceCollection();
+        ConfigureServices(serv);
+        // Put here any default services
+        services = serv.BuildServiceProvider(true);
+    }
 
     #endregion
 
     #region Properties
 
     /// <summary>
-    /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame(Scene)"/> is called
+    /// A Logger that belongs to this <see cref="Game"/>
+    /// </summary>
+    public ILogger Log { get; }
+
+    /// <summary>
+    /// Represents the current Frames-per-second value calculated while the game is running
+    /// </summary>
+    /// <remarks>
+    /// This value is only updated while the game is running, also not during <see cref="Load(Progress{float}, IServiceProvider)"/> or any of the other methods
+    /// </remarks>
+    public float FPS => _fps;
+    private float _fps;
+
+    /// <summary>
+    /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame{TScene}"/> is called
     /// </summary>
     public IGameLifetime Lifetime => lifetime ?? throw new InvalidOperationException("The game has not had its lifetime attached yet");
 
@@ -47,15 +100,15 @@ public class Game : SDLApplication<Game>
     /// The current service provider for this <see cref="Game"/>
     /// </summary>
     /// <remarks>
-    /// Invalid until <see cref="ConfigureServices(IServiceCollection)"/> is called by <see cref="StartGame(Scene)"/>, invalid again after <see cref="StopGame"/>
+    /// Invalid until <see cref="ConfigureServices(IServiceCollection)"/> is called by <see cref="StartGame{TScene}"/>, invalid again after the game stops
     /// </remarks>
-    public IServiceProvider Services => isStarted ? services! : throw new InvalidOperationException("The game has not been started");
+    public IServiceProvider Services => isStarted ? services : throw new InvalidOperationException("The game has not been started");
 
     /// <summary>
     /// The current Scene of the <see cref="Game"/>
     /// </summary>
     /// <remarks>
-    /// Invalid until <see cref="ConfigureServices(IServiceCollection)"/> is called by <see cref="StartGame(Scene)"/>, invalid again after <see cref="StopGame"/>
+    /// Invalid until <see cref="ConfigureServices(IServiceCollection)"/> is called by <see cref="StartGame{TScene}"/>, invalid again after the game stops
     /// </remarks>
     public Scene CurrentScene => isStarted ? currentScene! : throw new InvalidOperationException("The game has not been started");
     private Scene? currentScene;
@@ -118,19 +171,19 @@ public class Game : SDLApplication<Game>
     protected virtual void Load(Progress<float> progressTracker, IServiceProvider services) { }
 
     /// <summary>
-    /// Configures the lifestime of a game
+    /// Configures the lifetime of a game
     /// </summary>
-    /// <param name="serviceProvider"></param>
     /// <returns>The configured <see cref="IGameLifetime"/></returns>
     /// <remarks>
-    /// Defaults to <see cref="DefaultGameLifetime.OnWindowClose"/>
+    /// This method is called right before the <see cref="Game"/> starts running. Theoretically, when everything is already set up. Defaults to <see cref="GameLifeTimeOnWindowCloses"/>
     /// </remarks>
-    protected virtual IGameLifetime ConfigureGameLifetime(IServiceProvider serviceProvider)
-        => DefaultGameLifetime.OnWindowClose;
+    protected virtual IGameLifetime ConfigureGameLifetime()
+        => new GameLifeTimeOnWindowCloses(MainWindow);
 
     /// <summary>
     /// Sets up SDL's libraries
     /// </summary>
+    /// <remarks>This method, by default, calls: <see cref="SDLApplication{TApp}.InitializeVideo"/>, <see cref="SDLApplication{TApp}.InitializeEvents"/>, <see cref="SDLApplication{TApp}.InitializeAndOpenAudioMixer(MixerInitFlags, int, int, int, ushort?)"/> (passing: <see cref="MixerInitFlags.OGG"/> and <see cref="MixerInitFlags.OPUS"/>), and <see cref="SDLApplication{TApp}.InitializeTTF"/></remarks>
     protected virtual void SetupSDL()
     {
         this.InitializeVideo()
@@ -143,11 +196,10 @@ public class Game : SDLApplication<Game>
     /// Executes custom logic when starting the game
     /// </summary>
     /// <param name="firstScene">The first scene of the game</param>
-    /// <param name="services">The services for this <see cref="Game"/> scoped for this call alone</param>
     /// <remarks>
     /// Don't call this manually, place here code that should run when starting the game. Is called after <see cref="Load"/>
     /// </remarks>
-    protected virtual void Start(Scene firstScene, IServiceProvider services) { }
+    protected virtual void Start(Scene firstScene) { }
 
     /// <summary>
     /// Launches SDL's Window for the <see cref="Game"/>
@@ -171,26 +223,26 @@ public class Game : SDLApplication<Game>
     /// </summary>
     /// <param name="services">The services for this <see cref="Game"/> scoped for this call alone</param>
     /// <remarks>
-    /// Don't call this manually, place here code that should run when unloading the game. Is called when <see cref="StopGame"/> is called
+    /// Don't call this manually, place here code that should run when unloading the game.
     /// </remarks>
     protected virtual void Unload(IServiceProvider services) { }
 
     /// <summary>
     /// Executes custom logic when stopping the game
     /// </summary>
-    /// <param name="services">The services for this <see cref="Game"/> scoped for this call alone</param>
     /// <remarks>
     /// Don't call this manually, place here code that should run when stopping the game. Is called after <see cref="Unload"/>
     /// </remarks>
-    protected virtual void Stop(IServiceProvider services) { }
+    protected virtual void Stop() { }
 
     /// <summary>
     /// Initiates the process of starting the game. Launches the main Renderer and Window if not already created. This method will not return until the <see cref="Game"/>'s <see cref="IGameLifetime"/> ends
     /// </summary>
+    /// <typeparam name="TScene">The first scene of the game. It must have a parameterless constructor, and it must be constructed by the <see cref="Game"/>. Later <see cref="Scene"/>s can be constructed manually after the game has started</typeparam>
     /// <remarks>
     /// This method forces concurrency by locking, and will throw if called twice before calling the game is stopped. Still a good idea to call it from the thread that initialized SDL
     /// </remarks>
-    public async Task StartGame(Scene firstScene)
+    public async Task StartGame<TScene>() where TScene : Scene, new()
     {
         lock (_lock)
         {
@@ -198,33 +250,13 @@ public class Game : SDLApplication<Game>
                 throw new InvalidOperationException("Can't start a game that is already running");
             isStarted = true;
 
-            if (services is null)
-                Log.Logger = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
-
-            if (!isSDLStarted)
-            {
-                SetupSDL();
-                isSDLStarted = true;
-            }
-
-            if (services is null)
-            {
-                var serv = CreateServiceCollection();
-                ConfigureServices(serv);
-                // Put here any default services
-                services = serv.BuildServiceProvider(true);
-            }
         }
-
-        IServiceScope scope;
 
         //
 
         GameLoading?.Invoke(this, TotalTime);
 
-        scope = services.CreateScope();
-        Load(Preload(), scope.ServiceProvider);
-        scope.Dispose();
+        Load(Preload(), Services);
         
         GameLoaded?.Invoke(this, TotalTime);
 
@@ -235,37 +267,38 @@ public class Game : SDLApplication<Game>
 
         //
 
+        var firstScene = new TScene();
+        currentScene = firstScene;
+
+        SetupScenes?.Invoke();
+
         GameStarting?.Invoke(this, TotalTime);
 
-        scope = services.CreateScope();
-        Start(firstScene, scope.ServiceProvider);
-        scope.Dispose();
+        _fps = 0;
+        Start(firstScene);
+        _fps = 0;
 
         GameStarted?.Invoke(this, TotalTime);
 
         //
 
-        scope = services.CreateScope();
-        lifetime = ConfigureGameLifetime(scope.ServiceProvider);
-        scope.Dispose();
+        lifetime = ConfigureGameLifetime();
 
         LifetimeAttached?.Invoke(this, TotalTime, lifetime);
 
         //
 
-        scope = services.CreateScope();
-
-        await Run(lifetime, scope.ServiceProvider).ConfigureAwait(true);
-
-        scope.Dispose();
+        await Run(lifetime).ConfigureAwait(true);
 
         //
 
+        StopScenes?.Invoke();
+
         GameUnloading?.Invoke(this, TotalTime);
 
-        scope = services.CreateScope();
-        Unload(scope.ServiceProvider);
-        scope.Dispose();
+        IServiceScope unloadScope = services.CreateScope();
+        Unload(unloadScope.ServiceProvider);
+        unloadScope.Dispose();
 
         GameUnloaded?.Invoke(this, TotalTime);
 
@@ -273,37 +306,77 @@ public class Game : SDLApplication<Game>
 
         GameStopping?.Invoke(this, TotalTime);
 
-        scope = services.CreateScope();
-        Stop(services!);
-        scope.Dispose();
+        Stop();
 
         GameStopped?.Invoke(this, TotalTime);
     }
 
-    private async Task Run(IGameLifetime lifetime, IServiceProvider services)
+    private async Task Run(IGameLifetime lifetime)
     {
+        var sw = new Stopwatch();
+        var drawqueue = new DrawQueue();
+        Scene scene;
+        Renderer renderer;
+
+        var sceneSetupList = new List<ValueTask>(10);
+
         while (lifetime.ShouldRun)
         {
+            if (!awaitingSetup.IsEmpty)
+            {
+                int scenes = 0;
+                while (awaitingSetup.TryDequeue(out var sc))
+                {
+                    sceneSetupList.Add(sc.ConfigureScene());
+                    scenes++;
+                }
+                for (int i = 0; i < scenes; i++)
+                    await sceneSetupList[i];
+                sceneSetupList.Clear();
+            }
+
+            renderer = MainRenderer;
+            var (rw, rh) = renderer.OutputSize;
+            sw.Restart();
+            UpdateEvents();
+
             if (nextScene is not null)
             {
                 var prev = currentScene!;
 
-                await prev.InternalEnd(nextScene).ConfigureAwait(true);
+                await prev.End(nextScene).ConfigureAwait(true);
 
-                var scope = services.CreateScope();
-                await nextScene.InternalBegin(scope.ServiceProvider).ConfigureAwait(true);
+                var scope = services!.CreateScope();
+                await nextScene.Begin().ConfigureAwait(true);
                 scope.Dispose();
 
                 currentScene = nextScene;
                 nextScene = null;
                 SceneChanged?.Invoke(this, TotalTime, currentScene, prev!);
             }
+
+            scene = CurrentScene;
+            await scene.Update(sw.Elapsed).ConfigureAwait(true);
+            await scene.Draw(drawqueue).ConfigureAwait(true);
+
+            renderer.Clear();
+            using (await drawqueue._lock.LockAsync().ConfigureAwait(true))
+                while (drawqueue.Count > 0)
+                    drawqueue.Dequeue().Draw(new Vector2(rw / 2, rh / 2), renderer);
+            renderer.Present();
+
+            _fps = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);
         }
+
+        await CurrentScene.End();
     }
 
     #endregion
 
     #region Events
+
+    internal Action? SetupScenes;
+    internal Action? StopScenes;
 
     /// <summary>
     /// Fired when the <see cref="Game"/> <see cref="CurrentScene"/> changes
@@ -364,13 +437,13 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Fired when the game has its <see cref="IGameLifetime"/> attached
     /// </summary>
-    public event GameLifetimeEvent? LifetimeAttached;
+    public event GameLifetimeChangedEvent? LifetimeAttached;
 
     /// <summary>
     /// Fired when the main <see cref="Window"/> and <see cref="Renderer"/> are created, or found by the <see cref="Game"/>. This will fire before <see cref="GameStarting"/> and after <see cref="GameLoaded"/>
     /// </summary>
     /// <remarks>
-    /// The <see cref="Game"/> checks if the <see cref="Window"/> and <see cref="Renderer"/> are created when calling <see cref="StartGame(Scene)"/>, and if so, fires this event. If not, creates them first and then fires this event
+    /// The <see cref="Game"/> checks if the <see cref="Window"/> and <see cref="Renderer"/> are created when calling <see cref="StartGame{TScene}"/>, and if so, fires this event. If not, creates them first and then fires this event
     /// </remarks>
     public event GameMainWindowCreatedEvent? WindowObtained;
 

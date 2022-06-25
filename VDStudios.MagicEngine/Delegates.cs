@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 
 namespace VDStudios.MagicEngine;
 
+#region Game Delegates
+
 /// <summary>
 /// Represents an event in the <see cref="Game"/> regarding the changing of a scene
 /// </summary>
@@ -32,14 +34,6 @@ public delegate void GameSceneEvent(Game game, TimeSpan timestamp, Scene scene);
 public delegate void GameEvent(Game game, TimeSpan timestamp);
 
 /// <summary>
-/// Represents an event in the game regarding its <see cref="IGameLifetime"/>
-/// </summary>
-/// <param name="game">The <see cref="Game"/> that experienced the change</param>
-/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-/// <param name="lifetime">The <see cref="IGameLifetime"/> that is the object of the event</param>
-public delegate void GameLifetimeEvent(Game game, TimeSpan timestamp, IGameLifetime lifetime);
-
-/// <summary>
 /// Represents an event in the game that is fired when the main Window and Renderer are created
 /// </summary>
 /// <param name="game">The <see cref="Game"/> that experienced the change</param>
@@ -49,11 +43,80 @@ public delegate void GameLifetimeEvent(Game game, TimeSpan timestamp, IGameLifet
 public delegate void GameMainWindowCreatedEvent(Game game, TimeSpan timestamp, Window window, Renderer renderer);
 
 /// <summary>
-/// Represents an event in the game regarding a <see cref="Scene"/>
+/// Represents an event in the game regarding the <see cref="Game"/>'s <see cref="IGameLifetime"/>
 /// </summary>
-/// <param name="scene">The scene that experienced the change</param>
+/// <param name="game">The <see cref="Game"/> that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-public delegate void SceneEvent(Scene scene, TimeSpan timestamp);
+/// <param name="lifetime">The <see cref="IGameLifetime"/> that is the object of the event</param>
+public delegate void GameLifetimeChangedEvent(Game game, TimeSpan timestamp, IGameLifetime lifetime);
+
+internal delegate void GameSetupScenesEvent(Game game, IServiceProvider gamescope);
+
+#endregion
+
+#region IGameLifetime Delegates
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="IGameLifetime"/>
+/// </summary>
+/// <param name="lifetime">The <see cref="IGameLifetime"/> that experienced the change</param>
+/// <param name="shouldRun">Whether the <see cref="IGameLifetime"/> still describes that it should run</param>
+public delegate void GameLifetimeEvent(IGameLifetime lifetime, bool shouldRun);
+
+#endregion
+
+#region Node Delegates
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="Node"/>'s readiness, represented by <see cref="Node.IsReady"/>
+/// </summary>
+/// <param name="node">The node that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="isReady">Whether or not <paramref name="node"/> became ready at the time this event fired</param>
+public delegate void NodeReadinessChangedEvent(Node node, TimeSpan timestamp, bool isReady);
+
+/// <summary>
+/// Represents an event in the game regading a <see cref="Node"/> and its parent
+/// </summary>
+/// <param name="node">The Node that that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="parent">The parent of <paramref name="node"/> if it has one. Can be either a <see cref="Node"/> or a <see cref="Scene"/></param>
+public delegate void NodeParentEvent(Node node, TimeSpan timestamp, NodeBase? parent);
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="Node"/>
+/// </summary>
+/// <param name="node">The Node that that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+public delegate void NodeEvent(Node node, TimeSpan timestamp);
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="Node"/> interacting with a <see cref="Scene"/>
+/// </summary>
+/// <param name="node">The Node that that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="scene">The Scene in question</param>
+public delegate void NodeSceneEvent(Node node, TimeSpan timestamp, Scene? scene);
+
+/// <summary>
+/// 
+/// </summary>
+/// <param name="node">The node that experienced the change</param>
+/// <param name="component">The component that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+public delegate void NodeFunctionalComponentInstallEvent(Node node, FunctionalComponent component, TimeSpan timestamp);
+
+#endregion
+
+#region FunctionalComponent Delegates
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="FunctionalComponent"/>'s readiness, represented by <see cref="FunctionalComponent.IsReady"/>
+/// </summary>
+/// <param name="component">The component that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="isReady">Whether or not <paramref name="component"/> became ready at the time this event fired</param>
+public delegate void FunctionalComponentReadinessChangedEvent(FunctionalComponent component, TimeSpan timestamp, bool isReady);
 
 /// <summary>
 /// Represents an event in the game regarding a <see cref="FunctionalComponent"/>
@@ -63,9 +126,30 @@ public delegate void SceneEvent(Scene scene, TimeSpan timestamp);
 public delegate void FunctionalComponentEvent(FunctionalComponent component, TimeSpan timestamp);
 
 /// <summary>
-/// 
+/// Represents an event in the game regarding a <see cref="FunctionalComponent"/>'s <see cref="FunctionalComponent.Owner"/>
 /// </summary>
-/// <param name="node">The node that experienced the change</param>
 /// <param name="component">The component that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-public delegate void NodeFunctionalComponentAttachmentEvent(Node node, FunctionalComponent component, TimeSpan timestamp);
+/// <param name="node">The <see cref="Node"/> that experienced the change</param>
+public delegate void FunctionalComponentNodeEvent(FunctionalComponent component, TimeSpan timestamp, Node node);
+
+#endregion
+
+#region Scene Delegates
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="Scene"/>
+/// </summary>
+/// <param name="scene">The scene that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+public delegate void SceneEvent(Scene scene, TimeSpan timestamp);
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="Scene"/> and a <see cref="Node"/>
+/// </summary>
+/// <param name="scene">The scene that experienced the change</param>
+/// <param name="node">The node that experienced the change alongside <paramref name="scene"/></param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+public delegate void SceneNodeEvent(Scene scene, TimeSpan timestamp, Node node);
+
+#endregion

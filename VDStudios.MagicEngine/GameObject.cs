@@ -1,4 +1,6 @@
-﻿namespace VDStudios.MagicEngine;
+﻿using Serilog;
+
+namespace VDStudios.MagicEngine;
 
 /// <summary>
 /// Represents an object of the <see cref="Game"/>
@@ -17,7 +19,12 @@ public class GameObject
     }
 
     /// <summary>
-    /// The <see cref="MagicEngine.Game"/> this <see cref="Scene"/> belongs to. Same as<see cref="SDL2.NET.SDLApplication{TApp}.Instance"/>
+    /// A Logger that belongs to this <see cref="GameObject"/> and is attached to <see cref="Game.Log"/>
+    /// </summary>
+    public ILogger Log => Game.Log;
+
+    /// <summary>
+    /// The <see cref="MagicEngine.Game"/> this <see cref="GameObject"/> belongs to. Same as<see cref="SDL2.NET.SDLApplication{TApp}.Instance"/>
     /// </summary>
     protected Game Game { get; }
 }
