@@ -11,9 +11,16 @@ using SDL2.Bindings;
 using PixelFormat = Veldrid.PixelFormat;
 
 namespace VDStudios.MagicEngine.Veldrid;
+
+/// <summary>
+/// Contains utilities to be used to procure Veldrid's startup
+/// </summary>
+/// <remarks>
+/// Almost identical to Veldrid.StartupUtilities, with a couple of minor optimizations and tweaks, as well as ported to work with SDL2.NET
+/// </remarks>
 public static class Startup
 {
-    private static readonly object s_glVersionLock = new object();
+    private static readonly object s_glVersionLock = new();
 
     private static (int Major, int Minor)? s_maxSupportedGLVersion;
 
@@ -25,7 +32,14 @@ public static class Startup
             throw new VeldridException(SDL_GetAndClearError());
     }
 
-    public unsafe static GraphicsDevice CreateDefaultOpenGLGraphicsDevice(GraphicsDeviceOptions options, Window window, GraphicsBackend backend)
+    /// <summary>
+    /// Creates an OpenGL-based <see cref="GraphicsDevice"/> that is tied to <paramref name="window"/>
+    /// </summary>
+    /// <param name="options">Settings regarding the <see cref="GraphicsDevice"/></param>
+    /// <param name="window">The <see cref="Window"/> to tie the <see cref="GraphicsDevice"/> to</param>
+    /// <param name="backend">The preferred <see cref="GraphicsBackend"/></param>
+    /// <returns>The newly instanced <see cref="GraphicsDevice"/></returns>
+    public static GraphicsDevice CreateDefaultOpenGLGraphicsDevice(GraphicsDeviceOptions options, Window window, GraphicsBackend backend)
     {
         SDL_ClearError();
 
@@ -42,7 +56,7 @@ public static class Startup
         ThrowIfLessThan(SDL_GL_GetAttribute(SDL_GLattr.SDL_GL_STENCIL_SIZE, out int num2));
         ThrowIfLessThan(SDL_GL_SetSwapInterval(options.SyncToVerticalBlank ? 1 : 0));
 
-        OpenGLPlatformInfo platformInfo = new OpenGLPlatformInfo(openGLContextHandle, SDL_GL_GetProcAddress,
+        OpenGLPlatformInfo platformInfo = new(openGLContextHandle, SDL_GL_GetProcAddress,
 
         context => ThrowIfLessThan(SDL_GL_MakeCurrent(sdlHandle, context)),
         () => SDL_GL_GetCurrentContext(),
@@ -56,6 +70,11 @@ public static class Startup
         return GraphicsDevice.CreateOpenGL(options, platformInfo, (uint)window.Size.Width, (uint)window.Size.Height);
     }
 
+    /// <summary>
+    /// Sets SDL attributes for OpenGL Contexts
+    /// </summary>
+    /// <param name="options">The GraphicsDevice options to use</param>
+    /// <param name="backend">The specific Backend to use</param>
     public static void SetSDLGLContextAttributes(GraphicsDeviceOptions options, GraphicsBackend backend)
     {
         if (backend is not GraphicsBackend.OpenGL and not GraphicsBackend.OpenGLES)
