@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using VDStudios.MagicEngine.Demo.Services;
 
 namespace VDStudios.MagicEngine.Demo.Nodes;
-public class PlayerNode : Node, IUpdateableNode, IDrawableNode
+public class PlayerNode : Node, IDrawableNode
 {
     protected class PlayerDrawState : IDrawOperation
     {
@@ -176,7 +176,7 @@ public class PlayerNode : Node, IUpdateableNode, IDrawableNode
             .AddKeySynonym(Scancode.Right, Scancode.D);
     }
 
-    public void Update(TimeSpan delta)
+    protected override ValueTask<bool> Updating(TimeSpan delta)
     {
         Vector2 prevDir = Dir;
         Vector2 dir;
@@ -194,12 +194,15 @@ public class PlayerNode : Node, IUpdateableNode, IDrawableNode
         Position += Speed * dir * (float)delta.TotalSeconds;
 
         DrawState.SetState(Animations[prevDir].CurrentElement, new(96, 96, (int)Position.X, (int)Position.Y));
+
+        return ValueTask.FromResult(true);
     }
 
     public UpdateBatch UpdateBatch { get; }
 
-    public void AddToDrawQueue(IDrawQueue queue)
+    public ValueTask<bool> AddToDrawQueue(IDrawQueue queue)
     {
         queue.Enqueue(DrawState, -1);
+        return ValueTask.FromResult(true);
     }
 }

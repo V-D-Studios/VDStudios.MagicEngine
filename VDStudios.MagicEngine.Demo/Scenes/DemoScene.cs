@@ -10,6 +10,11 @@ public sealed class DemoScene : Scene
 {
     public DemoScene()
     {
-        AttachNode(new PlayerNode());
+        
+    }
+
+    protected override async ValueTask ConfigureScene()
+    {
+        await Attach(new PlayerNode());
     }
 }
