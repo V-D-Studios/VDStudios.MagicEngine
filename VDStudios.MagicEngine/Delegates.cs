@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Veldrid;
 
 namespace VDStudios.MagicEngine;
 
@@ -40,7 +41,7 @@ public delegate void GameEvent(Game game, TimeSpan timestamp);
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 /// <param name="window">The newly created main <see cref="Window"/></param>
 /// <param name="renderer">The newly created main <see cref="Renderer"/></param>
-public delegate void GameMainWindowCreatedEvent(Game game, TimeSpan timestamp, Window window, Renderer renderer);
+public delegate void GameMainWindowCreatedEvent(Game game, TimeSpan timestamp, Window window, GraphicsDevice renderer);
 
 /// <summary>
 /// Represents an event in the game regarding the <see cref="Game"/>'s <see cref="IGameLifetime"/>
@@ -160,5 +161,45 @@ public delegate void SceneEvent(Scene scene, TimeSpan timestamp);
 /// <param name="node">The node that experienced the change alongside <paramref name="scene"/></param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 public delegate void SceneNodeEvent(Scene scene, TimeSpan timestamp, Node node);
+
+#endregion
+
+#region GraphicsManager Delegates
+
+/// <summary>
+/// Represents an event in the <see cref="Game"/> regarding the changing of a scene
+/// </summary>
+/// <param name="graphicsManager">The <see cref="GraphicsManager"/> that experienced the change</param>
+/// <param name="newScene">The scene that was just set</param>
+/// <param name="oldScene">The scene that was previously set</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+public delegate void GraphicsManagerSceneChangedEvent(GraphicsManager graphicsManager, TimeSpan timestamp, Scene newScene, Scene oldScene);
+
+/// <summary>
+/// Represents an event in the game in which a <see cref="GraphicsManager"/>'s <see cref="GraphicsManager.Device"/> is replaced
+/// </summary>
+/// <param name="graphicsManager">The <see cref="GraphicsManager"/> that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="newRenderer">The newly set <see cref="GraphicsDevice"/></param>
+public delegate void GraphicsManagerRendererChangedEvent(GraphicsManager graphicsManager, TimeSpan timestamp, GraphicsDevice newRenderer);
+
+/// <summary>
+/// Represents an event in the game in which a <see cref="GraphicsManager"/>'s <see cref="GraphicsManager.Device"/> is replaced
+/// </summary>
+/// <param name="graphicsManager">The <see cref="GraphicsManager"/> that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="newWindow">The newly set <see cref="Window"/></param>
+public delegate void GraphicsManagerWindowChangedEvent(GraphicsManager graphicsManager, TimeSpan timestamp, Window newWindow);
+
+/// <summary>
+/// Represents an event in the game in which a <see cref="GraphicsManager"/> stopped or started
+/// </summary>
+/// <remarks>
+/// Specifically, when <see cref="GraphicsManager.IsRunning"/> changes
+/// </remarks>
+/// <param name="graphicsManager">The <see cref="GraphicsManager"/> that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="isRunning">The new value of <see cref="GraphicsManager.IsRunning"/> at the time this event was fired</param>
+public delegate void GraphicsManagerRunStateChanged(GraphicsManager graphicsManager, TimeSpan timestamp, bool isRunning);
 
 #endregion
