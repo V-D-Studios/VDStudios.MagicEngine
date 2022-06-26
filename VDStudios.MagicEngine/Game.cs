@@ -13,6 +13,8 @@ using VDStudios.MagicEngine.Internal;
 using System.Numerics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
+using Veldrid;
+using VeldridPixelFormat = Veldrid.PixelFormat;
 
 namespace VDStudios.MagicEngine;
 
@@ -33,6 +35,7 @@ public class Game : SDLApplication<Game>
     private bool isStarted;
     private bool isSDLStarted;
     internal ConcurrentQueue<Scene> scenesAwaitingSetup = new();
+    internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingSetup = new();
 
     internal IServiceScope NewScope()
         => services.CreateScope();
@@ -73,6 +76,11 @@ public class Game : SDLApplication<Game>
     #region Properties
 
     /// <summary>
+    /// Represents the Main <see cref="GraphicsManager"/> used by the game
+    /// </summary>
+    public GraphicsManager MainGraphicsManager { get; private set; }
+
+    /// <summary>
     /// The current title of the game
     /// </summary>
     /// <remarks>
@@ -90,19 +98,20 @@ public class Game : SDLApplication<Game>
         }
     }
     private string gameTitle = "Magic Engine Game";
+
     /// <summary>
     /// A Logger that belongs to this <see cref="Game"/>
     /// </summary>
     public ILogger Log { get; }
 
     /// <summary>
-    /// Represents the current Frames-per-second value calculated while the game is running
+    /// Represents the current Updates-per-second value calculated while the game is running
     /// </summary>
     /// <remarks>
-    /// This value is only updated while the game is running, also not during <see cref="Load(Progress{float}, IServiceProvider)"/> or any of the other methods
+    /// This value does not represent the <see cref="Game"/>'s FPS, as that is the amount of frames the game outputs per second. This value is only updated while the game is running, also not during <see cref="Load(Progress{float}, IServiceProvider)"/> or any of the other methods
     /// </remarks>
-    public float FPS => _fps;
-    private float _fps;
+    public float UPS => _ups;
+    private float _ups;
 
     /// <summary>
     /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame{TScene}"/> is called
@@ -179,6 +188,12 @@ public class Game : SDLApplication<Game>
     protected virtual Progress<float> Preload() => new();
 
     /// <summary>
+    /// Creates and returns the <see cref="GraphicsManager"/> to be used as the <see cref="MainGraphicsManager"/>
+    /// </summary>
+    /// <param name="scene">The first scene for the game</param>
+    protected virtual GraphicsManager CreateGraphicsManager(Scene scene) => new GameGraphicsManager(scene);
+
+    /// <summary>
     /// Loads any required data for the <see cref="Game"/>, and report back the progress at any point in the method with <paramref name="progressTracker"/>
     /// </summary>
     /// <remarks>
@@ -218,17 +233,6 @@ public class Game : SDLApplication<Game>
     /// Don't call this manually, place here code that should run when starting the game. Is called after <see cref="Load"/>
     /// </remarks>
     protected virtual void Start(Scene firstScene) { }
-
-    /// <summary>
-    /// Launches SDL's Window for the <see cref="Game"/>
-    /// </summary>
-    /// <remarks>
-    /// It's better if you don't call base <see cref="WindowLaunch"/>
-    /// </remarks>
-    protected virtual void WindowLaunch()
-    {
-        LaunchWindow("MagicEngine Game", 800, 600);
-    }
 
     /// <summary>
     /// Configures and initializes Serilog's log
@@ -278,23 +282,25 @@ public class Game : SDLApplication<Game>
         
         GameLoaded?.Invoke(this, TotalTime);
 
-        //
-
-        WindowLaunch();
-        WindowObtained?.Invoke(this, TotalTime, MainWindow, MainRenderer);
-
-        //
-
         var firstScene = new TScene();
         currentScene = firstScene;
 
         SetupScenes?.Invoke();
 
+        //
+
+        {
+            MainGraphicsManager = CreateGraphicsManager(firstScene);
+            WindowObtained?.Invoke(this, TotalTime, MainGraphicsManager.Window, MainGraphicsManager.Device);
+        }
+
+        //
+
         GameStarting?.Invoke(this, TotalTime);
 
-        _fps = 0;
+        _ups = 0;
         Start(firstScene);
-        _fps = 0;
+        _ups = 0;
 
         GameStarted?.Invoke(this, TotalTime);
 
@@ -332,15 +338,17 @@ public class Game : SDLApplication<Game>
     private async Task Run(IGameLifetime lifetime)
     {
         var sw = new Stopwatch();
-        var drawqueue = new DrawQueue();
         Scene scene;
-        Renderer renderer;
 
         var sceneSetupList = new List<ValueTask>(10);
 
         while (lifetime.ShouldRun)
         {
-            if (!awaitingSetup.IsEmpty)
+            if (!graphicsManagersAwaitingSetup.IsEmpty)
+                while (graphicsManagersAwaitingSetup.TryDequeue(out var manager))
+                    manager.InternalStart();
+
+            if (!scenesAwaitingSetup.IsEmpty)
             {
                 int scenes = 0;
                 while (scenesAwaitingSetup.TryDequeue(out var sc))
@@ -353,8 +361,6 @@ public class Game : SDLApplication<Game>
                 sceneSetupList.Clear();
             }
 
-            renderer = MainRenderer;
-            var (rw, rh) = renderer.OutputSize;
             sw.Restart();
             UpdateEvents();
 
@@ -374,27 +380,26 @@ public class Game : SDLApplication<Game>
             }
 
             scene = CurrentScene;
+
             await scene.Update(sw.Elapsed).ConfigureAwait(true);
-            await scene.Draw(drawqueue).ConfigureAwait(true);
 
-            renderer.Clear();
-            using (await drawqueue._lock.LockAsync().ConfigureAwait(true))
-                while (drawqueue.Count > 0)
-                    drawqueue.Dequeue().Draw(new Vector2(rw / 2, rh / 2), renderer);
-            renderer.Present();
-
-            _fps = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);
+            _ups = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);
         }
 
         await CurrentScene.End();
     }
 
-    #endregion
+#endregion
 
     #region Events
 
     internal Action? SetupScenes;
     internal Action? StopScenes;
+
+    /// <summary>
+    /// Fired when <see cref="Game.GameTitle"/> changes
+    /// </summary>
+    public event GameTitleChangedEvent? GameTitleChanged;
 
     /// <summary>
     /// Fired when the <see cref="Game"/> <see cref="CurrentScene"/> changes
@@ -465,5 +470,5 @@ public class Game : SDLApplication<Game>
     /// </remarks>
     public event GameMainWindowCreatedEvent? WindowObtained;
 
-    #endregion
+#endregion
 }
