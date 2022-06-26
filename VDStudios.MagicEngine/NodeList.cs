@@ -105,9 +105,8 @@ public sealed class NodeList : IReadOnlyList<Node>
     /// <summary>
     /// Cloning the collection locks the collection and the owner <see cref="Node"/>
     /// </summary>
-    /// <param name="sync"></param>
     /// <returns></returns>
-    internal NodeList Clone(object sync)
+    internal NodeList Clone()
     {
         Dictionary<int, Node> nl;
         if (sync is null)
