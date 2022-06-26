@@ -32,7 +32,7 @@ public class Game : SDLApplication<Game>
     private IGameLifetime? lifetime;
     private bool isStarted;
     private bool isSDLStarted;
-    internal ConcurrentQueue<Scene> awaitingSetup = new();
+    internal ConcurrentQueue<Scene> scenesAwaitingSetup = new();
 
     internal IServiceScope NewScope()
         => services.CreateScope();
@@ -343,7 +343,7 @@ public class Game : SDLApplication<Game>
             if (!awaitingSetup.IsEmpty)
             {
                 int scenes = 0;
-                while (awaitingSetup.TryDequeue(out var sc))
+                while (scenesAwaitingSetup.TryDequeue(out var sc))
                 {
                     sceneSetupList.Add(sc.ConfigureScene());
                     scenes++;

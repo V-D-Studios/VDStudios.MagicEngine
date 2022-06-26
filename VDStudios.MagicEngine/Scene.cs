@@ -20,7 +20,7 @@ public abstract class Scene : NodeBase
     {
         Game.SetupScenes += OnGameSetupScenes;
         Game.StopScenes += OnGameStopScenes;
-        Game.awaitingSetup.Enqueue(this);
+        Game.scenesAwaitingSetup.Enqueue(this);
     }
 
     #endregion
