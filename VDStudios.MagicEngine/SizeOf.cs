@@ -18,5 +18,5 @@ public static class SizeOf<T> where T : unmanaged
     /// <summary>
     /// Calculates the buffer size of a buffer holding onto <paramref name="count"/> instances of <typeparamref name="T"/>
     /// </summary>
-    public static uint GetSize(uint count) => Size * count;
+    public static uint By(uint count) => Size * count;
 }
