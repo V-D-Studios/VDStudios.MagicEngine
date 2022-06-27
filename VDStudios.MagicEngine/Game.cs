@@ -69,6 +69,7 @@ public class Game : SDLApplication<Game>
         ConfigureServices(serv);
         // Put here any default services
         services = serv.BuildServiceProvider(true);
+        ActiveGraphicsManagers = new();
     }
 
     #endregion
@@ -79,6 +80,14 @@ public class Game : SDLApplication<Game>
     /// Represents the Main <see cref="GraphicsManager"/> used by the game
     /// </summary>
     public GraphicsManager MainGraphicsManager { get; private set; }
+
+    /// <summary>
+    /// Represents all <see cref="GraphicsManager"/>s the <see cref="Game"/> currently has available
+    /// </summary>
+    /// <remarks>
+    /// <see cref="MainGraphicsManager"/> can also be found here
+    /// </remarks>
+    public GraphicsManagerList ActiveGraphicsManagers { get; }
 
     /// <summary>
     /// The current title of the game
@@ -190,8 +199,7 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Creates and returns the <see cref="GraphicsManager"/> to be used as the <see cref="MainGraphicsManager"/>
     /// </summary>
-    /// <param name="scene">The first scene for the game</param>
-    protected virtual GraphicsManager CreateGraphicsManager(Scene scene) => new GameGraphicsManager(scene);
+    protected virtual GraphicsManager CreateGraphicsManager() => new GraphicsManager();
 
     /// <summary>
     /// Loads any required data for the <see cref="Game"/>, and report back the progress at any point in the method with <paramref name="progressTracker"/>
@@ -290,7 +298,7 @@ public class Game : SDLApplication<Game>
         //
 
         {
-            MainGraphicsManager = CreateGraphicsManager(firstScene);
+            MainGraphicsManager = CreateGraphicsManager();
             WindowObtained?.Invoke(this, TotalTime, MainGraphicsManager.Window, MainGraphicsManager.Device);
         }
 
@@ -346,7 +354,10 @@ public class Game : SDLApplication<Game>
         {
             if (!graphicsManagersAwaitingSetup.IsEmpty)
                 while (graphicsManagersAwaitingSetup.TryDequeue(out var manager))
+                {
                     manager.InternalStart();
+                    ActiveGraphicsManagers.Add(manager);
+                }
 
             if (!scenesAwaitingSetup.IsEmpty)
             {
@@ -382,6 +393,7 @@ public class Game : SDLApplication<Game>
             scene = CurrentScene;
 
             await scene.Update(sw.Elapsed).ConfigureAwait(true);
+            await scene.RegisterDrawOperations();
 
             _ups = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);
         }
