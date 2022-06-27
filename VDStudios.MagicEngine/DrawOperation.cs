@@ -12,7 +12,8 @@ namespace VDStudios.MagicEngine;
 /// </remarks>
 public abstract class DrawOperation : IDisposable
 {
-    private readonly object sync = new();
+    private readonly SemaphoreSlim sync = new(1, 1);
+
     internal CommandList? Commands;
     internal GraphicsDevice? Device;
 
@@ -102,14 +103,22 @@ public abstract class DrawOperation : IDisposable
     internal async ValueTask InternalDraw(Vector2 offset)
     {
         ThrowIfDisposed();
-        if (!isStarted)
+        sync.Wait();
+        try
         {
-            isStarted = true;
-            Start();
+            if (!isStarted)
+            {
+                isStarted = true;
+                Start();
+            }
+            Commands!.Begin();
+            await Draw(offset, Commands, Device!).ConfigureAwait(true);
+            Commands.End();
         }
-        Commands!.Begin();
-        await Draw(offset, Commands, Device!);
-        Commands.End();
+        finally
+        {
+            sync.Release();
+        }
     }
 
     #endregion
@@ -120,7 +129,7 @@ public abstract class DrawOperation : IDisposable
     /// The method that will be used to draw the component
     /// </summary>
     /// <remarks>
-    /// Remember that <paramref name="commandList"/> is *NOT* thread-safe, but it is owned solely by this <see cref="DrawOperation"/>; and <see cref="GraphicsManager"/> will not use it until this method returns.
+    /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock! Remember that <paramref name="commandList"/> is *NOT* thread-safe, but it is owned solely by this <see cref="DrawOperation"/>; and <see cref="GraphicsManager"/> will not use it until this method returns.
     /// </remarks>
     /// <param name="offset">The translation offset of the drawing operation</param>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/></param>
@@ -130,6 +139,9 @@ public abstract class DrawOperation : IDisposable
     /// <summary>
     /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time
     /// </summary>
+    /// <remarks>
+    /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock!
+    /// </remarks>
     protected internal abstract void Start();
 
     #endregion
@@ -142,11 +154,21 @@ public abstract class DrawOperation : IDisposable
     /// Throws an <see cref="ObjectDisposedException"/> if this <see cref="DrawOperation"/> has already been disposed
     /// </summary>
     /// <exception cref="ObjectDisposedException"></exception>
+    /// <remarks>
+    /// Calling this method from <see cref="Draw(Vector2, CommandList, GraphicsDevice)"/>, <see cref="Start"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
+    /// </remarks>
     protected void ThrowIfDisposed()
     {
-        lock (sync)
+        sync.Wait();
+        try
+        {
             if (disposedValue)
                 throw new ObjectDisposedException(GetType().FullName);
+        }
+        finally
+        {
+            sync.Release();
+        }
     }
 
     internal bool disposedValue;
@@ -161,26 +183,34 @@ public abstract class DrawOperation : IDisposable
 
     private void InternalDispose(bool disposing)
     {
-        lock (sync)
-        {
-            if (disposedValue)
-                return;
-            disposedValue = true;
-        }
-
-        var @lock = RegisteredOnto!.LockManager();
+        sync.Wait();
         try
         {
-            Dispose(disposing);
+            lock (sync)
+            {
+                if (disposedValue)
+                    return;
+                disposedValue = true;
+            }
+
+            var @lock = RegisteredOnto!.LockManager();
+            try
+            {
+                Dispose(disposing);
+            }
+            finally
+            {
+                Commands?.Dispose();
+                Device = null;
+                Commands = null;
+                Owner = null;
+                RegisteredOnto = null;
+                @lock.Dispose();
+            }
         }
         finally
         {
-            Commands?.Dispose();
-            Device = null;
-            Commands = null;
-            Owner = null;
-            RegisteredOnto = null;
-            @lock.Dispose();
+            sync.Release();
         }
     }
 
@@ -193,6 +223,9 @@ public abstract class DrawOperation : IDisposable
     /// <summary>
     /// Disposes of this <see cref="DrawOperation"/>'s resources
     /// </summary>
+    /// <remarks>
+    /// Calling this method from <see cref="Draw(Vector2, CommandList, GraphicsDevice)"/>, <see cref="Start"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
+    /// </remarks>
     public void Dispose()
     {
         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
