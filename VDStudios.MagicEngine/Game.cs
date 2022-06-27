@@ -36,6 +36,7 @@ public class Game : SDLApplication<Game>
     private bool isSDLStarted;
     internal ConcurrentQueue<Scene> scenesAwaitingSetup = new();
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingSetup = new();
+    internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingDestruction = new();
 
     internal IServiceScope NewScope()
         => services.CreateScope();
@@ -358,6 +359,10 @@ public class Game : SDLApplication<Game>
                     manager.InternalStart();
                     ActiveGraphicsManagers.Add(manager);
                 }
+
+            if (!graphicsManagersAwaitingDestruction.IsEmpty)
+                while (graphicsManagersAwaitingDestruction.TryDequeue(out var manager))
+                    ActiveGraphicsManagers.Remove(manager);
 
             if (!scenesAwaitingSetup.IsEmpty)
             {

@@ -31,7 +31,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     public GraphicsManager()
     {
-        _thread = new(new ThreadStart(() => Run()));
+        _thread = new(new ThreadStart(() => Run().Wait()));
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
         IdleWaiter = new(FrameLock);
     }
@@ -418,6 +418,8 @@ public class GraphicsManager : GameObject, IDisposable
             Window.Dispose();
             FrameLock.Release();
         }
+
+        Game.graphicsManagersAwaitingDestruction.Enqueue(this);
     }
 
     /// <inheritdoc/>
