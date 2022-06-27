@@ -167,31 +167,6 @@ public delegate void SceneNodeEvent(Scene scene, TimeSpan timestamp, Node node);
 #region GraphicsManager Delegates
 
 /// <summary>
-/// Represents an event in the <see cref="Game"/> regarding the changing of a scene
-/// </summary>
-/// <param name="graphicsManager">The <see cref="GraphicsManager"/> that experienced the change</param>
-/// <param name="newScene">The scene that was just set</param>
-/// <param name="oldScene">The scene that was previously set</param>
-/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-public delegate void GraphicsManagerSceneChangedEvent(GraphicsManager graphicsManager, TimeSpan timestamp, Scene newScene, Scene oldScene);
-
-/// <summary>
-/// Represents an event in the game in which a <see cref="GraphicsManager"/>'s <see cref="GraphicsManager.Device"/> is replaced
-/// </summary>
-/// <param name="graphicsManager">The <see cref="GraphicsManager"/> that experienced the change</param>
-/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-/// <param name="newRenderer">The newly set <see cref="GraphicsDevice"/></param>
-public delegate void GraphicsManagerRendererChangedEvent(GraphicsManager graphicsManager, TimeSpan timestamp, GraphicsDevice newRenderer);
-
-/// <summary>
-/// Represents an event in the game in which a <see cref="GraphicsManager"/>'s <see cref="GraphicsManager.Device"/> is replaced
-/// </summary>
-/// <param name="graphicsManager">The <see cref="GraphicsManager"/> that experienced the change</param>
-/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-/// <param name="newWindow">The newly set <see cref="Window"/></param>
-public delegate void GraphicsManagerWindowChangedEvent(GraphicsManager graphicsManager, TimeSpan timestamp, Window newWindow);
-
-/// <summary>
 /// Represents an event in the game in which a <see cref="GraphicsManager"/> stopped or started
 /// </summary>
 /// <remarks>
