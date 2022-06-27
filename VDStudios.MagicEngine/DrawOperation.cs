@@ -101,7 +101,7 @@ public abstract class DrawOperation : IDisposable
                 Start();
             }
             Commands!.Begin();
-            await Draw(offset, Commands, Device!).ConfigureAwait(true);
+            await Draw(offset, Commands, Device!, Device!.SwapchainFramebuffer).ConfigureAwait(true);
             Commands!.End();
             Device!.SubmitCommands(Commands);
         }
@@ -139,7 +139,8 @@ public abstract class DrawOperation : IDisposable
     /// <param name="offset">The translation offset of the drawing operation</param>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/></param>
     /// <param name="commandList">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
-    protected abstract ValueTask Draw(Vector2 offset, CommandList commandList, GraphicsDevice device);
+    /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
+    protected abstract ValueTask Draw(Vector2 offset, CommandList commandList, GraphicsDevice device, Framebuffer mainBuffer);
 
     /// <summary>
     /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time
