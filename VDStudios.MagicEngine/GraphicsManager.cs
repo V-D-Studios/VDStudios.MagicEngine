@@ -238,6 +238,20 @@ public class GraphicsManager : GameObject, IDisposable
     protected virtual CommandList CreateCommandList(GraphicsDevice device, ResourceFactory factory)
         => factory.CreateCommandList();
 
+    /// <summary>
+    /// Executes commands before any registered <see cref="DrawOperation"/> is processed
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="commandlist"/> is begun, ended and submitted automatically. <see cref="CommandList.SetFramebuffer(Framebuffer)"/> is not called, however.
+    /// </remarks>
+    /// <param name="commandlist">The <see cref="CommandList"/> for this call. It's ended, begun and submitted automatically, so you don't need to worry about it</param>
+    /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
+    protected virtual void PrepareForDraw(CommandList commandlist, Framebuffer mainBuffer)
+    {
+        commandlist.SetFramebuffer(mainBuffer);
+        commandlist.ClearColorTarget(0, RgbaFloat.Black);
+    }
+
     #endregion
 
     #region Internal
@@ -281,6 +295,10 @@ public class GraphicsManager : GameObject, IDisposable
                     else
                         ops.Remove(kv.Key);
 
+                prepCommands.Begin();
+                PrepareForDraw(prepCommands, gd.SwapchainFramebuffer);
+                prepCommands.End();
+                gd.SubmitCommands(prepCommands);
                 using (drawqueue._lock.Lock())
                 {
                     var buffers = ArrayPool<ValueTask>.Shared;
