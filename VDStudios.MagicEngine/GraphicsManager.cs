@@ -283,19 +283,22 @@ public class GraphicsManager : GameObject, IDisposable
                             calls[i] = drawqueue.Dequeue().InternalDraw(new Vector2(rw / 2, rh / 2));
                         while (i > 0)
                             await calls[--i];
+                        gd.WaitForIdle();
+                        gd.SwapBuffers();
                     }
                     finally
                     {
                         buffers.Return(calls, true);
                     }
                 }
-                gd.WaitForIdle();
             }
             finally
             {
-                fl.Release(1); // Code that does not require any resources and is not bothered if resources are suddenly released
+                fl.Release(1); 
             }
 
+            // Code that does not require any resources and is not bothered if resources are suddenly released
+            
             _fps = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);
             sw.Restart();
         }
