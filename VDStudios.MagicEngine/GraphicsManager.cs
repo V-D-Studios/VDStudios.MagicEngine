@@ -246,6 +246,7 @@ public class GraphicsManager : GameObject, IDisposable
     {
         CreateWindow(out var window, out var gd);
         Window = window;
+        window.Closed += Window_Closed;
         Device = gd;
 
         var sw = new Stopwatch();
@@ -298,6 +299,13 @@ public class GraphicsManager : GameObject, IDisposable
             _fps = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);
             sw.Restart();
         }
+
+        Dispose();
+    }
+
+    private void Window_Closed(Window sender, TimeSpan timestamp)
+    {
+        IsRunning = false;
     }
 
     #endregion
@@ -344,7 +352,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// This method is automatically called during this object's construction, creates a <see cref="SDL2.NET.Window"/> and <see cref="GraphicsDevice"/> to be used as <see cref="Window"/> and <see cref="Device"/> respectively
     /// </summary>
     /// <remarks>
-    /// It's better if you don't call base <see cref="CreateWindow"/>. This is called, specifically, by <see cref="GraphicsManager"/>'s constructor. If this is a derived type, know that this method will be called by the first constructor in the hierarchy, and NOT after your type's constructor
+    /// The <see cref="Window"/> and <see cref="GraphicsDevice"/> here produced are expected to be unique and owned exclusively by this <see cref="GraphicsManager"/>. Issues may arise if this is not so. It's better if you don't call base <see cref="CreateWindow"/>. This is called, specifically, by <see cref="GraphicsManager"/>'s constructor. If this is a derived type, know that this method will be called by the first constructor in the hierarchy, and NOT after your type's constructor
     /// </remarks>
     protected virtual void CreateWindow(out Window mainWindow, out GraphicsDevice graphicsDevice)
     {
@@ -418,14 +426,29 @@ public class GraphicsManager : GameObject, IDisposable
             Window.Dispose();
             FrameLock.Release();
         }
-
-        Game.graphicsManagersAwaitingDestruction.Enqueue(this);
     }
 
     /// <inheritdoc/>
     ~GraphicsManager()
     {
         InternalDispose(disposing: false);
+    }
+
+    /// <summary>
+    /// <see cref="Dispose()"/> merely schedules the disposal, this actually goes through with it
+    /// </summary>
+    internal void ActuallyDispose()
+    {
+        lock (sync)
+            if (disposedValue)
+            {
+                disposedValue = true;
+                return;
+            }
+
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        InternalDispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -440,9 +463,7 @@ public class GraphicsManager : GameObject, IDisposable
                 return;
             }
 
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        InternalDispose(disposing: true);
-        GC.SuppressFinalize(this);
+        Game.graphicsManagersAwaitingDestruction.Enqueue(this);
     }
 
     #endregion

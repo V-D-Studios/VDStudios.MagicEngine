@@ -362,7 +362,10 @@ public class Game : SDLApplication<Game>
 
             if (!graphicsManagersAwaitingDestruction.IsEmpty)
                 while (graphicsManagersAwaitingDestruction.TryDequeue(out var manager))
+                {
                     ActiveGraphicsManagers.Remove(manager);
+                    manager.ActuallyDispose();
+                }
 
             if (!scenesAwaitingSetup.IsEmpty)
             {
