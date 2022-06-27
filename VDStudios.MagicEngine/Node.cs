@@ -574,7 +574,7 @@ public abstract class Node : NodeBase
     /// <summary>
     /// This belongs to this <see cref="Node"/>'s parent
     /// </summary>
-    internal NodeDrawer? drawer;
+    internal NodeDrawRegistrar? drawer;
 
     #endregion
 
@@ -649,9 +649,15 @@ public abstract class Node : NodeBase
 
     #region Draw
 
-    internal async ValueTask PropagateDraw(IDrawQueue queue)
+    internal async ValueTask PropagateDrawRegistration()
     {
-        if (DrawableSelf is not IDrawableNode ds || !await ds.AddToDrawQueue(queue))
+        if (DrawableSelf is not IDrawableNode ds) 
+            return;
+        
+        if (ds.HasPendingRegistrations)
+            await ds.RegisterDrawOperations(Game.MainGraphicsManager, Game.ActiveGraphicsManagers);
+
+        if (ds.SkipPropagation)
             return;
 
 #pragma warning disable CA2012 // Just like Roslyn is so kind to warn us about, this code right here has the potential to offer some nasty asynchrony bugs. Be careful here, remember ValueTasks must only ever be consumed once
@@ -668,7 +674,7 @@ public abstract class Node : NodeBase
                 {
                     var child = Children.Get(i);
                     if (child.IsReady)
-                        tasks[ind++] = InternalHandleChildDraw(child, queue);
+                        tasks[ind++] = InternalHandleChildDrawRegistration(child);
                 }
             }
             for (int i = 0; i < ind; i++)
@@ -681,12 +687,12 @@ public abstract class Node : NodeBase
 #pragma warning restore CA2012
     }
 
-    private async ValueTask InternalHandleChildDraw(Node node, IDrawQueue queue)
+    private async ValueTask InternalHandleChildDrawRegistration(Node node)
     {
-        if (node.drawer is NodeDrawer drawer
-            ? await drawer.PerformDraw()
-            : node.DrawableSelf is not IDrawableNode n || await HandleChildDraw(n))
-            await node.PropagateDraw(queue);
+        if (node.drawer is NodeDrawRegistrar drawer
+            ? await drawer.PerformDrawRegistration()
+            : node.DrawableSelf is not IDrawableNode n || await HandleChildRegisterDrawOperations(n))
+            await node.PropagateDrawRegistration();
     }
 
     #endregion
