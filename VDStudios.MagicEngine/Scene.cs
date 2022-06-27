@@ -211,11 +211,8 @@ public abstract class Scene : NodeBase
 
     #region Draw
 
-    internal async ValueTask Draw(IDrawQueue queue)
+    internal async ValueTask RegisterDrawOperations()
     {
-        if (!await AddToDrawQueue(queue))
-            return;
-
 #pragma warning disable CA2012 // Just like Roslyn is so kind to warn us about, this code right here has the potential to offer some nasty asynchrony bugs. Be careful here, remember ValueTasks must only ever be consumed once
 
         var pool = ArrayPool<ValueTask>.Shared;
@@ -230,7 +227,7 @@ public abstract class Scene : NodeBase
                 {
                     var child = Children.Get(i);
                     if (child.IsReady)
-                        tasks[ind++] = InternalHandleChildDraw(child, queue);
+                        tasks[ind++] = InternalHandleChildDraw(child);
                 }
             }
             for (int i = 0; i < ind; i++)
@@ -243,12 +240,12 @@ public abstract class Scene : NodeBase
 #pragma warning restore CA2012
     }
 
-    private async ValueTask InternalHandleChildDraw(Node node, IDrawQueue queue)
+    private async ValueTask InternalHandleChildDraw(Node node)
     {
-        if (node.drawer is NodeDrawer drawer
-            ? await drawer.PerformDraw()
-            : node.DrawableSelf is not IDrawableNode n || await HandleChildDraw(n))
-            await node.PropagateDraw(queue);
+        if (node.drawer is NodeDrawRegistrar drawer
+            ? await drawer.PerformDrawRegistration()
+            : node.DrawableSelf is not IDrawableNode n || await HandleChildRegisterDrawOperations(n))
+            await node.PropagateDrawRegistration();
     }
 
     #endregion
@@ -265,17 +262,6 @@ public abstract class Scene : NodeBase
     /// <param name="delta">The amount of time that has passed since the last update batch call</param>
     /// <returns>Whether the update sequence should be propagated into this <see cref="Node"/>'s children. If this is false, Update handlers for children will also be skipped</returns>
     protected virtual ValueTask<bool> Updating(TimeSpan delta) => ValueTask.FromResult(true);
-
-    #endregion
-
-    #region Draw
-
-    /// <summary>
-    /// This method is called automatically when this <see cref="Scene"/>'s Children are going to be queried to be added into the DrawQueue
-    /// </summary>
-    /// <param name="queue">The queue into which to add the draw operations</param>
-    /// <returns>Whether the draw sequence should be propagated into this <see cref="Scene"/>'s children. If this is false, Draw handlers for children will also be skipped</returns>
-    protected virtual ValueTask<bool> AddToDrawQueue(IDrawQueue queue) => ValueTask.FromResult(true);
 
     #endregion
 
