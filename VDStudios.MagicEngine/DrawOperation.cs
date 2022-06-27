@@ -53,10 +53,10 @@ public abstract class DrawOperation : IDisposable
         Registering(owner, manager);
 
         var device = manager.Device;
-        CreateResources(device, device.ResourceFactory, out var commands);
+        CreateResources(device, device.ResourceFactory);
 
         Device = device;
-        Commands = commands;
+        Commands = CreateCommandList(device, device.ResourceFactory);
         Owner = owner;
         RegisteredOnto = manager;
         
@@ -66,17 +66,6 @@ public abstract class DrawOperation : IDisposable
     #endregion
 
     #region Reaction Methods
-
-    /// <summary>
-    /// Creates the necessary resources for this <see cref="DrawOperation"/>
-    /// </summary>
-    /// <param name="device">The device of the attached <see cref="GraphicsManager"/></param>
-    /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
-    /// <param name="commands">A <see cref="CommandList"/> created inside this method, to be set as this <see cref="DrawOperation"/>'s designated <see cref="CommandList"/></param>
-    protected virtual void CreateResources(GraphicsDevice device, ResourceFactory factory, out CommandList commands)
-    {
-        commands = factory.CreateCommandList();
-    }
 
     /// <summary>
     /// This method is called automatically when this <see cref="DrawOperation"/> is being registered onto <paramref name="manager"/>
@@ -124,6 +113,21 @@ public abstract class DrawOperation : IDisposable
     #endregion
 
     #region Reaction Methods
+
+    /// <summary>
+    /// Creates the <see cref="CommandList"/> to be set as this <see cref="DrawOperation"/>'s designated <see cref="CommandList"/>
+    /// </summary>
+    /// <param name="device">The device of the attached <see cref="GraphicsManager"/></param>
+    /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
+    protected virtual CommandList CreateCommandList(GraphicsDevice device, ResourceFactory factory)
+        => factory.CreateCommandList();
+
+    /// <summary>
+    /// Creates the necessary resources for this <see cref="DrawOperation"/>
+    /// </summary>
+    /// <param name="device">The device of the attached <see cref="GraphicsManager"/></param>
+    /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
+    protected abstract void CreateResources(GraphicsDevice device, ResourceFactory factory);
 
     /// <summary>
     /// The method that will be used to draw the component
