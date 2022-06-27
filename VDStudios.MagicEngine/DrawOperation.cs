@@ -99,7 +99,7 @@ public abstract class DrawOperation : IDisposable
 
     private bool isStarted = false;
 
-    internal void InternalDraw(Vector2 offset)
+    internal async ValueTask InternalDraw(Vector2 offset)
     {
         ThrowIfDisposed();
         if (!isStarted)
@@ -108,7 +108,7 @@ public abstract class DrawOperation : IDisposable
             Start();
         }
         Commands!.Begin();
-        Draw(offset, Commands, Device!);
+        await Draw(offset, Commands, Device!);
         Commands.End();
     }
 
@@ -119,10 +119,13 @@ public abstract class DrawOperation : IDisposable
     /// <summary>
     /// The method that will be used to draw the component
     /// </summary>
+    /// <remarks>
+    /// Remember that <paramref name="commandList"/> is *NOT* thread-safe, but it is owned solely by this <see cref="DrawOperation"/>; and <see cref="GraphicsManager"/> will not use it until this method returns.
+    /// </remarks>
     /// <param name="offset">The translation offset of the drawing operation</param>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/></param>
     /// <param name="commandList">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
-    protected abstract void Draw(Vector2 offset, CommandList commandList, GraphicsDevice device);
+    protected abstract ValueTask Draw(Vector2 offset, CommandList commandList, GraphicsDevice device);
 
     /// <summary>
     /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time
