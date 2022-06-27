@@ -273,6 +273,7 @@ public class GraphicsManager : GameObject, IDisposable
 
         var sw = new Stopwatch();
         var drawqueue = new DrawQueue();
+        var removalQueue = new Queue<Guid>(10);
         var prepCommands = CreateCommandList(gd, gd.ResourceFactory);
         var fl = FrameLock;
 
@@ -290,10 +291,13 @@ public class GraphicsManager : GameObject, IDisposable
                 var ops = RegisteredOperations;
 
                 foreach (var kv in ops)
-                    if (kv.Value.TryGetTarget(out var op) && !op.disposedValue) 
+                    if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
                         op.Owner.AddToDrawQueue(drawqueue, op);
                     else
-                        ops.Remove(kv.Key);
+                        removalQueue.Enqueue(kv.Key);
+
+                while (removalQueue.Count > 0)
+                    ops.Remove(removalQueue.Dequeue());
 
                 prepCommands.Begin();
                 PrepareForDraw(prepCommands, gd.SwapchainFramebuffer);
