@@ -230,6 +230,14 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     protected virtual void Running() { }
 
+    /// <summary>
+    /// Creates the <see cref="CommandList"/> to be set as this <see cref="GraphicsManager"/>'s designated <see cref="CommandList"/>, for use with <see cref="PrepareForDraw(CommandList, Framebuffer)"/>
+    /// </summary>
+    /// <param name="device">The device of the attached <see cref="GraphicsManager"/></param>
+    /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
+    protected virtual CommandList CreateCommandList(GraphicsDevice device, ResourceFactory factory)
+        => factory.CreateCommandList();
+
     #endregion
 
     #region Internal
@@ -251,6 +259,7 @@ public class GraphicsManager : GameObject, IDisposable
 
         var sw = new Stopwatch();
         var drawqueue = new DrawQueue();
+        var prepCommands = CreateCommandList(gd, gd.ResourceFactory);
         var fl = FrameLock;
 
         while (IsRunning)
