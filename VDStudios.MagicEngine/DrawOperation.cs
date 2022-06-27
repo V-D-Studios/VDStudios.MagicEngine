@@ -102,7 +102,8 @@ public abstract class DrawOperation : IDisposable
             }
             Commands!.Begin();
             await Draw(offset, Commands, Device!).ConfigureAwait(true);
-            Commands.End();
+            Commands!.End();
+            Device!.SubmitCommands(Commands);
         }
         finally
         {
