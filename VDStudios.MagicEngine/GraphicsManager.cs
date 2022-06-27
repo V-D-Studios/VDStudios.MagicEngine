@@ -244,7 +244,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <remarks>
     /// <paramref name="commandlist"/> is begun, ended and submitted automatically. <see cref="CommandList.SetFramebuffer(Framebuffer)"/> is not called, however.
     /// </remarks>
-    /// <param name="commandlist">The <see cref="CommandList"/> for this call. It's ended, begun and submitted automatically, so you don't need to worry about it</param>
+    /// <param name="commandlist">The <see cref="CommandList"/> for this call. It's ended, begun and submitted automatically, so you don't need to worry about it. <see cref="CommandList.SetFramebuffer(Framebuffer)"/> is not called, however.</param>
     /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
     protected virtual void PrepareForDraw(CommandList commandlist, Framebuffer mainBuffer)
     {
