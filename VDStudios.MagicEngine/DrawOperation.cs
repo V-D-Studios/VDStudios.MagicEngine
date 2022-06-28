@@ -87,7 +87,15 @@ public abstract class DrawOperation : IDisposable
 
     #region Internal
 
-    private bool isStarted = false;
+    private bool pendingGpuUpdate = true;
+
+    /// <summary>
+    /// Flags this <see cref="DrawOperation"/> as needing to update GPU data before the next <see cref="Draw(Vector2, CommandList, GraphicsDevice, Framebuffer)"/> call
+    /// </summary>
+    /// <remarks>
+    /// Multiple calls to this method will not result in <see cref="UpdateGPUState(GraphicsDevice)"/> being called multiple times
+    /// </remarks>
+    protected void NotifyPendingGPUUpdate() => pendingGpuUpdate = true;
 
     internal async ValueTask InternalDraw(Vector2 offset)
     {
@@ -95,15 +103,18 @@ public abstract class DrawOperation : IDisposable
         sync.Wait();
         try
         {
-            if (!isStarted)
+            var commands = Commands!;
+            var device = Device!;
+
+            if (pendingGpuUpdate)
             {
-                isStarted = true;
-                Start();
+                pendingGpuUpdate = false;
+                UpdateGPUState(device);
             }
-            Commands!.Begin();
-            await Draw(offset, Commands, Device!, Device!.SwapchainFramebuffer).ConfigureAwait(true);
-            Commands!.End();
-            Device!.SubmitCommands(Commands);
+            commands.Begin();
+            await Draw(offset, commands, device, device.SwapchainFramebuffer).ConfigureAwait(true);
+            commands.End();
+            device.SubmitCommands(commands);
         }
         finally
         {
@@ -118,7 +129,7 @@ public abstract class DrawOperation : IDisposable
     /// <summary>
     /// Creates the <see cref="CommandList"/> to be set as this <see cref="DrawOperation"/>'s designated <see cref="CommandList"/>
     /// </summary>
-    /// <param name="device">The device of the attached <see cref="GraphicsManager"/></param>
+    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
     protected virtual CommandList CreateCommandList(GraphicsDevice device, ResourceFactory factory)
         => factory.CreateCommandList();
@@ -126,7 +137,7 @@ public abstract class DrawOperation : IDisposable
     /// <summary>
     /// Creates the necessary resources for this <see cref="DrawOperation"/>
     /// </summary>
-    /// <param name="device">The device of the attached <see cref="GraphicsManager"/></param>
+    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
     protected abstract void CreateResources(GraphicsDevice device, ResourceFactory factory);
 
@@ -137,18 +148,19 @@ public abstract class DrawOperation : IDisposable
     /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock! Remember that <paramref name="commandList"/> is *NOT* thread-safe, but it is owned solely by this <see cref="DrawOperation"/>; and <see cref="GraphicsManager"/> will not use it until this method returns.
     /// </remarks>
     /// <param name="offset">The translation offset of the drawing operation</param>
-    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/></param>
+    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     /// <param name="commandList">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
     /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
     protected abstract ValueTask Draw(Vector2 offset, CommandList commandList, GraphicsDevice device, Framebuffer mainBuffer);
 
     /// <summary>
-    /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time
+    /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(Vector2, CommandList, GraphicsDevice, Framebuffer)"/>
     /// </summary>
     /// <remarks>
     /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock!
     /// </remarks>
-    protected internal abstract void Start();
+    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
+    protected abstract void UpdateGPUState(GraphicsDevice device);
 
     #endregion
 
@@ -161,7 +173,7 @@ public abstract class DrawOperation : IDisposable
     /// </summary>
     /// <exception cref="ObjectDisposedException"></exception>
     /// <remarks>
-    /// Calling this method from <see cref="Draw(Vector2, CommandList, GraphicsDevice)"/>, <see cref="Start"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
+    /// Calling this method from <see cref="Draw(Vector2, CommandList, GraphicsDevice)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
     /// </remarks>
     protected void ThrowIfDisposed()
     {
@@ -230,7 +242,7 @@ public abstract class DrawOperation : IDisposable
     /// Disposes of this <see cref="DrawOperation"/>'s resources
     /// </summary>
     /// <remarks>
-    /// Calling this method from <see cref="Draw(Vector2, CommandList, GraphicsDevice)"/>, <see cref="Start"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
+    /// Calling this method from <see cref="Draw(Vector2, CommandList, GraphicsDevice)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
     /// </remarks>
     public void Dispose()
     {
