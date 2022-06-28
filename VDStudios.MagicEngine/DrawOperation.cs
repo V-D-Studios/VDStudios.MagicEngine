@@ -46,14 +46,14 @@ public abstract class DrawOperation : IDisposable
 
     #region Internal
 
-    internal void Register(IDrawableNode owner, GraphicsManager manager)
+    internal async ValueTask Register(IDrawableNode owner, GraphicsManager manager)
     {
         ThrowIfDisposed();
 
         Registering(owner, manager);
 
         var device = manager.Device;
-        CreateResources(device, device.ResourceFactory);
+        await CreateResources(device, device.ResourceFactory);
 
         Device = device;
         Commands = CreateCommandList(device, device.ResourceFactory);
@@ -109,7 +109,7 @@ public abstract class DrawOperation : IDisposable
             if (pendingGpuUpdate)
             {
                 pendingGpuUpdate = false;
-                UpdateGPUState(device);
+                await UpdateGPUState(device);
             }
             commands.Begin();
             await Draw(offset, commands, device, device.SwapchainFramebuffer).ConfigureAwait(true);
@@ -139,7 +139,7 @@ public abstract class DrawOperation : IDisposable
     /// </summary>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
-    protected abstract void CreateResources(GraphicsDevice device, ResourceFactory factory);
+    protected abstract ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory);
 
     /// <summary>
     /// The method that will be used to draw the component
@@ -160,7 +160,7 @@ public abstract class DrawOperation : IDisposable
     /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock!
     /// </remarks>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
-    protected abstract void UpdateGPUState(GraphicsDevice device);
+    protected abstract ValueTask UpdateGPUState(GraphicsDevice device);
 
     #endregion
 
