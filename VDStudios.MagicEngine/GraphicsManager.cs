@@ -1,6 +1,7 @@
 ﻿using SDL2.NET;
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -31,7 +32,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     public GraphicsManager()
     {
-        _thread = new(new ThreadStart(() => Run().Wait()));
+        graphics_thread = new(new ThreadStart(() => Run().Wait()));
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
         IdleWaiter = new(FrameLock);
     }
@@ -51,12 +52,6 @@ public class GraphicsManager : GameObject, IDisposable
 
     #endregion
 
-    #region Thread
-
-    private Thread _thread;
-
-    #endregion
-
     #region DrawOperation Registration
 
     #region Public
@@ -73,7 +68,7 @@ public class GraphicsManager : GameObject, IDisposable
     {
         using (await LockManagerAsync())
         {
-            operation.Register(node, this);
+            await operation.Register(node, this);
             if (!DrawOperationRegistering(operation, out var reason))
             {
                 var excp = new DrawOperationRejectedException(reason, this, operation);
@@ -171,7 +166,79 @@ public class GraphicsManager : GameObject, IDisposable
 
     #endregion
 
+    #region Window
+
+    /// <summary>
+    /// Performs the desired <see cref="WindowAction"/> on <see cref="Window"/>, and returns immediately
+    /// </summary>
+    /// <remarks>
+    /// Failure to perform on <see cref="Window"/> from this method will result in an exception, as <see cref="SDL2.NET.Window"/> is NOT thread-safe and, in fact, thread-protected. All <see cref="SDL2.NET.Window"/>s are created from the main thread
+    /// </remarks>
+    /// <param name="action">The action to perform on <see cref="Window"/></param>
+    public void PerformOnWindow(WindowAction action)
+    {
+        Game.windowActions.Enqueue(new(Window, action));
+    }
+
+    /// <summary>
+    /// Performs the desired <see cref="WindowAction"/> on <see cref="Window"/>, and waits for it to complete
+    /// </summary>
+    /// <remarks>
+    /// Failure to perform on <see cref="Window"/> from this method will result in an exception, as <see cref="SDL2.NET.Window"/> is NOT thread-safe and, in fact, thread-protected. All <see cref="SDL2.NET.Window"/>s are created from the main thread
+    /// </remarks>
+    /// <param name="action">The action to perform on <see cref="Window"/></param>
+    public void PerformOnWindowAndWait(WindowAction action)
+    {
+        SemaphoreSlim sem = new(1, 1);
+        sem.Wait();
+        Game.windowActions.Enqueue(new(Window, w =>
+        {
+            try
+            {
+                action(w);
+            }
+            finally
+            {
+                sem.Release();
+            }
+        }));
+        sem.Wait();
+        sem.Release();
+        sem.Dispose();
+    }
+
+    /// <summary>
+    /// Performs the desired <see cref="WindowAction"/> on <see cref="Window"/>, and asynchronously waits for it to complete
+    /// </summary>
+    /// <remarks>
+    /// Failure to perform on <see cref="Window"/> from this method will result in an exception, as <see cref="SDL2.NET.Window"/> is NOT thread-safe and, in fact, thread-protected. All <see cref="SDL2.NET.Window"/>s are created from the main thread
+    /// </remarks>
+    /// <param name="action">The action to perform on <see cref="Window"/></param>
+    public async Task PerformOnWindowAndWaitAsync(WindowAction action)
+    {
+        SemaphoreSlim sem = new(1, 1);
+        sem.Wait();
+        Game.windowActions.Enqueue(new(Window, w =>
+        {
+            try
+            {
+                action(w);
+            }
+            finally
+            {
+                sem.Release();
+            }
+        }));
+        await sem.WaitAsync();
+        sem.Release();
+        sem.Dispose();
+    }
+
+    #endregion
+
     #region Running
+
+    private Thread graphics_thread;
 
     #region Public Properties
 
@@ -261,21 +328,26 @@ public class GraphicsManager : GameObject, IDisposable
     internal void InternalStart()
     {
         Starting();
-        _thread.Start();
+        graphics_thread.Start();
     }
 
     private async Task Run()
     {
-        CreateWindow(out var window, out var gd);
-        Window = window;
-        window.Closed += Window_Closed;
-        Device = gd;
+        FrameLock.Wait();
+        Game.actionsToTake.Enqueue(SetupWindow);
 
+        var fl = FrameLock;
         var sw = new Stopwatch();
         var drawqueue = new DrawQueue();
         var removalQueue = new Queue<Guid>(10);
+
+        fl.Wait();
+        fl.Release();
+
+        var gd = Device!;
+        var window = Window!;
+
         var prepCommands = CreateCommandList(gd, gd.ResourceFactory);
-        var fl = FrameLock;
 
         while (IsRunning)
         {
@@ -382,11 +454,25 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region Setup Methods
 
+    internal void SetupWindow()
+    {
+        try
+        {
+            CreateWindow(out var win, out var gd);
+            Window = win;
+            Device = gd;
+        }
+        finally
+        {
+            FrameLock.Release();
+        }
+    }
+
     /// <summary>
     /// This method is automatically called during this object's construction, creates a <see cref="SDL2.NET.Window"/> and <see cref="GraphicsDevice"/> to be used as <see cref="Window"/> and <see cref="Device"/> respectively
     /// </summary>
     /// <remarks>
-    /// The <see cref="Window"/> and <see cref="GraphicsDevice"/> here produced are expected to be unique and owned exclusively by this <see cref="GraphicsManager"/>. Issues may arise if this is not so. It's better if you don't call base <see cref="CreateWindow"/>. This is called, specifically, by <see cref="GraphicsManager"/>'s constructor. If this is a derived type, know that this method will be called by the first constructor in the hierarchy, and NOT after your type's constructor
+    /// Do not call any <see cref="GraphicsManager"/> methods from here, it may cause a deadlock! The <see cref="Window"/> and <see cref="GraphicsDevice"/> here produced are expected to be unique and owned exclusively by this <see cref="GraphicsManager"/>. Issues may arise if this is not so. It's better if you don't call base <see cref="CreateWindow"/>. This is called, specifically, by <see cref="GraphicsManager"/>'s constructor. If this is a derived type, know that this method will be called by the first constructor in the hierarchy, and NOT after your type's constructor
     /// </remarks>
     protected virtual void CreateWindow(out Window mainWindow, out GraphicsDevice graphicsDevice)
     {

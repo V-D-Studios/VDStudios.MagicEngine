@@ -30,6 +30,8 @@ public class Game : SDLApplication<Game>
 
     private readonly object _lock = new();
     
+    internal readonly record struct WindowActionCache(Window Window, WindowAction Action);
+
     internal IServiceProvider services;
     private IGameLifetime? lifetime;
     private bool isStarted;
@@ -37,6 +39,8 @@ public class Game : SDLApplication<Game>
     internal ConcurrentQueue<Scene> scenesAwaitingSetup = new();
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingSetup = new();
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingDestruction = new();
+    internal ConcurrentQueue<Action> actionsToTake = new();
+    internal ConcurrentQueue<WindowActionCache> windowActions = new();
 
     internal IServiceScope NewScope()
         => services.CreateScope();
@@ -376,9 +380,13 @@ public class Game : SDLApplication<Game>
                     scenes++;
                 }
                 for (int i = 0; i < scenes; i++)
-                    await sceneSetupList[i];
+                    await sceneSetupList[i].ConfigureAwait(true);
                 sceneSetupList.Clear();
             }
+
+            if (!windowActions.IsEmpty)
+                while (windowActions.TryDequeue(out var winact)) 
+                    winact.Action(winact.Window);
 
             sw.Restart();
             UpdateEvents();
