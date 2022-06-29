@@ -7,11 +7,13 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Internal;
 using Veldrid;
+using Veldrid.StartupUtilities;
 using static System.Formats.Asn1.AsnWriter;
 using VeldridPixelFormat = Veldrid.PixelFormat;
 
@@ -32,9 +34,18 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     public GraphicsManager()
     {
-        graphics_thread = new(new ThreadStart(() => Run().Wait()));
+        initLock.Wait();
+        graphics_thread = new(() => Run().Wait());
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
         IdleWaiter = new(FrameLock);
+    }
+
+    private readonly SemaphoreSlim initLock = new(1, 1);
+
+    internal void WaitForInit()
+    {
+        initLock.Wait();
+        initLock.Release();
     }
 
     #endregion
@@ -247,6 +258,11 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     public bool IsRunning { get; private set; } = true;
 
+    /// <summary>
+    /// The color to draw when the frame is beginning to be drawn
+    /// </summary>
+    public RgbaFloat BackgroundColor { get; set; } = RgbaFloat.CornflowerBlue;
+
     #endregion
 
     #region Public Methods
@@ -316,7 +332,7 @@ public class GraphicsManager : GameObject, IDisposable
     protected virtual void PrepareForDraw(CommandList commandlist, Framebuffer mainBuffer)
     {
         commandlist.SetFramebuffer(mainBuffer);
-        commandlist.ClearColorTarget(0, RgbaFloat.Black);
+        commandlist.ClearColorTarget(0, BackgroundColor);
     }
 
     #endregion
@@ -324,28 +340,36 @@ public class GraphicsManager : GameObject, IDisposable
     #region Internal
 
     private readonly SemaphoreSlim FrameLock = new(1, 1);
+    private Size LastReportedWinSize = default;
 
+    private void ReportSize(Window window, TimeSpan timestamp, Size newSize)
+    {
+        LastReportedWinSize = newSize;
+    }
+
+    /// <summary>
+    /// This is run from the update thread
+    /// </summary>
     internal void InternalStart()
     {
         Starting();
+        SetupWindow();
+        Window.SizeChanged += ReportSize;
+        Window.Closed += Window_Closed;
         graphics_thread.Start();
+        initLock.Release();
     }
 
     private async Task Run()
     {
-        FrameLock.Wait();
-        Game.actionsToTake.Enqueue(SetupWindow);
-
         var fl = FrameLock;
         var sw = new Stopwatch();
         var drawqueue = new DrawQueue();
         var removalQueue = new Queue<Guid>(10);
 
-        fl.Wait();
-        fl.Release();
-
         var gd = Device!;
-        var window = Window!;
+
+        await Game.ExecuteInVideoThreadAndWaitAsync(() => ReportSize(Window, Game.TotalTime, Window.Size));
 
         var prepCommands = CreateCommandList(gd, gd.ResourceFactory);
 
@@ -356,7 +380,7 @@ public class GraphicsManager : GameObject, IDisposable
 
             try
             {
-                var (rw, rh) = window.Size;
+                var (rw, rh) = LastReportedWinSize;
 
                 Running();
 
@@ -456,16 +480,9 @@ public class GraphicsManager : GameObject, IDisposable
 
     internal void SetupWindow()
     {
-        try
-        {
-            CreateWindow(out var win, out var gd);
-            Window = win;
-            Device = gd;
-        }
-        finally
-        {
-            FrameLock.Release();
-        }
+        CreateWindow(out var win, out var gd);
+        Window = win;
+        Device = gd;
     }
 
     /// <summary>
@@ -476,16 +493,15 @@ public class GraphicsManager : GameObject, IDisposable
     /// </remarks>
     protected virtual void CreateWindow(out Window mainWindow, out GraphicsDevice graphicsDevice)
     {
-        WindowConfig.Default.OpenGL(true);
         mainWindow = new Window(Game.GameTitle, 600, 800, WindowConfig.Default);
-        graphicsDevice = Veldrid.Startup.CreateDefaultOpenGLGraphicsDevice(
-#if !DEBUG
-            new(true, VeldridPixelFormat.R8_G8_B8_A8_UInt, true, ResourceBindingModel.Improved, false, false),
-#else
-            new(false, VeldridPixelFormat.R8_G8_B8_A8_UInt, true, ResourceBindingModel.Improved, false, false),
-#endif
+
+        graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
             mainWindow,
-            GraphicsBackend.OpenGL
+#if !DEBUG
+            new GraphicsDeviceOptions(true, null, true, ResourceBindingModel.Improved, false, false)
+#else
+            new GraphicsDeviceOptions(false, null, true, ResourceBindingModel.Improved, false, false)
+#endif
         );
     }
 
