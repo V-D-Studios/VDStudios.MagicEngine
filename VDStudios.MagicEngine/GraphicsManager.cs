@@ -13,8 +13,6 @@ using System.Threading.Tasks;
 using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Internal;
 using Veldrid;
-using Veldrid.StartupUtilities;
-using static System.Formats.Asn1.AsnWriter;
 using VeldridPixelFormat = Veldrid.PixelFormat;
 
 namespace VDStudios.MagicEngine;
@@ -249,7 +247,7 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region Running
 
-    private Thread graphics_thread;
+    private readonly Thread graphics_thread;
 
     #region Public Properties
 
@@ -354,10 +352,10 @@ public class GraphicsManager : GameObject, IDisposable
     {
         Starting();
         SetupWindow();
+        initLock.Release();
         Window.SizeChanged += ReportSize;
         Window.Closed += Window_Closed;
         graphics_thread.Start();
-        initLock.Release();
     }
 
     private async Task Run()
@@ -493,7 +491,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// </remarks>
     protected virtual void CreateWindow(out Window mainWindow, out GraphicsDevice graphicsDevice)
     {
-        mainWindow = new Window(Game.GameTitle, 600, 800, WindowConfig.Default);
+        mainWindow = new Window(Game.GameTitle, 800, 600, WindowConfig.Default);
 
         graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
             mainWindow,
