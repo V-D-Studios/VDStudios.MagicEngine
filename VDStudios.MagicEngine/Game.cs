@@ -15,6 +15,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using Veldrid;
 using VeldridPixelFormat = Veldrid.PixelFormat;
+using VDStudios.MagicEngine.Exceptions;
 
 namespace VDStudios.MagicEngine;
 
@@ -39,8 +40,6 @@ public class Game : SDLApplication<Game>
     internal ConcurrentQueue<Scene> scenesAwaitingSetup = new();
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingSetup = new();
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingDestruction = new();
-    internal ConcurrentQueue<Action> actionsToTake = new();
-    internal ConcurrentQueue<WindowActionCache> windowActions = new();
 
     internal IServiceScope NewScope()
         => services.CreateScope();
@@ -63,23 +62,23 @@ public class Game : SDLApplication<Game>
     /// </remarks>
     public Game()
     {
-        if (!isSDLStarted)
-        {
-            SetupSDL();
-            isSDLStarted = true;
-        }
-
         Log = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
         var serv = CreateServiceCollection();
         ConfigureServices(serv);
         // Put here any default services
         services = serv.BuildServiceProvider(true);
         ActiveGraphicsManagers = new();
+        VideoThread = new(VideoRun);
     }
 
     #endregion
 
     #region Properties
+
+    /// <summary>
+    /// Gets the total amount of time that has elapsed from the time SDL2 was initialized
+    /// </summary>
+    new static public TimeSpan TotalTime => TimeSpan.FromTicks(SDL2.Bindings.SDL.SDL_GetTicks());
 
     /// <summary>
     /// Represents the Main <see cref="GraphicsManager"/> used by the game
@@ -174,6 +173,123 @@ public class Game : SDLApplication<Game>
 
     #endregion
 
+    #region Video Processing Thread
+
+    private VideoThreadException? VideoThreadFault;
+    private readonly SemaphoreSlim VideoThreadLock = new(1, 1);
+    private readonly Thread VideoThread;
+    private readonly ConcurrentQueue<Action> actionsToTake = new();
+    internal readonly ConcurrentQueue<WindowActionCache> windowActions = new();
+
+    #region Public Methods
+
+    /// <summary>
+    /// Queues an action to be executed in the thread that owns all <see cref="Window"/>s
+    /// </summary>
+    /// <param name="action">The action to take</param>
+    public void ExecuteInVideoThread(Action action)
+    {
+        actionsToTake.Enqueue(action);
+    }
+
+    /// <summary>
+    /// Queues an action to be executed in the thread that owns all <see cref="Window"/>s and waits for it to complete
+    /// </summary>
+    /// <param name="action">The action to take</param>
+    public void ExecuteInVideoThreadAndWait(Action action)
+    {
+        SemaphoreSlim sem = new(1, 1);
+        sem.Wait();
+        actionsToTake.Enqueue(() =>
+        {
+            try
+            {
+                action();
+            }
+            finally
+            {
+                sem.Release();
+            }
+        });
+        sem.Wait();
+        sem.Release();
+    }
+
+    /// <summary>
+    /// Queues an action to be executed in the thread that owns all <see cref="Window"/>s and asynchronously waits for it to complete
+    /// </summary>
+    /// <param name="action">The action to take</param>
+    public async Task ExecuteInVideoThreadAndWaitAsync(Action action)
+    {
+        SemaphoreSlim sem = new(1, 1);
+        sem.Wait();
+        actionsToTake.Enqueue(() =>
+        {
+            try
+            {
+                action();
+            }
+            finally
+            {
+                sem.Release();
+            }
+        });
+        await sem.WaitAsync();
+        sem.Release();
+    }
+
+    #endregion
+
+    #region Internal
+
+    private void VideoRun()
+    {
+        try
+        {
+            int sleep = (int)TimeSpan.FromSeconds(1d / 60d).TotalMilliseconds;
+
+            if (!isSDLStarted)
+            {
+                SetupSDL();
+                isSDLStarted = true;
+            }
+            else
+                throw new InvalidOperationException("This isn't the only video thread");
+
+            VideoThreadLock.Release();
+            while (lifetime!.ShouldRun) 
+            {
+                if (!actionsToTake.IsEmpty)
+                    while (actionsToTake.TryDequeue(out var act))
+                        act();
+
+                if (!graphicsManagersAwaitingSetup.IsEmpty)
+                    while (graphicsManagersAwaitingSetup.TryDequeue(out var manager))
+                    {
+                        manager.InternalStart();
+                        ActiveGraphicsManagers.Add(manager);
+                    }
+
+                if (!windowActions.IsEmpty)
+                    while (windowActions.TryDequeue(out var winact))
+                        winact.Action(winact.Window);
+
+                UpdateEvents();
+
+                Thread.Sleep(sleep);
+            }
+        }
+        catch(Exception e)
+        {
+            VideoThreadFault = new VideoThreadException(e);
+            throw;
+        }
+    }
+
+    #endregion
+
+    #endregion
+
     #region Methods
 
     /// <summary>
@@ -224,7 +340,9 @@ public class Game : SDLApplication<Game>
     /// This method is called right before the <see cref="Game"/> starts running. Theoretically, when everything is already set up. Defaults to <see cref="GameLifeTimeOnWindowCloses"/>
     /// </remarks>
     protected virtual IGameLifetime ConfigureGameLifetime()
-        => new GameLifeTimeOnWindowCloses(MainWindow);
+    {
+        return new GameLifeTimeOnWindowCloses(MainGraphicsManager.Window);
+    }
 
     /// <summary>
     /// Sets up SDL's libraries
@@ -234,8 +352,7 @@ public class Game : SDLApplication<Game>
     {
         this.InitializeVideo()
             .InitializeEvents()
-            .InitializeAndOpenAudioMixer(MixerInitFlags.OGG | MixerInitFlags.OPUS)
-            .InitializeTTF();
+            .InitializeAndOpenAudioMixer(MixerInitFlags.OGG | MixerInitFlags.OPUS);
     }
 
     /// <summary>
@@ -350,26 +467,21 @@ public class Game : SDLApplication<Game>
 
     private async Task Run(IGameLifetime lifetime)
     {
+        VideoThreadLock.Wait();
+        VideoThread.Start(); // It should be released in this thread
+
         var sw = new Stopwatch();
         Scene scene;
 
         var sceneSetupList = new List<ValueTask>(10);
 
+        VideoThreadLock.Wait();
+        VideoThreadLock.Release();
+
         while (lifetime.ShouldRun)
         {
-            if (!graphicsManagersAwaitingSetup.IsEmpty)
-                while (graphicsManagersAwaitingSetup.TryDequeue(out var manager))
-                {
-                    manager.InternalStart();
-                    ActiveGraphicsManagers.Add(manager);
-                }
-
-            if (!graphicsManagersAwaitingDestruction.IsEmpty)
-                while (graphicsManagersAwaitingDestruction.TryDequeue(out var manager))
-                {
-                    ActiveGraphicsManagers.Remove(manager);
-                    manager.ActuallyDispose();
-                }
+            if (VideoThreadFault is VideoThreadException vtfault)
+                throw vtfault;
 
             if (!scenesAwaitingSetup.IsEmpty)
             {
@@ -384,12 +496,14 @@ public class Game : SDLApplication<Game>
                 sceneSetupList.Clear();
             }
 
-            if (!windowActions.IsEmpty)
-                while (windowActions.TryDequeue(out var winact)) 
-                    winact.Action(winact.Window);
+            if (!graphicsManagersAwaitingDestruction.IsEmpty)
+                while (graphicsManagersAwaitingDestruction.TryDequeue(out var manager))
+                {
+                    ActiveGraphicsManagers.Remove(manager);
+                    manager.ActuallyDispose();
+                }
 
             sw.Restart();
-            UpdateEvents();
 
             if (nextScene is not null)
             {
