@@ -12,7 +12,7 @@ public interface IDrawableNode
     /// This method is called automatically when <see cref="HasPendingRegistrations"/> is true
     /// </summary>
     /// <remarks>
-    /// This method will be called from the Update thread
+    /// It's highly recommended to set <see cref="HasPendingRegistrations"/> registrations to <c>false</c> in this method; otherwise it will be called every loop, possibly wasting time. This method will be called from the Update thread
     /// </remarks>
     /// <param name="main">Represents <see cref="Game.MainGraphicsManager"/></param>
     /// <param name="allManagers">A list of active <see cref="GraphicsManager"/> that operations can be registered onto</param>
@@ -26,6 +26,9 @@ public interface IDrawableNode
     /// <summary>
     /// Set this to true when <see cref="RegisterDrawOperations(GraphicsManager, IReadOnlyList{GraphicsManager})"/> should be called
     /// </summary>
+    /// <remarks>
+    /// This property will *not* be set automatically for you. Manually set it to <c>true</c> when you want to register draw operations, and manually set it to <c>false</c> when you no longer want to.
+    /// </remarks>
     public bool HasPendingRegistrations { get; }
 
     /// <summary>
