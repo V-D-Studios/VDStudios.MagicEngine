@@ -257,7 +257,7 @@ public class Game : SDLApplication<Game>
                 throw new InvalidOperationException("This isn't the only video thread");
 
             VideoThreadLock.Release();
-            while (lifetime!.ShouldRun) 
+            while (isStarted) 
             {
                 if (!actionsToTake.IsEmpty)
                     while (actionsToTake.TryDequeue(out var act))
@@ -401,7 +401,6 @@ public class Game : SDLApplication<Game>
             if (isStarted)
                 throw new InvalidOperationException("Can't start a game that is already running");
             isStarted = true;
-
         }
 
         //
@@ -417,10 +416,17 @@ public class Game : SDLApplication<Game>
 
         SetupScenes?.Invoke();
 
+        VideoThreadLock.Wait();
+        VideoThread.Start(); // It should be released in this thread
+
+        VideoThreadLock.Wait();
+        VideoThreadLock.Release();
+
         //
 
         {
             MainGraphicsManager = CreateGraphicsManager();
+            MainGraphicsManager.WaitForInit();
             WindowObtained?.Invoke(this, TotalTime, MainGraphicsManager.Window, MainGraphicsManager.Device);
         }
 
@@ -461,22 +467,17 @@ public class Game : SDLApplication<Game>
         GameStopping?.Invoke(this, TotalTime);
 
         Stop();
+        isStarted = false;
 
         GameStopped?.Invoke(this, TotalTime);
     }
 
     private async Task Run(IGameLifetime lifetime)
     {
-        VideoThreadLock.Wait();
-        VideoThread.Start(); // It should be released in this thread
-
         var sw = new Stopwatch();
         Scene scene;
 
         var sceneSetupList = new List<ValueTask>(10);
-
-        VideoThreadLock.Wait();
-        VideoThreadLock.Release();
 
         while (lifetime.ShouldRun)
         {
