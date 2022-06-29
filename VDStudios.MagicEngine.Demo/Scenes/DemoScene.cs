@@ -15,6 +15,6 @@ public sealed class DemoScene : Scene
 
     protected override async ValueTask ConfigureScene()
     {
-        await Attach(new PlayerNode());
+        await Attach(new ColorBackgroundNode());
     }
 }
