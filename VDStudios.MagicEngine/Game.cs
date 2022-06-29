@@ -442,7 +442,7 @@ public class Game : SDLApplication<Game>
 
         //
 
-        await Run(lifetime).ConfigureAwait(true);
+        await Run(lifetime).ConfigureAwait(false);
 
         //
 
@@ -492,7 +492,7 @@ public class Game : SDLApplication<Game>
                     scenes++;
                 }
                 for (int i = 0; i < scenes; i++)
-                    await sceneSetupList[i].ConfigureAwait(true);
+                    await sceneSetupList[i].ConfigureAwait(false);
                 sceneSetupList.Clear();
             }
 
@@ -509,10 +509,10 @@ public class Game : SDLApplication<Game>
             {
                 var prev = currentScene!;
 
-                await prev.End(nextScene).ConfigureAwait(true);
+                await prev.End(nextScene).ConfigureAwait(false);
 
                 var scope = services!.CreateScope();
-                await nextScene.Begin().ConfigureAwait(true);
+                await nextScene.Begin().ConfigureAwait(false);
                 scope.Dispose();
 
                 currentScene = nextScene;
@@ -522,7 +522,7 @@ public class Game : SDLApplication<Game>
 
             scene = CurrentScene;
 
-            await scene.Update(sw.Elapsed).ConfigureAwait(true);
+            await scene.Update(sw.Elapsed).ConfigureAwait(false);
             await scene.RegisterDrawOperations();
 
             _ups = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);

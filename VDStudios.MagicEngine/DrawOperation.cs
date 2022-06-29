@@ -112,7 +112,7 @@ public abstract class DrawOperation : IDisposable
                 await UpdateGPUState(device);
             }
             commands.Begin();
-            await Draw(offset, commands, device, device.SwapchainFramebuffer).ConfigureAwait(true);
+            await Draw(offset, commands, device, device.SwapchainFramebuffer).ConfigureAwait(false);
             commands.End();
             device.SubmitCommands(commands);
         }
