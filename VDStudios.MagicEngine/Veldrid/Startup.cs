@@ -9,6 +9,8 @@ using SDL2.NET;
 using static SDL2.Bindings.SDL;
 using SDL2.Bindings;
 using PixelFormat = Veldrid.PixelFormat;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace VDStudios.MagicEngine.Veldrid;
 
@@ -32,6 +34,33 @@ public static class Startup
             throw new VeldridException(SDL_GetAndClearError());
     }
 
+    #region Vulkan
+
+    public static GraphicsDevice CreateVulkanGraphicsDevice(GraphicsDeviceOptions options, Window window)
+    {
+        return CreateVulkanGraphicsDevice(options, window, colorSrgb: false);
+    }
+
+    public static GraphicsDevice CreateVulkanGraphicsDevice(GraphicsDeviceOptions options, Window window, bool colorSrgb)
+    {
+        var (width, height) = window.Size;
+        return GraphicsDevice.CreateVulkan(swapchainDescription: new SwapchainDescription(GetSwapchainSource(window), (uint)width, (uint)height, options.SwapchainDepthFormat, options.SyncToVerticalBlank, colorSrgb), options: options);
+    }
+
+    #endregion
+
+    #region DirectX
+
+    public static GraphicsDevice CreateDefaultD3D11GraphicsDevice(GraphicsDeviceOptions options, Window window)
+    {
+        var (width, height) = window.Size;
+        return GraphicsDevice.CreateD3D11(swapchainDescription: new SwapchainDescription(GetSwapchainSource(window), (uint)width, (uint)height, options.SwapchainDepthFormat, options.SyncToVerticalBlank, options.SwapchainSrgbFormat), options: options);
+    }
+
+    #endregion
+
+    #region OpenGL
+
     /// <summary>
     /// Creates an OpenGL-based <see cref="GraphicsDevice"/> that is tied to <paramref name="window"/>
     /// </summary>
@@ -49,8 +78,8 @@ public static class Startup
 
         SetSDLGLContextAttributes(options, backend);
         IntPtr openGLContextHandle = SDL_GL_CreateContext(sdlHandle);
-        if (openGLContextHandle == IntPtr.Zero)
-            throw new VeldridException("Unable to create OpenGL Context: \"" + SDL_GetAndClearError() + "\". This may indicate that the system does not support the requested OpenGL profile, version, or Swapchain format.");
+        //if (INTERNAL_SDL_GetError() != IntPtr.Zero)
+        //    throw new VeldridException("Unable to create OpenGL Context: \"" + SDL_GetAndClearError() + "\". This may indicate that the system does not support the requested OpenGL profile, version, or Swapchain format.");
 
         ThrowIfLessThan(SDL_GL_GetAttribute(SDL_GLattr.SDL_GL_DEPTH_SIZE, out int num));
         ThrowIfLessThan(SDL_GL_GetAttribute(SDL_GLattr.SDL_GL_STENCIL_SIZE, out int num2));
@@ -185,5 +214,85 @@ public static class Startup
         sdl2Window.Dispose();
 
         return true;
+    }
+
+    #endregion
+
+    #region Metal
+
+    public static GraphicsDevice CreateMetalGraphicsDevice(GraphicsDeviceOptions options, Window window)
+    {
+        return CreateMetalGraphicsDevice(options, window, colorSrgb: false);
+    }
+
+    public static GraphicsDevice CreateMetalGraphicsDevice(GraphicsDeviceOptions options, Window window, bool colorSrgb)
+    {
+        var (width, height) = window.Size;
+        return GraphicsDevice.CreateMetal(swapchainDescription: new SwapchainDescription(GetSwapchainSource(window), (uint)width, (uint)height, options.SwapchainDepthFormat, options.SyncToVerticalBlank, colorSrgb), options: options);
+    }
+
+    #endregion
+
+    public static GraphicsDevice CreateGraphicsDevice(Window window)
+    {
+        return CreateGraphicsDevice(window, default, GetPlatformDefaultBackend());
+    }
+
+    public static GraphicsDevice CreateGraphicsDevice(Window window, GraphicsDeviceOptions options)
+    {
+        return CreateGraphicsDevice(window, options, GetPlatformDefaultBackend());
+    }
+
+    public static GraphicsDevice CreateGraphicsDevice(Window window, GraphicsBackend preferredBackend)
+    {
+        return CreateGraphicsDevice(window, default, preferredBackend);
+    }
+
+    public static GraphicsDevice CreateGraphicsDevice(Window window, GraphicsDeviceOptions options, GraphicsBackend preferredBackend)
+    {
+        return preferredBackend switch
+        {
+            GraphicsBackend.Direct3D11 => CreateDefaultD3D11GraphicsDevice(options, window),
+            GraphicsBackend.Vulkan => CreateVulkanGraphicsDevice(options, window),
+            GraphicsBackend.OpenGL => CreateDefaultOpenGLGraphicsDevice(options, window, preferredBackend),
+            GraphicsBackend.Metal => CreateMetalGraphicsDevice(options, window),
+            GraphicsBackend.OpenGLES => CreateDefaultOpenGLGraphicsDevice(options, window, preferredBackend),
+            _ => throw new VeldridException("Invalid GraphicsBackend: " + preferredBackend),
+        };
+    }
+
+    public static GraphicsBackend GetPlatformDefaultBackend() 
+        => OperatingSystem.IsWindows()
+           ? GraphicsBackend.Direct3D11
+           : OperatingSystem.IsMacOS()
+           ? !GraphicsDevice.IsBackendSupported(GraphicsBackend.Metal) ? GraphicsBackend.OpenGL : GraphicsBackend.Metal
+           : !GraphicsDevice.IsBackendSupported(GraphicsBackend.Vulkan) ? GraphicsBackend.OpenGL : GraphicsBackend.Vulkan;
+
+    public static SwapchainSource GetSwapchainSource(Window window)
+    {
+        var sysWMinfo = window.SystemInfo;
+
+        switch (sysWMinfo.subsystem)
+        {
+            case SDL_SYSWM_TYPE.SDL_SYSWM_WINDOWS:
+                {
+                    var win32WindowInfo = sysWMinfo.info.win;
+                    return SwapchainSource.CreateWin32(win32WindowInfo.window, win32WindowInfo.hinstance);
+                }
+            case SDL_SYSWM_TYPE.SDL_SYSWM_X11:
+                {
+                    var x11WindowInfo = sysWMinfo.info.x11;
+                    return SwapchainSource.CreateXlib(x11WindowInfo.display, x11WindowInfo.window);
+                }
+            case SDL_SYSWM_TYPE.SDL_SYSWM_WAYLAND:
+                {
+                    var waylandWindowInfo = sysWMinfo.info.wl;
+                    return SwapchainSource.CreateWayland(waylandWindowInfo.display, waylandWindowInfo.surface);
+                }
+            case SDL_SYSWM_TYPE.SDL_SYSWM_COCOA:
+                return SwapchainSource.CreateNSWindow(sysWMinfo.info.cocoa.window);
+            default:
+                throw new PlatformNotSupportedException("Cannot create a SwapchainSource for " + sysWMinfo.subsystem.ToString() + ".");
+        }
     }
 }
