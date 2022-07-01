@@ -347,7 +347,7 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Sets up SDL's libraries
     /// </summary>
-    /// <remarks>This method, by default, calls: <see cref="SDLApplication{TApp}.InitializeVideo"/>, <see cref="SDLApplication{TApp}.InitializeEvents"/>, <see cref="SDLApplication{TApp}.InitializeAndOpenAudioMixer(MixerInitFlags, int, int, int, ushort?)"/> (passing: <see cref="MixerInitFlags.OGG"/> and <see cref="MixerInitFlags.OPUS"/>), and <see cref="SDLApplication{TApp}.InitializeTTF"/></remarks>
+    /// <remarks>This mehtod is called from the VideoThread</remarks>
     protected virtual void SetupSDL()
     {
         this.InitializeVideo()
