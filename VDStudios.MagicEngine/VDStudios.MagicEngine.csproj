@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
 	<!-- This copies all .dll files from the lib folder to the project output root folder -->
@@ -30,6 +31,9 @@
 	  <PackageReference Include="SDL2.Bindings" Version="1.1.0" />
 	  <PackageReference Include="SDL2.NET" Version="1.2.3" />
 	  <PackageReference Include="Serilog" Version="2.11.0" />
+	  <PackageReference Include="Veldrid" Version="4.8.0" />
+	  <PackageReference Include="Veldrid.ImageSharp" Version="4.8.0" />
+	  <PackageReference Include="Veldrid.SPIRV" Version="1.0.15" />
 	</ItemGroup>
 
 </Project>

@@ -56,23 +56,26 @@ public delegate ValueTask<bool> NodeUpdateHandler<TNode>(TNode node) where TNode
 #region Draw
 
 /// <summary>
-/// Represents a custom drawing registration procedure for a <see cref="IDrawableNode"/>
+/// Represents a custom <see cref="DrawOperation"/> registration procedure for a <see cref="IDrawableNode"/>
 /// </summary>
 /// <remarks>
 /// You're not supposed to use this class directly. Instead, use <see cref="NodeUpdater{TNode}"/>
 /// </remarks>
-public abstract class NodeDrawer
+public abstract class NodeDrawRegistrar
 {
-    internal NodeDrawer() { }
+    internal NodeDrawRegistrar() { }
 
-    internal abstract ValueTask<bool> PerformDraw();
+    internal abstract ValueTask<bool> PerformDrawRegistration();
 }
 
 /// <summary>
-/// Represents a custom drawing registration procedure for a <see cref="IDrawableNode"/>
+/// Represents a custom <see cref="DrawOperation"/> registration procedure for a <see cref="IDrawableNode"/>
 /// </summary>
+/// <remarks>
+/// This procedure doesn't actually hold any control over the <typeparamref name="TNode"/>'s registration procedure, but can be used to filter nodes to register and propagation
+/// </remarks>
 /// <typeparam name="TNode">The type of <see cref="Node"/> this Drawer will handle</typeparam>
-public sealed class NodeDrawer<TNode> : NodeDrawer where TNode : Node, IDrawableNode
+public sealed class NodeDrawer<TNode> : NodeDrawRegistrar where TNode : Node, IDrawableNode
 {
     private readonly NodeDrawHandler<TNode> Handler;
     private readonly TNode HandledNode;
@@ -88,7 +91,7 @@ public sealed class NodeDrawer<TNode> : NodeDrawer where TNode : Node, IDrawable
         HandledNode = node;
     }
 
-    internal override ValueTask<bool> PerformDraw() => Handler(HandledNode);
+    internal override ValueTask<bool> PerformDrawRegistration() => Handler(HandledNode);
 }
 
 /// <summary>

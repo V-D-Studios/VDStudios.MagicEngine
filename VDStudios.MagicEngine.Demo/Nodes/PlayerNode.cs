@@ -1,69 +1,37 @@
-﻿using SDL2.NET;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using Veldrid;
 using VDStudios.MagicEngine.Demo.Services;
+using SDL2.NET;
+using VDStudios.MagicEngine.Demo.DrawOps;
+using Texture = Veldrid.Texture;
+using VDStudios.MagicEngine.Demo.ResourceExtensions;
+using SDL2.NET.Input;
 
 namespace VDStudios.MagicEngine.Demo.Nodes;
 public class PlayerNode : Node, IDrawableNode
 {
-    protected class PlayerDrawState : IDrawOperation
-    {
-        private Rectangle Source;
-        private Rectangle Destination;
-        private Texture Texture;
-
-        public PlayerDrawState(Texture texture)
-        {
-            Texture = texture;
-        }
-
-        public void SetState(Rectangle source, Rectangle destination)
-        {
-            Source = source;
-            Destination = destination;
-        }
-
-        public void SetState(Rectangle source, Rectangle destination, Texture texture)
-        {
-            Source = source;
-            Destination = destination;
-            Texture = texture;
-        }
-
-        public void Draw(Vector2 offset, Renderer renderer)
-        {
-            var (w, h, x, y) = Destination;
-            Texture.Render(Source, new FRectangle(w, h, offset.X + x, offset.Y + y));
-        }
-    }
+    #region Node Data
 
     /// <summary>
     /// The Name of the player
     /// </summary>
     public string? PlayerName { get; set; }
 
-    public KeyboardInputMapper<Vector2> KInMapper { get; }
-
-    protected Vector2 Dir;
     protected Vector2 Position;
     protected Vector2 Speed = new(1000);
     protected Vector2 Move;
-    protected Texture AnimSprite;
-    protected Dictionary<Vector2, TimedSequence<Rectangle>> Animations;
-    protected PlayerDrawState DrawState;
+    protected Dictionary<Vector2, TimedSequence<Viewport>> Animations;
+    protected ImageAnimationOperation DrawOp = new(ImageTextures.RobinSpriteSheet);
 
     const float AnimFps = 9;
 
     public PlayerNode()
     {
-        AnimSprite = StaticResources.Graphics.Animations.Robin;
-        DrawState = new(AnimSprite);
-
-        Size asz = new(32, 32);
         int size = 32;
         int xoff = size * 4;
         int yoff = 0;
@@ -72,137 +40,137 @@ public class PlayerNode : Node, IDrawableNode
         {
             {
                 Vector2.Zero,
-                new(AnimFps, new Rectangle[]
+                new(AnimFps, new Viewport[]
                 {
-                    new(asz, xoff + size * 0, yoff + size * 0),
-                    new(asz, xoff + size * 1, yoff + size * 0),
-                    new(asz, xoff + size * 2, yoff + size * 0),
-                    new(asz, xoff + size * 3, yoff + size * 0)
+                    new(size, size, xoff + size * 0, yoff + size * 0, 0, 0),
+                    new(size, size, xoff + size * 1, yoff + size * 0, 0, 0),
+                    new(size, size, xoff + size * 2, yoff + size * 0, 0, 0),
+                    new(size, size, xoff + size * 3, yoff + size * 0, 0, 0)
                 })
             },
             {
                 Directions.Up,
-                new(AnimFps, new Rectangle[]
+                new(AnimFps, new Viewport[]
                 {
-                    new(asz, xoff + size * 0, yoff + size * 5),
-                    new(asz, xoff + size * 1, yoff + size * 5),
-                    new(asz, xoff + size * 2, yoff + size * 5),
-                    new(asz, xoff + size * 3, yoff + size * 5)
+                    new(size, size, xoff + size * 0, yoff + size * 5, 0, 0),
+                    new(size, size, xoff + size * 1, yoff + size * 5, 0, 0),
+                    new(size, size, xoff + size * 2, yoff + size * 5, 0, 0),
+                    new(size, size, xoff + size * 3, yoff + size * 5, 0, 0)
                 })
             },
             {
                 Directions.Down,
-                new(AnimFps, new Rectangle[]
+                new(AnimFps, new Viewport[]
                 {
-                    new(asz, xoff + size * 0, yoff + size * 4),
-                    new(asz, xoff + size * 1, yoff + size * 4),
-                    new(asz, xoff + size * 2, yoff + size * 4),
-                    new(asz, xoff + size * 3, yoff + size * 4)
+                    new(size, size, xoff + size * 0, yoff + size * 4, 0, 0),
+                    new(size, size, xoff + size * 1, yoff + size * 4, 0, 0),
+                    new(size, size, xoff + size * 2, yoff + size * 4, 0, 0),
+                    new(size, size, xoff + size * 3, yoff + size * 4, 0, 0)
                 })
             },
             {
                 Directions.Left,
-                new(AnimFps, new Rectangle[]
+                new(AnimFps, new Viewport[]
                 {
-                    new(asz, xoff + size * 0, yoff + size * 2),
-                    new(asz, xoff + size * 1, yoff + size * 2),
-                    new(asz, xoff + size * 2, yoff + size * 2),
-                    new(asz, xoff + size * 3, yoff + size * 2)
+                    new(size, size, xoff + size * 0, yoff + size * 2, 0, 0),
+                    new(size, size, xoff + size * 1, yoff + size * 2, 0, 0),
+                    new(size, size, xoff + size * 2, yoff + size * 2, 0, 0),
+                    new(size, size, xoff + size * 3, yoff + size * 2, 0, 0)
                 })
             },
             {
                 Directions.Right,
-                new(AnimFps, new Rectangle[]
+                new(AnimFps, new Viewport[]
                 {
-                    new(asz, xoff + size * 0, yoff + size * 3),
-                    new(asz, xoff + size * 1, yoff + size * 3),
-                    new(asz, xoff + size * 2, yoff + size * 3),
-                    new(asz, xoff + size * 3, yoff + size * 3)
+                    new(size, size, xoff + size * 0, yoff + size * 3, 0, 0),
+                    new(size, size, xoff + size * 1, yoff + size * 3, 0, 0),
+                    new(size, size, xoff + size * 2, yoff + size * 3, 0, 0),
+                    new(size, size, xoff + size * 3, yoff + size * 3, 0, 0)
                 })
             },
             {
                 Directions.UpRight,
-                new(AnimFps, new Rectangle[]
+                new(AnimFps, new Viewport[]
                 {
-                    new(asz, xoff + size * 0, yoff + size * 9),
-                    new(asz, xoff + size * 1, yoff + size * 9),
-                    new(asz, xoff + size * 2, yoff + size * 9),
-                    new(asz, xoff + size * 3, yoff + size * 9)
+                    new(size, size, xoff + size * 0, yoff + size * 9, 0, 0),
+                    new(size, size, xoff + size * 1, yoff + size * 9, 0, 0),
+                    new(size, size, xoff + size * 2, yoff + size * 9, 0, 0),
+                    new(size, size, xoff + size * 3, yoff + size * 9, 0, 0)
                 })
             },
             {
                 Directions.UpLeft,
-                new(AnimFps, new Rectangle[]
+                new(AnimFps, new Viewport[]
                 {
-                    new(asz, xoff + size * 0, yoff + size * 8),
-                    new(asz, xoff + size * 1, yoff + size * 8),
-                    new(asz, xoff + size * 2, yoff + size * 8),
-                    new(asz, xoff + size * 3, yoff + size * 8)
+                    new(size, size, xoff + size * 0, yoff + size * 8, 0, 0),
+                    new(size, size, xoff + size * 1, yoff + size * 8, 0, 0),
+                    new(size, size, xoff + size * 2, yoff + size * 8, 0, 0),
+                    new(size, size, xoff + size * 3, yoff + size * 8, 0, 0)
                 })
             },
             {
                 Directions.DownLeft,
-                new(AnimFps, new Rectangle[]
+                new(AnimFps, new Viewport[]
                 {
-                    new(asz, xoff + size * 0, yoff + size * 7),
-                    new(asz, xoff + size * 1, yoff + size * 7),
-                    new(asz, xoff + size * 2, yoff + size * 7),
-                    new(asz, xoff + size * 3, yoff + size * 7)
+                    new(size, size, xoff + size * 0, yoff + size * 7, 0, 0),
+                    new(size, size, xoff + size * 1, yoff + size * 7, 0, 0),
+                    new(size, size, xoff + size * 2, yoff + size * 7, 0, 0),
+                    new(size, size, xoff + size * 3, yoff + size * 7, 0, 0)
                 })
             },
             {
                 Directions.DownRight,
-                new(AnimFps, new Rectangle[]
+                new(AnimFps, new Viewport[]
                 {
-                    new(asz, xoff + size * 0, yoff + size * 6),
-                    new(asz, xoff + size * 1, yoff + size * 6),
-                    new(asz, xoff + size * 2, yoff + size * 6),
-                    new(asz, xoff + size * 3, yoff + size * 6)
+                    new(size, size, xoff + size * 0, yoff + size * 6, 0, 0),
+                    new(size, size, xoff + size * 1, yoff + size * 6, 0, 0),
+                    new(size, size, xoff + size * 2, yoff + size * 6, 0, 0),
+                    new(size, size, xoff + size * 3, yoff + size * 6, 0, 0)
                 })
             }
         };
-
-        KInMapper = new KeyboardInputMapper<Vector2>()
-            .MapKey(Scancode.Up, Directions.Up)
-            .AddKeySynonym(Scancode.Up, Scancode.W)
-
-            .MapKey(Scancode.Down, Directions.Down)
-            .AddKeySynonym(Scancode.Down, Scancode.S)
-
-            .MapKey(Scancode.Left, Directions.Left)
-            .AddKeySynonym(Scancode.Left, Scancode.A)
-
-            .MapKey(Scancode.Right, Directions.Right)
-            .AddKeySynonym(Scancode.Right, Scancode.D);
     }
 
     protected override ValueTask<bool> Updating(TimeSpan delta)
     {
-        Vector2 prevDir = Dir;
-        Vector2 dir;
+        Vector2 move = default;
 
-        Vector2 move = Move;
-
-        while (KInMapper.NextKeyPress(out var kp))
-            move += kp.Value;
-        while (KInMapper.NextKeyRaise(out var kr))
-            move -= kr.Value;
+        foreach (var key in Keyboard.KeyStates)
+            move += key.IsPressed ? key.Scancode switch
+            {
+                Scancode.W or Scancode.Up => Directions.Up,
+                Scancode.A or Scancode.Left => Directions.Left,
+                Scancode.S or Scancode.Down => Directions.Down,
+                Scancode.D or Scancode.Right => Directions.Right,
+                _ => Vector2.Zero
+            } : Vector2.Zero;
 
         Move = move = Vector2.Clamp(move, -Vector2.One, Vector2.One);
 
-        Dir = dir = move;
-        Position += Speed * dir * (float)delta.TotalSeconds;
+        Position += Speed * move * (float)delta.TotalSeconds;
 
-        DrawState.SetState(Animations[prevDir].CurrentElement, new(96, 96, (int)Position.X, (int)Position.Y));
+        //DrawState.SetState(Animations[prevDir].CurrentElement, new(96, 96, Position.X, Position.Y, 0, 0));
 
         return ValueTask.FromResult(true);
     }
 
-    public UpdateBatch UpdateBatch { get; }
+    #endregion
 
-    public ValueTask<bool> AddToDrawQueue(IDrawQueue queue)
+    #region IDrawable
+
+    public async ValueTask RegisterDrawOperations(GraphicsManager main, IReadOnlyList<GraphicsManager> allManagers)
     {
-        queue.Enqueue(DrawState, -1);
-        return ValueTask.FromResult(true);
+        await main.RegisterOperation(this, DrawOp);
+        HasPendingRegistrations = false;
     }
+
+    public bool SkipPropagation { get; }
+    public bool HasPendingRegistrations { get; private set; } = true;
+
+    public void AddToDrawQueue(IDrawQueue queue, DrawOperation operation)
+    {
+        queue.Enqueue(operation, 1);
+    }
+
+    #endregion
 }

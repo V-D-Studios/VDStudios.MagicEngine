@@ -4,10 +4,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Veldrid;
 
 namespace VDStudios.MagicEngine;
 
 #region Game Delegates
+
+/// <summary>
+/// Represents an operation to be run against a given <see cref="Window"/>
+/// </summary>
+/// <param name="window"></param>
+public delegate void WindowAction(Window window);
 
 /// <summary>
 /// Represents an event in the <see cref="Game"/> regarding the changing of a scene
@@ -40,7 +47,7 @@ public delegate void GameEvent(Game game, TimeSpan timestamp);
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 /// <param name="window">The newly created main <see cref="Window"/></param>
 /// <param name="renderer">The newly created main <see cref="Renderer"/></param>
-public delegate void GameMainWindowCreatedEvent(Game game, TimeSpan timestamp, Window window, Renderer renderer);
+public delegate void GameMainWindowCreatedEvent(Game game, TimeSpan timestamp, Window window, GraphicsDevice renderer);
 
 /// <summary>
 /// Represents an event in the game regarding the <see cref="Game"/>'s <see cref="IGameLifetime"/>
@@ -49,6 +56,15 @@ public delegate void GameMainWindowCreatedEvent(Game game, TimeSpan timestamp, W
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 /// <param name="lifetime">The <see cref="IGameLifetime"/> that is the object of the event</param>
 public delegate void GameLifetimeChangedEvent(Game game, TimeSpan timestamp, IGameLifetime lifetime);
+
+/// <summary>
+/// Represents an event in the game in which <see cref="Game.GameTitle"/> has changed
+/// </summary>
+/// <param name="game">The <see cref="Game"/> that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="newTitle">The newly set title of the game</param>
+/// <param name="oldTitle">The previously set title of the game</param>
+public delegate void GameTitleChangedEvent(Game game, TimeSpan timestamp, string newTitle, string oldTitle);
 
 internal delegate void GameSetupScenesEvent(Game game, IServiceProvider gamescope);
 
@@ -151,5 +167,20 @@ public delegate void SceneEvent(Scene scene, TimeSpan timestamp);
 /// <param name="node">The node that experienced the change alongside <paramref name="scene"/></param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 public delegate void SceneNodeEvent(Scene scene, TimeSpan timestamp, Node node);
+
+#endregion
+
+#region GraphicsManager Delegates
+
+/// <summary>
+/// Represents an event in the game in which a <see cref="GraphicsManager"/> stopped or started
+/// </summary>
+/// <remarks>
+/// Specifically, when <see cref="GraphicsManager.IsRunning"/> changes
+/// </remarks>
+/// <param name="graphicsManager">The <see cref="GraphicsManager"/> that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="isRunning">The new value of <see cref="GraphicsManager.IsRunning"/> at the time this event was fired</param>
+public delegate void GraphicsManagerRunStateChanged(GraphicsManager graphicsManager, TimeSpan timestamp, bool isRunning);
 
 #endregion

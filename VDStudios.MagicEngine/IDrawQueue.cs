@@ -17,79 +17,79 @@ public interface IDrawQueue
     /// </summary>
     /// <param name="drawing">The object that is ready to draw</param>
     /// <param name="priority">The priority of the object. Higher numbers will draw first and will appear below lower numbers</param>
-    public Task EnqueueAsync(IDrawOperation drawing, float priority);
+    public Task EnqueueAsync(DrawOperation drawing, float priority);
 
     /// <summary>
     /// Asynchronously enqueues a ready-to-draw object into the Draw Queue
     /// </summary>
     /// <param name="drawing">The object that is ready to draw</param>
     /// <param name="priority">The priority of the object. Higher numbers will draw first and will appear below lower numbers</param>
-    public void Enqueue(IDrawOperation drawing, float priority);
+    public void Enqueue(DrawOperation drawing, float priority);
 
     /// <summary>
     /// Enqueues a collection of ready-to-draw objects into the Draw Queue
     /// </summary>
     /// <param name="items">The object that are ready to draw and their priority</param>
-    public void EnqueueCollection(IReadOnlyCollection<(IDrawOperation drawing, float priority)> items);
+    public void EnqueueCollection(IReadOnlyCollection<(DrawOperation drawing, float priority)> items);
 
     /// <summary>
     /// Enqueues a collection of ready-to-draw objects into the Draw Queue, all with the same priority
     /// </summary>
     /// <param name="items">The object that are ready to draw and their priority</param>
     /// <param name="priority">The priority of all items</param>
-    public void EnqueueCollection(IReadOnlyCollection<IDrawOperation> items, float priority);
+    public void EnqueueCollection(IReadOnlyCollection<DrawOperation> items, float priority);
 
     /// <summary>
     /// Asynchronously enqueues a collection of ready-to-draw objects into the Draw Queue
     /// </summary>
     /// <param name="items">The objects that are ready to draw and their priority</param>
-    public Task EnqueueCollectionAsync(IReadOnlyCollection<(IDrawOperation drawing, float priority)> items);
+    public Task EnqueueCollectionAsync(IReadOnlyCollection<(DrawOperation drawing, float priority)> items);
 
     /// <summary>
     /// Asynchronously enqueues a collection of ready-to-draw objects into the Draw Queue, all with the same priority
     /// </summary>
     /// <param name="items">The objects that are ready to draw and their priority</param>
     /// <param name="priority">The priority of all items</param>
-    public Task EnqueueCollectionAsync(IReadOnlyCollection<IDrawOperation> items, float priority);
+    public Task EnqueueCollectionAsync(IReadOnlyCollection<DrawOperation> items, float priority);
 
     /// <summary>
     /// Enqueues a set of ready-to-draw objects into the Draw Queue
     /// </summary>
     /// <param name="items">The objects that are ready to draw and their priority</param>
-    public void EnqueueRange(IEnumerable<(IDrawOperation drawing, float priority)> items);
+    public void EnqueueRange(IEnumerable<(DrawOperation drawing, float priority)> items);
 
     /// <summary>
     /// Enqueues a set of ready-to-draw objects into the Draw Queue, all with the same priority
     /// </summary>
     /// <param name="items">The objects that are ready to draw and their priority</param>
     /// <param name="priority">The priority of all items</param>
-    public void EnqueueRange(IEnumerable<IDrawOperation> items, float priority);
+    public void EnqueueRange(IEnumerable<DrawOperation> items, float priority);
 
     /// <summary>
     /// Asynchronously enqueues a set of ready-to-draw objects into the Draw Queue
     /// </summary>
     /// <param name="items">The objects that are ready to draw and their priority</param>
-    public Task EnqueueRangeAsync(IEnumerable<(IDrawOperation drawing, float priority)> items);
+    public Task EnqueueRangeAsync(IEnumerable<(DrawOperation drawing, float priority)> items);
 
     /// <summary>
     /// Asynchronously enqueues a set of ready-to-draw objects into the Draw Queue, all with the same priority
     /// </summary>
     /// <param name="items">The objects that are ready to draw and their priority</param>
     /// <param name="priority">The priority of all items</param>
-    public Task EnqueueRangeAsync(IEnumerable<IDrawOperation> items, float priority);
+    public Task EnqueueRangeAsync(IEnumerable<DrawOperation> items, float priority);
 
     /// <summary>
     /// Asynchronously enqueues a set of ready-to-draw objects into the Draw Queue
     /// </summary>
     /// <param name="items">The objects that are ready to draw and their priority</param>
-    public Task EnqueueAsyncRange(IAsyncEnumerable<(IDrawOperation drawing, float priority)> items);
+    public Task EnqueueAsyncRange(IAsyncEnumerable<(DrawOperation drawing, float priority)> items);
 
     /// <summary>
     /// Asynchronously enqueues a set of ready-to-draw objects into the Draw Queue, all with the same priority
     /// </summary>
     /// <param name="items">The objects that are ready to draw and their priority</param>
     /// <param name="priority">The priority of all items</param>
-    public Task EnqueueAsyncRange(IAsyncEnumerable<IDrawOperation> items, float priority);
+    public Task EnqueueAsyncRange(IAsyncEnumerable<DrawOperation> items, float priority);
 
     /// <summary>
     /// Ensures that the Draw Queue has the necessary capacity to host incoming operations

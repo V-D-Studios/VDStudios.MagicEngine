@@ -36,7 +36,7 @@ public abstract class NodeBase : GameObject, IDisposable
     internal NodeBase()
     {
         scope = Game.Instance.NewScope();
-        Children = NodeList.Empty.Clone(sync);
+        Children = NodeList.Empty.Clone();
     }
 
     /// <summary>
@@ -109,11 +109,11 @@ public abstract class NodeBase : GameObject, IDisposable
     internal protected virtual ValueTask<NodeUpdater?> AssignUpdater(Node node) => ValueTask.FromResult<NodeUpdater?>(null);
 
     /// <summary>
-    /// This method is automatically called when a Child node is being attached. It assigns a custom drawer to the child node, or <c>null</c> to use <see cref="HandleChildDraw(IDrawableNode)"/> instead
+    /// This method is automatically called when a Child node is being attached. It assigns a custom drawer to the child node, or <c>null</c> to use <see cref="HandleChildRegisterDrawOperations(IDrawableNode)"/> instead
     /// </summary>
     /// <param name="node">The <see cref="Node"/> that is being attached, and should be assigned a drawer</param>
-    /// <returns>The <see cref="NodeDrawer"/> specific to <paramref name="node"/>, or <c>null</c> to use <see cref="HandleChildDraw(IDrawableNode)"/> instead</returns>
-    internal protected virtual ValueTask<NodeDrawer?> AssignDrawer(IDrawableNode node) => ValueTask.FromResult<NodeDrawer?>(null);
+    /// <returns>The <see cref="NodeDrawRegistrar"/> specific to <paramref name="node"/>, or <c>null</c> to use <see cref="HandleChildRegisterDrawOperations(IDrawableNode)"/> instead</returns>
+    internal protected virtual ValueTask<NodeDrawRegistrar?> AssignDrawer(IDrawableNode node) => ValueTask.FromResult<NodeDrawRegistrar?>(null);
 
     #endregion
 
@@ -127,11 +127,11 @@ public abstract class NodeBase : GameObject, IDisposable
     protected virtual ValueTask<bool> HandleChildUpdate(Node node) => ValueTask.FromResult(true);
 
     /// <summary>
-    /// This method is automatically called when a Child node is about to be registered into the Draw Queue, and it has no custom handler set
+    /// This method is automatically called when a Child node is about to be queried for <see cref="DrawOperation"/>s to register, and it has no custom handler set
     /// </summary>
-    /// <param name="node">The node about to be registered into the Draw Queue</param>
+    /// <param name="node">The node about to be queried</param>
     /// <returns><c>true</c> if the drawing registration sequence should be propagated into <paramref name="node"/>, <c>false</c> otherwise</returns>
-    protected virtual ValueTask<bool> HandleChildDraw(IDrawableNode node) => ValueTask.FromResult(true);
+    protected virtual ValueTask<bool> HandleChildRegisterDrawOperations(IDrawableNode node) => ValueTask.FromResult(true);
 
     #endregion
 
