@@ -139,8 +139,55 @@ public class GraphicsManager : GameObject, IDisposable
             if (!SnapshotPool.TryDequeue(out var snap))
                 snap = new(this);
             CurrentSnapshot = snap;
+            ret.CopyTo(snap);
             ret.LastUpdated = Game.TotalTime;
             return ret;
+        }
+    }
+
+    private void Window_MouseWheelScrolled(Window sender, TimeSpan timestamp, uint mouseId, float verticalScroll, float horizontalScroll)
+    {
+        lock (SnapshotPool)
+        {
+            CurrentSnapshot.WheelVerticalDelta = verticalScroll;
+            CurrentSnapshot.WheelHorizontalDelta = horizontalScroll;
+        }
+    }
+
+    private void Window_MouseMoved(Window sender, TimeSpan timestamp, Point delta, Point newPosition, uint mouseId, MouseButton pressed)
+    {
+        lock (SnapshotPool)
+        {
+            var mp = new Vector2(newPosition.X, newPosition.Y);
+            CurrentSnapshot.mEvs.Add(new(new(delta.X, delta.Y), mp, pressed));
+            CurrentSnapshot.MousePosition = mp;
+        }
+    }
+
+    private void Window_MouseButtonReleased(Window sender, TimeSpan timestamp, uint mouseId, int clicks, MouseButton state)
+    {
+        lock (SnapshotPool)
+            CurrentSnapshot.butt &= ~state;
+    }
+
+    private void Window_MouseButtonPressed(Window sender, TimeSpan timestamp, uint mouseId, int clicks, MouseButton state)
+    {
+        lock (SnapshotPool)
+            CurrentSnapshot.butt |= state;
+    }
+
+    private void Window_KeyReleased(Window sender, TimeSpan timestamp, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
+    {
+        lock (SnapshotPool)
+            CurrentSnapshot.kEvs.Add(new(scancode, key, modifiers, isPressed, repeat, unicode));
+    }
+
+    private void Window_KeyPressed(Window sender, TimeSpan timestamp, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
+    {
+        lock (SnapshotPool)
+        {
+            CurrentSnapshot.kEvs.Add(new(scancode, key, modifiers, isPressed, repeat, unicode));
+            CurrentSnapshot.kcEvs.Add(unicode);
         }
     }
 
@@ -426,6 +473,8 @@ public class GraphicsManager : GameObject, IDisposable
             try
             {
                 Vector4 winsize = LastReportedWinSize;
+                lock (SnapshotPool)
+                    CurrentSnapshot.Clear();
 
                 Running();
 
@@ -545,6 +594,13 @@ public class GraphicsManager : GameObject, IDisposable
         Window = win;
         Device = gd;
         ScreenSizeBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
+
+        win.KeyPressed += Window_KeyPressed;
+        win.KeyReleased += Window_KeyReleased;
+        win.MouseButtonPressed += Window_MouseButtonPressed;
+        win.MouseButtonReleased += Window_MouseButtonReleased;
+        win.MouseMoved += Window_MouseMoved;
+        win.MouseWheelScrolled += Window_MouseWheelScrolled;
     }
 
     /// <summary>
