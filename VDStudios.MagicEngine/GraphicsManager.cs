@@ -36,6 +36,7 @@ public class GraphicsManager : GameObject, IDisposable
         graphics_thread = new(() => Run().Wait());
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
         IdleWaiter = new(FrameLock);
+        CurrentSnapshot = new(this);
     }
 
     private readonly SemaphoreSlim initLock = new(1, 1);
@@ -116,6 +117,32 @@ public class GraphicsManager : GameObject, IDisposable
     }
 
     #endregion
+
+    #endregion
+
+    #region Input Management
+
+    private InputSnapshot CurrentSnapshot;
+    private readonly Queue<InputSnapshot> SnapshotPool = new(3);
+
+    internal void ReturnSnapshot(InputSnapshot snapshot)
+    {
+        lock (SnapshotPool)
+            SnapshotPool.Enqueue(snapshot);
+    }
+
+    internal InputSnapshot FetchSnapshot()
+    {
+        lock (SnapshotPool)
+        {
+            var ret = CurrentSnapshot;
+            if (!SnapshotPool.TryDequeue(out var snap))
+                snap = new(this);
+            CurrentSnapshot = snap;
+            ret.LastUpdated = Game.TotalTime;
+            return ret;
+        }
+    }
 
     #endregion
 
