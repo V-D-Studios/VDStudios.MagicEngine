@@ -193,6 +193,12 @@ public class GraphicsManager : GameObject, IDisposable
 
     #endregion
 
+    #region ImGUI
+
+    private ImGuiController ImGuiController;
+
+    #endregion
+
     #region Waiting
 
     /// <summary>
@@ -421,14 +427,17 @@ public class GraphicsManager : GameObject, IDisposable
     internal DeviceBuffer? ScreenSizeBuffer;
     private bool SizeChanged = false;
 
-    private void ReportSize(Window window, TimeSpan timestamp, Size newSize)
+    private void Window_SizeChanged(Window window, TimeSpan timestamp, Size newSize)
     {
         FrameLock.Wait();
         try
         {
+            var (ww, wh) = newSize;
+            Device.MainSwapchain.Resize((uint)ww, (uint)wh);
+            ImGuiController.WindowResized(ww, wh);
             WindowSize = newSize;
             Vector4 size;
-            LastReportedWinSize = size = new(newSize.Width, newSize.Height, 0, 0);
+            LastReportedWinSize = size = new(ww, wh, 0, 0);
             SizeChanged = true;
             Device!.UpdateBuffer(ScreenSizeBuffer, 0, size);
         }
@@ -446,8 +455,6 @@ public class GraphicsManager : GameObject, IDisposable
         Starting();
         SetupWindow();
         initLock.Release();
-        Window.SizeChanged += ReportSize;
-        Window.Closed += Window_Closed;
         graphics_thread.Start();
     }
 
@@ -460,8 +467,6 @@ public class GraphicsManager : GameObject, IDisposable
         TimeSpan delta = default;
 
         var gd = Device!;
-
-        await Game.ExecuteInVideoThreadAndWaitAsync(() => ReportSize(Window, Game.TotalTime, Window.Size));
 
         var prepCommands = CreateCommandList(gd, gd.ResourceFactory);
 
@@ -593,8 +598,15 @@ public class GraphicsManager : GameObject, IDisposable
         CreateWindow(out var win, out var gd);
         Window = win;
         Device = gd;
+
+        Window_SizeChanged(win, Game.TotalTime, win.Size);
+
+        var (ww, wh) = win.Size;
+        ImGuiController = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
         ScreenSizeBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
 
+        win.SizeChanged += Window_SizeChanged;
+        win.Closed += Window_Closed;
         win.KeyPressed += Window_KeyPressed;
         win.KeyReleased += Window_KeyReleased;
         win.MouseButtonPressed += Window_MouseButtonPressed;
