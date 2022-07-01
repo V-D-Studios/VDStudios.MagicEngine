@@ -51,11 +51,16 @@ public class GraphicsManager : GameObject, IDisposable
     #region Public Properties
 
     /// <summary>
-    /// Represents the current Updates-per-second value calculated while the game is running
+    /// <see cref="Window"/>'s size
     /// </summary>
     /// <remarks>
-    /// This value does not represent the <see cref="Game"/>'s FPS, as that is the amount of frames the game outputs per second. This value is only updated while the game is running, also not during <see cref="Load(Progress{float}, IServiceProvider)"/> or any of the other methods
+    /// May not represent the actual size of <see cref="Window"/> at any given time, since <see cref="Window"/>s are managed on the VideoThread
     /// </remarks>
+    public Size WindowSize { get; private set; }
+
+    /// <summary>
+    /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager"/> is running
+    /// </summary>
     public float FPS => _fps;
     private float _fps;
 
@@ -338,11 +343,25 @@ public class GraphicsManager : GameObject, IDisposable
     #region Internal
 
     private readonly SemaphoreSlim FrameLock = new(1, 1);
-    private Size LastReportedWinSize = default;
+    internal Vector4 LastReportedWinSize = default;
+    internal DeviceBuffer? ScreenSizeBuffer;
+    private bool SizeChanged = false;
 
     private void ReportSize(Window window, TimeSpan timestamp, Size newSize)
     {
-        LastReportedWinSize = newSize;
+        FrameLock.Wait();
+        try
+        {
+            WindowSize = newSize;
+            Vector4 size;
+            LastReportedWinSize = size = new(newSize.Width, newSize.Height, 0, 0);
+            SizeChanged = true;
+            Device!.UpdateBuffer(ScreenSizeBuffer, 0, size);
+        }
+        finally
+        {
+            FrameLock.Release();
+        }
     }
 
     /// <summary>
@@ -364,6 +383,7 @@ public class GraphicsManager : GameObject, IDisposable
         var sw = new Stopwatch();
         var drawqueue = new DrawQueue();
         var removalQueue = new Queue<Guid>(10);
+        TimeSpan delta = default;
 
         var gd = Device!;
 
@@ -378,17 +398,32 @@ public class GraphicsManager : GameObject, IDisposable
 
             try
             {
-                var (rw, rh) = LastReportedWinSize;
+                Vector4 winsize = LastReportedWinSize;
 
                 Running();
 
                 var ops = RegisteredOperations;
 
-                foreach (var kv in ops)
-                    if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
-                        op.Owner.AddToDrawQueue(drawqueue, op);
-                    else
-                        removalQueue.Enqueue(kv.Key);
+                if (SizeChanged)
+                {
+                    SizeChanged = false;
+                    foreach (var kv in ops)
+                        if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
+                        {
+                            await op.InternalCreateWindowSizedResources(ScreenSizeBuffer);
+                            op.Owner.AddToDrawQueue(drawqueue, op);
+                        }
+                        else
+                            removalQueue.Enqueue(kv.Key);
+                }
+                else
+                {
+                    foreach (var kv in ops)
+                        if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
+                            op.Owner.AddToDrawQueue(drawqueue, op);
+                        else
+                            removalQueue.Enqueue(kv.Key);
+                }
 
                 while (removalQueue.Count > 0)
                     ops.Remove(removalQueue.Dequeue());
@@ -405,7 +440,7 @@ public class GraphicsManager : GameObject, IDisposable
                     {
                         int i = 0;
                         for (; drawqueue.Count > 0; i++)
-                            calls[i] = drawqueue.Dequeue().InternalDraw(new Vector2(rw / 2, rh / 2));
+                            calls[i] = drawqueue.Dequeue().InternalDraw(delta, new Vector2(winsize.X / 2, winsize.Y / 2));
                         while (i > 0)
                             await calls[--i];
                         gd.WaitForIdle();
@@ -425,6 +460,7 @@ public class GraphicsManager : GameObject, IDisposable
             // Code that does not require any resources and is not bothered if resources are suddenly released
             
             _fps = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);
+            delta = sw.Elapsed;
             sw.Restart();
         }
 
@@ -481,6 +517,7 @@ public class GraphicsManager : GameObject, IDisposable
         CreateWindow(out var win, out var gd);
         Window = win;
         Device = gd;
+        ScreenSizeBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
     }
 
     /// <summary>
