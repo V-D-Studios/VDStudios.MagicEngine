@@ -57,10 +57,18 @@ internal class ImGuiController : IDisposable
 
     private sealed class ImGuiControllerLockRelease : IDisposable
     {
+        private readonly ImGuiController Controller;
+
+        public ImGuiControllerLockRelease(ImGuiController controller)
+        {
+            Controller = controller;
+        }
+
         public bool lockTaken;
         public void Enter()
         {
             Monitor.Enter(SyncImGUI, ref lockTaken);
+            ImGui.SetCurrentContext(Controller.Context);
             ImGui.NewFrame();
         }
 
