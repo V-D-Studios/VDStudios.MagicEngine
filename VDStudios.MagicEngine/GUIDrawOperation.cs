@@ -21,24 +21,7 @@ public abstract class GUIDrawOperation : InternalGraphicalOperation, IDisposable
     /// </remarks>
     public INodeGUI Owner { get; private set; }
 
-    /// <summary>
-    /// This <see cref="GUIDrawOperation"/>'s unique identifier, generated automatically
-    /// </summary>
-    public Guid Identifier { get; } = Guid.NewGuid();
-
     #region Registration
-
-    #region Properties
-
-    /// <summary>
-    /// The <see cref="GraphicsManager"/> this <see cref="GUIDrawOperation"/> is registered onto
-    /// </summary>
-    /// <remarks>
-    /// Will be null if this <see cref="GUIDrawOperation"/> is not registered
-    /// </remarks>
-    public GraphicsManager? Manager { get; private set; }
-
-    #endregion
 
     #region Internal
 
