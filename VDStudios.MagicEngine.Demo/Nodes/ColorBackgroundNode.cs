@@ -153,7 +153,7 @@ void main()
     public bool SkipPropagation { get; }
     public bool HasPendingRegistrations { get; private set; } = true;
 
-    public void AddToDrawQueue(IDrawQueue queue, DrawOperation operation)
+    public void AddToDrawQueue(IDrawQueue<DrawOperation> queue, DrawOperation operation)
     {
         queue.Enqueue(operation, 1);
     }

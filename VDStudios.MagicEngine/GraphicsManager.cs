@@ -462,7 +462,7 @@ public class GraphicsManager : GameObject, IDisposable
     {
         var fl = FrameLock;
         var sw = new Stopwatch();
-        var drawqueue = new DrawQueue();
+        var drawqueue = new DrawQueue<DrawOperation>();
         var removalQueue = new Queue<Guid>(10);
         TimeSpan delta = default;
 

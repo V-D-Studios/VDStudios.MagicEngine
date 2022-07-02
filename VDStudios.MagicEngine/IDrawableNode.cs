@@ -32,12 +32,12 @@ public interface IDrawableNode
     public bool HasPendingRegistrations { get; }
 
     /// <summary>
-    /// Adds an object representing the <see cref="Node"/>'s drawing operations into the <see cref="IDrawQueue"/>
+    /// Adds an object representing the <see cref="Node"/>'s drawing operations into the <see cref="IDrawQueue{TOp}"/>
     /// </summary>
     /// <remarks>
     /// This method will be called from the respective <see cref="GraphicsManager"/>'s thread
     /// </remarks>
     /// <param name="queue">The queue associated with <paramref name="operation"/> into which to add the draw operations</param>
     /// <param name="operation">A specific registered <see cref="DrawOperation"/></param>
-    public void AddToDrawQueue(IDrawQueue queue, DrawOperation operation);
+    public void AddToDrawQueue(IDrawQueue<DrawOperation> queue, DrawOperation operation);
 }
