@@ -8,8 +8,11 @@ using Veldrid;
 namespace VDStudios.MagicEngine;
 
 /// <summary>
-/// Represents an operation that is ready to be drawn into the GUI. This object is removed from the GUI tree when disposed
+/// Represents an operation that is ready to be drawn into the GUI.
 /// </summary>
+/// <remarks>
+/// This object is removed from the GUI tree when disposed
+/// </remarks>
 public abstract class GUIElement : InternalGraphicalOperation, IDisposable
 {
     #region Services
@@ -28,21 +31,14 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
     /// <summary>
     /// Constructs this <see cref="GUIElement"/>
     /// </summary>
-    /// <param name="scene"></param>
-    public GUIElement(Scene scene)
+    public GUIElement()
     {
-        Root = scene;
-        scope = scene.ServiceProvider.CreateScope();
+        scope = Game.services.CreateScope();
     }
 
     #endregion
 
     #region Public Properties
-
-    /// <summary>
-    /// The Scene this <see cref="GUIElement"/> is attached to
-    /// </summary>
-    public Scene Root { get; }
 
     /// <summary>
     /// The data context currently tied to this <see cref="GUIElement"/>
@@ -95,30 +91,42 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
 
     #region Registration
 
+    /// <summary>
+    /// Adds Sub Element <paramref name="element"/> to this <see cref="GUIElement"/>
+    /// </summary>
+    /// <param name="element">The <see cref="GUIElement"/> to add as a sub element of this <see cref="GUIElement"/></param>
+    /// <param name="context">The DataContext to give to <paramref name="element"/>, or null if it's to use its previously set DataContext or inherit it from this <see cref="GUIElement"/></param>
+    public void AddElement(GUIElement element, object? context = null)
+    {
+        ThrowIfInvalid();
+        element.RegisterOnto(this, Manager!, context);
+    }
+
     #region Internal
 
-    internal void Register(GraphicsManager manager, object? context)
+    internal void RegisterOnto(GraphicsManager manager, object? context = null)
     {
-        ThrowIfDisposed();
+        ThrowIfInvalid();
 
         Registering(manager);
 
-        DataContext = context;
+        DataContext = context ?? DataContext;
         Manager = manager;
+        nodeInParent = manager.GUIElements.Add(this);
 
         Registered();
     }
 
-    internal void Register(GUIElement parent, GraphicsManager manager, object? context)
+    internal void RegisterOnto(GUIElement parent, GraphicsManager manager, object? context = null)
     {
-        ThrowIfDisposed();
+        ThrowIfInvalid();
 
         Registering(parent, manager);
 
-        DataContext = context ?? parent.DataContext;
+        DataContext = context ?? DataContext ?? parent.DataContext;
         Manager = manager;
         Parent = parent;
-        parent.AddSubElement(this);
+        nodeInParent = parent.SubElements.Add(this);
 
         Registered();
     }
@@ -164,11 +172,6 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
 
     private LinkedListNode<GUIElement>? nodeInParent;
 
-    internal void AddSubElement(GUIElement sel)
-    {
-        sel.nodeInParent = SubElements.Add(sel);
-    }
-
     #endregion
 
     #region Reaction Methods
@@ -183,7 +186,7 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
 
     internal void InternalSubmitUI(TimeSpan delta)
     {
-        ThrowIfDisposed();
+        ThrowIfInvalid();
         if (IsActive)
             SubmitUI(delta, SubElements.GetEnumerator());
     }
@@ -322,6 +325,13 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
     #endregion
 
     #region Disposal
+
+    private void ThrowIfInvalid()
+    {
+        ThrowIfDisposed();
+        if (Manager is null)
+            throw new InvalidOperationException($"Cannot utilize a GUIElement that is not registered onto a GraphicsManager at somepoint in its tree");
+    }
 
     /// <summary>
     /// Throws an <see cref="ObjectDisposedException"/> if this <see cref="GUIElement"/> has already been disposed
