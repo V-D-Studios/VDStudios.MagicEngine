@@ -21,7 +21,7 @@ public interface IDrawableNode
     /// <summary>
     /// <c>false</c> if the draw sequence should be propagated into this <see cref="Node"/>'s children, <c>true</c> otherwise. If this is <c>true</c>, Draw handlers for children will also be skipped
     /// </summary>
-    public bool SkipPropagation { get; }
+    public bool SkipDrawPropagation { get; }
 
     /// <summary>
     /// Set this to true when <see cref="RegisterDrawOperations(GraphicsManager, IReadOnlyList{GraphicsManager})"/> should be called
