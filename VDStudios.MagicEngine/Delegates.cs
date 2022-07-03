@@ -188,12 +188,20 @@ public delegate void GraphicsManagerRunStateChanged(GraphicsManager graphicsMana
 #region GUIElement Delegates
 
 /// <summary>
-/// Represents an event in the game regarding a <see cref="Scene"/>
+/// Represents an event in the game regarding a <see cref="GUIElement"/>'s <see cref="GUIElement.DataContext"/>
 /// </summary>
 /// <param name="element">The <see cref="GUIElement"/> that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 /// <param name="oldContext">The data context <paramref name="element"/> previously had, if any</param>
 /// <param name="newContext">The data context <paramref name="element"/> now has, if any</param>
 public delegate void GUIElementDataContextChangedEvent(GUIElement element, TimeSpan timestamp, object? oldContext, object? newContext);
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="GUIElement"/>'s <see cref="GUIElement.IsActive"/> property
+/// </summary>
+/// <param name="element">The <see cref="GUIElement"/> that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="isActive">The value that <paramref name="element"/>'s <see cref="GUIElement.IsActive"/> changed into</param>
+public delegate void GUIElementActiveChanged(GUIElement element, TimeSpan timestamp, bool isActive);
 
 #endregion

@@ -1,4 +1,5 @@
-﻿using SDL2.NET;
+﻿using Microsoft.Extensions.DependencyInjection;
+using SDL2.NET;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Internal;
@@ -11,7 +12,37 @@ namespace VDStudios.MagicEngine;
 /// </summary>
 public abstract class GUIElement : InternalGraphicalOperation, IDisposable
 {
+    #region Services
+
+    private IServiceScope scope;
+
+    /// <summary>
+    /// Represents the <see cref="IServiceProvider"/> scoped for this <see cref="GUIElement"/>
+    /// </summary>
+    protected IServiceProvider Services => scope.ServiceProvider;
+
+    #endregion
+
+    #region Construction
+
+    /// <summary>
+    /// Constructs this <see cref="GUIElement"/>
+    /// </summary>
+    /// <param name="scene"></param>
+    public GUIElement(Scene scene)
+    {
+        Root = scene;
+        scope = scene.ServiceProvider.CreateScope();
+    }
+
+    #endregion
+
     #region Public Properties
+
+    /// <summary>
+    /// The Scene this <see cref="GUIElement"/> is attached to
+    /// </summary>
+    public Scene Root { get; }
 
     /// <summary>
     /// The data context currently tied to this <see cref="GUIElement"/>
@@ -153,8 +184,54 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
     internal void InternalSubmitUI(TimeSpan delta)
     {
         ThrowIfDisposed();
-        SubmitUI(delta, SubElements.GetEnumerator());
+        if (IsActive)
+            SubmitUI(delta, SubElements.GetEnumerator());
     }
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// Whether or not this <see cref="GUIElement"/> is active. Defaults to <c>true</c>
+    /// </summary>
+    /// <remarks>
+    /// If <c>true</c>, this <see cref="GUIElement"/>'s UI will be submitted along with its sub elements. If <c>false</c>, this <see cref="GUIElement"/> will be skipped altogether
+    /// </remarks>
+    public bool IsActive
+    {
+        get => isActive;
+        set
+        {
+            if (isActive == value)
+                return;
+
+            IsActiveChanging(isActive, value);
+            isActive = true;
+            IsActiveChanged?.Invoke(this, Game.TotalTime, value);
+        }
+    }
+    private bool isActive = true;
+
+    #region Reaction Methods
+
+    /// <summary>
+    /// This method is called automatically right before <see cref="IsActive"/> is changes
+    /// </summary>
+    /// <param name="previousValue"></param>
+    /// <param name="newValue"></param>
+    protected virtual void IsActiveChanging(bool previousValue, bool newValue) { }
+
+    #endregion
+
+    #region Events
+
+    /// <summary>
+    /// Fired when <see cref="IsActive"/> changes
+    /// </summary>
+    public GUIElementActiveChanged? IsActiveChanged;
+
+    #endregion
 
     #endregion
 
@@ -266,56 +343,67 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
     /// </remarks>
     protected virtual void Dispose(bool disposing) { }
 
-    private void InternalDispose(bool disposing)
+    private readonly object disposedValueLock = new();
+    private void InternalDispose(bool disposing, bool root)
     {
-        var @lock = Manager!.LockManager();
-        if (disposedValue)
+        lock (disposedValueLock)
         {
-            @lock.Dispose();
-            return;
-        }
+            IDisposable? @lock = null;
+            if (root)
+                @lock = Manager!.LockManager();
 
-        disposedValue = true;
-        try
-        {
-            Dispose(disposing);
-        }
-        finally
-        {
-            var next = SubElements.elements.First!;
-            while (SubElements.Count > 0)
+            if (disposedValue)
             {
-                var current = next;
-                next = next.Next;
-                current!.Value.Dispose();
+                return;
             }
+            disposedValue = true;
 
-            if (nodeInParent is LinkedListNode<GUIElement> el)
-                Parent!.SubElements.Remove(el);
+            try
+            {
+                Dispose(disposing);
+            }
+            finally
+            {
+                var next = SubElements.elements.First!;
+                while (SubElements.Count > 0)
+                {
+                    var current = next;
+                    next = next.Next;
+                    current!.Value.InternalDispose(disposing, false);
+                }
 
-            DataContext = null;
-            DataContextChanged = null;
-            Parent = null;
-            Manager = null;
-            @lock.Dispose();
+                if (nodeInParent is LinkedListNode<GUIElement> el)
+                    Parent!.SubElements.Remove(el);
+
+                DataContext = null;
+                DataContextChanged = null;
+                Parent = null;
+                Manager = null;
+                scope.Dispose();
+                scope = null;
+                if (root)
+                    @lock!.Dispose();
+            }
         }
     }
 
     /// <inheritdoc/>
     ~GUIElement()
     {
-        InternalDispose(disposing: false);
+        InternalDispose(disposing: false, true);
+    }
+
+    private void InternalDispose(bool root)
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        InternalDispose(disposing: true, root);
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
     /// Disposes of this <see cref="GUIElement"/>'s resources
     /// </summary>
-    public void Dispose()
-    {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        InternalDispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
+    public void Dispose() => InternalDispose(true);
 
     #endregion
 }
