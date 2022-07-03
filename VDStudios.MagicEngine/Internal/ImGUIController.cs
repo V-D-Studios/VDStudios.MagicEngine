@@ -107,9 +107,12 @@ internal class ImGuiController : IDisposable
 
             SetPerFrameImGuiData(1f / 60f);
         }
+
+        lockRelease = new(this);
     }
 
-    private readonly ImGuiControllerLockRelease lockRelease = new();
+    private readonly ImGuiControllerLockRelease lockRelease;
+
     /// <summary>
     /// Begins a new Frame and locks ImGUI from multi-threaded access
     /// </summary>
@@ -422,19 +425,19 @@ internal class ImGuiController : IDisposable
             io.KeysDown[(int)keyEvent.Scancode] = keyEvent.IsPressed;
             if (keyEvent.Scancode == Scancode.LeftControl)
             {
-                _controlDown = keyEvent.IsPressed;
+                _controlDown |= keyEvent.IsPressed;
             }
             if (keyEvent.Scancode == Scancode.LeftShift)
             {
-                _shiftDown = keyEvent.IsPressed;
+                _shiftDown |= keyEvent.IsPressed;
             }
             if (keyEvent.Scancode == Scancode.LeftAlt)
             {
-                _altDown = keyEvent.IsPressed;
+                _altDown |= keyEvent.IsPressed;
             }
             if (keyEvent.Scancode == Scancode.LeftGUI)
             {
-                _winKeyDown = keyEvent.IsPressed;
+                _winKeyDown |= keyEvent.IsPressed;
             }
         }
 
