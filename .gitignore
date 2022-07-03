@@ -361,3 +361,4 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+VDStudios.MagicEngine/Properties/ImGUIResources.Designer.cs

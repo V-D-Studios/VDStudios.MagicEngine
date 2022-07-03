@@ -11,6 +11,8 @@ using static SDL2.NET.Window;
 using Veldrid;
 using ImGuiNET;
 using PixelFormat = Veldrid.PixelFormat;
+using VDStudios.MagicEngine.Properties;
+using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.Internal;
 /// <summary>
@@ -152,10 +154,8 @@ internal class ImGuiController : IDisposable
         _projMatrixBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer | BufferUsage.Dynamic));
         _projMatrixBuffer.Name = "ImGui.NET Projection Buffer";
 
-        byte[] vertexShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-vertex", ShaderStages.Vertex);
-        byte[] fragmentShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-frag", ShaderStages.Fragment);
-        _vertexShader = factory.CreateShader(new ShaderDescription(ShaderStages.Vertex, vertexShaderBytes, gd.BackendType == GraphicsBackend.Metal ? "VS" : "main"));
-        _fragmentShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, fragmentShaderBytes, gd.BackendType == GraphicsBackend.Metal ? "FS" : "main"));
+        _vertexShader = factory.CreateFromSpirv(new ShaderDescription(ShaderStages.Vertex, ImGuiResources.VertexShader, "main"));
+        _fragmentShader = factory.CreateFromSpirv(new ShaderDescription(ShaderStages.Fragment, ImGuiResources.FragmentShader, "main"));
 
         VertexLayoutDescription[] vertexLayouts = new VertexLayoutDescription[]
         {
@@ -255,46 +255,6 @@ internal class ImGuiController : IDisposable
         _viewsById.Clear();
         _autoViewsByTexture.Clear();
         _lastAssignedID = 100;
-    }
-
-    private byte[] LoadEmbeddedShaderCode(ResourceFactory factory, string name, ShaderStages stage)
-    {
-        switch (factory.BackendType)
-        {
-            case GraphicsBackend.Direct3D11:
-                {
-                    string resourceName = name + ".hlsl.bytes";
-                    return GetEmbeddedResourceBytes(resourceName);
-                }
-            case GraphicsBackend.OpenGL:
-                {
-                    string resourceName = name + ".glsl";
-                    return GetEmbeddedResourceBytes(resourceName);
-                }
-            case GraphicsBackend.Vulkan:
-                {
-                    string resourceName = name + ".spv";
-                    return GetEmbeddedResourceBytes(resourceName);
-                }
-            case GraphicsBackend.Metal:
-                {
-                    string resourceName = name + ".metallib";
-                    return GetEmbeddedResourceBytes(resourceName);
-                }
-            default:
-                throw new NotImplementedException();
-        }
-    }
-
-    private byte[] GetEmbeddedResourceBytes(string resourceName)
-    {
-        Assembly assembly = typeof(ImGuiController).Assembly;
-        using (Stream s = assembly.GetManifestResourceStream(resourceName))
-        {
-            byte[] ret = new byte[s.Length];
-            s.Read(ret, 0, (int)s.Length);
-            return ret;
-        }
     }
 
     /// <summary>
