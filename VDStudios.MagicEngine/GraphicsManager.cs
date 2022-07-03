@@ -202,6 +202,24 @@ public class GraphicsManager : GameObject, IDisposable
 
     private ImGuiController ImGuiController;
 
+    /// <summary>
+    /// Represents the <see cref="GUIElement"/>s currently held by this <see cref="GraphicsManager"/>
+    /// </summary>
+    /// <remarks>
+    /// A <see cref="GraphicsManager"/>
+    /// </remarks>
+    public GUIElementList GUIElements { get; } = new();
+
+    /// <summary>
+    /// Adds a <see cref="GUIElement"/> <paramref name="element"/> to this <see cref="GraphicsManager"/>
+    /// </summary>
+    /// <param name="element">The <see cref="GUIElement"/> to add as an element of this <see cref="GraphicsManager"/></param>
+    /// <param name="context">The DataContext to give to <paramref name="element"/>, or null if it's to use its previously set DataContext or inherit it from this <see cref="GUIElement"/></param>
+    public void AddElement(GUIElement element, object? context = null)
+    {
+        element.RegisterOnto(this, context);
+    }
+
     #endregion
 
     #region Waiting
@@ -610,22 +628,28 @@ public class GraphicsManager : GameObject, IDisposable
                 {
                     drawlock.Release(); // End the general drawing stage
                 }
-
-                if (!await WaitOn(glock)) break; // Frame Render Stage 2: GUI Drawing
-                try
+                
+                if (GUIElements.Count > 0) // There's no need to lock neither glock nor ImGUI lock if there are no elements to render. And if it does change between this check and the second one, then tough luck and it'll have to wait until the next frame
                 {
-                    managercl.Begin();
-                    managercl.SetFramebuffer(gd.SwapchainFramebuffer); // Prepare for ImGUI
-                    using (ImGuiController.Begin()) // Lock ImGUI from other GraphicsManagers
+                    if (!await WaitOn(glock)) break; // Frame Render Stage 2: GUI Drawing
+                    try
                     {
-                        foreach (var element in ImGuiElements)
-                            element.InternalSubmitUI(delta); // Submit UIs
-                        ImGuiController.Render(gd, managercl); // Render
+                        if (GUIElements.Count > 0) // We check twice, as it may have changed between the first check and the lock being adquired
+                        {
+                            managercl.Begin();
+                            managercl.SetFramebuffer(gd.SwapchainFramebuffer); // Prepare for ImGUI
+                            using (ImGuiController.Begin()) // Lock ImGUI from other GraphicsManagers
+                            {
+                                foreach (var element in GUIElements)
+                                    element.InternalSubmitUI(delta); // Submit UIs
+                                ImGuiController.Render(gd, managercl); // Render
+                            }
+                        }
                     }
-                }
-                finally
-                {
-                    glock.Release(); // End the GUI drawing stage
+                    finally
+                    {
+                        glock.Release(); // End the GUI drawing stage
+                    }
                 }
             }
             finally
