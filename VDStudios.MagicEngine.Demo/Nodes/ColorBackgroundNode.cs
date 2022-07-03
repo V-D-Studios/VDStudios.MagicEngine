@@ -150,7 +150,7 @@ void main()
         HasPendingRegistrations = false;
     }
 
-    public bool SkipPropagation { get; }
+    public bool SkipDrawPropagation { get; }
     public bool HasPendingRegistrations { get; private set; } = true;
 
     public void AddToDrawQueue(IDrawQueue<DrawOperation> queue, DrawOperation operation)
