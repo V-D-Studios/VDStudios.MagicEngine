@@ -37,8 +37,14 @@ public sealed class GUIElementList : IReadOnlyCollection<GUIElement>
     /// </remarks>
     public IEnumerator<GUIElement> GetEnumerator()
     {
-        lock (sync)
-            return elements.GetEnumerator();
+        var node = elements.First;
+        while (node is not null)
+        {
+            var value = node.Value;
+            if (!value.SkipInEnumeration)
+                yield return value;
+            node = node.Next;
+        }
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

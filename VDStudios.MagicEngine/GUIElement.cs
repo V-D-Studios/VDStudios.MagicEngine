@@ -216,6 +216,24 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
     }
     private bool isActive = true;
 
+    /// <summary>
+    /// Whether this element should be skipped when being enumerated during a call to <see cref="SubmitUI(TimeSpan, IEnumerator{GUIElement})"/>. Defaults to <c>false</c>
+    /// </summary>
+    /// <remarks>
+    /// If this element is skipped from enumeration, the parent <see cref="GUIElement"/> will be entirely responsible for submiting its UI; be very careful with this property. GUIElements that are not registered, or are directly attached to a <see cref="GraphicsManager"/> cannot have this property modified
+    /// </remarks>
+    protected internal bool SkipInEnumeration
+    {
+        get => Parent is not null && skipInEnumeration;
+        set
+        {
+            if (Parent is null)
+                throw new InvalidOperationException("Cannot modify the SkipInEnumeration property of a GUIElement that is not attached to a parent GUIElement");
+            skipInEnumeration = value;
+        }
+    }
+    private bool skipInEnumeration;
+
     #region Reaction Methods
 
     /// <summary>
