@@ -184,3 +184,16 @@ public delegate void SceneNodeEvent(Scene scene, TimeSpan timestamp, Node node);
 public delegate void GraphicsManagerRunStateChanged(GraphicsManager graphicsManager, TimeSpan timestamp, bool isRunning);
 
 #endregion
+
+#region GUIElement Delegates
+
+/// <summary>
+/// Represents an event in the game regarding a <see cref="Scene"/>
+/// </summary>
+/// <param name="element">The <see cref="GUIElement"/> that experienced the change</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="oldContext">The data context <paramref name="element"/> previously had, if any</param>
+/// <param name="newContext">The data context <paramref name="element"/> now has, if any</param>
+public delegate void GUIElementDataContextChangedEvent(GUIElement element, TimeSpan timestamp, object? oldContext, object? newContext);
+
+#endregion
