@@ -233,7 +233,7 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
                 disposedValue = true;
             }
 
-            var @lock = Manager!.LockManager();
+            var @lock = Manager!.LockManagerDrawing();
             try
             {
                 Dispose(disposing);

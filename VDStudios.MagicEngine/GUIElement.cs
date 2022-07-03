@@ -350,7 +350,7 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
         {
             IDisposable? @lock = null;
             if (root)
-                @lock = Manager!.LockManager();
+                @lock = Manager!.LockManagerDrawing();
 
             if (disposedValue)
             {

@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using VDStudios.MagicEngine.Exceptions;
@@ -35,8 +36,12 @@ public class GraphicsManager : GameObject, IDisposable
         initLock.Wait();
         graphics_thread = new(() => Run().Wait());
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
-        IdleWaiter = new(FrameLock);
+
         CurrentSnapshot = new(this);
+        
+        framelockWaiter = new(FrameLock);
+        guilockWaiter = new(GUILock);
+        drawlockWaiter = new(DrawLock);
     }
 
     private readonly SemaphoreSlim initLock = new(1, 1);
@@ -81,7 +86,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <param name="operation">The <see cref="DrawOperation"/> that will be drawn in this <see cref="GraphicsManager"/></param>
     public async Task RegisterOperation(IDrawableNode node, DrawOperation operation)
     {
-        using (await LockManagerAsync())
+        using (await LockManagerDrawingAsync())
         {
             await operation.Register(node, this);
             if (!DrawOperationRegistering(operation, out var reason))
@@ -201,60 +206,108 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region Waiting
 
-    /// <summary>
-    /// Wait until the Manager becomes Idle
-    /// </summary>
-    public void WaitForIdle()
-    {
-        FrameLock.Wait();
-        FrameLock.Release();
-    }
+    #region DrawLock
+    private readonly idleWaiter drawlockWaiter;
 
     /// <summary>
-    /// Asynchronously waits until the Manager becomes Idle
-    /// </summary>
-    public async Task WaitForIdleAsync()
-    {
-        await FrameLock.WaitAsync();
-        FrameLock.Release();
-    }
-
-    /// <summary>
-    /// Waits until the Manager becomes idle and locks it
+    /// Waits until the Manager finishes drawing its <see cref="DrawOperation"/>s and locks it
     /// </summary>
     /// <remarks>
     /// *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
     /// </remarks>
     /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
-    public IDisposable LockManager()
+    public IDisposable LockManagerDrawing()
     {
-        FrameLock.Wait();
-        return IdleWaiter;
+        DrawLock.Wait();
+        return drawlockWaiter;
     }
 
     /// <summary>
-    /// Asynchronously waits until the Manager becomes idle and locks it
+    /// Asynchronously waits until the Manager finishes drawing its <see cref="DrawOperation"/>s and locks it
     /// </summary>
     /// <remarks>
     /// *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
     /// </remarks>
     /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
-    public async Task<IDisposable> LockManagerAsync()
+    public async Task<IDisposable> LockManagerDrawingAsync()
     {
-        await FrameLock.WaitAsync();
-        return IdleWaiter;
+        await DrawLock.WaitAsync();
+        return drawlockWaiter;
     }
 
-    private readonly idleWaiter IdleWaiter;
+    #endregion
+
+    #region GUILock
+    private readonly idleWaiter guilockWaiter;
+
+    /// <summary>
+    /// Waits until the Manager finishes drawing its <see cref="GUIElement"/>s and locks it
+    /// </summary>
+    /// <remarks>
+    /// *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
+    /// </remarks>
+    /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
+    public IDisposable LockManagerGUI()
+    {
+        GUILock.Wait();
+        return guilockWaiter;
+    }
+
+    /// <summary>
+    /// Asynchronously waits until the Manager finishes drawing its <see cref="GUIElement"/>s and locks it
+    /// </summary>
+    /// <remarks>
+    /// *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
+    /// </remarks>
+    /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
+    public async Task<IDisposable> LockManagerGUIAsync()
+    {
+        await GUILock.WaitAsync();
+        return guilockWaiter;
+    }
+
+    #endregion
+
+    #region FrameLock
+    private readonly idleWaiter framelockWaiter;
+
+    /// <summary>
+    /// Waits until the Manager finishes drawing the current frame and locks it
+    /// </summary>
+    /// <remarks>
+    /// Neither general drawing or GUI will be drawn until the frame is released. *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
+    /// </remarks>
+    /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
+    public IDisposable LockManagerFrame()
+    {
+        FrameLock.Wait();
+        return framelockWaiter;
+    }
+
+    /// <summary>
+    /// Asynchronously waits until the Manager finishes drawing the current frame and locks it
+    /// </summary>
+    /// <remarks>
+    /// Neither general drawing or GUI will be drawn until the frame is released. *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
+    /// </remarks>
+    /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
+    public async Task<IDisposable> LockManagerFrameAsync()
+    {
+        await FrameLock.WaitAsync();
+        return framelockWaiter;
+    }
+
+    #endregion
+
     private sealed class idleWaiter : IDisposable
     {
-        private SemaphoreSlim framelock;
+        private SemaphoreSlim @lock;
 
-        public idleWaiter(SemaphoreSlim fl) => framelock = fl;
+        public idleWaiter(SemaphoreSlim fl) => @lock = fl;
 
         public void Dispose()
         {
-            framelock.Release();
+            @lock.Release();
         }
     }
 
@@ -423,6 +476,9 @@ public class GraphicsManager : GameObject, IDisposable
     #region Internal
 
     private readonly SemaphoreSlim FrameLock = new(1, 1);
+    private readonly SemaphoreSlim DrawLock = new(1, 1);
+    private readonly SemaphoreSlim GUILock = new(1, 1);
+
     internal Vector4 LastReportedWinSize = default;
     internal DeviceBuffer? ScreenSizeBuffer;
     private bool SizeChanged = false;
@@ -458,9 +514,24 @@ public class GraphicsManager : GameObject, IDisposable
         graphics_thread.Start();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private async ValueTask<bool> WaitOn(SemaphoreSlim semaphore)
+    {
+        if (!semaphore.Wait(200))
+        {
+            if (!IsRunning)
+                return false;
+            while (!await semaphore.WaitAsync(500)) ;
+        }
+        return true;
+    }
+
     private async Task Run()
     {
-        var fl = FrameLock;
+        var framelock = FrameLock;
+        var drawlock = DrawLock;
+        var glock = GUILock;
+
         var sw = new Stopwatch();
         var drawqueue = new DrawQueue<DrawOperation>();
         var removalQueue = new Queue<Guid>(10);
@@ -468,74 +539,98 @@ public class GraphicsManager : GameObject, IDisposable
 
         var gd = Device!;
 
-        var prepCommands = CreateCommandList(gd, gd.ResourceFactory);
+        var managercl = CreateCommandList(gd, gd.ResourceFactory);
 
-        while (IsRunning)
+        while (IsRunning) // Running Loop
         {
-            if (!fl.Wait(500))
-                continue; // If 500ms pass and the FrameLock is still not released, check IsRunning again
-
+            if (!await WaitOn(framelock)) break; // Frame Render
             try
             {
                 Vector4 winsize = LastReportedWinSize;
                 lock (SnapshotPool)
-                    CurrentSnapshot.Clear();
+                    CurrentSnapshot.Clear(); // Clear the current InputSnapshot, as its now invalid in this frame
 
                 Running();
 
-                var ops = RegisteredOperations;
-
-                if (SizeChanged)
+                if (!await WaitOn(drawlock)) break; // Frame Render Stage 1: General Drawing
+                try
                 {
-                    SizeChanged = false;
-                    foreach (var kv in ops)
-                        if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
+                    var ops = RegisteredOperations;
+
+                    if (SizeChanged) // Handle Window Size Changes, this could potentially be refactored. Jump to the 'else' block
+                    {
+                        SizeChanged = false;
+                        foreach (var kv in ops)
+                            if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
+                            {
+                                await op.InternalCreateWindowSizedResources(ScreenSizeBuffer);
+                                op.Owner.AddToDrawQueue(drawqueue, op);
+                            }
+                            else
+                                removalQueue.Enqueue(kv.Key);
+                    }
+                    else
+                    {
+                        foreach (var kv in ops) // Iterate through all registered operations
+                            if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)  // Filter out those that have been disposed or collected
+                                op.Owner.AddToDrawQueue(drawqueue, op); // And query them
+                            else
+                                removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
+                    }
+
+                    while (removalQueue.Count > 0)
+                        ops.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
+
+                    managercl.Begin();
+                    PrepareForDraw(managercl, gd.SwapchainFramebuffer); // Set the base of the frame: clear the background, etc.
+                    managercl.End();
+                    gd.SubmitCommands(managercl);
+
+                    using (drawqueue._lock.Lock())
+                    {
+                        var buffers = ArrayPool<ValueTask>.Shared;
+                        var calls = buffers.Rent(ops.Count);
+                        try
                         {
-                            await op.InternalCreateWindowSizedResources(ScreenSizeBuffer);
-                            op.Owner.AddToDrawQueue(drawqueue, op);
+                            int i = 0;
+                            for (; drawqueue.Count > 0; i++)
+                                calls[i] = drawqueue.Dequeue().InternalDraw(delta, new Vector2(winsize.X / 2, winsize.Y / 2)); // Run operations in the DrawQueue
+                            while (i > 0)
+                                await calls[--i];
+                            gd.WaitForIdle(); // Wait for operations to finish
+                            gd.SwapBuffers(); // Present
                         }
-                        else
-                            removalQueue.Enqueue(kv.Key);
+                        finally
+                        {
+                            buffers.Return(calls, true);
+                        }
+                    }
                 }
-                else
+                finally
                 {
-                    foreach (var kv in ops)
-                        if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
-                            op.Owner.AddToDrawQueue(drawqueue, op);
-                        else
-                            removalQueue.Enqueue(kv.Key);
+                    drawlock.Release(); // End the general drawing stage
                 }
 
-                while (removalQueue.Count > 0)
-                    ops.Remove(removalQueue.Dequeue());
-
-                prepCommands.Begin();
-                PrepareForDraw(prepCommands, gd.SwapchainFramebuffer);
-                prepCommands.End();
-                gd.SubmitCommands(prepCommands);
-                using (drawqueue._lock.Lock())
+                if (!await WaitOn(glock)) break; // Frame Render Stage 2: GUI Drawing
+                try
                 {
-                    var buffers = ArrayPool<ValueTask>.Shared;
-                    var calls = buffers.Rent(ops.Count);
-                    try
+                    managercl.Begin();
+                    managercl.SetFramebuffer(gd.SwapchainFramebuffer); // Prepare for ImGUI
+                    using (ImGuiController.Begin()) // Lock ImGUI from other GraphicsManagers
                     {
-                        int i = 0;
-                        for (; drawqueue.Count > 0; i++)
-                            calls[i] = drawqueue.Dequeue().InternalDraw(delta, new Vector2(winsize.X / 2, winsize.Y / 2));
-                        while (i > 0)
-                            await calls[--i];
-                        gd.WaitForIdle();
-                        gd.SwapBuffers();
+                        foreach (var element in ImGuiElements)
+                            element.InternalSubmitUI(delta); // Submit UIs
+                        ImGuiController.Render(gd, managercl); // Render
                     }
-                    finally
-                    {
-                        buffers.Return(calls, true);
-                    }
+                }
+                finally
+                {
+                    glock.Release(); // End the GUI drawing stage
                 }
             }
             finally
             {
-                fl.Release(1); 
+                framelock.Release(); // End Frame Render
             }
 
             // Code that does not require any resources and is not bothered if resources are suddenly released
