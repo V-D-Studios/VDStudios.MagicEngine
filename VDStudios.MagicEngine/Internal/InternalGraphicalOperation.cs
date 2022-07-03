@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 namespace VDStudios.MagicEngine.Internal;
 
 /// <summary>
-/// Represents the base class for graphical operations, such as <see cref="DrawOperation"/>, <see cref="GUIDrawOperation"/>
+/// Represents the base class for graphical operations, such as <see cref="DrawOperation"/>, <see cref="GUIElement"/>
 /// </summary>
 /// <remarks>
 /// This class cannot be instanced or inherited by user code
 /// </remarks>
-public abstract class InternalGraphicalOperation
+public abstract class InternalGraphicalOperation : GameObject
 {
     internal InternalGraphicalOperation() { }
 
