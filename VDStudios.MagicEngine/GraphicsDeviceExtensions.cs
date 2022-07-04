@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Veldrid;
@@ -28,6 +29,6 @@ public static class GraphicsDeviceExtensions
     /// <param name="bufferOffsetInBytes">An offset, in bytes, from the beginning of <paramref name="buffer"/>'s storage, at which new data will be uploaded</param>
     public static void UpdateBuffer<T>(this GraphicsDevice device, DeviceBuffer buffer, uint bufferOffsetInBytes, Span<T> data) where T : unmanaged
     {
-        device.UpdateBuffer(buffer, bufferOffsetInBytes, ref data[0], SizeOf<T>.By((uint)data.Length));
+        device.UpdateBuffer(buffer, bufferOffsetInBytes, ref data[0], (uint)(Unsafe.SizeOf<T>() * data.Length));
     }
 }
