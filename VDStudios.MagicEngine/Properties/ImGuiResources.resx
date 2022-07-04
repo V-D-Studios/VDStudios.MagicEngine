@@ -118,10 +118,28 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="FragmentShader" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Assets\ImGui\Shaders\imgui-frag.glsl;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="FragmentGLSL" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Assets\ImGui\Shaders\FragmentGLSL.glsl;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="VertexShader" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Assets\ImGui\Shaders\imgui-vertex.glsl;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="FragmentHLSLBytes" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Assets\ImGui\Shaders\FragmentHLSLBytes.hlsl.bytes;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="FragmentMetal" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Assets\ImGui\Shaders\FragmentMetal.metallib;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="FragmentSPIRV" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Assets\ImGui\Shaders\FragmentSPIRV.spv;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="VertexGLSL" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Assets\ImGui\Shaders\VertexGLSL.glsl;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="VertexHLSLBytes" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Assets\ImGui\Shaders\VertexHLSLBytes.hlsl.bytes;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="VertexMetal" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Assets\ImGui\Shaders\VertexMetal.metallib;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="VertexSPIRV" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Assets\ImGui\Shaders\VertexSPIRV.spv;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
 </root>
