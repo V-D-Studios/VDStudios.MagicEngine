@@ -188,7 +188,7 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
     {
         ThrowIfInvalid();
         if (IsActive)
-            SubmitUI(delta, SubElements.GetEnumerator());
+            SubmitUI(delta, SubElements);
     }
 
     #endregion
@@ -217,7 +217,7 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
     private bool isActive = true;
 
     /// <summary>
-    /// Whether this element should be skipped when being enumerated during a call to <see cref="SubmitUI(TimeSpan, IEnumerator{GUIElement})"/>. Defaults to <c>false</c>
+    /// Whether this element should be skipped when being enumerated during a call to <see cref="SubmitUI(TimeSpan, IEnumerator{GUIElement}, int)"/>. Defaults to <c>false</c>
     /// </summary>
     /// <remarks>
     /// If this element is skipped from enumeration, the parent <see cref="GUIElement"/> will be entirely responsible for submiting its UI; be very careful with this property. GUIElements that are not registered, or are directly attached to a <see cref="GraphicsManager"/> cannot have this property modified
@@ -259,69 +259,14 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
     #region Helper Methods
 
     /// <summary>
-    /// Submits all remaining sub elements in order all at once, starting from the next <see cref="GUIElement"/> in the sequence, or the first one if it hasn't begun yet
+    /// Submits the UI of the passed <see cref="GUIElement"/>
     /// </summary>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
-    /// <param name="subElements">An IEnumerator that iterates over all of this <see cref="GUIElement"/>'s sub elements in sequence</param>
+    /// <param name="subElement">The element to submit</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static void SubmitAllRemaining(TimeSpan delta, IEnumerator<GUIElement> subElements)
+    protected static void Submit(TimeSpan delta, GUIElement subElement)
     {
-        while (subElements.MoveNext())
-            subElements.Current.InternalSubmitUI(delta);
-    }
-
-    /// <summary>
-    /// Submits the next sub element in <paramref name="subElements"/>
-    /// </summary>
-    /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
-    /// <param name="subElements">An IEnumerator that iterates over all of this <see cref="GUIElement"/>'s sub elements in sequence</param>
-    /// <returns><c>true</c> if a <see cref="GUIElement"/>'s UI was submitted, <c>false</c> if there are no more sub elements</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static bool SubmitNext(TimeSpan delta, IEnumerator<GUIElement> subElements)
-    {
-        if (subElements.MoveNext())
-        {
-            subElements.Current.InternalSubmitUI(delta);
-            return true;
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Submits the current sub element in <paramref name="subElements"/>
-    /// </summary>
-    /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
-    /// <param name="subElements">An IEnumerator that iterates over all of this <see cref="GUIElement"/>'s sub elements in sequence</param>
-    /// <returns><c>true</c> if a <see cref="GUIElement"/>'s UI was submitted, <c>false</c> if <see cref="IEnumerator{T}.Current"/> is <c>null</c></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static bool SubmitCurrent(TimeSpan delta, IEnumerator<GUIElement> subElements)
-    {
-        if (subElements.Current is GUIElement el)
-        {
-            el.InternalSubmitUI(delta);
-            return true;
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Submits the current sub element and moves to the next sub element in <paramref name="subElements"/>
-    /// </summary>
-    /// <remarks>
-    /// This method will move <paramref name="subElements"/> first if the current value is not available, and then move it again after
-    /// </remarks>
-    /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
-    /// <param name="subElements">An IEnumerator that iterates over all of this <see cref="GUIElement"/>'s sub elements in sequence</param>
-    /// <returns><c>true</c> if a <see cref="GUIElement"/>'s UI was submitted, <c>false</c> if there are no more sub elements</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static bool SubmitAndMoveNext(TimeSpan delta, IEnumerator<GUIElement> subElements)
-    {
-        if (subElements.MoveNext())
-        {
-            subElements.Current.InternalSubmitUI(delta);
-            return true;
-        }
-        return false;
+        subElement.InternalSubmitUI(delta);
     }
 
     #endregion
@@ -332,11 +277,11 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
     /// The method that will be used to draw the component
     /// </summary>
     /// <remarks>
-    /// You can use <see cref="SubmitCurrent(TimeSpan, IEnumerator{GUIElement})"/>, <see cref="SubmitAndMoveNext(TimeSpan, IEnumerator{GUIElement})"/>, <see cref="SubmitNext(TimeSpan, IEnumerator{GUIElement})"/>, and <see cref="SubmitAllRemaining(TimeSpan, IEnumerator{GUIElement})"/>. Unfinished calls and general uncarefulness with ImGUI WILL bleed into other <see cref="GUIElement"/>s
+    /// Unfinished calls and general uncarefulness with ImGUI WILL bleed into other <see cref="GUIElement"/>s
     /// </remarks>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
-    /// <param name="subElements">An IEnumerator that iterates over all of this <see cref="GUIElement"/>'s sub elements in sequence. The iteration begins *after* the first call to <see cref="IEnumerator.MoveNext()"/> if it returns <c>true</c>. Be careful not to skip the first one, or accidentally call <see cref="SubmitUI(TimeSpan, IEnumerator{GUIElement})"/> on a <c>null</c> value!</param>
-    protected abstract void SubmitUI(TimeSpan delta, IEnumerator<GUIElement> subElements);
+    /// <param name="subElements">An IReadOnlyCollection containing all of this <see cref="GUIElement"/>'s sub elements in sequence</param>
+    protected abstract void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements);
 
     #endregion
 
