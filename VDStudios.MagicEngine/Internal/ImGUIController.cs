@@ -153,9 +153,11 @@ internal class ImGuiController : IDisposable
         _projMatrixBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer | BufferUsage.Dynamic));
         _projMatrixBuffer.Name = "ImGui.NET Projection Buffer";
 
-        _shaders = factory.CreateFromSpirv(
-            new ShaderDescription(ShaderStages.Vertex, ImGuiResources.VertexShaderGLSL, "main"),
-            new ShaderDescription(ShaderStages.Fragment, ImGuiResources.FragmentShaderGLSL, "main"));
+        byte[] vertexShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "Vertex", ShaderStages.Vertex);
+        byte[] fragmentShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "Fragment", ShaderStages.Fragment);
+        _shaders = new Shader[2];
+        _shaders[0] = factory.CreateShader(new ShaderDescription(ShaderStages.Vertex, vertexShaderBytes, gd.BackendType == GraphicsBackend.Metal ? "VS" : "main"));
+        _shaders[1] = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, fragmentShaderBytes, gd.BackendType == GraphicsBackend.Metal ? "FS" : "main"));
 
         VertexLayoutDescription[] vertexLayouts = new VertexLayoutDescription[]
         {
@@ -293,6 +295,35 @@ internal class ImGuiController : IDisposable
         _fontTextureView = gd.ResourceFactory.CreateTextureView(_fontTexture);
 
         io.Fonts.ClearTexData();
+    }
+
+    private byte[] LoadEmbeddedShaderCode(ResourceFactory factory, string name, ShaderStages stage)
+    {
+        switch (factory.BackendType)
+        {
+            case GraphicsBackend.Direct3D11:
+                {
+                    string resourceName = name + "HLSLBytes";
+                    return (byte[])ImGuiResources.ResourceManager.GetObject(resourceName)!;
+                }
+            case GraphicsBackend.OpenGL:
+                {
+                    string resourceName = name + "GLSL";
+                    return (byte[])ImGuiResources.ResourceManager.GetObject(resourceName)!;
+                }
+            case GraphicsBackend.Vulkan:
+                {
+                    string resourceName = name + "SPIRV";
+                    return (byte[])ImGuiResources.ResourceManager.GetObject(resourceName)!;
+                }
+            case GraphicsBackend.Metal:
+                {
+                    string resourceName = name + "METAL";
+                    return (byte[])ImGuiResources.ResourceManager.GetObject(resourceName)!;
+                }
+            default:
+                throw new NotImplementedException();
+        }
     }
 
     /// <summary>
