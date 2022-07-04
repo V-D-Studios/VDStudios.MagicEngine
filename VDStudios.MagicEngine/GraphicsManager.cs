@@ -722,17 +722,18 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region Setup Methods
 
+    [MethodImpl]
     internal void SetupWindow()
     {
         CreateWindow(out var win, out var gd);
         Window = win;
         Device = gd;
 
-        Window_SizeChanged(win, Game.TotalTime, win.Size);
-
         var (ww, wh) = win.Size;
         ImGuiController = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
         ScreenSizeBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
+
+        Window_SizeChanged(win, Game.TotalTime, win.Size);
 
         win.SizeChanged += Window_SizeChanged;
         win.Closed += Window_Closed;
