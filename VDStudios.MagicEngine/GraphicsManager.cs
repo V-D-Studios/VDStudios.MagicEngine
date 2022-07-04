@@ -620,8 +620,6 @@ public class GraphicsManager : GameObject, IDisposable
                                     calls[i] = drawqueue.Dequeue().InternalDraw(delta, new Vector2(winsize.X / 2, winsize.Y / 2)); // Run operations in the DrawQueue
                                 while (i > 0)
                                     await calls[--i];
-                                gd.WaitForIdle(); // Wait for operations to finish
-                                gd.SwapBuffers(); // Present
                             }
                             finally
                             {
@@ -649,6 +647,8 @@ public class GraphicsManager : GameObject, IDisposable
                                         element.InternalSubmitUI(delta); // Submit UIs
                                     ImGuiController.Render(gd, managercl); // Render
                                 }
+                                managercl.End();
+                                gd.SubmitCommands(managercl);
                             }
                         }
                         finally
@@ -656,6 +656,9 @@ public class GraphicsManager : GameObject, IDisposable
                             glock.Release(); // End the GUI drawing stage
                         }
                     }
+
+                    gd.WaitForIdle(); // Wait for operations to finish
+                    gd.SwapBuffers(); // Present
                 }
                 finally
                 {
@@ -758,7 +761,8 @@ public class GraphicsManager : GameObject, IDisposable
     private void Window_Shown(Window sender, TimeSpan timestamp)
     {
         IsWindowAvailable = true;
-        WindowShownLock.Release();
+        if (WindowShownLock.CurrentCount == 0)
+            WindowShownLock.Release();
     }
 
     private void Window_Hidden(Window sender, TimeSpan timestamp)
