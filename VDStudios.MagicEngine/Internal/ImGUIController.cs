@@ -29,8 +29,7 @@ internal class ImGuiController : IDisposable
     private DeviceBuffer _projMatrixBuffer;
     private Texture _fontTexture;
     private TextureView _fontTextureView;
-    private Shader _vertexShader;
-    private Shader _fragmentShader;
+    private Shader[] _shaders;
     private ResourceLayout _layout;
     private ResourceLayout _textureLayout;
     private Pipeline _pipeline;
@@ -154,8 +153,9 @@ internal class ImGuiController : IDisposable
         _projMatrixBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer | BufferUsage.Dynamic));
         _projMatrixBuffer.Name = "ImGui.NET Projection Buffer";
 
-        _vertexShader = factory.CreateFromSpirv(new ShaderDescription(ShaderStages.Vertex, ImGuiResources.VertexShader, "main"));
-        _fragmentShader = factory.CreateFromSpirv(new ShaderDescription(ShaderStages.Fragment, ImGuiResources.FragmentShader, "main"));
+        _shaders = factory.CreateFromSpirv(
+            new ShaderDescription(ShaderStages.Vertex, ImGuiResources.VertexShaderGLSL, "main"),
+            new ShaderDescription(ShaderStages.Fragment, ImGuiResources.FragmentShaderGLSL, "main"));
 
         VertexLayoutDescription[] vertexLayouts = new VertexLayoutDescription[]
         {
@@ -171,16 +171,16 @@ internal class ImGuiController : IDisposable
         _textureLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("MainTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
 
-        GraphicsPipelineDescription pd = new GraphicsPipelineDescription(
+        _pipeline = factory.CreateGraphicsPipeline(new(
             BlendStateDescription.SingleAlphaBlend,
             new DepthStencilStateDescription(false, false, ComparisonKind.Always),
             new RasterizerStateDescription(FaceCullMode.None, PolygonFillMode.Solid, FrontFace.Clockwise, false, true),
             PrimitiveTopology.TriangleList,
-            new ShaderSetDescription(vertexLayouts, new[] { _vertexShader, _fragmentShader }),
+            new ShaderSetDescription(vertexLayouts, _shaders),
             new ResourceLayout[] { _layout, _textureLayout },
             outputDescription,
-            ResourceBindingModel.Default);
-        _pipeline = factory.CreateGraphicsPipeline(ref pd);
+            ResourceBindingModel.Improved)
+        );
 
         _mainResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_layout,
             _projMatrixBuffer,
@@ -547,8 +547,7 @@ internal class ImGuiController : IDisposable
         _projMatrixBuffer.Dispose();
         _fontTexture.Dispose();
         _fontTextureView.Dispose();
-        _vertexShader.Dispose();
-        _fragmentShader.Dispose();
+        for (int i = 0; i < _shaders.Length; i++) _shaders[i].Dispose();
         _layout.Dispose();
         _textureLayout.Dispose();
         _pipeline.Dispose();
