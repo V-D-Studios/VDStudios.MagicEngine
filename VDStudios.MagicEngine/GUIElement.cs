@@ -106,7 +106,7 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
 
     internal void RegisterOnto(GraphicsManager manager, object? context = null)
     {
-        ThrowIfInvalid();
+        ThrowIfDisposed();
 
         Registering(manager);
 
@@ -119,7 +119,7 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
 
     internal void RegisterOnto(GUIElement parent, GraphicsManager manager, object? context = null)
     {
-        ThrowIfInvalid();
+        ThrowIfDisposed();
 
         Registering(parent, manager);
 
