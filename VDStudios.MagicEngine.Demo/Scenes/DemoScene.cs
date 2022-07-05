@@ -20,7 +20,7 @@ public sealed class DemoScene : Scene
         //await Attach(new PlayerNode());
 
         // The following code can (and should) go somewhere else
-        int top = Random.Shared.Next(0, 6);
+        int top = Random.Shared.Next(1, 6);
         int mid = Random.Shared.Next(0, 6);
         int bot = Random.Shared.Next(0, 6);
 
