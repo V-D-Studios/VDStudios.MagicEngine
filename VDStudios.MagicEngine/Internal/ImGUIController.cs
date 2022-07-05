@@ -56,36 +56,6 @@ internal class ImGuiController : IDisposable
     private int _lastAssignedID = 100;
     private readonly IntPtr Context;
 
-    private sealed class ImGuiControllerLockRelease : IDisposable
-    {
-        private readonly ImGuiController Controller;
-
-        public ImGuiControllerLockRelease(ImGuiController controller)
-        {
-            Controller = controller;
-        }
-
-        public bool lockTaken;
-        public void Enter()
-        {
-            Monitor.Enter(SyncImGUI, ref lockTaken);
-            ImGui.SetCurrentContext(Controller.Context);
-            ImGui.NewFrame();
-        }
-
-        public void Exit()
-        {
-            ImGui.EndFrame();
-            if (lockTaken)
-            {
-                lockTaken = false;
-                Monitor.Exit(SyncImGUI);
-            }
-        }
-
-        void IDisposable.Dispose() => Exit();
-    }
-
     /// <summary>
     /// Constructs a new ImGuiController.
     /// </summary>
@@ -108,25 +78,6 @@ internal class ImGuiController : IDisposable
 
             SetPerFrameImGuiData(1f / 60f);
         }
-
-        lockRelease = new(this);
-    }
-
-    private readonly ImGuiControllerLockRelease lockRelease;
-
-    /// <summary>
-    /// Begins a new Frame and locks ImGUI from multi-threaded access
-    /// </summary>
-    /// <remarks>
-    /// **ALWAYS** wrap the the returned <see cref="IDisposable"/> in an using statement. Failing to dispose of it (releasing the lock) WILL result in a deadlock for all <see cref="GraphicsManager"/>s that use ImGUI in any given frame
-    /// </remarks>
-    /// <returns>
-    /// An object that, when disposed, will release ImGUI and End the frame
-    /// </returns>
-    public IDisposable Begin()
-    {
-        lockRelease.Enter();
-        return lockRelease;
     }
 
     public void WindowResized(int width, int height)
@@ -327,18 +278,6 @@ internal class ImGuiController : IDisposable
     }
 
     /// <summary>
-    /// Renders the ImGui draw list data.
-    /// This method requires a <see cref="GraphicsDevice"/> because it may create new DeviceBuffers if the size of vertex
-    /// or index data has increased beyond the capacity of the existing buffers.
-    /// A <see cref="CommandList"/> is needed to submit drawing and resource update commands.
-    /// </summary>
-    public void Render(GraphicsDevice gd, CommandList cl)
-    {
-        ImGui.Render();
-        RenderImDrawData(ImGui.GetDrawData(), gd, cl);
-    }
-
-    /// <summary>
     /// Updates ImGui input and IO configuration state.
     /// </summary>
     public void Update(float deltaSeconds, InputSnapshot snapshot)
@@ -465,7 +404,7 @@ internal class ImGuiController : IDisposable
         io.KeyMap[(int)ImGuiKey.Z] = (int)Scancode.Z;
     }
 
-    private void RenderImDrawData(ImDrawDataPtr draw_data, GraphicsDevice gd, CommandList cl)
+    public void RenderImDrawData(ImDrawDataPtr draw_data, GraphicsDevice gd, CommandList cl)
     {
         uint vertexOffsetInVertices = 0;
         uint indexOffsetInElements = 0;

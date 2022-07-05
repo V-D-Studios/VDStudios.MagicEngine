@@ -16,6 +16,7 @@ using System.Diagnostics;
 using Veldrid;
 using VeldridPixelFormat = Veldrid.PixelFormat;
 using VDStudios.MagicEngine.Exceptions;
+using ImGuiNET;
 
 namespace VDStudios.MagicEngine;
 
@@ -482,6 +483,7 @@ public class Game : SDLApplication<Game>
     private async Task Run(IGameLifetime lifetime)
     {
         var sw = new Stopwatch();
+        TimeSpan delta = default;
         Scene scene;
 
         var sceneSetupList = new List<ValueTask>(10);
@@ -504,8 +506,6 @@ public class Game : SDLApplication<Game>
                 sceneSetupList.Clear();
             }
 
-            sw.Restart();
-
             if (nextScene is not null)
             {
                 var prev = currentScene!;
@@ -523,10 +523,31 @@ public class Game : SDLApplication<Game>
 
             scene = CurrentScene;
 
-            await scene.Update(sw.Elapsed).ConfigureAwait(false);
+            await scene.Update(delta).ConfigureAwait(false);
             await scene.RegisterDrawOperations();
 
+            int gmc = ActiveGraphicsManagers.Count;
+            for (int i = 0; i < gmc; i++)
+            {
+                var manager = ActiveGraphicsManagers[i];
+                lock (ImGuiController.SyncImGUI)
+                {
+                    foreach (var element in manager.GUIElements)
+                        element.InternalSubmitUI(delta); // Submit UIs
+                    using var snapshot = manager.FetchSnapshot();
+                    manager.ImGuiController.Update(1 / 60f, snapshot);
+                    ImGui.Render();
+                    manager.ImGuiDrawData = ImGui.GetDrawData();
+                    ImGui.Begin("This should not be shown!");
+                    ImGui.Button("Neither should this!");
+                    ImGui.End();
+                    ImGui.Render();
+                }
+            }
+
             _ups = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);
+            delta = sw.Elapsed;
+            sw.Restart();
         }
 
         await CurrentScene.End();

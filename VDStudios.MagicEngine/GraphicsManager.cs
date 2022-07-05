@@ -1,4 +1,5 @@
-﻿using SDL2.NET;
+﻿using ImGuiNET;
+using SDL2.NET;
 using SDL2.NET.Input;
 using System;
 using System.Buffers;
@@ -210,7 +211,8 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region ImGUI
 
-    private ImGuiController ImGuiController;
+    internal ImDrawDataPtr ImGuiDrawData;
+    internal ImGuiController ImGuiController;
 
     /// <summary>
     /// Represents the <see cref="GUIElement"/>s currently held by this <see cref="GraphicsManager"/>
@@ -655,26 +657,17 @@ public class GraphicsManager : GameObject, IDisposable
                         drawlock.Release(); // End the general drawing stage
                     }
                 
-                    if (GUIElements.Count > 0) // There's no need to lock neither glock nor ImGUI lock if there are no elements to render. And if it does change between this check and the second one, then tough luck and it'll have to wait until the next frame
+                    if (ImGuiDrawData is { NativePtr: not null } and { Valid: true }) // There's no need to lock neither glock nor ImGUI lock if there are no elements to render. And if it does change between this check and the second one, then tough luck and it'll have to wait until the next frame
                     {
                         if (!await WaitOn(glock, condition: IsRunning)) break; // Frame Render Stage 2: GUI Drawing
                         try
                         {
-                            if (GUIElements.Count > 0) // We check twice, as it may have changed between the first check and the lock being adquired
-                            {
-                                managercl.Begin();
-                                managercl.SetFramebuffer(gd.SwapchainFramebuffer); // Prepare for ImGUI
-                                using (ImGuiController.Begin()) // Lock ImGUI from other GraphicsManagers
-                                {
-                                    foreach (var element in GUIElements)
-                                        element.InternalSubmitUI(delta); // Submit UIs
-                                    using (var snapshot = FetchSnapshot())
-                                        ImGuiController.Update(1 / 60f, snapshot);
-                                    ImGuiController.Render(gd, managercl); // Render
-                                }
-                                managercl.End();
-                                gd.SubmitCommands(managercl);
-                            }
+                            managercl.Begin();
+                            managercl.SetFramebuffer(gd.SwapchainFramebuffer); // Prepare for ImGUI
+                            lock (ImGuiController.SyncImGUI)
+                                ImGuiController.RenderImDrawData(ImGuiDrawData, gd, managercl); // Render
+                            managercl.End();
+                            gd.SubmitCommands(managercl);
                         }
                         finally
                         {
