@@ -1,4 +1,5 @@
 ﻿using SDL2.NET;
+using SDL2.NET.Input;
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
@@ -38,6 +39,7 @@ public class GraphicsManager : GameObject, IDisposable
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
 
         CurrentSnapshot = new(this);
+        snapshotBuffer = new(this);
         
         framelockWaiter = new(FrameLock);
         guilockWaiter = new(GUILock);
@@ -127,13 +129,17 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region Input Management
 
+    private InputSnapshot snapshotBuffer;
     private InputSnapshot CurrentSnapshot;
     private readonly Queue<InputSnapshot> SnapshotPool = new(3);
 
     internal void ReturnSnapshot(InputSnapshot snapshot)
     {
         lock (SnapshotPool)
+        {
+            snapshot.Clear();
             SnapshotPool.Enqueue(snapshot);
+        }
     }
 
     internal InputSnapshot FetchSnapshot()
@@ -145,7 +151,7 @@ public class GraphicsManager : GameObject, IDisposable
                 snap = new(this);
             CurrentSnapshot = snap;
             ret.CopyTo(snap);
-            ret.LastUpdated = Game.TotalTime;
+            ret.FetchLastMomentData();
             return ret;
         }
     }
@@ -154,45 +160,49 @@ public class GraphicsManager : GameObject, IDisposable
     {
         lock (SnapshotPool)
         {
-            CurrentSnapshot.WheelVerticalDelta = verticalScroll;
-            CurrentSnapshot.WheelHorizontalDelta = horizontalScroll;
+            snapshotBuffer.WheelVerticalDelta = verticalScroll;
+            snapshotBuffer.WheelHorizontalDelta = horizontalScroll;
         }
     }
 
     private void Window_MouseMoved(Window sender, TimeSpan timestamp, Point delta, Point newPosition, uint mouseId, MouseButton pressed)
     {
         lock (SnapshotPool)
-        {
-            var mp = new Vector2(newPosition.X, newPosition.Y);
-            CurrentSnapshot.mEvs.Add(new(new(delta.X, delta.Y), mp, pressed));
-            CurrentSnapshot.MousePosition = mp;
-        }
+            snapshotBuffer.mEvs.Add(new(new(delta.X, delta.Y), new Vector2(newPosition.X, newPosition.Y), default));
     }
 
     private void Window_MouseButtonReleased(Window sender, TimeSpan timestamp, uint mouseId, int clicks, MouseButton state)
     {
+        var mp = Mouse.MouseState.Location;
         lock (SnapshotPool)
-            CurrentSnapshot.butt &= ~state;
+        {
+            snapshotBuffer.butt &= ~state;
+            snapshotBuffer.mEvs.Add(new(Vector2.Zero, new Vector2(mp.X, mp.Y), state));
+        }
     }
 
     private void Window_MouseButtonPressed(Window sender, TimeSpan timestamp, uint mouseId, int clicks, MouseButton state)
     {
+        var mp = Mouse.MouseState.Location;
         lock (SnapshotPool)
-            CurrentSnapshot.butt |= state;
+        {
+            snapshotBuffer.butt |= state;
+            snapshotBuffer.mEvs.Add(new(Vector2.Zero, new Vector2(mp.X, mp.Y), state));
+        }
     }
 
     private void Window_KeyReleased(Window sender, TimeSpan timestamp, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
     {
         lock (SnapshotPool)
-            CurrentSnapshot.kEvs.Add(new(scancode, key, modifiers, isPressed, repeat, unicode));
+            snapshotBuffer.kEvs.Add(new(scancode, key, modifiers, false, repeat, unicode));
     }
 
     private void Window_KeyPressed(Window sender, TimeSpan timestamp, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
     {
         lock (SnapshotPool)
         {
-            CurrentSnapshot.kEvs.Add(new(scancode, key, modifiers, isPressed, repeat, unicode));
-            CurrentSnapshot.kcEvs.Add(unicode);
+            snapshotBuffer.kEvs.Add(new(scancode, key, modifiers, true, repeat, unicode));
+            snapshotBuffer.kcEvs.Add(unicode);
         }
     }
 
@@ -540,7 +550,9 @@ public class GraphicsManager : GameObject, IDisposable
         {
             if (!IsRunning)
                 return false;
-            while (!await semaphore.WaitAsync(asyncWait)) ;
+            while (!await semaphore.WaitAsync(asyncWait))
+                if (!IsRunning)
+                    return false;
         }
         return true;
     }
@@ -561,6 +573,8 @@ public class GraphicsManager : GameObject, IDisposable
 
         var managercl = CreateCommandList(gd, gd.ResourceFactory);
 
+        long frameCount = 0;
+
         while (IsRunning) // Running Loop
         {
             if (!await WaitOn(winlock, 100, 5000)) break; // Window Lock is separate from FrameLock simply because it's not publicly available
@@ -570,8 +584,6 @@ public class GraphicsManager : GameObject, IDisposable
                 try
                 {
                     Vector4 winsize = LastReportedWinSize;
-                    lock (SnapshotPool)
-                        CurrentSnapshot.Clear(); // Clear the current InputSnapshot, as its now invalid in this frame
 
                     Running();
 
@@ -645,6 +657,8 @@ public class GraphicsManager : GameObject, IDisposable
                                 {
                                     foreach (var element in GUIElements)
                                         element.InternalSubmitUI(delta); // Submit UIs
+                                    using (var snapshot = FetchSnapshot())
+                                        ImGuiController.Update(1 / 60f, snapshot);
                                     ImGuiController.Render(gd, managercl); // Render
                                 }
                                 managercl.End();
@@ -671,8 +685,15 @@ public class GraphicsManager : GameObject, IDisposable
             }
 
             // Code that does not require any resources and is not bothered if resources are suddenly released
+
+            lock (SnapshotPool)
+            {
+                snapshotBuffer.CopyTo(CurrentSnapshot);
+                snapshotBuffer.Clear();
+            }
             
             _fps = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);
+            frameCount++;
             delta = sw.Elapsed;
             sw.Restart();
         }

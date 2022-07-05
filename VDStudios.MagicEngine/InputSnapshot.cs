@@ -98,9 +98,14 @@ public sealed class InputSnapshot : IDisposable
     public void ReturnToPool()
         => Manager.ReturnSnapshot(this);
 
+    internal void FetchLastMomentData()
+    {
+        var ms = Mouse.MouseState;
+        MousePosition = new(ms.Location.X, ms.Location.Y);
+    }
+
     internal void Clear()
     {
-        butt = 0;
         WheelHorizontalDelta = 0;
         WheelVerticalDelta = 0;
         MousePosition = default;
@@ -116,17 +121,20 @@ public sealed class InputSnapshot : IDisposable
         other.WheelVerticalDelta = WheelVerticalDelta;
         other.MousePosition = MousePosition;
 
+        other.kEvs.Clear();
         other.kEvs.EnsureCapacity(kEvs.Capacity);
         for (int i = 0; i < kEvs.Count; i++)
-            other.kEvs[i] = kEvs[i];
+            other.kEvs.Add(kEvs[i]);
 
+        other.kcEvs.Clear();
         other.kcEvs.EnsureCapacity(kcEvs.Capacity);
         for (int i = 0; i < kcEvs.Count; i++)
-            other.kcEvs[i] = kcEvs[i];
+            other.kcEvs.Add(kcEvs[i]);
 
+        other.mEvs.Clear();
         other.mEvs.EnsureCapacity(mEvs.Capacity);
         for (int i = 0; i < mEvs.Count; i++)
-            other.mEvs[i] = mEvs[i];
+            other.mEvs.Add(mEvs[i]);
     }
 
     void IDisposable.Dispose() => ReturnToPool();

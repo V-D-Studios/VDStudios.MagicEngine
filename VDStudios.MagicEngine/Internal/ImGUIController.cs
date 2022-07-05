@@ -371,64 +371,66 @@ internal class ImGuiController : IDisposable
         bool leftPressed = false;
         bool middlePressed = false;
         bool rightPressed = false;
-        byte p = 0;
         foreach (var me in snapshot.MouseEvents)
         {
-            var mep = me.Pressed;
-
-            if (!leftPressed && mep.HasFlag(MouseButton.Left))
+            if (me.Pressed != 0) 
             {
-                leftPressed = true;
-                p++;
+                switch (me.Pressed)
+                {
+                    case MouseButton.Left:
+                        leftPressed = true;
+                        break;
+                    case MouseButton.Middle:
+                        middlePressed = true;
+                        break;
+                    case MouseButton.Right:
+                        rightPressed = true;
+                        break;
+                }
             }
-            if (!middlePressed && mep.HasFlag(MouseButton.Middle))
-            {
-                middlePressed = true;
-                p++;
-            }
-            if (!rightPressed && mep.HasFlag(MouseButton.Right))
-            {
-                rightPressed = true;
-                p++;
-            }
-
-            if (p >= 3) break;
         }
 
+#if DEBUG
+        var rdown = rightPressed || snapshot.IsMouseDown(MouseButton.Right);
+        var ldown = leftPressed || snapshot.IsMouseDown(MouseButton.Left);
+        var mdown = middlePressed || snapshot.IsMouseDown(MouseButton.Middle);
+        io.MouseDown[0] = ldown;
+        io.MouseDown[1] = rdown;
+        io.MouseDown[2] = mdown;
+#else
         io.MouseDown[0] = leftPressed || snapshot.IsMouseDown(MouseButton.Left);
         io.MouseDown[1] = rightPressed || snapshot.IsMouseDown(MouseButton.Right);
         io.MouseDown[2] = middlePressed || snapshot.IsMouseDown(MouseButton.Middle);
+#endif
         io.MousePos = mousePosition;
         io.MouseWheel = snapshot.WheelVerticalDelta;
         io.MouseWheelH = snapshot.WheelHorizontalDelta;
 
-        var keyCharPresses = snapshot.KeyCharPresses;
+        IReadOnlyList<uint> keyCharPresses = snapshot.KeyCharPresses;
         for (int i = 0; i < keyCharPresses.Count; i++)
         {
             uint c = keyCharPresses[i];
             io.AddInputCharacter(c);
         }
 
-        IReadOnlyList<KeyEventRecord> keyEvents = snapshot.KeyEvents;
-        for (int i = 0; i < keyEvents.Count; i++)
+        foreach (var ke in snapshot.KeyEvents) 
         {
-            var keyEvent = keyEvents[i];
-            io.KeysDown[(int)keyEvent.Scancode] = keyEvent.IsPressed;
-            if (keyEvent.Scancode == Scancode.LeftControl)
+            io.KeysDown[(int)ke.Scancode] = ke.IsPressed;
+            if (ke.Scancode == Scancode.LeftControl)
             {
-                _controlDown |= keyEvent.IsPressed;
+                _controlDown = ke.IsPressed;
             }
-            if (keyEvent.Scancode == Scancode.LeftShift)
+            if (ke.Scancode == Scancode.LeftShift)
             {
-                _shiftDown |= keyEvent.IsPressed;
+                _shiftDown = ke.IsPressed;
             }
-            if (keyEvent.Scancode == Scancode.LeftAlt)
+            if (ke.Scancode == Scancode.LeftAlt)
             {
-                _altDown |= keyEvent.IsPressed;
+                _altDown = ke.IsPressed;
             }
-            if (keyEvent.Scancode == Scancode.LeftGUI)
+            if (ke.Scancode == Scancode.LeftGUI)
             {
-                _winKeyDown |= keyEvent.IsPressed;
+                _winKeyDown = ke.IsPressed;
             }
         }
 
