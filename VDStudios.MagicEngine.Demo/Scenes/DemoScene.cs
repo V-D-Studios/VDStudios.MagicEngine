@@ -24,6 +24,8 @@ public sealed class DemoScene : Scene
         int mid = Random.Shared.Next(0, 6);
         int bot = Random.Shared.Next(0, 6);
 
+        Game.MainGraphicsManager.AddElement(new ImGUIDemo());
+
         for (int t = 0; t < top; t++)
         {
             var tel = new TestElement();
