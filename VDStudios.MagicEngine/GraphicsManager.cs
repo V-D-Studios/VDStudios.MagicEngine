@@ -778,8 +778,15 @@ public class GraphicsManager : GameObject, IDisposable
         win.MouseButtonReleased += Window_MouseButtonReleased;
         win.MouseMoved += Window_MouseMoved;
         win.MouseWheelScrolled += Window_MouseWheelScrolled;
+        win.MouseExited += Window_MouseExited;
         win.Hidden += Window_Hidden;
         win.Shown += Window_Shown;
+    }
+
+    private void Window_MouseExited(Window sender, TimeSpan timestamp, Point delta, Point newPosition, uint mouseId, MouseButton pressed)
+    {
+        lock (SnapshotPool)
+            snapshotBuffer.butt = 0;
     }
 
     /// <summary>
@@ -796,6 +803,8 @@ public class GraphicsManager : GameObject, IDisposable
         try
         {
             IsWindowAvailable = true;
+            lock (SnapshotPool)
+                snapshotBuffer.butt = 0;
         }
         finally
         {
@@ -809,6 +818,8 @@ public class GraphicsManager : GameObject, IDisposable
         try
         {
             IsWindowAvailable = false;
+            lock (SnapshotPool)
+                snapshotBuffer.butt = 0;
         }
         finally
         {
