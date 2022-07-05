@@ -544,14 +544,14 @@ public class GraphicsManager : GameObject, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private async ValueTask<bool> WaitOn(SemaphoreSlim semaphore, int syncWait = 200, int asyncWait = 500)
+    private async ValueTask<bool> WaitOn(SemaphoreSlim semaphore, bool condition, int syncWait = 200, int asyncWait = 500)
     {
         if (!semaphore.Wait(syncWait))
         {
-            if (!IsRunning)
+            if (!condition)
                 return false;
             while (!await semaphore.WaitAsync(asyncWait))
-                if (!IsRunning)
+                if (!condition)
                     return false;
         }
         return true;
@@ -575,19 +575,30 @@ public class GraphicsManager : GameObject, IDisposable
 
         long frameCount = 0;
 
+        await PerformOnWindowAndWaitAsync(w => IsWindowAvailable = w.Flags.HasFlag(WindowFlags.Shown));
+
         while (IsRunning) // Running Loop
         {
-            if (!await WaitOn(winlock, 100, 5000)) break; // Window Lock is separate from FrameLock simply because it's not publicly available
+            if (!IsWindowAvailable)
+            {
+                var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+                while (!IsWindowAvailable)
+                    await timer.WaitForNextTickAsync();
+            }
+
+            if (!await WaitOn(winlock, condition: IsWindowAvailable, syncWait: 100, asyncWait: 5000))
+                continue;
+            
             try
             {
-                if (!await WaitOn(framelock)) break; // Frame Render
+                if (!await WaitOn(framelock, condition: IsRunning)) break; // Frame Render
                 try
                 {
                     Vector4 winsize = LastReportedWinSize;
 
                     Running();
 
-                    if (!await WaitOn(drawlock)) break; // Frame Render Stage 1: General Drawing
+                    if (!await WaitOn(drawlock, condition: IsRunning)) break; // Frame Render Stage 1: General Drawing
                     try
                     {
                         var ops = RegisteredOperations;
@@ -646,7 +657,7 @@ public class GraphicsManager : GameObject, IDisposable
                 
                     if (GUIElements.Count > 0) // There's no need to lock neither glock nor ImGUI lock if there are no elements to render. And if it does change between this check and the second one, then tough luck and it'll have to wait until the next frame
                     {
-                        if (!await WaitOn(glock)) break; // Frame Render Stage 2: GUI Drawing
+                        if (!await WaitOn(glock, condition: IsRunning)) break; // Frame Render Stage 2: GUI Drawing
                         try
                         {
                             if (GUIElements.Count > 0) // We check twice, as it may have changed between the first check and the lock being adquired
@@ -781,15 +792,28 @@ public class GraphicsManager : GameObject, IDisposable
 
     private void Window_Shown(Window sender, TimeSpan timestamp)
     {
-        IsWindowAvailable = true;
-        if (WindowShownLock.CurrentCount == 0)
+        WindowShownLock.Wait();
+        try
+        {
+            IsWindowAvailable = true;
+        }
+        finally
+        {
             WindowShownLock.Release();
+        }
     }
 
     private void Window_Hidden(Window sender, TimeSpan timestamp)
     {
         WindowShownLock.Wait();
-        IsWindowAvailable = false;
+        try
+        {
+            IsWindowAvailable = false;
+        }
+        finally
+        {
+            WindowShownLock.Release();
+        }
     }
 
     /// <summary>
