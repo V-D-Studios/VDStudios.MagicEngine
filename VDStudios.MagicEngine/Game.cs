@@ -532,10 +532,12 @@ public class Game : SDLApplication<Game>
                 var manager = ActiveGraphicsManagers[i];
                 lock (ImGuiController.SyncImGUI)
                 {
-                    foreach (var element in manager.GUIElements)
-                        element.InternalSubmitUI(delta); // Submit UIs
                     using var snapshot = manager.FetchSnapshot();
                     manager.ImGuiController.Update(1 / 60f, snapshot);
+                    ImGui.NewFrame();
+                    foreach (var element in manager.GUIElements)
+                        element.InternalSubmitUI(delta); // Submit UIs
+                    ImGui.EndFrame();
                     ImGui.Render();
                     manager.ImGuiDrawData = ImGui.GetDrawData();
                     ImGui.Begin("This should not be shown!");
