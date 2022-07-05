@@ -482,6 +482,7 @@ public class Game : SDLApplication<Game>
 
     private async Task Run(IGameLifetime lifetime)
     {
+        nuint frameCount = 0; // This is not a reliable way of counting the amount of frames that have been rendered. In fact, such information should NOT be sought. This is merely a counter, that can and will likely overflow often
         var sw = new Stopwatch();
         TimeSpan delta = default;
         Scene scene;
@@ -533,22 +534,19 @@ public class Game : SDLApplication<Game>
                 lock (ImGuiController.SyncImGUI)
                 {
                     using var snapshot = manager.FetchSnapshot();
-                    manager.ImGuiController.Update(1 / 60f, snapshot);
+                    manager.ImGuiController.Update((float)delta.TotalSeconds, snapshot);
                     ImGui.NewFrame();
                     foreach (var element in manager.GUIElements)
                         element.InternalSubmitUI(delta); // Submit UIs
                     ImGui.EndFrame();
                     ImGui.Render();
                     manager.ImGuiDrawData = ImGui.GetDrawData();
-                    ImGui.Begin("This should not be shown!");
-                    ImGui.Button("Neither should this!");
-                    ImGui.End();
-                    ImGui.Render();
                 }
             }
 
             _ups = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);
             delta = sw.Elapsed;
+            unchecked { frameCount++; }
             sw.Restart();
         }
 
