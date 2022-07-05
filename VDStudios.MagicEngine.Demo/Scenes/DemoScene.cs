@@ -21,8 +21,6 @@ public sealed class DemoScene : Scene
 
         // The following code can (and should) go somewhere else
         int top = Random.Shared.Next(1, 6);
-        int mid = Random.Shared.Next(0, 6);
-        int bot = Random.Shared.Next(0, 6);
 
         Game.MainGraphicsManager.AddElement(new ImGUIDemo());
 
@@ -30,12 +28,14 @@ public sealed class DemoScene : Scene
         {
             var tel = new TestElement();
             Game.MainGraphicsManager.AddElement(tel);
-            
+
+            int mid = Random.Shared.Next(0, 6);
             for (int m = 0; m < mid; m++)
             {
                 var mel = new TestElement();
                 tel.AddElement(mel);
 
+                int bot = Random.Shared.Next(0, 6);
                 for (int b = 0; b < bot; b++)
                 {
                     var bel = new TestElement();
