@@ -569,6 +569,8 @@ public class GraphicsManager : GameObject, IDisposable
         var removalQueue = new Queue<Guid>(10);
         TimeSpan delta = default;
 
+        var drawBuffer = new ValueTask<CommandList>[10];
+
         var gd = Device!;
 
         var managercl = CreateCommandList(gd, gd.ResourceFactory);
@@ -629,20 +631,14 @@ public class GraphicsManager : GameObject, IDisposable
 
                         using (drawqueue._lock.Lock())
                         {
-                            var buffers = ArrayPool<ValueTask>.Shared;
-                            var calls = buffers.Rent(ops.Count);
-                            try
-                            {
-                                int i = 0;
-                                for (; drawqueue.Count > 0; i++)
-                                    calls[i] = drawqueue.Dequeue().InternalDraw(delta, new Vector2(winsize.X / 2, winsize.Y / 2)); // Run operations in the DrawQueue
-                                while (i > 0)
-                                    await calls[--i];
-                            }
-                            finally
-                            {
-                                buffers.Return(calls, true);
-                            }
+                            if (drawBuffer.Length < drawqueue.Count)
+                                drawBuffer = new ValueTask<CommandList>[Math.Max(drawBuffer.Length * 2, drawqueue.Count)];
+
+                            int i = 0;
+                            while (drawqueue.Count > 0) 
+                                drawBuffer[i++] = drawqueue.Dequeue().InternalDraw(delta, new Vector2(winsize.X / 2, winsize.Y / 2)); // Run operations in the DrawQueue
+                            while (i > 0)
+                                gd.SubmitCommands(await drawBuffer[--i]);
                         }
                     }
                     finally
