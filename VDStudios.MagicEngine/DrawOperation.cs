@@ -1,5 +1,6 @@
 ﻿using SDL2.NET;
 using System.Numerics;
+using VDStudios.MagicEngine.Internal;
 using Veldrid;
 
 namespace VDStudios.MagicEngine;
@@ -10,7 +11,7 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// Try to keep an object created from this class cached somewhere in a node, as they incur a number of allocations that should be avoided in a HotPath like the rendering sequence
 /// </remarks>
-public abstract class DrawOperation : IDisposable
+public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
 {
     private readonly SemaphoreSlim sync = new(1, 1);
 
@@ -25,24 +26,7 @@ public abstract class DrawOperation : IDisposable
     /// </remarks>
     public IDrawableNode Owner { get; private set; }
 
-    /// <summary>
-    /// This <see cref="DrawOperation"/>'s unique identifier, generated automatically
-    /// </summary>
-    public Guid Identifier { get; } = Guid.NewGuid();
-
     #region Registration
-
-    #region Properties
-
-    /// <summary>
-    /// The <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered onto
-    /// </summary>
-    /// <remarks>
-    /// Will be null if this <see cref="DrawOperation"/> is not registered
-    /// </remarks>
-    public GraphicsManager? Manager { get; private set; }
-
-    #endregion
 
     #region Internal
 
@@ -249,7 +233,7 @@ public abstract class DrawOperation : IDisposable
                 disposedValue = true;
             }
 
-            var @lock = Manager!.LockManager();
+            var @lock = Manager!.LockManagerDrawing();
             try
             {
                 Dispose(disposing);

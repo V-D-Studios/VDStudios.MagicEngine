@@ -26,6 +26,7 @@
 		<None Include="lib\*.txt" />
 	</ItemGroup>
 	<ItemGroup>
+	  <PackageReference Include="ImGui.NET" Version="1.87.3" />
 	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
 	  <PackageReference Include="Nito.AsyncEx.Coordination" Version="5.1.2" />
 	  <PackageReference Include="SDL2.Bindings" Version="1.1.0" />
@@ -34,6 +35,19 @@
 	  <PackageReference Include="Veldrid" Version="4.8.0" />
 	  <PackageReference Include="Veldrid.ImageSharp" Version="4.8.0" />
 	  <PackageReference Include="Veldrid.SPIRV" Version="1.0.15" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Compile Update="Properties\ImGUIResources.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>ImGuiResources.resx</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+	<ItemGroup>
+	  <EmbeddedResource Update="Properties\ImGuiResources.resx">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>ImGUIResources.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
 	</ItemGroup>
 
 </Project>

@@ -7,26 +7,26 @@ using System.Threading.Tasks;
 
 namespace VDStudios.MagicEngine.Internal;
 
-internal sealed class DrawQueue : IDrawQueue
+internal sealed class DrawQueue<T> : IDrawQueue<T> where T : InternalGraphicalOperation
 {
     #region Fields
 
-    private readonly PriorityQueue<DrawOperation, float> _queue = new(20, new PriorityComparer());
+    private readonly PriorityQueue<T, float> _queue = new(20, new PriorityComparer());
     internal readonly AsyncLock _lock = new();
 
     #endregion
 
-    internal DrawOperation Dequeue() => _queue.Dequeue();
+    internal T Dequeue() => _queue.Dequeue();
 
     public int Count => _queue.Count;
 
-    public async Task EnqueueAsync(DrawOperation drawing, float priority)
+    public async Task EnqueueAsync(T drawing, float priority)
     {
         using (await _lock.LockAsync())
             _queue.Enqueue(drawing, priority);
     }
 
-    public void Enqueue(DrawOperation drawing, float priority)
+    public void Enqueue(T drawing, float priority)
     {
         using (_lock.Lock())
             _queue.Enqueue(drawing, priority);
@@ -56,7 +56,7 @@ internal sealed class DrawQueue : IDrawQueue
             _queue.EnsureCapacity(_queue.Count + freeSpace);
     }
 
-    public void EnqueueCollection(IReadOnlyCollection<(DrawOperation drawing, float priority)> items)
+    public void EnqueueCollection(IReadOnlyCollection<(T drawing, float priority)> items)
     {
         using (_lock.Lock())
         {
@@ -65,7 +65,7 @@ internal sealed class DrawQueue : IDrawQueue
         }
     }
 
-    public async Task EnqueueCollectionAsync(IReadOnlyCollection<(DrawOperation drawing, float priority)> items)
+    public async Task EnqueueCollectionAsync(IReadOnlyCollection<(T drawing, float priority)> items)
     {
         using (await _lock.LockAsync())
         {
@@ -74,26 +74,26 @@ internal sealed class DrawQueue : IDrawQueue
         }
     }
 
-    public void EnqueueRange(IEnumerable<(DrawOperation drawing, float priority)> items)
+    public void EnqueueRange(IEnumerable<(T drawing, float priority)> items)
     {
         using (_lock.Lock())
             _queue.EnqueueRange(items);
     }
 
-    public async Task EnqueueRangeAsync(IEnumerable<(DrawOperation drawing, float priority)> items)
+    public async Task EnqueueRangeAsync(IEnumerable<(T drawing, float priority)> items)
     {
         using (await _lock.LockAsync())
             _queue.EnqueueRange(items);
     }
 
-    public async Task EnqueueAsyncRange(IAsyncEnumerable<(DrawOperation drawing, float priority)> items)
+    public async Task EnqueueAsyncRange(IAsyncEnumerable<(T drawing, float priority)> items)
     {
         await foreach (var (drawing, priority) in items)
             using(await _lock.LockAsync())
                 _queue.Enqueue(drawing, priority);
     }
 
-    public void EnqueueCollection(IReadOnlyCollection<DrawOperation> items, float priority)
+    public void EnqueueCollection(IReadOnlyCollection<T> items, float priority)
     {
         using (_lock.Lock())
         {
@@ -102,7 +102,7 @@ internal sealed class DrawQueue : IDrawQueue
         }
     }
 
-    public async Task EnqueueCollectionAsync(IReadOnlyCollection<DrawOperation> items, float priority)
+    public async Task EnqueueCollectionAsync(IReadOnlyCollection<T> items, float priority)
     {
         using (await _lock.LockAsync())
         {
@@ -111,19 +111,19 @@ internal sealed class DrawQueue : IDrawQueue
         }
     }
 
-    public void EnqueueRange(IEnumerable<DrawOperation> items, float priority)
+    public void EnqueueRange(IEnumerable<T> items, float priority)
     {
         using (_lock.Lock())
             _queue.EnqueueRange(items, priority);
     }
 
-    public async Task EnqueueRangeAsync(IEnumerable<DrawOperation> items, float priority)
+    public async Task EnqueueRangeAsync(IEnumerable<T> items, float priority)
     {
         using (await _lock.LockAsync())
             _queue.EnqueueRange(items, priority);
     }
 
-    public async Task EnqueueAsyncRange(IAsyncEnumerable<DrawOperation> items, float priority)
+    public async Task EnqueueAsyncRange(IAsyncEnumerable<T> items, float priority)
     {
         await foreach (var drawing in items)
             using (await _lock.LockAsync())

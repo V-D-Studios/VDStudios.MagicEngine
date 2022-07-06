@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Veldrid;
@@ -72,10 +73,10 @@ void main()
 
             Span<ushort> inds = stackalloc ushort[] { 0, 1, 2, 3 };
 
-            VertexBuffer = factory.CreateBuffer(new(SizeOf<VertexPositionColor>.By(4), BufferUsage.VertexBuffer));
+            VertexBuffer = factory.CreateBuffer(new((uint)(Unsafe.SizeOf<VertexPositionColor>() * 4), BufferUsage.VertexBuffer));
             device.UpdateBuffer(VertexBuffer, 0, _vert);
             
-            IndexBuffer = factory.CreateBuffer(new(SizeOf<ushort>.By(4), BufferUsage.IndexBuffer));
+            IndexBuffer = factory.CreateBuffer(new((uint)(Unsafe.SizeOf<ushort>() * 4), BufferUsage.IndexBuffer));
             device.UpdateBuffer(IndexBuffer, 0, inds);
 
             VertexLayoutDescription vertexLayout = new(
@@ -150,10 +151,10 @@ void main()
         HasPendingRegistrations = false;
     }
 
-    public bool SkipPropagation { get; }
+    public bool SkipDrawPropagation { get; }
     public bool HasPendingRegistrations { get; private set; } = true;
 
-    public void AddToDrawQueue(IDrawQueue queue, DrawOperation operation)
+    public void AddToDrawQueue(IDrawQueue<DrawOperation> queue, DrawOperation operation)
     {
         queue.Enqueue(operation, 1);
     }

@@ -657,7 +657,7 @@ public abstract class Node : NodeBase
         if (ds.HasPendingRegistrations)
             await ds.RegisterDrawOperations(Game.MainGraphicsManager, Game.ActiveGraphicsManagers);
 
-        if (ds.SkipPropagation)
+        if (ds.SkipDrawPropagation)
             return;
 
 #pragma warning disable CA2012 // Just like Roslyn is so kind to warn us about, this code right here has the potential to offer some nasty asynchrony bugs. Be careful here, remember ValueTasks must only ever be consumed once
