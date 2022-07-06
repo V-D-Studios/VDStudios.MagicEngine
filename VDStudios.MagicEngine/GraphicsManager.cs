@@ -579,16 +579,11 @@ public class GraphicsManager : GameObject, IDisposable
 
         while (IsRunning) // Running Loop
         {
-            if (!IsWindowAvailable)
-            {
-                var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
-                while (!IsWindowAvailable)
-                    await timer.WaitForNextTickAsync();
-            }
+        checkWin:;
+            while (!IsWindowAvailable)
+                await Task.Delay(1000);
+            if (!await WaitOn(winlock, condition: !IsWindowAvailable, syncWait: 500, asyncWait: 1000)) goto checkWin;
 
-            if (!await WaitOn(winlock, condition: IsWindowAvailable, syncWait: 100, asyncWait: 5000))
-                continue;
-            
             try
             {
                 if (!await WaitOn(framelock, condition: IsRunning)) break; // Frame Render
