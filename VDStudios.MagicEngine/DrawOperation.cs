@@ -95,7 +95,7 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
     /// </remarks>
     protected void NotifyPendingGPUUpdate() => pendingGpuUpdate = true;
 
-    internal async ValueTask InternalDraw(TimeSpan delta, Vector2 offset)
+    internal async ValueTask<CommandList> InternalDraw(TimeSpan delta, Vector2 offset)
     {
         ThrowIfDisposed();
         sync.Wait();
@@ -116,7 +116,7 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
             commands.Begin();
             await Draw(delta, offset, commands, device, device.SwapchainFramebuffer, ssb).ConfigureAwait(false);
             commands.End();
-            device.SubmitCommands(commands);
+            return commands;
         }
         finally
         {
