@@ -118,14 +118,14 @@ public class Game : SDLApplication<Game>
     public ILogger Log { get; }
 
     /// <summary>
-    /// Represents the current Updates-per-second value calculated while the game is running
+    /// Represents the average time per update value calculated while the game is running
     /// </summary>
     /// <remarks>
     /// This value does not represent the <see cref="Game"/>'s FPS, as that is the amount of frames the game outputs per second. This value is only updated while the game is running, also not during <see cref="Load(Progress{float}, IServiceProvider)"/> or any of the other methods
     /// </remarks>
-    public float UPS => _ups;
-    private float _ups;
-
+    public TimeSpan AverageDelta => _mspup;
+    private TimeSpan _mspup;
+    
     /// <summary>
     /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame{TScene}"/> is called
     /// </summary>
@@ -441,9 +441,9 @@ public class Game : SDLApplication<Game>
 
         GameStarting?.Invoke(this, TotalTime);
 
-        _ups = 0;
+        _mspup = TimeSpan.FromMilliseconds(200);
         Start(firstScene);
-        _ups = 0;
+        _mspup = default;
 
         GameStarted?.Invoke(this, TotalTime);
 
@@ -482,6 +482,8 @@ public class Game : SDLApplication<Game>
     private async Task Run(IGameLifetime lifetime)
     {
         var sw = new Stopwatch();
+        TimeSpan delta = default;
+        nuint frameCount = 0;
         Scene scene;
 
         var sceneSetupList = new List<ValueTask>(10);
@@ -504,8 +506,6 @@ public class Game : SDLApplication<Game>
                 sceneSetupList.Clear();
             }
 
-            sw.Restart();
-
             if (nextScene is not null)
             {
                 var prev = currentScene!;
@@ -523,10 +523,13 @@ public class Game : SDLApplication<Game>
 
             scene = CurrentScene;
 
-            await scene.Update(sw.Elapsed).ConfigureAwait(false);
+            await scene.Update(delta).ConfigureAwait(false);
             await scene.RegisterDrawOperations();
 
-            _ups = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);
+            _mspup = (_mspup + sw.Elapsed) / 2;
+            frameCount++;
+            delta = sw.Elapsed;
+            sw.Restart();
         }
 
         await CurrentScene.End();

@@ -24,6 +24,9 @@ public sealed class DemoScene : Scene
 
         Game.MainGraphicsManager.AddElement(new ImGUIDemo());
 
+        Game.MainGraphicsManager.AddElement(new FPSWatch());
+        Game.MainGraphicsManager.AddElement(new UPSWatch());
+
         for (int t = 0; t < top; t++)
         {
             var tel = new TestElement();

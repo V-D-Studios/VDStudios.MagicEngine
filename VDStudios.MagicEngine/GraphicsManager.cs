@@ -69,7 +69,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <summary>
     /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager"/> is running
     /// </summary>
-    public float FPS => _fps;
+    public float FramesPerSecond => _fps;
     private float _fps;
 
     #endregion
