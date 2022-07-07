@@ -27,6 +27,11 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <PackageReference Include="ImGui.NET" Version="1.87.3" />
+	  <PackageReference Include="MessagePack" Version="2.4.35" />
+	  <PackageReference Include="MessagePackAnalyzer" Version="2.4.35">
+	    <PrivateAssets>all</PrivateAssets>
+	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
 	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
 	  <PackageReference Include="Nito.AsyncEx.Coordination" Version="5.1.2" />
 	  <PackageReference Include="SDL2.Bindings" Version="1.1.0" />
