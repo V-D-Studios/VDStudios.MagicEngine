@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using VDStudios.MagicEngine.Demo.GUI.Elements;
 using VDStudios.MagicEngine.Demo.Nodes;
+using VDStudios.MagicEngine.Templates;
 
 namespace VDStudios.MagicEngine.Demo.Scenes;
 public sealed class DemoScene : Scene
@@ -29,22 +31,21 @@ public sealed class DemoScene : Scene
 
         for (int t = 0; t < top; t++)
         {
-            var tel = new TestElement();
-            Game.MainGraphicsManager.AddElement(tel);
+            var tel = TemplatedGUIElement.New<TestElement>(configurator);
 
             int mid = Random.Shared.Next(0, 6);
             for (int m = 0; m < mid; m++)
             {
-                var mel = new TestElement();
-                tel.AddElement(mel);
+                tel.AddSubElement<TestElement>(out var mel);
 
                 int bot = Random.Shared.Next(0, 6);
                 for (int b = 0; b < bot; b++)
-                {
-                    var bel = new TestElement();
-                    mel.AddElement(bel);
-                }
+                    mel.AddSubElement<TestElement>();
             }
+
+            tel.Instance(Game.MainGraphicsManager);
         }
     }
+
+    public static object? configurator(TemplatedGUIElement t, GUIElement e) => null;
 }
