@@ -138,9 +138,22 @@ public sealed class TemplatedGUIElement
     /// <typeparam name="TElement">The type of the target sub <see cref="GUIElement"/></typeparam>
     /// <param name="configurator">The configuration method for the sub <see cref="GUIElement"/></param>
     /// <returns>This very same <see cref="TemplatedGUIElement"/> for the purposes of method call chaining</returns>
-    public TemplatedGUIElement AddSubElement<TElement>(TemplatedGUIElementConfigurator? configurator) where TElement : GUIElement, new()
+    public TemplatedGUIElement AddSubElement<TElement>(TemplatedGUIElementConfigurator? configurator = null) where TElement : GUIElement, new()
     {
         SubElements.AddLast(New<TElement>(configurator));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a new <see cref="TemplatedGUIElement"/> as a sub element of this one
+    /// </summary>
+    /// <typeparam name="TElement">The type of the target sub <see cref="GUIElement"/></typeparam>
+    /// <param name="configurator">The configuration method for the sub <see cref="GUIElement"/></param>
+    /// <param name="newTemplated">The newly created and added <see cref="TemplatedGUIElement"/></param>
+    /// <returns>This very same <see cref="TemplatedGUIElement"/> for the purposes of method call chaining</returns>
+    public TemplatedGUIElement AddSubElement<TElement>(out TemplatedGUIElement newTemplated, TemplatedGUIElementConfigurator? configurator = null) where TElement : GUIElement, new()
+    {
+        SubElements.AddLast(newTemplated = New<TElement>(configurator));
         return this;
     }
 
