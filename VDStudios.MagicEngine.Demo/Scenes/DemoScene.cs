@@ -47,5 +47,5 @@ public sealed class DemoScene : Scene
         }
     }
 
-    public static object? configurator(TemplatedGUIElement t, GUIElement e) => null;
+    public static object? configurator(GUIElement e) => null;
 }

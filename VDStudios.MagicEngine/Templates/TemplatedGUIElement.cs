@@ -92,7 +92,7 @@ public sealed class TemplatedGUIElement
     {
         var el = (GUIElement)Activator.CreateInstance(typeCache ??= TargetGUIElement.FetchType())!;
         dc = ConfigurationMethod is SerializableMethodDescription mdesc
-            ? (configuratorCache ??= mdesc.FetchMethod<TemplatedGUIElementConfigurator>(null)).Invoke(this, el)
+            ? (configuratorCache ??= mdesc.FetchMethod<TemplatedGUIElementConfigurator>(null)).Invoke(el)
             : null;
         return el;
     }

@@ -208,9 +208,8 @@ public delegate void GUIElementActiveChanged(GUIElement element, TimeSpan timest
 /// <summary>
 /// Represents a method that configures a <see cref="GUIElement"/> that has been instanced from a <see cref="TemplatedGUIElement"/>
 /// </summary>
-/// <param name="template">The <see cref="TemplatedGUIElement"/> <paramref name="element"/> was created from</param>
-/// <param name="element">The newly instanced <see cref="GUIElement"/> from <paramref name="template"/></param>
+/// <param name="element">The newly instanced <see cref="GUIElement"/> from the template</param>
 /// <returns>An object representing the <see cref="GUIElement.DataContext"/> of the element, or <c>null</c> if it's not meant to have one</returns>
-public delegate object? TemplatedGUIElementConfigurator(TemplatedGUIElement template, GUIElement element);
+public delegate object? TemplatedGUIElementConfigurator(GUIElement element);
 
 #endregion
