@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine.Templates;
 using Veldrid;
 
 namespace VDStudios.MagicEngine;
@@ -203,5 +204,12 @@ public delegate void GUIElementDataContextChangedEvent(GUIElement element, TimeS
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 /// <param name="isActive">The value that <paramref name="element"/>'s <see cref="GUIElement.IsActive"/> changed into</param>
 public delegate void GUIElementActiveChanged(GUIElement element, TimeSpan timestamp, bool isActive);
+
+/// <summary>
+/// Represents a method that configures a <see cref="GUIElement"/> that has been instanced from a <see cref="TemplatedGUIElement"/>
+/// </summary>
+/// <param name="template">The <see cref="TemplatedGUIElement"/> <paramref name="element"/> was created from</param>
+/// <param name="element">The newly instanced <see cref="GUIElement"/> from <paramref name="template"/></param>
+public delegate void TemplatedGUIElementConfigurator(TemplatedGUIElement template, GUIElement element);
 
 #endregion
