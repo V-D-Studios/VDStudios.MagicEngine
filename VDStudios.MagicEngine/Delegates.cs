@@ -123,6 +123,12 @@ public delegate void NodeSceneEvent(Node node, TimeSpan timestamp, Scene? scene)
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 public delegate void NodeFunctionalComponentInstallEvent(Node node, FunctionalComponent component, TimeSpan timestamp);
 
+/// <summary>
+/// Represents a method that configures a <see cref="Node"/> that has been instanced from a <see cref="TemplatedNode"/>
+/// </summary>
+/// <param name="node">The newly instanced <see cref="Node"/> from the template</param>
+public delegate void TemplatedNodeConfigurator(Node node);
+
 #endregion
 
 #region FunctionalComponent Delegates
