@@ -210,6 +210,7 @@ public delegate void GUIElementActiveChanged(GUIElement element, TimeSpan timest
 /// </summary>
 /// <param name="template">The <see cref="TemplatedGUIElement"/> <paramref name="element"/> was created from</param>
 /// <param name="element">The newly instanced <see cref="GUIElement"/> from <paramref name="template"/></param>
-public delegate void TemplatedGUIElementConfigurator(TemplatedGUIElement template, GUIElement element);
+/// <returns>An object representing the <see cref="GUIElement.DataContext"/> of the element, or <c>null</c> if it's not meant to have one</returns>
+public delegate object? TemplatedGUIElementConfigurator(TemplatedGUIElement template, GUIElement element);
 
 #endregion
