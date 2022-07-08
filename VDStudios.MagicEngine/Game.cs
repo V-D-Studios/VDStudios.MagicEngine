@@ -15,6 +15,7 @@ using System.Diagnostics;
 using Veldrid;
 using VeldridPixelFormat = Veldrid.PixelFormat;
 using VDStudios.MagicEngine.Exceptions;
+using VDStudios.MagicEngine.Logging;
 
 namespace VDStudios.MagicEngine;
 
@@ -61,7 +62,7 @@ public class Game : SDLApplication<Game>
     /// </remarks>
     public Game()
     {
-        Log = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
+        Log =  ConfigureLogger(new LoggerConfiguration()).CreateLogger();
         var serv = CreateServiceCollection();
         ConfigureServices(serv);
         // Put here any default services
@@ -396,8 +397,20 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Configures and initializes Serilog's log
     /// </summary>
+    /// <remarks>
+    /// The Game's default log message template can be found at <see cref="GameLogger.Template"/>
+    /// </remarks>
     protected virtual LoggerConfiguration ConfigureLogger(LoggerConfiguration config)
-        => config.MinimumLevel.Verbose();
+    {
+#if DEBUG
+        return config
+            .MinimumLevel.Verbose()
+            .WriteTo.Console(LogEventLevel.Debug, GameLogger.Template);
+#else
+        return config
+            .MinimumLevel.Information();
+#endif
+    }
 
     /// <summary>
     /// Unloads any data that was previously loaded by <see cref="Load"/> when stopping the <see cref="Game"/>
@@ -499,9 +512,9 @@ public class Game : SDLApplication<Game>
         GameStopped?.Invoke(this, TotalTime);
     }
 
-    #endregion
+#endregion
 
-    #region Run
+#region Run
 
     private async Task Run(IGameLifetime lifetime)
     {
@@ -568,9 +581,9 @@ public class Game : SDLApplication<Game>
         await CurrentScene.End();
     }
 
-    #endregion
+#endregion
 
-    #region Events
+#region Events
 
     internal Action? SetupScenes;
     internal Action? StopScenes;
