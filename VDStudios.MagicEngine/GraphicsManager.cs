@@ -59,6 +59,11 @@ public class GraphicsManager : GameObject, IDisposable
     #region Public Properties
 
     /// <summary>
+    /// Whether the <see cref="GraphicsManager"/> should stop rendering when it loses input focus
+    /// </summary>
+    public bool PauseOnInputLoss { get; set; }
+
+    /// <summary>
     /// <see cref="Window"/>'s size
     /// </summary>
     /// <remarks>
@@ -577,7 +582,12 @@ public class GraphicsManager : GameObject, IDisposable
 
         ulong frameCount = 0;
 
-        await PerformOnWindowAndWaitAsync(w => IsWindowAvailable = w.Flags.HasFlag(WindowFlags.Shown));
+        await PerformOnWindowAndWaitAsync(w =>
+        {
+            var flags = w.Flags;
+            IsWindowAvailable = flags.HasFlag(WindowFlags.Shown);
+            HasFocus = flags.HasFlag(WindowFlags.InputFocus);
+        });
 
         while (IsRunning) // Running Loop
         {
@@ -753,28 +763,34 @@ public class GraphicsManager : GameObject, IDisposable
     [MethodImpl]
     internal void SetupWindow()
     {
-        CreateWindow(out var win, out var gd);
-        Window = win;
+        CreateWindow(out var window, out var gd);
+        Window = window;
         Device = gd;
 
-        var (ww, wh) = win.Size;
+        var (ww, wh) = window.Size;
         ImGuiController = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
         ScreenSizeBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
 
-        Window_SizeChanged(win, Game.TotalTime, win.Size);
+        Window_SizeChanged(window, Game.TotalTime, window.Size);
 
-        win.SizeChanged += Window_SizeChanged;
-        win.Closed += Window_Closed;
-        win.KeyPressed += Window_KeyPressed;
-        win.KeyReleased += Window_KeyReleased;
-        win.MouseButtonPressed += Window_MouseButtonPressed;
-        win.MouseButtonReleased += Window_MouseButtonReleased;
-        win.MouseMoved += Window_MouseMoved;
-        win.MouseWheelScrolled += Window_MouseWheelScrolled;
-        win.MouseExited += Window_MouseExited;
-        win.Hidden += Window_Hidden;
-        win.Shown += Window_Shown;
+        window.SizeChanged += Window_SizeChanged;
+        window.Closed += Window_Closed;
+        window.KeyPressed += Window_KeyPressed;
+        window.KeyReleased += Window_KeyReleased;
+        window.MouseButtonPressed += Window_MouseButtonPressed;
+        window.MouseButtonReleased += Window_MouseButtonReleased;
+        window.MouseMoved += Window_MouseMoved;
+        window.MouseWheelScrolled += Window_MouseWheelScrolled;
+        window.MouseExited += Window_MouseExited;
+        window.Hidden += Window_Hidden;
+        window.Shown += Window_Shown;
+        window.FocusGained += Window_FocusGained;
+        window.FocusLost += Window_FocusLost;
     }
+
+    private void Window_FocusLost(Window sender, TimeSpan timestamp) => HasFocus = false;
+
+    private void Window_FocusGained(Window sender, TimeSpan timestamp) => HasFocus = true;
 
     private void Window_MouseExited(Window sender, TimeSpan timestamp, Point delta, Point newPosition, uint mouseId, MouseButton pressed)
     {
@@ -790,34 +806,25 @@ public class GraphicsManager : GameObject, IDisposable
     /// </remarks>
     public bool IsWindowAvailable { get; private set; }
 
-    private void Window_Shown(Window sender, TimeSpan timestamp)
-    {
-        WindowShownLock.Wait();
-        try
-        {
-            IsWindowAvailable = true;
-            lock (SnapshotPool)
-                snapshotBuffer.butt = 0;
-        }
-        finally
-        {
-            WindowShownLock.Release();
-        }
-    }
+    /// <summary>
+    /// <c>true</c> if <see cref="Window"/> currently has input focus. <c>false</c> otherwise
+    /// </summary>
+    public bool HasFocus { get; private set; }
 
-    private void Window_Hidden(Window sender, TimeSpan timestamp)
+    /// <summary>
+    /// Whether the current <see cref="GraphicsManager"/> should currently be updating or not
+    /// </summary>
+    public bool IsRendering => IsWindowAvailable && (!PauseOnInputLoss || HasFocus);
+
+    private void Window_Shown(Window sender, TimeSpan timestamp) => UpdateWindowAvailability(true);
+
+    private void Window_Hidden(Window sender, TimeSpan timestamp) => UpdateWindowAvailability(false);
+
+    private void UpdateWindowAvailability(bool isAvailable)
     {
-        WindowShownLock.Wait();
-        try
-        {
-            IsWindowAvailable = false;
-            lock (SnapshotPool)
-                snapshotBuffer.butt = 0;
-        }
-        finally
-        {
-            WindowShownLock.Release();
-        }
+        IsWindowAvailable = isAvailable;
+        lock (SnapshotPool)
+            snapshotBuffer.butt = 0;
     }
 
     /// <summary>
