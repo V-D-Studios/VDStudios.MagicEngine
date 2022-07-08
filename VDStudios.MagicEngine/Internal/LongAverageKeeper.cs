@@ -27,6 +27,8 @@ internal sealed class LongAverageKeeper
     {
         get
         {
+            if (Fill is 0)
+                return 0;
             if (!cacheValid)
             {
                 int fill = Fill;
