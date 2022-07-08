@@ -69,8 +69,8 @@ public class GraphicsManager : GameObject, IDisposable
     /// <summary>
     /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager"/> is running
     /// </summary>
-    public float FramesPerSecond => _fps;
-    private float _fps;
+    public float FramesPerSecond => fak.Average;
+    private readonly FloatAverageKeeper fak = new(10);
 
     #endregion
 
@@ -693,10 +693,10 @@ public class GraphicsManager : GameObject, IDisposable
                 snapshotBuffer.CopyTo(CurrentSnapshot);
                 snapshotBuffer.Clear();
             }
-            
-            _fps = 1000 / (sw.ElapsedMilliseconds + 0.0000001f);
+
             frameCount++;
             delta = sw.Elapsed;
+            fak.Push(1000 / (sw.ElapsedMilliseconds + 0.0000001f));
             sw.Restart();
         }
 
