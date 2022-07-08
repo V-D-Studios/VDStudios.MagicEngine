@@ -19,23 +19,30 @@ public sealed class DemoScene : Scene
 
     protected override async ValueTask ConfigureScene()
     {
+        Log.Information("Configuring DemoScene");
+
+        Log.Debug("Attaching ColorBackgroundNode");
         await Attach(new ColorBackgroundNode());
 
         int top = Random.Shared.Next(1, 6);
+        Log.Debug("Templating a TestNode tree with {childrenCount} children", top);
         for (int t = 0; t < top; t++)
         {
             var tel = TemplatedNode.New<TestNode>(configuratorNode);
 
             int mid = Random.Shared.Next(0, 6);
+            Log.Debug("Adding {childrenCount} children to template number {childId}", mid, top);
             for (int m = 0; m < mid; m++)
             {
                 tel.AddChild<TestNode>(out var mel);
 
                 int bot = Random.Shared.Next(0, 6);
+                Log.Debug("Adding {childrenCount} children to template number {childId1},{childId2}", bot, mid, top);
                 for (int b = 0; b < bot; b++)
                     mel.AddChild<TestNode>();
             }
 
+            Log.Debug("Finalizing and attaching nodes from template");
             await Attach(await tel.Instance());
         }
 
@@ -44,8 +51,10 @@ public sealed class DemoScene : Scene
         // The following code can (and should) go somewhere else
         top = Random.Shared.Next(1, 6);
 
+        Log.Information("Adding ImGUIDemo element to GUI");
         Game.MainGraphicsManager.AddElement(new ImGUIDemo());
 
+        Log.Information("Adding FPS metrics to MainGraphicsManager GUI");
         Game.MainGraphicsManager.AddElement(new FPSWatch());
         Game.MainGraphicsManager.AddElement(new UPSWatch());
 
