@@ -529,6 +529,7 @@ public class Game : SDLApplication<Game>
 
         var sceneSetupList = new List<ValueTask>(10);
 
+        Log.Information("Entering Main Update Loop");
         while (lifetime.ShouldRun)
         {
             if (VideoThreadFault is VideoThreadException vtfault)
@@ -581,6 +582,7 @@ public class Game : SDLApplication<Game>
             sw.Restart();
         }
 
+        Log.Information("Exiting Main Update Loop and ending current scene");
         await CurrentScene.End();
     }
 
