@@ -575,7 +575,7 @@ public class GraphicsManager : GameObject, IDisposable
 
         var managercl = CreateCommandList(gd, gd.ResourceFactory);
 
-        long frameCount = 0;
+        ulong frameCount = 0;
 
         await PerformOnWindowAndWaitAsync(w => IsWindowAvailable = w.Flags.HasFlag(WindowFlags.Shown));
 

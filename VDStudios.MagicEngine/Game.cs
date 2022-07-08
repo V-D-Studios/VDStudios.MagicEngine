@@ -510,7 +510,7 @@ public class Game : SDLApplication<Game>
     {
         var sw = new Stopwatch();
         TimeSpan delta = default;
-        nuint frameCount = 0;
+        ulong frameCount = 0;
         Scene scene;
 
         var sceneSetupList = new List<ValueTask>(10);
