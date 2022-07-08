@@ -88,7 +88,7 @@ public class Game : SDLApplication<Game>
             _uft = UpdateFrameThrottleChanging(_uft, value) ?? value;
         }
     }
-    private TimeSpan _uft = default;
+    private TimeSpan _uft = TimeSpan.FromMilliseconds(5);
 
     /// <summary>
     /// Gets the total amount of time that has elapsed from the time SDL2 was initialized
@@ -138,8 +138,8 @@ public class Game : SDLApplication<Game>
     /// <remarks>
     /// This value does not represent the <see cref="Game"/>'s FPS, as that is the amount of frames the game outputs per second. This value is only updated while the game is running, also not during <see cref="Load(Progress{float}, IServiceProvider)"/> or any of the other methods
     /// </remarks>
-    public TimeSpan AverageDelta => _mspup;
-    private TimeSpan _mspup;
+    public TimeSpan AverageDelta => TimeSpan.FromTicks(_mspup.Average);
+    private readonly LongAverageKeeper _mspup = new(10);
     
     /// <summary>
     /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame{TScene}"/> is called
@@ -464,9 +464,7 @@ public class Game : SDLApplication<Game>
 
         GameStarting?.Invoke(this, TotalTime);
 
-        _mspup = TimeSpan.FromMilliseconds(200);
         Start(firstScene);
-        _mspup = default;
 
         GameStarted?.Invoke(this, TotalTime);
 
@@ -510,6 +508,7 @@ public class Game : SDLApplication<Game>
     {
         var sw = new Stopwatch();
         TimeSpan delta = default;
+        uint remaining = default;
         ulong frameCount = 0;
         Scene scene;
 
@@ -553,9 +552,17 @@ public class Game : SDLApplication<Game>
             await scene.Update(delta).ConfigureAwait(false);
             await scene.RegisterDrawOperations();
 
-            _mspup = (_mspup + sw.Elapsed) / 2;
             frameCount++;
+            {
+                var c = (UpdateFrameThrottle - sw.Elapsed).TotalMilliseconds;
+                remaining = c > 0.1 ? (uint)c : 0;
+            }
+            if (remaining > 0)
+                SDL2.Bindings.SDL.SDL_Delay(remaining);
+            
             delta = sw.Elapsed;
+            _mspup.Push(delta.Ticks);
+            
             sw.Restart();
         }
 
