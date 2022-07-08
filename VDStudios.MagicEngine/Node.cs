@@ -40,6 +40,18 @@ public abstract class Node : NodeBase
 
     #region Update Batching
 
+    #region Properties
+
+    /// <summary>
+    /// Represents the tendency this <see cref="Node"/> has to update asynchronously. This is used as a hint to MagicEngine for optimization purposes
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <see cref="AsynchronousTendency.SometimesAsynchronous"/>
+    /// </remarks>
+    public AsynchronousTendency AsynchronousUpdateTendency { get; protected init; } = AsynchronousTendency.SometimesAsynchronous;
+
+    #endregion
+
     #region Fields
 
     /// <summary>
