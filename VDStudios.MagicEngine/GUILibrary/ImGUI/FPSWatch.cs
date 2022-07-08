@@ -6,8 +6,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace VDStudios.MagicEngine.Demo.GUI.Elements;
+namespace VDStudios.MagicEngine.GUILibrary.ImGUI;
 
+/// <summary>
+/// An ImGUI window that shows Frame related metrics about the <see cref="GraphicsManager"/> its currently under
+/// </summary>
 public sealed class FPSWatch : GUIElement
 {
     private static readonly WeakReference<ConcurrentDictionary<long, string>> strings = new(CreateDict());
@@ -20,6 +23,9 @@ public sealed class FPSWatch : GUIElement
 
     private readonly ConcurrentDictionary<long, string> strs;
 
+    /// <summary>
+    /// Instances a new object of type <see cref="FPSWatch"/>
+    /// </summary>
     public FPSWatch()
     {
         lock (strings)
@@ -31,6 +37,7 @@ public sealed class FPSWatch : GUIElement
             }
     }
 
+    /// <inheritdoc/>
     protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements)
     {
         var fps = (long)Manager!.FramesPerSecond;

@@ -2,8 +2,11 @@
 using Newtonsoft.Json.Linq;
 using System.Collections.Concurrent;
 
-namespace VDStudios.MagicEngine.Demo.GUI.Elements;
+namespace VDStudios.MagicEngine.GUILibrary.ImGUI;
 
+/// <summary>
+/// An ImGUI window that shows update related metrics about the <see cref="Game"/>
+/// </summary>
 public sealed class UPSWatch : GUIElement
 {
     private static readonly ConcurrentDictionary<long, string> tickStrings;
@@ -22,6 +25,7 @@ public sealed class UPSWatch : GUIElement
         upsStrings[1] = "1 update per second";
     }
 
+    /// <inheritdoc/>
     protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements)
     {
         var tpu = Game.AverageDelta.Ticks;
