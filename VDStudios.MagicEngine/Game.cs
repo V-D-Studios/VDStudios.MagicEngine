@@ -76,6 +76,21 @@ public class Game : SDLApplication<Game>
     #region Properties
 
     /// <summary>
+    /// Represents the minimum amount of time an update frame can take to complete. If the frame completes in less time, the game will wait until the amount of time has passed
+    /// </summary>
+    public TimeSpan UpdateFrameThrottle
+    {
+        get => _uft;
+        set
+        {
+            if (_uft == value)
+                return;
+            _uft = UpdateFrameThrottleChanging(_uft, value) ?? value;
+        }
+    }
+    private TimeSpan _uft = default;
+
+    /// <summary>
     /// Gets the total amount of time that has elapsed from the time SDL2 was initialized
     /// </summary>
     new static public TimeSpan TotalTime => TimeSpan.FromTicks(SDL2.Bindings.SDL.SDL_GetTicks());
@@ -298,6 +313,14 @@ public class Game : SDLApplication<Game>
     #endregion
 
     #region Methods
+
+    /// <summary>
+    /// This method is called automatically when <see cref="UpdateFrameThrottle"/> changes
+    /// </summary>
+    /// <param name="prevThrottle">The throttle <see cref="UpdateFrameThrottle"/> previously had</param>
+    /// <param name="newThrottle">The throttle <see cref="UpdateFrameThrottle"/> is changing into</param>
+    /// <returns>A <see cref="TimeSpan"/> object that overrides the newly set value of <see cref="UpdateFrameThrottle"/>, or <c>null</c> to permit the change untouched</returns>
+    protected virtual TimeSpan? UpdateFrameThrottleChanging(TimeSpan prevThrottle, TimeSpan newThrottle) => null;
 
     /// <summary>
     /// Creates a new <see cref="IServiceCollection"/> object for the Game
