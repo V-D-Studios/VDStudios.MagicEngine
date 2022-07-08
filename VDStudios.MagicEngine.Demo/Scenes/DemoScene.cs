@@ -19,10 +19,29 @@ public sealed class DemoScene : Scene
     protected override async ValueTask ConfigureScene()
     {
         await Attach(new ColorBackgroundNode());
+
+        int top = Random.Shared.Next(1, 6);
+        for (int t = 0; t < top; t++)
+        {
+            var tel = TemplatedNode.New<TestNode>(configuratorNode);
+
+            int mid = Random.Shared.Next(0, 6);
+            for (int m = 0; m < mid; m++)
+            {
+                tel.AddChild<TestNode>(out var mel);
+
+                int bot = Random.Shared.Next(0, 6);
+                for (int b = 0; b < bot; b++)
+                    mel.AddChild<TestNode>();
+            }
+
+            await Attach(await tel.Instance());
+        }
+
         //await Attach(new PlayerNode());
 
         // The following code can (and should) go somewhere else
-        int top = Random.Shared.Next(1, 6);
+        top = Random.Shared.Next(1, 6);
 
         Game.MainGraphicsManager.AddElement(new ImGUIDemo());
 
@@ -31,7 +50,7 @@ public sealed class DemoScene : Scene
 
         for (int t = 0; t < top; t++)
         {
-            var tel = TemplatedGUIElement.New<TestElement>(configurator);
+            var tel = TemplatedGUIElement.New<TestElement>(configuratorElement);
 
             int mid = Random.Shared.Next(0, 6);
             for (int m = 0; m < mid; m++)
@@ -47,5 +66,6 @@ public sealed class DemoScene : Scene
         }
     }
 
-    public static object? configurator(GUIElement e) => null;
+    public static void configuratorNode(Node e) { }
+    public static object? configuratorElement(GUIElement e) => null;
 }
