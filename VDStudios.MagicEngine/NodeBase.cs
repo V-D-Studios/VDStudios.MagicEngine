@@ -163,13 +163,49 @@ public abstract class NodeBase : GameObject, IDisposable
     {
         var ub = AssigningToUpdateBatch(node);
         node.UpdateAssignation = ub;
-        UpdateBatches.Add(node, ub);
+        UpdateBatches.Add(node, ub, node.AsynchronousUpdateTendency);
     }
 
     internal void ExtractFromUpdateBatch(Node node)
     {
-        UpdateBatches.Remove(node, node.UpdateAssignation);
+        UpdateBatches.Remove(node, node.UpdateAssignation, node.AsynchronousUpdateTendency);
         node.UpdateAssignation = (UpdateBatch)(-1);
+    }
+
+    internal async ValueTask InternalHandleChildUpdate(Node node, TimeSpan delta)
+    {
+        if (node.updater is NodeUpdater updater
+            ? await updater.PerformUpdate()
+            : await HandleChildUpdate(node))
+            await node.PropagateUpdate(delta);
+    }
+    
+    internal async ValueTask InternalPropagateChildUpdate(TimeSpan delta)
+    {
+        var pool = ArrayPool<ValueTask>.Shared;
+        int toUpdate = Children.Count;
+        ValueTask[] tasks = pool.Rent(toUpdate);
+        try
+        {
+            int ind = 0;
+            lock (sync)
+            {
+                for (int bi = 0; bi < UpdateBatchCollection.BatchCount; bi++)
+                {
+                    var batch = UpdateBatches[(UpdateBatch)bi];
+                    if (batch is not null and { Count: > 0 })
+                        foreach (var child in batch)
+                            if (child.IsReady)
+                                tasks[ind++] = InternalHandleChildUpdate(child, delta);
+                }
+            }
+            for (int i = 0; i < ind; i++)
+                await tasks[i];
+        }
+        finally
+        {
+            pool.Return(tasks, true);
+        }
     }
 
     #endregion
