@@ -9,7 +9,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
-using VDStudios.MagicEngine.Internal;
 using System.Numerics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
