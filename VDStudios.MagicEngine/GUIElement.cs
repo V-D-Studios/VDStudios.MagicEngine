@@ -31,7 +31,7 @@ public abstract class GUIElement : InternalGraphicalOperation, IDisposable
     /// <summary>
     /// Constructs this <see cref="GUIElement"/>
     /// </summary>
-    public GUIElement()
+    public GUIElement() : base("ImGUI")
     {
         scope = Game.services.CreateScope();
     }

@@ -16,7 +16,7 @@ public abstract class Scene : NodeBase
     /// <summary>
     /// Instances and Initializes the current <see cref="Scene"/>
     /// </summary>
-    public Scene()
+    public Scene() : base("Game Scene")
     {
         Game.SetupScenes += OnGameSetupScenes;
         Game.StopScenes += OnGameStopScenes;

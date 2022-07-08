@@ -19,6 +19,13 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
     internal GraphicsDevice? Device;
 
     /// <summary>
+    /// Instances a new object of type <see cref="DrawOperation"/>
+    /// </summary>
+    public DrawOperation() : base("Drawing")
+    {
+    }
+
+    /// <summary>
     /// The owner <see cref="IDrawableNode"/> of this <see cref="DrawOperation"/>
     /// </summary>
     /// <remarks>

@@ -25,7 +25,7 @@ public abstract class FunctionalComponent : GameObject
     /// Instances a new <see cref="FunctionalComponent"/> and installs it onto <see cref="Node"/>
     /// </summary>
     /// <param name="node"></param>
-    public FunctionalComponent(Node node)
+    public FunctionalComponent(Node node) : base("Node Functionality", "Update")
     {
         Owner = node;
         scope = node.ServiceProvider.CreateScope();

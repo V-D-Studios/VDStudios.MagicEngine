@@ -14,7 +14,8 @@ namespace VDStudios.MagicEngine.Internal;
 /// </remarks>
 public abstract class InternalGraphicalOperation : GameObject
 {
-    internal InternalGraphicalOperation() { }
+    internal InternalGraphicalOperation(string facility) : base(facility, "Rendering")
+    { }
 
     /// <summary>
     /// This <see cref="DrawOperation"/>'s unique identifier, generated automatically

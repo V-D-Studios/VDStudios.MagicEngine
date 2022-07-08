@@ -29,7 +29,7 @@ public abstract class Node : NodeBase
     /// <remarks>
     /// Initializes: <see cref="NodeBase.ServiceProvider"/>, <see cref="NodeBase.Children"/>
     /// </remarks>
-    protected Node() 
+    protected Node() : base("Game Node Tree")
     {
         DrawableSelf = this as IDrawableNode;
     }
