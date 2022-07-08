@@ -502,6 +502,10 @@ public class Game : SDLApplication<Game>
         GameStopped?.Invoke(this, TotalTime);
     }
 
+    #endregion
+
+    #region Run
+
     private async Task Run(IGameLifetime lifetime)
     {
         var sw = new Stopwatch();
@@ -558,7 +562,7 @@ public class Game : SDLApplication<Game>
         await CurrentScene.End();
     }
 
-#endregion
+    #endregion
 
     #region Events
 
