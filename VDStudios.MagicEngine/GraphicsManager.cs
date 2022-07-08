@@ -32,7 +32,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <summary>
     /// Instances and constructs a new <see cref="GraphicsManager"/> objects
     /// </summary>
-    public GraphicsManager()
+    public GraphicsManager() : base("Graphics & Input", "Rendering")
     {
         initLock.Wait();
         graphics_thread = new(() => Run().Wait());

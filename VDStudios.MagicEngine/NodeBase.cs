@@ -33,7 +33,7 @@ public abstract class NodeBase : GameObject, IDisposable
 
     #endregion
 
-    internal NodeBase()
+    internal NodeBase(string facility) : base(facility, "Update")
     {
         scope = Game.Instance.NewScope();
         Children = NodeList.Empty.Clone();
