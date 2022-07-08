@@ -191,13 +191,14 @@ public abstract class NodeBase : GameObject, IDisposable
             lock (sync)
             {
                 for (int bi = 0; bi < UpdateBatchCollection.BatchCount; bi++)
-                {
-                    var batch = UpdateBatches[(UpdateBatch)bi];
-                    if (batch is not null and { Count: > 0 })
-                        foreach (var child in batch)
-                            if (child.IsReady)
-                                tasks[ind++] = InternalHandleChildUpdate(child, delta);
-                }
+                    for (int ti = UpdateSynchronicityBatch.BatchCount - 1; ti >= 0; ti--)
+                    {
+                        var batch = UpdateBatches[(UpdateBatch)bi, (AsynchronousTendency)ti];
+                        if (batch is not null and { Count: > 0 })
+                            foreach (var child in batch)
+                                if (child.IsReady)
+                                    tasks[ind++] = InternalHandleChildUpdate(child, delta);
+                    }
             }
             for (int i = 0; i < ind; i++)
                 await tasks[i];
