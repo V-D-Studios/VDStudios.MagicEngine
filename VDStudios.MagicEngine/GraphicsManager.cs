@@ -581,10 +581,12 @@ public class GraphicsManager : GameObject, IDisposable
 
         while (IsRunning) // Running Loop
         {
-        checkWin:
-            while (!IsWindowAvailable)
-                await Task.Delay(1000);
-            if (!await WaitOn(winlock, condition: !IsWindowAvailable, syncWait: 500, asyncWait: 1000)) goto checkWin;
+            for (; ; )
+            {
+                while (!IsRendering)
+                    await Task.Delay(1000);
+                if (await WaitOn(winlock, condition: !IsRendering, syncWait: 500, asyncWait: 1000)) break;
+            }
 
             try
             {
