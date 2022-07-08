@@ -51,6 +51,8 @@ internal sealed class GameLogger : ILogger
 
         if (Logger.BindProperty("AuthorFull", OwningType.AssemblyQualifiedName, false, out prop))
             logEvent.AddPropertyIfAbsent(prop);
+
+        Logger.Write(logEvent);
     }
 
     /// <summary>
