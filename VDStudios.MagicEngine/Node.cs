@@ -40,6 +40,18 @@ public abstract class Node : NodeBase
 
     #region Update Batching
 
+    #region Properties
+
+    /// <summary>
+    /// Represents the tendency this <see cref="Node"/> has to update asynchronously. This is used as a hint to MagicEngine for optimization purposes
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <see cref="AsynchronousTendency.SometimesAsynchronous"/>
+    /// </remarks>
+    public AsynchronousTendency AsynchronousUpdateTendency { get; protected init; } = AsynchronousTendency.SometimesAsynchronous;
+
+    #endregion
+
     #region Fields
 
     /// <summary>
@@ -611,38 +623,8 @@ public abstract class Node : NodeBase
             }
         }
 
-        int toUpdate = Children.Count;
-        ValueTask[] tasks = pool.Rent(toUpdate);
-        try
-        {
-            int ind = 0;
-            lock (sync)
-            {
-                for (int bi = 0; bi < UpdateBatchCollection.BatchCount; bi++)
-                {
-                    var batch = UpdateBatches[(UpdateBatch)bi];
-                    if (batch is not null and { Count: > 0 })
-                        foreach (var child in batch)
-                            if (child.IsReady)
-                                tasks[ind++] = InternalHandleChildUpdate(child, delta);
-                }
-            }
-            for (int i = 0; i < ind; i++)
-                await tasks[i];
-        }
-        finally
-        {
-            pool.Return(tasks, true);
-        }
+        await InternalPropagateChildUpdate(delta);
 #pragma warning restore CA2012
-    }
-
-    private async ValueTask InternalHandleChildUpdate(Node node, TimeSpan delta)
-    {
-        if (node.updater is NodeUpdater updater
-            ? await updater.PerformUpdate()
-            : await HandleChildUpdate(node))
-            await node.PropagateUpdate(delta);
     }
 
     #endregion

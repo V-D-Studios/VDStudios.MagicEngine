@@ -9,7 +9,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
-using VDStudios.MagicEngine.Internal;
 using System.Numerics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
@@ -76,6 +75,21 @@ public class Game : SDLApplication<Game>
     #region Properties
 
     /// <summary>
+    /// Represents the minimum amount of time an update frame can take to complete. If the frame completes in less time, the game will wait until the amount of time has passed
+    /// </summary>
+    public TimeSpan UpdateFrameThrottle
+    {
+        get => _uft;
+        set
+        {
+            if (_uft == value)
+                return;
+            _uft = UpdateFrameThrottleChanging(_uft, value) ?? value;
+        }
+    }
+    private TimeSpan _uft = TimeSpan.FromMilliseconds(5);
+
+    /// <summary>
     /// Gets the total amount of time that has elapsed from the time SDL2 was initialized
     /// </summary>
     new static public TimeSpan TotalTime => TimeSpan.FromTicks(SDL2.Bindings.SDL.SDL_GetTicks());
@@ -123,8 +137,8 @@ public class Game : SDLApplication<Game>
     /// <remarks>
     /// This value does not represent the <see cref="Game"/>'s FPS, as that is the amount of frames the game outputs per second. This value is only updated while the game is running, also not during <see cref="Load(Progress{float}, IServiceProvider)"/> or any of the other methods
     /// </remarks>
-    public TimeSpan AverageDelta => _mspup;
-    private TimeSpan _mspup;
+    public TimeSpan AverageDelta => TimeSpan.FromTicks(_mspup.Average);
+    private readonly LongAverageKeeper _mspup = new(10);
     
     /// <summary>
     /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame{TScene}"/> is called
@@ -300,6 +314,14 @@ public class Game : SDLApplication<Game>
     #region Methods
 
     /// <summary>
+    /// This method is called automatically when <see cref="UpdateFrameThrottle"/> changes
+    /// </summary>
+    /// <param name="prevThrottle">The throttle <see cref="UpdateFrameThrottle"/> previously had</param>
+    /// <param name="newThrottle">The throttle <see cref="UpdateFrameThrottle"/> is changing into</param>
+    /// <returns>A <see cref="TimeSpan"/> object that overrides the newly set value of <see cref="UpdateFrameThrottle"/>, or <c>null</c> to permit the change untouched</returns>
+    protected virtual TimeSpan? UpdateFrameThrottleChanging(TimeSpan prevThrottle, TimeSpan newThrottle) => null;
+
+    /// <summary>
     /// Creates a new <see cref="IServiceCollection"/> object for the Game
     /// </summary>
     /// <remarks>
@@ -441,9 +463,7 @@ public class Game : SDLApplication<Game>
 
         GameStarting?.Invoke(this, TotalTime);
 
-        _mspup = TimeSpan.FromMilliseconds(200);
         Start(firstScene);
-        _mspup = default;
 
         GameStarted?.Invoke(this, TotalTime);
 
@@ -479,11 +499,16 @@ public class Game : SDLApplication<Game>
         GameStopped?.Invoke(this, TotalTime);
     }
 
+    #endregion
+
+    #region Run
+
     private async Task Run(IGameLifetime lifetime)
     {
         var sw = new Stopwatch();
         TimeSpan delta = default;
-        nuint frameCount = 0;
+        uint remaining = default;
+        ulong frameCount = 0;
         Scene scene;
 
         var sceneSetupList = new List<ValueTask>(10);
@@ -526,16 +551,24 @@ public class Game : SDLApplication<Game>
             await scene.Update(delta).ConfigureAwait(false);
             await scene.RegisterDrawOperations();
 
-            _mspup = (_mspup + sw.Elapsed) / 2;
             frameCount++;
+            {
+                var c = (UpdateFrameThrottle - sw.Elapsed).TotalMilliseconds;
+                remaining = c > 0.1 ? (uint)c : 0;
+            }
+            if (remaining > 0)
+                SDL2.Bindings.SDL.SDL_Delay(remaining);
+            
             delta = sw.Elapsed;
+            _mspup.Push(delta.Ticks);
+            
             sw.Restart();
         }
 
         await CurrentScene.End();
     }
 
-#endregion
+    #endregion
 
     #region Events
 

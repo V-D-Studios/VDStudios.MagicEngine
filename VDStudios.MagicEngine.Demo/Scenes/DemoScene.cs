@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using VDStudios.MagicEngine.Demo.GUI.Elements;
 using VDStudios.MagicEngine.Demo.Nodes;
+using VDStudios.MagicEngine.GUILibrary.ImGUI;
 using VDStudios.MagicEngine.Templates;
 
 namespace VDStudios.MagicEngine.Demo.Scenes;
