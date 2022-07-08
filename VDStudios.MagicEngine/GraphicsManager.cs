@@ -589,6 +589,7 @@ public class GraphicsManager : GameObject, IDisposable
             HasFocus = flags.HasFlag(WindowFlags.InputFocus);
         });
 
+        Log.Information("Entering main rendering loop");
         while (IsRunning) // Running Loop
         {
             for (; ; )
@@ -711,6 +712,7 @@ public class GraphicsManager : GameObject, IDisposable
             fak.Push(1000 / (sw.ElapsedMilliseconds + 0.0000001f));
             sw.Restart();
         }
+        Log.Information("Exiting main rendering loop and disposing");
 
         Dispose();
     }
