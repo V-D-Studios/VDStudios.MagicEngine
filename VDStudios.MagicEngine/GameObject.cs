@@ -26,7 +26,7 @@ public abstract class GameObject
     }
 
     /// <summary>
-    /// A Logger that belongs to this <see cref="GameObject"/> and is attached to <see cref="Game.Log"/>
+    /// A Logger that belongs to this <see cref="GameObject"/> and is attached to <see cref="Game.Logger"/>
     /// </summary>
     public ILogger Log
     {
@@ -35,7 +35,7 @@ public abstract class GameObject
             if (_log is null)
                 lock (logSync)
                     if (_log is null)
-                        _log = new GameLogger(Game.Log, Area, Facility, GetType());
+                        _log = new GameLogger(Game.Logger, Area, Facility, GetType());
             return _log;
         }
     }

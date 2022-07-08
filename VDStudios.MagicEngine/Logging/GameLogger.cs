@@ -34,12 +34,7 @@ internal sealed class GameLogger : ILogger
         OwningType = owningType;
     }
 
-    /// <summary>
-    /// Writes an event to the log
-    /// </summary>
-    /// <param name="logEvent">The event to write</param>
-    /// <exception cref="NotImplementedException"></exception>
-    public void Write(LogEvent logEvent)
+    public static void Write(ILogger Logger, LogEvent logEvent, string Facility, string Area, Type OwningType)
     {
         if (Logger.BindProperty("Facility", Facility, false, out var prop))
             logEvent.AddPropertyIfAbsent(prop);
@@ -51,10 +46,18 @@ internal sealed class GameLogger : ILogger
         else if (Logger.BindProperty("Area", "Unknown", false, out prop))
             logEvent.AddPropertyIfAbsent(prop);
 
-        if (Logger.BindProperty("Author", OwningType.Name, false, out prop)) 
+        if (Logger.BindProperty("Author", OwningType.Name, false, out prop))
             logEvent.AddPropertyIfAbsent(prop);
 
         if (Logger.BindProperty("AuthorFull", OwningType.AssemblyQualifiedName, false, out prop))
             logEvent.AddPropertyIfAbsent(prop);
     }
+
+    /// <summary>
+    /// Writes an event to the log
+    /// </summary>
+    /// <param name="logEvent">The event to write</param>
+    /// <exception cref="NotImplementedException"></exception>
+    public void Write(LogEvent logEvent)
+        => Write(Logger, logEvent, Facility, Area, OwningType);
 }

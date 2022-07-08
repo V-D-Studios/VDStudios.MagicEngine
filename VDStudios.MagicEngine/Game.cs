@@ -62,7 +62,8 @@ public class Game : SDLApplication<Game>
     /// </remarks>
     public Game()
     {
-        Log =  ConfigureLogger(new LoggerConfiguration()).CreateLogger();
+        Logger = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
+        Log = new GameLogger(Logger, "Game", "Global", GetType());
         var serv = CreateServiceCollection();
         ConfigureServices(serv);
         // Put here any default services
@@ -131,6 +132,8 @@ public class Game : SDLApplication<Game>
     /// A Logger that belongs to this <see cref="Game"/>
     /// </summary>
     public ILogger Log { get; }
+
+    internal ILogger Logger { get; }
 
     /// <summary>
     /// Represents the average time per update value calculated while the game is running
