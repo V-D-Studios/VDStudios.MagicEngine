@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace VDStudios.MagicEngine;
 
 /// <summary>
-/// Represents the Update Batch that a <see cref="IUpdateableNode"/> or <see cref="IAsyncUpdateableNode"/> can be assigned into
+/// Represents the Update Batch that a <see cref="Node"/> can be assigned into
 /// </summary>
 public enum UpdateBatch
 {
