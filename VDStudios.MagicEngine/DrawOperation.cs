@@ -230,7 +230,7 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
 
     private void InternalDispose(bool disposing)
     {
-        InternalDrawOperationDisposing?.Invoke(this);
+        AboutToDispose?.Invoke(this, Game.TotalTime);
         sync.Wait();
         try
         {
@@ -281,7 +281,13 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    internal event Action<DrawOperation>? InternalDrawOperationDisposing;
+    /// <summary>
+    /// Fired right before this <see cref="DrawOperation"/> is disposed
+    /// </summary>
+    /// <remarks>
+    /// While .NET allows fire-and-forget async methods in these events (<c>async void</c>), this is *NOT* recommended, as it's almost guaranteed the <see cref="DrawOperation"/> will be fully disposed before the async portion of your code gets a chance to run
+    /// </remarks>
+    public event GeneralGameEvent<DrawOperation>? AboutToDispose;
 
     #endregion
 }

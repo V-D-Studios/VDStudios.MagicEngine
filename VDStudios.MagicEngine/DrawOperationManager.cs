@@ -118,7 +118,7 @@ public class DrawOperationManager
             {
                 DrawOperations.RegistrationSync.Release();
             }
-            operation.InternalDrawOperationDisposing += Operation_InternalDrawOperationDisposing;
+            operation.AboutToDispose += Operation_InternalDrawOperationDisposing;
         }
         catch
         {
