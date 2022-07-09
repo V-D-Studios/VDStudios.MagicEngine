@@ -230,6 +230,7 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
 
     private void InternalDispose(bool disposing)
     {
+        InternalDrawOperationDisposing?.Invoke(this);
         sync.Wait();
         try
         {
@@ -279,6 +280,8 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
         InternalDispose(disposing: true);
         GC.SuppressFinalize(this);
     }
+
+    internal Action<DrawOperation>? InternalDrawOperationDisposing;
 
     #endregion
 }
