@@ -26,6 +26,14 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
     }
 
     /// <summary>
+    /// Represents the current reference to <see cref="DrawParameters"/> this <see cref="DrawOperation"/> has
+    /// </summary>
+    /// <remarks>
+    /// Rather than change this manually, it's better to let the owner of this <see cref="DrawOperation"/> assign it in the next cascade assignment
+    /// </remarks>
+    public ReferenceData<DrawParameters> Parameters { get; set; }
+
+    /// <summary>
     /// The owner <see cref="IDrawableNode"/> of this <see cref="DrawOperation"/>
     /// </summary>
     /// <remarks>
