@@ -11,6 +11,12 @@ using Veldrid.SPIRV;
 namespace VDStudios.MagicEngine.Demo.Nodes;
 public class ColorBackgroundNode : Node, IDrawableNode
 {
+    public ColorBackgroundNode()
+    {
+        DrawOperationManager = new(this);
+        DrawOperationManager.AddDrawOperation<ColorDraw>();
+    }
+
     #region Draw Operations
 
     private struct VertexPositionColor
@@ -141,21 +147,9 @@ void main()
             => ValueTask.CompletedTask;
     }
 
+    public DrawOperationManager DrawOperationManager { get; }
+    public bool SkipDrawPropagation { get; }
+
     #endregion
 
-    private readonly ColorDraw DrawOp = new();
-
-    public async ValueTask RegisterDrawOperations(GraphicsManager main, IReadOnlyList<GraphicsManager> allManagers)
-    {
-        await main.RegisterOperation(this, DrawOp);
-        HasPendingRegistrations = false;
-    }
-
-    public bool SkipDrawPropagation { get; }
-    public bool HasPendingRegistrations { get; private set; } = true;
-
-    public void AddToDrawQueue(IDrawQueue<DrawOperation> queue, DrawOperation operation)
-    {
-        queue.Enqueue(operation, 1);
-    }
 }
