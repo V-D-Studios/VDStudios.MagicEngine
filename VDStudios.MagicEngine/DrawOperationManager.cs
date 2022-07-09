@@ -84,6 +84,12 @@ public class DrawOperationManager
 
     #region Internal
 
+    internal void ProcessNewDrawData(ReferenceData<DrawParameters> parameters)
+    {
+        foreach (var dop in DrawOperations)
+            UpdateOperationDrawParameters(parameters, dop);
+    }
+
     /// <summary>
     /// This method will make no attempts at maintaining concurrency. The caller is responsible for waiting on <see cref="DrawOperationList.RegistrationSync"/> and releasing
     /// </summary>
@@ -135,6 +141,16 @@ public class DrawOperationManager
     #endregion
 
     #region Reaction Methods
+
+    /// <summary>
+    /// This method is called automatically when this <see cref="DrawOperationManager"/> is receiving new <see cref="DrawParameters"/> for its <see cref="DrawOperation"/>s
+    /// </summary>
+    /// <param name="drawParameters">The parameters received</param>
+    /// <param name="operation">The operation to assign the parameters into</param>
+    protected virtual void UpdateOperationDrawParameters(ReferenceData<DrawParameters> drawParameters, DrawOperation operation)
+    {
+        operation.Parameters = drawParameters;
+    }
 
     /// <summary>
     /// This method is called automatically when a new <see cref="DrawOperation"/> is being added onto this <see cref="DrawOperationManager"/>
