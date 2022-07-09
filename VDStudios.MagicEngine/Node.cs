@@ -635,9 +635,26 @@ public abstract class Node : NodeBase
     {
         if (DrawableSelf is not IDrawableNode ds) 
             return;
-        
-        if (ds.HasPendingRegistrations)
-            await ds.RegisterDrawOperations(Game.MainGraphicsManager, Game.ActiveGraphicsManagers);
+
+        {
+            var manager = ds.DrawOperationManager;
+
+            if (manager.HasPendingRegistrations)
+            {
+                var regSync = manager.DrawOperations.RegistrationSync;
+                if (!regSync.Wait(50))
+                    await regSync.WaitAsync();
+                try
+                {
+                    if (manager.HasPendingRegistrations)
+                        await manager.RegisterDrawOperations(Game.MainGraphicsManager, Game.ActiveGraphicsManagers);
+                }
+                finally
+                {
+                    regSync.Release();
+                }
+            }
+        }
 
         if (ds.SkipDrawPropagation)
             return;

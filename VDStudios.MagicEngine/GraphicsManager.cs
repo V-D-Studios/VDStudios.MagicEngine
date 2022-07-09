@@ -620,7 +620,7 @@ public class GraphicsManager : GameObject, IDisposable
                                 if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
                                 {
                                     await op.InternalCreateWindowSizedResources(ScreenSizeBuffer);
-                                    op.Owner.AddToDrawQueue(drawqueue, op);
+                                    op.Owner.DrawOperationManager.AddToDrawQueue(drawqueue, op);
                                 }
                                 else
                                     removalQueue.Enqueue(kv.Key);
@@ -629,7 +629,7 @@ public class GraphicsManager : GameObject, IDisposable
                         {
                             foreach (var kv in ops) // Iterate through all registered operations
                                 if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)  // Filter out those that have been disposed or collected
-                                    op.Owner.AddToDrawQueue(drawqueue, op); // And query them
+                                    op.Owner.DrawOperationManager.AddToDrawQueue(drawqueue, op); // And query them
                                 else
                                     removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
                         }
