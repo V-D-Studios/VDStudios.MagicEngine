@@ -37,7 +37,11 @@ public sealed class ReferenceDataSource<T> where T : notnull
     public T Data
     {
         get => _dat;
-        set => _dat = value;
+        set
+        {
+            _dat = value;
+            InmutableData.TriggerDataChanged();
+        }
     }
 
     /// <summary>
@@ -57,12 +61,16 @@ public sealed class ReferenceDataSource<T> where T : notnull
         {
             lock (sync)
                 _dat = value;
+            InmutableData.TriggerDataChanged();
         }
     }
 
     /// <summary>
     /// A reference to the storage of the data held by this <see cref="ReferenceDataSource{T}"/>, and that will be reflected on <see cref="InmutableData"/> as a read-only member upon changing
     /// </summary>
+    /// <remarks>
+    /// Changing this value will not fire <see cref="ReferenceData{T}.DataChanged"/>
+    /// </remarks>
     public ref T DataRef => ref _dat;
 
     private T _dat;

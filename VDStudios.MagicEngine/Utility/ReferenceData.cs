@@ -27,4 +27,16 @@ public sealed class ReferenceData<T> where T : notnull
     /// <see cref="ReferenceDataSource{T}.ConcurrentData"/> and <see cref="ConcurrentData"/> lock from each other, but this does not affect <see cref="ReferenceDataSource{T}.DataRef"/>, <see cref="ReferenceDataSource{T}.Data"/>, or <see cref="ReferenceDataSource{T}.Data"/>
     /// </remarks>
     public T ConcurrentData => Source.ConcurrentData;
+
+    /// <summary>
+    /// Fired when the <see cref="ReferenceDataSource{T}"/> that owns this object changes
+    /// </summary>
+    public event DataChangedEvent? DataChanged;
+    internal void TriggerDataChanged() => DataChanged?.Invoke(this);
+
+    /// <summary>
+    /// Represents an event that fires when the <see cref="ReferenceDataSource{T}"/> that owns a given <see cref="ReferenceData{T}"/> changes
+    /// </summary>
+    /// <param name="data">The data that is now reflecting the change</param>
+    public delegate void DataChangedEvent(ReferenceData<T> data);
 }
