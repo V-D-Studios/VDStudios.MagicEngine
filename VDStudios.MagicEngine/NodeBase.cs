@@ -159,6 +159,14 @@ public abstract class NodeBase : GameObject, IDisposable
 
     #region Internal
 
+    internal async ValueTask InternalHandleChildDrawRegistration(Node node)
+    {
+        if (node.drawer is NodeDrawRegistrar drawer
+            ? await drawer.PerformDrawRegistration()
+            : node.DrawableSelf is not IDrawableNode n || await HandleChildRegisterDrawOperations(n))
+            await node.PropagateDrawRegistration();
+    }
+
     internal void AssignToUpdateBatch(Node node)
     {
         var ub = AssigningToUpdateBatch(node);

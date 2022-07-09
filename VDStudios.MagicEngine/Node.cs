@@ -686,14 +686,6 @@ public abstract class Node : NodeBase
 #pragma warning restore CA2012
     }
 
-    private async ValueTask InternalHandleChildDrawRegistration(Node node)
-    {
-        if (node.drawer is NodeDrawRegistrar drawer
-            ? await drawer.PerformDrawRegistration()
-            : node.DrawableSelf is not IDrawableNode n || await HandleChildRegisterDrawOperations(n))
-            await node.PropagateDrawRegistration();
-    }
-
     #endregion
 
     #endregion

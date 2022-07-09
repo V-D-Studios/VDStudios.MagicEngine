@@ -193,7 +193,7 @@ public abstract class Scene : NodeBase
                 {
                     var child = Children.Get(i);
                     if (child.IsReady)
-                        tasks[ind++] = InternalHandleChildDraw(child);
+                        tasks[ind++] = InternalHandleChildDrawRegistration(child);
                 }
             }
             for (int i = 0; i < ind; i++)
@@ -204,14 +204,6 @@ public abstract class Scene : NodeBase
             pool.Return(tasks, true);
         }
 #pragma warning restore CA2012
-    }
-
-    private async ValueTask InternalHandleChildDraw(Node node)
-    {
-        if (node.drawer is NodeDrawRegistrar drawer
-            ? await drawer.PerformDrawRegistration()
-            : node.DrawableSelf is not IDrawableNode n || await HandleChildRegisterDrawOperations(n))
-            await node.PropagateDrawRegistration();
     }
 
     #endregion
