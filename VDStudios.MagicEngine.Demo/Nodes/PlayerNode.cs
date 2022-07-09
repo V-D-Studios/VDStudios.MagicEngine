@@ -129,6 +129,7 @@ public class PlayerNode : Node, IDrawableNode
                 })
             }
         };
+        DrawOperationManager = new(this);
     }
 
     protected override ValueTask<bool> Updating(TimeSpan delta)
@@ -158,19 +159,8 @@ public class PlayerNode : Node, IDrawableNode
 
     #region IDrawable
 
-    public async ValueTask RegisterDrawOperations(GraphicsManager main, IReadOnlyList<GraphicsManager> allManagers)
-    {
-        await main.RegisterOperation(this, DrawOp);
-        HasPendingRegistrations = false;
-    }
-
+    public DrawOperationManager DrawOperationManager { get; }
     public bool SkipDrawPropagation { get; }
-    public bool HasPendingRegistrations { get; private set; } = true;
-
-    public void AddToDrawQueue(IDrawQueue<DrawOperation> queue, DrawOperation operation)
-    {
-        queue.Enqueue(operation, 1);
-    }
 
     #endregion
 }
