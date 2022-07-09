@@ -49,18 +49,22 @@ public class DrawOperationManager
     /// Adds a new <see cref="DrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
     /// </summary>
     /// <typeparam name="TDrawOp">The type of <see cref="DrawOperation"/> to instantiate and add</typeparam>
-    public void AddDrawOperation<TDrawOp>() where TDrawOp : DrawOperation, new()
+    public TDrawOp AddDrawOperation<TDrawOp>() where TDrawOp : DrawOperation, new()
     {
+        var dop = new TDrawOp();
         AddDrawOperation(new TDrawOp());
+        return dop;
     }
 
     /// <summary>
     /// Adds a new <see cref="DrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
     /// </summary>
     /// <typeparam name="TDrawOp">The type of <see cref="DrawOperation"/> to instantiate and add</typeparam>
-    public void AddDrawOperation<TDrawOp>(Func<TDrawOp> factory) where TDrawOp : DrawOperation
+    public TDrawOp AddDrawOperation<TDrawOp>(Func<TDrawOp> factory) where TDrawOp : DrawOperation
     {
+        var dop = factory();
         AddDrawOperation(factory());
+        return dop;
     }
 
     /// <summary>
