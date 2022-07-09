@@ -240,7 +240,9 @@ public delegate object? TemplatedGUIElementConfigurator(GUIElement element);
 /// <param name="operation">The <see cref="DrawOperation"/> awaiting to be registered</param>
 /// <param name="node">The <see cref="IDrawableNode"/> that owns <paramref name="manager"/></param>
 /// <param name="manager">The <see cref="DrawOperationManager"/> that oversees <paramref name="operation"/></param>
+/// <param name="main">Represents <see cref="Game.MainGraphicsManager"/></param>
+/// <param name="allManagers">A list of active <see cref="GraphicsManager"/> that operations can be registered onto</param>
 /// <returns>The <see cref="GraphicsManager"/> to register <paramref name="operation"/> onto</returns>
-public delegate GraphicsManager DrawOperationGraphicsManagerSelector(DrawOperation operation, IDrawableNode node, DrawOperationManager manager);
+public delegate GraphicsManager DrawOperationGraphicsManagerSelector(GraphicsManager main, IReadOnlyList<GraphicsManager> allManagers,  DrawOperation operation, IDrawableNode node, DrawOperationManager manager);
 
 #endregion
