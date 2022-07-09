@@ -52,7 +52,7 @@ public class DrawOperationManager
     public TDrawOp AddDrawOperation<TDrawOp>() where TDrawOp : DrawOperation, new()
     {
         var dop = new TDrawOp();
-        AddDrawOperation(new TDrawOp());
+        AddDrawOperation(dop);
         return dop;
     }
 
@@ -63,7 +63,7 @@ public class DrawOperationManager
     public TDrawOp AddDrawOperation<TDrawOp>(Func<TDrawOp> factory) where TDrawOp : DrawOperation
     {
         var dop = factory();
-        AddDrawOperation(factory());
+        AddDrawOperation(dop);
         return dop;
     }
 
@@ -118,7 +118,7 @@ public class DrawOperationManager
             {
                 DrawOperations.RegistrationSync.Release();
             }
-            operation.AboutToDispose += Operation_AboutToDispose; ;
+            operation.AboutToDispose += Operation_AboutToDispose;
         }
         catch
         {
