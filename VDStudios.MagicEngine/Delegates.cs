@@ -231,3 +231,16 @@ public delegate void GUIElementActiveChanged(GUIElement element, TimeSpan timest
 public delegate object? TemplatedGUIElementConfigurator(GUIElement element);
 
 #endregion
+
+#region DrawOperationManager Delegates
+
+/// <summary>
+/// Represents a method that picks the correct <see cref="GraphicsManager"/> to register a given <see cref="DrawOperation"/> onto
+/// </summary>
+/// <param name="operation">The <see cref="DrawOperation"/> awaiting to be registered</param>
+/// <param name="node">The <see cref="IDrawableNode"/> that owns <paramref name="manager"/></param>
+/// <param name="manager">The <see cref="DrawOperationManager"/> that oversees <paramref name="operation"/></param>
+/// <returns>The <see cref="GraphicsManager"/> to register <paramref name="operation"/> onto</returns>
+public delegate GraphicsManager DrawOperationGraphicsManagerSelector(DrawOperation operation, IDrawableNode node, DrawOperationManager manager);
+
+#endregion
