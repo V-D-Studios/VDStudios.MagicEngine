@@ -281,7 +281,7 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    internal Action<DrawOperation>? InternalDrawOperationDisposing;
+    internal event Action<DrawOperation>? InternalDrawOperationDisposing;
 
     #endregion
 }
