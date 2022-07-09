@@ -1,4 +1,4 @@
-﻿namespace VDStudios.MagicEngine;
+﻿namespace VDStudios.MagicEngine.Utility;
 
 /// <summary>
 /// Represents context of Transformation parameters for drawing. This class cannot be inherited or instantiated by user code, see <see cref="ReferenceDataSource{T}.InmutableData"/>

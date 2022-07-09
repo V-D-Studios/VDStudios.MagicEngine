@@ -5,7 +5,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace VDStudios.MagicEngine;
+namespace VDStudios.MagicEngine.Utility;
 
 /// <summary>
 /// Represents a source of data for an <see cref="ReferenceData{T}"/> object
