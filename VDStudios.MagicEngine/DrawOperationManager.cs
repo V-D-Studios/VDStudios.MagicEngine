@@ -118,7 +118,7 @@ public class DrawOperationManager
             {
                 DrawOperations.RegistrationSync.Release();
             }
-            operation.AboutToDispose += Operation_InternalDrawOperationDisposing;
+            operation.AboutToDispose += Operation_AboutToDispose; ;
         }
         catch
         {
@@ -127,9 +127,9 @@ public class DrawOperationManager
         }
     }
 
-    private void Operation_InternalDrawOperationDisposing(DrawOperation obj)
+    private void Operation_AboutToDispose(DrawOperation sender, TimeSpan timestamp)
     {
-        DrawOperations.Remove(obj);
+        DrawOperations.Remove(sender);
     }
 
     #endregion
