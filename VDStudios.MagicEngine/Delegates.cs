@@ -9,6 +9,28 @@ using Veldrid;
 
 namespace VDStudios.MagicEngine;
 
+#region General Delegates
+
+/// <summary>
+/// Represents a generic event in the game that has a sender of type <typeparamref name="TSender"/> and some data of type <typeparamref name="TData"/>
+/// </summary>
+/// <param name="data">Some data that contains more information about the event</param>
+/// <param name="sender">The object that experienced the event</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <typeparam name="TData">The type of the object that contains more information about the event</typeparam>
+/// <typeparam name="TSender">The type of the object that experienced the event</typeparam>
+public delegate void GeneralGameEvent<TData, TSender>(TSender sender, TData data, TimeSpan timestamp);
+
+/// <summary>
+/// Represents a generic event in the game that has a sender of type <typeparamref name="TSender"/>
+/// </summary>
+/// <param name="sender">The object that experienced the event</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <typeparam name="TSender">The type of the object that experienced the event</typeparam>
+public delegate void GeneralGameEvent<TSender>(TSender sender, TimeSpan timestamp);
+
+#endregion
+
 #region Game Delegates
 
 /// <summary>
