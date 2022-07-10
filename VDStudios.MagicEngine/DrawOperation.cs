@@ -34,12 +34,12 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
     public ReferenceData<DrawParameters>? ReferenceParameters { get; set; }
 
     /// <summary>
-    /// The data held by <see cref="ReferenceParameters"/> if it's not null, or <c>default</c> if it is
+    /// The data held by <see cref="ReferenceParameters"/> if it's not null, or <see cref="GraphicsManager.DefaultManagerParameters"/> of the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered onto if it is
     /// </summary>
     /// <remarks>
     /// It's often a good idea to query this property only once per method, and cache it in a local variable
     /// </remarks>
-    public DrawParameters Parameters => ReferenceParameters?.ConcurrentData ?? default;
+    public DrawParameters Parameters => ReferenceParameters?.ConcurrentData ?? Manager!.DefaultManagerParameters.ConcurrentData;
 
     /// <summary>
     /// The owner <see cref="IDrawableNode"/> of this <see cref="DrawOperation"/>
