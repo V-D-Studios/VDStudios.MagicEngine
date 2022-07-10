@@ -111,14 +111,14 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
     private bool pendingGpuUpdate = true;
 
     /// <summary>
-    /// Flags this <see cref="DrawOperation"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, Vector2, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> call
+    /// Flags this <see cref="DrawOperation"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> call
     /// </summary>
     /// <remarks>
     /// Multiple calls to this method will not result in <see cref="UpdateGPUState(GraphicsDevice, CommandList, DeviceBuffer)"/> being called multiple times
     /// </remarks>
     protected void NotifyPendingGPUUpdate() => pendingGpuUpdate = true;
 
-    internal async ValueTask<CommandList> InternalDraw(TimeSpan delta, Vector2 offset)
+    internal async ValueTask<CommandList> InternalDraw(TimeSpan delta)
     {
         ThrowIfDisposed();
         sync.Wait();
@@ -137,7 +137,7 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
                 device.SubmitCommands(commands);
             }
             commands.Begin();
-            await Draw(delta, offset, commands, device, device.SwapchainFramebuffer, ssb).ConfigureAwait(false);
+            await Draw(delta, commands, device, device.SwapchainFramebuffer, ssb).ConfigureAwait(false);
             commands.End();
             return commands;
         }
@@ -189,15 +189,14 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
     /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock! Remember that <paramref name="commandList"/> is *NOT* thread-safe, but it is owned solely by this <see cref="DrawOperation"/>; and <see cref="GraphicsManager"/> will not use it until this method returns.
     /// </remarks>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
-    /// <param name="offset">The translation offset of the drawing operation</param>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     /// <param name="commandList">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
     /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
     /// <param name="screenSizeBuffer">A <see cref="DeviceBuffer"/> filled with a <see cref="Vector4"/> containing <see cref="GraphicsManager.Window"/>'s size in the form of <c>Vector4(x: Width, y: Height, 0, 0)</c></param>
-    protected abstract ValueTask Draw(TimeSpan delta, Vector2 offset, CommandList commandList, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer);
+    protected abstract ValueTask Draw(TimeSpan delta, CommandList commandList, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer);
 
     /// <summary>
-    /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(Vector2, CommandList, GraphicsDevice, Framebuffer)"/>
+    /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/>
     /// </summary>
     /// <remarks>
     /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock!
@@ -218,7 +217,7 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
     /// </summary>
     /// <exception cref="ObjectDisposedException"></exception>
     /// <remarks>
-    /// Calling this method from <see cref="Draw(Vector2, CommandList, GraphicsDevice)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
+    /// Calling this method from <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
     /// </remarks>
     protected void ThrowIfDisposed()
     {
@@ -267,7 +266,7 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
                 Commands?.Dispose();
                 Device = null;
                 Commands = null;
-                Owner = null;
+                Owner = null!;
                 Manager = null;
                 @lock.Dispose();
             }
@@ -288,7 +287,7 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
     /// Disposes of this <see cref="DrawOperation"/>'s resources
     /// </summary>
     /// <remarks>
-    /// Calling this method from <see cref="Draw(Vector2, CommandList, GraphicsDevice)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
+    /// Calling this method from <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
     /// </remarks>
     public void Dispose()
     {
