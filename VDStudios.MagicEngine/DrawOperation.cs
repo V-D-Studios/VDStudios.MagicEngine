@@ -31,7 +31,15 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
     /// <remarks>
     /// Rather than change this manually, it's better to let the owner of this <see cref="DrawOperation"/> assign it in the next cascade assignment
     /// </remarks>
-    public ReferenceData<DrawParameters> Parameters { get; set; }
+    public ReferenceData<DrawParameters>? ReferenceParameters { get; set; }
+
+    /// <summary>
+    /// The data held by <see cref="ReferenceParameters"/> if it's not null, or <c>default</c> if it is
+    /// </summary>
+    /// <remarks>
+    /// It's often a good idea to query this property only once per method, and cache it in a local variable
+    /// </remarks>
+    public DrawParameters Parameters => ReferenceParameters?.ConcurrentData ?? default;
 
     /// <summary>
     /// The owner <see cref="IDrawableNode"/> of this <see cref="DrawOperation"/>
