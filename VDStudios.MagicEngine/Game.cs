@@ -266,14 +266,6 @@ public class Game : SDLApplication<Game>
         {
             int sleep = (int)TimeSpan.FromSeconds(1d / 60d).TotalMilliseconds;
 
-            if (!isSDLStarted)
-            {
-                SetupSDL();
-                isSDLStarted = true;
-            }
-            else
-                throw new InvalidOperationException("This isn't the only video thread");
-
             VideoThreadLock.Release();
             while (isStarted) 
             {
@@ -375,17 +367,6 @@ public class Game : SDLApplication<Game>
     protected virtual IGameLifetime ConfigureGameLifetime()
     {
         return new GameLifeTimeOnWindowCloses(MainGraphicsManager.Window);
-    }
-
-    /// <summary>
-    /// Sets up SDL's libraries
-    /// </summary>
-    /// <remarks>This mehtod is called from the VideoThread</remarks>
-    protected virtual void SetupSDL()
-    {
-        this.InitializeVideo()
-            .InitializeEvents()
-            .InitializeAndOpenAudioMixer(MixerInitFlags.OGG | MixerInitFlags.OPUS);
     }
 
     /// <summary>
