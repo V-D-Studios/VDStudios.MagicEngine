@@ -12,6 +12,8 @@ public class DrawOperationManager
     /// <param name="graphicsManagerSelector">The method that this <see cref="DrawOperationManager"/> will use to select an appropriate <see cref="GraphicsManager"/> to register a new <see cref="DrawOperation"/> onto</param>
     public DrawOperationManager(IDrawableNode owner, DrawOperationGraphicsManagerSelector? graphicsManagerSelector = null)
     {
+        if (owner is not Node)
+            throw new InvalidOperationException($"The owner of a DrawOperationManager must be a node");
         Owner = owner;
         GraphicsManagerSelector = graphicsManagerSelector;
     }
@@ -44,6 +46,18 @@ public class DrawOperationManager
     #endregion
 
     #region Public Methods
+
+    /// <summary>
+    /// Passes <paramref name="parameters"/> down through <see cref="Owner"/>'s children, to replace the <see cref="ReferenceDataSource{T}"/> they reference
+    /// </summary>
+    public void CascadeThroughNode(ReferenceData<DrawParameters> parameters)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        ProcessNewDrawData(parameters);
+        foreach (var child in ((Node)Owner).Children)
+            if (child is IDrawableNode dn) 
+                dn.DrawOperationManager.CascadeThroughNode(parameters); 
+    }
 
     /// <summary>
     /// Adds a new <see cref="DrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
@@ -149,7 +163,7 @@ public class DrawOperationManager
     /// <param name="operation">The operation to assign the parameters into</param>
     protected virtual void UpdateOperationDrawParameters(ReferenceData<DrawParameters> drawParameters, DrawOperation operation)
     {
-        operation.Parameters = drawParameters;
+        operation.ReferenceParameters = drawParameters;
     }
 
     /// <summary>
