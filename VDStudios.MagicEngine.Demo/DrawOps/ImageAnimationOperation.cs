@@ -140,7 +140,7 @@ public class ImageAnimationOperation : DrawOperation
         }
     }
 
-    protected override ValueTask Draw(TimeSpan delta, Vector2 offset, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer? screenSizeBuffer)
+    protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer? screenSizeBuffer)
     {
         Viewport src;
         Viewport dst;

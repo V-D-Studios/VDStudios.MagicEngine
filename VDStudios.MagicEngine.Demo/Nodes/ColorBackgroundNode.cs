@@ -113,7 +113,7 @@ void main()
             return ValueTask.CompletedTask;
         }
 
-        protected override ValueTask Draw(TimeSpan delta, Vector2 offset, CommandList cl, GraphicsDevice gd, Framebuffer mainBuffer, DeviceBuffer screenSizedBuffer)
+        protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice gd, Framebuffer mainBuffer, DeviceBuffer screenSizedBuffer)
         {
             cl.SetFramebuffer(mainBuffer);
             cl.SetVertexBuffer(0, VertexBuffer);
