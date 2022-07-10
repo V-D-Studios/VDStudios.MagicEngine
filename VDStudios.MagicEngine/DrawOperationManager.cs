@@ -53,11 +53,13 @@ public class DrawOperationManager
     public void CascadeThroughNode(DataDependency<DrawParameters> parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
+        cascadedParameters = parameters;
         ProcessNewDrawData(parameters);
         foreach (var child in ((Node)Owner).Children)
             if (child is IDrawableNode dn) 
                 dn.DrawOperationManager.CascadeThroughNode(parameters); 
     }
+    internal DataDependency<DrawParameters>? cascadedParameters;
 
     /// <summary>
     /// Adds a new <see cref="DrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
