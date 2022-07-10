@@ -562,6 +562,11 @@ public class GraphicsManager : GameObject, IDisposable
         return true;
     }
 
+    /// <summary>
+    /// The default <see cref="DataDependencySource{T}"/> containing <see cref="DrawParameters"/> for all <see cref="DrawOperation"/>s that don't already have one
+    /// </summary>
+    protected internal DataDependencySource<DrawParameters> DefaultManagerParameters { get; } = new(default);
+
     private async Task Run()
     {
         var framelock = FrameLock;
@@ -588,6 +593,12 @@ public class GraphicsManager : GameObject, IDisposable
             IsWindowAvailable = flags.HasFlag(WindowFlags.Shown);
             HasFocus = flags.HasFlag(WindowFlags.InputFocus);
         });
+
+        var (ww, wh) = WindowSize;
+        DefaultManagerParameters.DataRef = DefaultManagerParameters.DataRef with
+        {
+            Transform = Matrix4x4.CreateTranslation(new Vector3(ww / 2f, wh / 2f, 0))
+        };
 
         Log.Information("Entering main rendering loop");
         while (IsRunning) // Running Loop
@@ -620,7 +631,7 @@ public class GraphicsManager : GameObject, IDisposable
                                 if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
                                 {
                                     await op.InternalCreateWindowSizedResources(ScreenSizeBuffer);
-                                    op.Owner.AddToDrawQueue(drawqueue, op);
+                                    op.Owner.DrawOperationManager.AddToDrawQueue(drawqueue, op);
                                 }
                                 else
                                     removalQueue.Enqueue(kv.Key);
@@ -629,7 +640,7 @@ public class GraphicsManager : GameObject, IDisposable
                         {
                             foreach (var kv in ops) // Iterate through all registered operations
                                 if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)  // Filter out those that have been disposed or collected
-                                    op.Owner.AddToDrawQueue(drawqueue, op); // And query them
+                                    op.Owner.DrawOperationManager.AddToDrawQueue(drawqueue, op); // And query them
                                 else
                                     removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
                         }
@@ -649,7 +660,7 @@ public class GraphicsManager : GameObject, IDisposable
 
                             int i = 0;
                             while (drawqueue.Count > 0) 
-                                drawBuffer[i++] = drawqueue.Dequeue().InternalDraw(delta, new Vector2(winsize.X / 2, winsize.Y / 2)); // Run operations in the DrawQueue
+                                drawBuffer[i++] = drawqueue.Dequeue().InternalDraw(delta); // Run operations in the DrawQueue
                             while (i > 0)
                                 gd.SubmitCommands(await drawBuffer[--i]);
                         }

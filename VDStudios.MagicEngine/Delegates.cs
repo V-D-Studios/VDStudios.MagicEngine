@@ -9,6 +9,30 @@ using Veldrid;
 
 namespace VDStudios.MagicEngine;
 
+#region General Delegates
+
+/// <summary>
+/// Represents a generic event in the game that has a sender of type <typeparamref name="TSender"/> and some data of type <typeparamref name="TData"/>
+/// </summary>
+/// <param name="data">Some data that contains more information about the event</param>
+/// <param name="sender">The object that experienced the event</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <typeparam name="TData">The type of the object that contains more information about the event</typeparam>
+/// <typeparam name="TSender">The type of the object that experienced the event</typeparam>
+public delegate void GeneralGameEvent<TData, TSender>(TSender sender, TData data, TimeSpan timestamp)
+    where TSender : GameObject;
+
+/// <summary>
+/// Represents a generic event in the game that has a sender of type <typeparamref name="TSender"/>
+/// </summary>
+/// <param name="sender">The object that experienced the event</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <typeparam name="TSender">The type of the object that experienced the event</typeparam>
+public delegate void GeneralGameEvent<TSender>(TSender sender, TimeSpan timestamp)
+    where TSender : GameObject;
+
+#endregion
+
 #region Game Delegates
 
 /// <summary>
@@ -229,5 +253,20 @@ public delegate void GUIElementActiveChanged(GUIElement element, TimeSpan timest
 /// <param name="element">The newly instanced <see cref="GUIElement"/> from the template</param>
 /// <returns>An object representing the <see cref="GUIElement.DataContext"/> of the element, or <c>null</c> if it's not meant to have one</returns>
 public delegate object? TemplatedGUIElementConfigurator(GUIElement element);
+
+#endregion
+
+#region DrawOperationManager Delegates
+
+/// <summary>
+/// Represents a method that picks the correct <see cref="GraphicsManager"/> to register a given <see cref="DrawOperation"/> onto
+/// </summary>
+/// <param name="operation">The <see cref="DrawOperation"/> awaiting to be registered</param>
+/// <param name="node">The <see cref="IDrawableNode"/> that owns <paramref name="manager"/></param>
+/// <param name="manager">The <see cref="DrawOperationManager"/> that oversees <paramref name="operation"/></param>
+/// <param name="main">Represents <see cref="Game.MainGraphicsManager"/></param>
+/// <param name="allManagers">A list of active <see cref="GraphicsManager"/> that operations can be registered onto</param>
+/// <returns>The <see cref="GraphicsManager"/> to register <paramref name="operation"/> onto</returns>
+public delegate GraphicsManager DrawOperationGraphicsManagerSelector(GraphicsManager main, IReadOnlyList<GraphicsManager> allManagers,  DrawOperation operation, IDrawableNode node, DrawOperationManager manager);
 
 #endregion
