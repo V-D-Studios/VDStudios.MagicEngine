@@ -563,9 +563,9 @@ public class GraphicsManager : GameObject, IDisposable
     }
 
     /// <summary>
-    /// The default <see cref="ReferenceDataSource{T}"/> containing <see cref="DrawParameters"/> for all <see cref="DrawOperation"/>s that don't already have one
+    /// The default <see cref="DataDependencySource{T}"/> containing <see cref="DrawParameters"/> for all <see cref="DrawOperation"/>s that don't already have one
     /// </summary>
-    protected internal ReferenceDataSource<DrawParameters> DefaultManagerParameters { get; } = new(default);
+    protected internal DataDependencySource<DrawParameters> DefaultManagerParameters { get; } = new(default);
 
     private async Task Run()
     {

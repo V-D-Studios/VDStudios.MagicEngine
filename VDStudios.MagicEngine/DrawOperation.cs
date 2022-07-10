@@ -31,7 +31,7 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
     /// <remarks>
     /// Rather than change this manually, it's better to let the owner of this <see cref="DrawOperation"/> assign it in the next cascade assignment
     /// </remarks>
-    public ReferenceData<DrawParameters>? ReferenceParameters { get; set; }
+    public DataDependency<DrawParameters>? ReferenceParameters { get; set; }
 
     /// <summary>
     /// The data held by <see cref="ReferenceParameters"/> if it's not null, or <see cref="GraphicsManager.DefaultManagerParameters"/> of the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered onto if it is

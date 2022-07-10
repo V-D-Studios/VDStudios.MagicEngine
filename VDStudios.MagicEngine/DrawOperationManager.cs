@@ -48,9 +48,9 @@ public class DrawOperationManager
     #region Public Methods
 
     /// <summary>
-    /// Passes <paramref name="parameters"/> down through <see cref="Owner"/>'s children, to replace the <see cref="ReferenceDataSource{T}"/> they reference
+    /// Passes <paramref name="parameters"/> down through <see cref="Owner"/>'s children, to replace the <see cref="DataDependencySource{T}"/> they reference
     /// </summary>
-    public void CascadeThroughNode(ReferenceData<DrawParameters> parameters)
+    public void CascadeThroughNode(DataDependency<DrawParameters> parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         ProcessNewDrawData(parameters);
@@ -98,7 +98,7 @@ public class DrawOperationManager
 
     #region Internal
 
-    internal void ProcessNewDrawData(ReferenceData<DrawParameters> parameters)
+    internal void ProcessNewDrawData(DataDependency<DrawParameters> parameters)
     {
         foreach (var dop in DrawOperations)
             UpdateOperationDrawParameters(parameters, dop);
@@ -161,7 +161,7 @@ public class DrawOperationManager
     /// </summary>
     /// <param name="drawParameters">The parameters received</param>
     /// <param name="operation">The operation to assign the parameters into</param>
-    protected virtual void UpdateOperationDrawParameters(ReferenceData<DrawParameters> drawParameters, DrawOperation operation)
+    protected virtual void UpdateOperationDrawParameters(DataDependency<DrawParameters> drawParameters, DrawOperation operation)
     {
         operation.ReferenceParameters = drawParameters;
     }

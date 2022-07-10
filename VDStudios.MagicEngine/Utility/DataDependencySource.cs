@@ -8,31 +8,31 @@ using System.Threading.Tasks;
 namespace VDStudios.MagicEngine.Utility;
 
 /// <summary>
-/// Represents a source of data for an <see cref="ReferenceData{T}"/> object
+/// Represents a source of data for an <see cref="DataDependency{T}"/> object
 /// </summary>
 /// <remarks>
 /// This class is useful to propagate large structs into other objects, or to present mutable data throughout multiple elements without releasing control of it. This object should be stored and mutated as necessary 
 /// </remarks>
-public sealed class ReferenceDataSource<T> where T : notnull
+public sealed class DataDependencySource<T> where T : notnull
 {
     private readonly object sync = new();
 
     /// <summary>
-    /// Instances a new object of type <see cref="ReferenceDataSource{T}"/>
+    /// Instances a new object of type <see cref="DataDependencySource{T}"/>
     /// </summary>
-    public ReferenceDataSource(T data)
+    public DataDependencySource(T data)
     {
         InmutableData = new(this);
         _dat = data;
     }
 
     /// <summary>
-    /// A <see cref="ReferenceData{T}"/> object that reflects the data held by this object
+    /// A <see cref="DataDependency{T}"/> object that reflects the data held by this object
     /// </summary>
-    public ReferenceData<T> InmutableData { get; }
+    public DataDependency<T> InmutableData { get; }
 
     /// <summary>
-    /// The data held by this <see cref="ReferenceDataSource{T}"/>, and that will be reflected on <see cref="InmutableData"/> as a read-only member upon changing
+    /// The data held by this <see cref="DataDependencySource{T}"/>, and that will be reflected on <see cref="InmutableData"/> as a read-only member upon changing
     /// </summary>
     public T Data
     {
@@ -45,10 +45,10 @@ public sealed class ReferenceDataSource<T> where T : notnull
     }
 
     /// <summary>
-    /// The data held by this <see cref="ReferenceDataSource{T}"/>, and that will be reflected on <see cref="InmutableData"/> as a read-only member upon changing
+    /// The data held by this <see cref="DataDependencySource{T}"/>, and that will be reflected on <see cref="InmutableData"/> as a read-only member upon changing
     /// </summary>
     /// <remarks>
-    /// <see cref="ConcurrentData"/> and <see cref="ReferenceData{T}.ConcurrentData"/> lock from each other, but this does not affect <see cref="DataRef"/>, <see cref="Data"/>, or <see cref="ReferenceData{T}.Data"/>
+    /// <see cref="ConcurrentData"/> and <see cref="DataDependency{T}.ConcurrentData"/> lock from each other, but this does not affect <see cref="DataRef"/>, <see cref="Data"/>, or <see cref="DataDependency{T}.Data"/>
     /// </remarks>
     public T ConcurrentData
     {
@@ -66,10 +66,10 @@ public sealed class ReferenceDataSource<T> where T : notnull
     }
 
     /// <summary>
-    /// A reference to the storage of the data held by this <see cref="ReferenceDataSource{T}"/>, and that will be reflected on <see cref="InmutableData"/> as a read-only member upon changing
+    /// A reference to the storage of the data held by this <see cref="DataDependencySource{T}"/>, and that will be reflected on <see cref="InmutableData"/> as a read-only member upon changing
     /// </summary>
     /// <remarks>
-    /// Changing this value will not fire <see cref="ReferenceData{T}.DataChanged"/>
+    /// Changing this value will not fire <see cref="DataDependency{T}.DataChanged"/>
     /// </remarks>
     public ref T DataRef => ref _dat;
 
