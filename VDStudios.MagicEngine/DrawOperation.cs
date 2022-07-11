@@ -1,4 +1,5 @@
-﻿using SDL2.NET;
+﻿using Newtonsoft.Json.Linq;
+using SDL2.NET;
 using System.Numerics;
 using VDStudios.MagicEngine.Internal;
 using Veldrid;
@@ -42,26 +43,35 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
     public DrawParameters Parameters => ReferenceParameters?.ConcurrentData ?? Manager!.DefaultManagerParameters.ConcurrentData;
 
     /// <summary>
-    /// The owner <see cref="IDrawableNode"/> of this <see cref="DrawOperation"/>
+    /// The owner <see cref="DrawOperationManager"/> of this <see cref="DrawOperation"/>
     /// </summary>
     /// <remarks>
-    /// Will be null if this <see cref="DrawOperation"/> is not registered
+    /// Will throw if this <see cref="DrawOperation"/> is not registered
     /// </remarks>
-    public IDrawableNode Owner { get; private set; }
+    public DrawOperationManager Owner => _owner ?? throw new InvalidOperationException("Cannot query the Owner of an unregistered DrawOperation");
+    private DrawOperationManager? _owner;
+    internal void SetOwner(DrawOperationManager owner)
+    {
+        lock (sync)
+        {
+            if (_owner is not null)
+                throw new InvalidOperationException("This DrawOperation already has an owner.");
+            _owner = owner;
+        }
+    }
 
     #region Registration
 
     #region Internal
 
-    internal async ValueTask Register(IDrawableNode owner, GraphicsManager manager)
+    internal async ValueTask Register(GraphicsManager manager)
     {
         ThrowIfDisposed();
 
-        Registering(owner, manager);
+        Registering(manager);
         
         var device = manager.Device;
         Device = device;
-        Owner = owner;
         Manager = manager;
         await CreateResources(device, device.ResourceFactory);
         await InternalCreateWindowSizedResources(manager.ScreenSizeBuffer!);
@@ -93,7 +103,7 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
     /// </summary>
     /// <param name="owner">The <see cref="Node"/> that registered this <see cref="DrawOperation"/></param>
     /// <param name="manager">The <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is being registered onto</param>
-    protected virtual void Registering(IDrawableNode owner, GraphicsManager manager) { }
+    protected virtual void Registering(GraphicsManager manager) { }
 
     /// <summary>
     /// This method is called automatically when this <see cref="DrawOperation"/> has been registered
@@ -266,7 +276,7 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
                 Commands?.Dispose();
                 Device = null;
                 Commands = null;
-                Owner = null!;
+                _owner = null!;
                 Manager = null;
                 @lock.Dispose();
             }

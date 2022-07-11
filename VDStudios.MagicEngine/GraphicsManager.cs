@@ -89,13 +89,12 @@ public class GraphicsManager : GameObject, IDisposable
     /// <remarks>
     /// Remember than any single <see cref="DrawOperation"/> can only be assigned to one <see cref="GraphicsManager"/>, and can only be deregistered after disposing. <see cref="DrawOperation"/>s should not be dropped, as <see cref="GraphicsManager"/>s only keep <see cref="WeakReference"/>s to them
     /// </remarks>
-    /// <param name="node">The <see cref="Node"/> that owns <paramref name="operation"/></param>
     /// <param name="operation">The <see cref="DrawOperation"/> that will be drawn in this <see cref="GraphicsManager"/></param>
-    public async Task RegisterOperation(IDrawableNode node, DrawOperation operation)
+    internal async Task RegisterOperation(DrawOperation operation)
     {
         using (await LockManagerDrawingAsync())
         {
-            await operation.Register(node, this);
+            await operation.Register(this);
             if (!DrawOperationRegistering(operation, out var reason))
             {
                 var excp = new DrawOperationRejectedException(reason, this, operation);
@@ -631,7 +630,7 @@ public class GraphicsManager : GameObject, IDisposable
                                 if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
                                 {
                                     await op.InternalCreateWindowSizedResources(ScreenSizeBuffer);
-                                    op.Owner.DrawOperationManager.AddToDrawQueue(drawqueue, op);
+                                    op.Owner.AddToDrawQueue(drawqueue, op);
                                 }
                                 else
                                     removalQueue.Enqueue(kv.Key);
@@ -640,7 +639,7 @@ public class GraphicsManager : GameObject, IDisposable
                         {
                             foreach (var kv in ops) // Iterate through all registered operations
                                 if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)  // Filter out those that have been disposed or collected
-                                    op.Owner.DrawOperationManager.AddToDrawQueue(drawqueue, op); // And query them
+                                    op.Owner.AddToDrawQueue(drawqueue, op); // And query them
                                 else
                                     removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
                         }

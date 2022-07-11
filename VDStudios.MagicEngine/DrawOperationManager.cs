@@ -67,7 +67,8 @@ public class DrawOperationManager
     /// <typeparam name="TDrawOp">The type of <see cref="DrawOperation"/> to instantiate and add</typeparam>
     public TDrawOp AddDrawOperation<TDrawOp>() where TDrawOp : DrawOperation, new()
     {
-        var dop = new TDrawOp();
+        var dop = new TDrawOp;
+        dop.SetOwner(this);
         AddDrawOperation(dop);
         return dop;
     }
@@ -79,6 +80,7 @@ public class DrawOperationManager
     public TDrawOp AddDrawOperation<TDrawOp>(Func<TDrawOp> factory) where TDrawOp : DrawOperation
     {
         var dop = factory();
+        dop.SetOwner(this);
         AddDrawOperation(dop);
         return dop;
     }
@@ -117,7 +119,7 @@ public class DrawOperationManager
         foreach (var dop in DrawOperations.RegistrationBuffer)
         {
             GraphicsManager manager = GraphicsManagerSelector is DrawOperationGraphicsManagerSelector selector ? selector(main, allManagers, dop, Owner, this) : main;
-            await manager.RegisterOperation(Owner, dop);
+            await manager.RegisterOperation(dop);
         }
         HasPendingRegistrations = false;
     }
