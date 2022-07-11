@@ -1,4 +1,5 @@
-﻿using SDL2.NET;
+﻿using Newtonsoft.Json.Linq;
+using SDL2.NET;
 using System.Numerics;
 using VDStudios.MagicEngine.Internal;
 using Veldrid;
@@ -45,22 +46,19 @@ public abstract class DrawOperation : InternalGraphicalOperation, IDisposable
     /// The owner <see cref="DrawOperationManager"/> of this <see cref="DrawOperation"/>
     /// </summary>
     /// <remarks>
-    /// Will be null if this <see cref="DrawOperation"/> is not registered
+    /// Will throw if this <see cref="DrawOperation"/> is not registered
     /// </remarks>
-    public DrawOperationManager Owner
+    public DrawOperationManager Owner => _owner ?? throw new InvalidOperationException("Cannot query the Owner of an unregistered DrawOperation");
+    private DrawOperationManager? _owner;
+    internal void SetOwner(DrawOperationManager owner)
     {
-        get => _owner ?? throw new InvalidOperationException("Cannot query the Owner of an unregistered DrawOperation");
-        internal set
+        lock (sync)
         {
-            lock (sync)
-            {
-                if (_owner is not null)
-                    throw new InvalidOperationException("This DrawOperation already has an owner");
-                _owner = value;
-            }
+            if (_owner is not null)
+                throw new InvalidOperationException("This DrawOperation already has an owner.");
+            _owner = owner;
         }
     }
-    private DrawOperationManager? _owner;
 
     #region Registration
 
