@@ -67,7 +67,7 @@ public class DrawOperationManager
     /// <typeparam name="TDrawOp">The type of <see cref="DrawOperation"/> to instantiate and add</typeparam>
     public TDrawOp AddDrawOperation<TDrawOp>() where TDrawOp : DrawOperation, new()
     {
-        var dop = new TDrawOp;
+        var dop = new TDrawOp();
         dop.SetOwner(this);
         AddDrawOperation(dop);
         return dop;
