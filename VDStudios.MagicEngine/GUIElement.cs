@@ -2,7 +2,6 @@
 using SDL2.NET;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using VDStudios.MagicEngine.Internal;
 using Veldrid;
 
 namespace VDStudios.MagicEngine;
@@ -13,7 +12,7 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// This object is removed from the GUI tree when disposed
 /// </remarks>
-public abstract class GUIElement : InternalGraphicalOperation, IDisposable
+public abstract class GUIElement : GraphicsObject, IDisposable
 {
     #region Services
 

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace VDStudios.MagicEngine.Internal;
+namespace VDStudios.MagicEngine;
 
 /// <summary>
 /// Represents the base class for graphical operations, such as <see cref="DrawOperation"/>, <see cref="GUIElement"/>
@@ -12,16 +12,16 @@ namespace VDStudios.MagicEngine.Internal;
 /// <remarks>
 /// This class cannot be instanced or inherited by user code
 /// </remarks>
-public abstract class InternalGraphicalOperation : GameObject
+public abstract class GraphicsObject : GameObject
 {
-    internal InternalGraphicalOperation(string facility) : base(facility, "Rendering")
+    internal GraphicsObject(string facility) : base(facility, "Rendering")
     { }
 
     /// <summary>
     /// This <see cref="DrawOperation"/>'s unique identifier, generated automatically
     /// </summary>
     public Guid Identifier { get; } = Guid.NewGuid();
-    
+
     /// <summary>
     /// The <see cref="GraphicsManager"/> this operation is registered onto
     /// </summary>
