@@ -48,12 +48,24 @@
 	    <AutoGen>True</AutoGen>
 	    <DependentUpon>ImGuiResources.resx</DependentUpon>
 	  </Compile>
+	  <Compile Update="Properties\BuiltInResources.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>BuiltInResources.resx</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 	<ItemGroup>
 	  <EmbeddedResource Update="Properties\ImGuiResources.resx">
 	    <Generator>ResXFileCodeGenerator</Generator>
 	    <LastGenOutput>ImGUIResources.Designer.cs</LastGenOutput>
 	  </EmbeddedResource>
+	  <EmbeddedResource Update="Properties\BuiltInResources.resx">
+	    <Generator>PublicResXFileCodeGenerator</Generator>
+	    <LastGenOutput>BuiltInResources.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Properties\Assets\Default\" />
 	</ItemGroup>
 
 </Project>
