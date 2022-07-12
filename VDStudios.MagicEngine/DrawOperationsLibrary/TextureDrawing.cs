@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using Veldrid;
+using Veldrid.ImageSharp;
 using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.DrawLibrary;
@@ -39,7 +40,11 @@ public class TextureDrawing : DrawOperation
     /// <summary>
     /// The texture to draw
     /// </summary>
-    public Texture Texture { get; }
+    /// <remarks>
+    /// If a <see cref="TextureFactory"/> was passed to the constructor, this property will be null until <see cref="GraphicsObject.Manager"/> calls <see cref="CreateResources(GraphicsDevice, ResourceFactory)"/>
+    /// </remarks>
+    public Texture Texture { get; private set; }
+    private TextureFactory? txfactory;
 
     /// <summary>
     /// Whether this <see cref="TextureDrawing"/> solely owns <see cref="Texture"/>
@@ -57,7 +62,32 @@ public class TextureDrawing : DrawOperation
     /// <param name="relativePosition"></param>
     public TextureDrawing(Texture texture, bool ownsTexture = false, DataDependency<Vector2>? relativePosition = null)
     {
+        ArgumentNullException.ThrowIfNull(texture);
         Texture = texture;
+    }
+
+    /// <summary>
+    /// Instances a new <see cref="TextureDrawing"/> object
+    /// </summary>
+    /// <param name="textureFactory">A delegated method that instantiates or retrieves the <see cref="global::Veldrid.Texture"/> to draw</param>
+    /// <param name="ownsTexture">Whether or not this <see cref="TextureDrawing"/> is the sole owner of the <see cref="global::Veldrid.Texture"/> produced by <paramref name="textureFactory"/>. If <c>true</c>, this object will assume that it's solely responsible for <paramref name="Texture"/>; including but not limited to disposing of it when this object is disposed</param>
+    /// <param name="relativePosition"></param>
+    public TextureDrawing(TextureFactory textureFactory, bool ownsTexture = false, DataDependency<Vector2>? relativePosition = null)
+    {
+        ArgumentNullException.ThrowIfNull(textureFactory);
+        txfactory = textureFactory;
+    }
+
+    /// <summary>
+    /// Instances a new <see cref="TextureDrawing"/> object
+    /// </summary>
+    /// <param name="texture">An <see cref="ImageSharpTexture"/> ready to be bound to this <see cref="TextureDrawing"/>'s <see cref="GraphicsDevice"/></param>
+    /// <param name="ownsTexture">Whether or not this <see cref="TextureDrawing"/> is the sole owner of the <see cref="global::Veldrid.Texture"/> produced by <paramref name="textureFactory"/>. If <c>true</c>, this object will assume that it's solely responsible for <paramref name="Texture"/>; including but not limited to disposing of it when this object is disposed</param>
+    /// <param name="relativePosition"></param>
+    public TextureDrawing(ImageSharpTexture texture, bool ownsTexture = false, DataDependency<Vector2>? relativePosition = null)
+    {
+        ArgumentNullException.ThrowIfNull(texture);
+        txfactory = texture.CreateDeviceTexture;
     }
 
     /// <inheritdoc/>
@@ -71,6 +101,11 @@ public class TextureDrawing : DrawOperation
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
     {
         NotifyPendingGPUUpdate();
+        if (Texture is null)
+            Texture = txfactory is not null
+                ? txfactory(device, factory)
+                : throw new NullReferenceException("Both Texture and the Texture Factory in this TextureDrawing are null: This is an invalid state that should be unreachable");
+
         _shiftBuffer = factory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
         _vertexBuffer = factory.CreateBuffer(new BufferDescription(16 * 4, BufferUsage.VertexBuffer));
         _indexBuffer = factory.CreateBuffer(new BufferDescription(2 * 6, BufferUsage.IndexBuffer));
