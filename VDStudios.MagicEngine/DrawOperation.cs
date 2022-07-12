@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using SDL2.NET;
 using System.Numerics;
-using VDStudios.MagicEngine.Internal;
 using Veldrid;
 
 namespace VDStudios.MagicEngine;
