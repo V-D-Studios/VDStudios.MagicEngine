@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -177,7 +178,7 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     /// <remarks>
     /// It's best to leave this property alone, the code in <see cref="PolygonList"/> will take care of it
     /// </remarks>
-    protected PolygonDefinition[] PolygonBuffer = Array.Empty<PolygonDefinition>();
+    protected PolygonDat[] PolygonBuffer = Array.Empty<PolygonDat>();
 
     /// <summary>
     /// The fill of <see cref="PolygonBuffer"/>. Think of <see cref="List{T}.Count"/> vs <see cref="List{T}.Capacity"/>
@@ -211,7 +212,62 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     /// <inheritdoc/>
     protected override ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList, DeviceBuffer screenSizeBuffer)
     {
-        throw new NotImplementedException();
+        foreach (var i in PolygonBuffer)
+            i.Dispose();
+
+        lock (_polygons)
+        {
+            if (_polygons.Count > PolygonBuffer.Length)
+                PolygonBuffer = new PolygonDat[_polygons.Capacity];
+
+            int i = 0;
+            for (; i < _polygons.Count; i++)
+                PolygonBuffer[i] = new(_polygons[i], device.ResourceFactory);
+            for (; i < PolygonBuffer.Length; i++)
+                PolygonBuffer[i] = default;
+
+            PolygonBufferFill = _polygons.Count;
+        }
+
+        return ValueTask.CompletedTask;
+    }
+
+    #endregion
+
+    #region Helper Classes
+
+    /// <summary>
+    /// Represents polygon and device related data
+    /// </summary>
+    protected readonly struct PolygonDat : IDisposable
+    {
+        /// <summary>
+        /// The polygon in question
+        /// </summary>
+        public readonly PolygonDefinition Polygon;
+
+        /// <summary>
+        /// The buffer holding the data for this polygon
+        /// </summary>
+        public readonly DeviceBuffer Buffer;
+
+        public PolygonDat(PolygonDefinition def, ResourceFactory factory)
+        {
+            if (def.RefEquals(default)) 
+                throw new ArgumentException($"PolygonDefinition def cannot be an empty struct (default)", nameof(def));
+            
+            Buffer = factory.CreateBuffer(new(
+                (uint)(Unsafe.SizeOf<Vector2>() * def.Count),
+                BufferUsage.VertexBuffer
+            ));
+
+            Polygon = def;
+        }
+
+        public void Dispose()
+        {
+            ((IDisposable)Buffer).Dispose();
+        }
     }
 
     #endregion
