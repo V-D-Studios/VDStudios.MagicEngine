@@ -164,21 +164,51 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
 
     #region Draw
 
+    #region Resources
+
+    /// <summary>
+    /// The shaders that will be used to render the polygons
+    /// </summary>
+    protected Shader[] Shaders;
+
+    /// <summary>
+    /// The temporary buffer into which the polygons held in this object will be copied for drawing. This array may be larger than necessary, see <see cref="PolygonBufferFill"/>
+    /// </summary>
+    /// <remarks>
+    /// It's best to leave this property alone, the code in <see cref="PolygonList"/> will take care of it
+    /// </remarks>
+    protected PolygonDefinition[] PolygonBuffer = Array.Empty<PolygonDefinition>();
+
+    /// <summary>
+    /// The fill of <see cref="PolygonBuffer"/>. Think of <see cref="List{T}.Count"/> vs <see cref="List{T}.Capacity"/>
+    /// </summary>
+    /// <remarks>
+    /// It's best to leave this property alone, the code in <see cref="PolygonList"/> will take care of it. This property is not read-only because <see cref="PolygonBuffer"/> is mutable
+    /// </remarks>
+    protected int PolygonBufferFill = 0;
+
+    #endregion
+
+    /// <inheritdoc/>
     protected override ValueTask CreateWindowSizedResources(GraphicsDevice device, ResourceFactory factory, DeviceBuffer screenSizeBuffer)
     {
-        throw new NotImplementedException();
+        return ValueTask.CompletedTask;
     }
 
+    /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
     {
-        throw new NotImplementedException();
+        Shaders = factory.CreateFromSpirv(VertexShaderDesc, FragmentShaderDesc);
+        return ValueTask.CompletedTask;
     }
 
+    /// <inheritdoc/>
     protected override ValueTask Draw(TimeSpan delta, CommandList commandList, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
     {
-        throw new NotImplementedException();
+        return ValueTask.CompletedTask;
     }
 
+    /// <inheritdoc/>
     protected override ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList, DeviceBuffer screenSizeBuffer)
     {
         throw new NotImplementedException();
