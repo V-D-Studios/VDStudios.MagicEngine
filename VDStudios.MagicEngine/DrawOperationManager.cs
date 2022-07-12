@@ -187,3 +187,29 @@ public class DrawOperationManager
 
     #endregion
 }
+
+/// <summary>
+/// Represents a <see cref="DrawOperationManager"/> that accepts a <see cref="DrawQueueSelector"/> delegate method to act in place of inheriting and overriding <see cref="DrawOperationManager.AddToDrawQueue(IDrawQueue{DrawOperation}, DrawOperation)"/>
+/// </summary>
+public sealed class DrawOperationManagerDrawQueueDelegate : DrawOperationManager
+{
+    /// <summary>
+    /// Represents a method that can add <paramref name="operation"/> appropriately into <paramref name="queue"/>
+    /// </summary>
+    /// <param name="queue">The <see cref="IDrawQueue{T}"/> into which to add <paramref name="operation"/></param>
+    /// <param name="operation">The operation in question</param>
+    public delegate void DrawQueueSelector(IDrawQueue<DrawOperation> queue, DrawOperation operation);
+
+    private readonly DrawQueueSelector _drawQueueSelector;
+
+    /// <inheritdoc/>
+    public DrawOperationManagerDrawQueueDelegate(IDrawableNode owner, DrawQueueSelector drawQueueSelector, DrawOperationGraphicsManagerSelector? graphicsManagerSelector = null) : base(owner, graphicsManagerSelector)
+    {
+        ArgumentNullException.ThrowIfNull(drawQueueSelector);
+        _drawQueueSelector = drawQueueSelector;
+    }
+
+    /// <inheritdoc/>
+    public override void AddToDrawQueue(IDrawQueue<DrawOperation> queue, DrawOperation operation)
+        => _drawQueueSelector.Invoke(queue, operation);
+}
