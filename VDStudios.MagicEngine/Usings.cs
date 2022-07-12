@@ -6,3 +6,4 @@ global using System.Threading.Tasks;
 global using VDStudios.MagicEngine.Utility;
 global using VDStudios.MagicEngine.Properties;
 global using Texture = Veldrid.Texture;
+global using PixelFormat = Veldrid.PixelFormat;
