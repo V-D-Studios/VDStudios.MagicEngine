@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 using Veldrid;
 using VDStudios.MagicEngine.Demo.Services;
 using SDL2.NET;
-using VDStudios.MagicEngine.Demo.DrawOps;
 using Texture = Veldrid.Texture;
 using VDStudios.MagicEngine.Demo.ResourceExtensions;
 using SDL2.NET.Input;
+using VDStudios.MagicEngine.DrawLibrary;
 
 namespace VDStudios.MagicEngine.Demo.Nodes;
 public class PlayerNode : Node, IDrawableNode
@@ -26,12 +26,13 @@ public class PlayerNode : Node, IDrawableNode
     protected Vector2 Speed = new(1000);
     protected Vector2 Move;
     protected Dictionary<Vector2, TimedSequence<Viewport>> Animations;
-    protected ImageAnimationOperation DrawOp = new(ImageTextures.RobinSpriteSheet);
+    protected TextureDrawing DrawOp;
 
     const float AnimFps = 9;
 
     public PlayerNode()
     {
+        DrawOp = new(ImageTextures.RobinSpriteSheet);
         int size = 32;
         int xoff = size * 4;
         int yoff = 0;
