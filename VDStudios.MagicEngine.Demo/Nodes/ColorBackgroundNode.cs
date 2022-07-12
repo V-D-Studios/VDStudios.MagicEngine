@@ -34,7 +34,7 @@ public class ColorBackgroundNode : Node, IDrawableNode
     private sealed class ColorDraw : DrawOperation
     {
         #region Shaders
-
+        
         private const string VertexCode = @"
 #version 450
 
@@ -73,8 +73,8 @@ void main()
             {
                 new(new(-0.75f, 0.75f), RgbaFloat.Red),
                 new(new(0.75f, 0.75f), RgbaFloat.Green),
-                new(new(-0.75f, -0.75f), RgbaFloat.Black),
-                new(new(-0.75f, -0.75f), RgbaFloat.Yellow)
+                new(new(-0.75f, -0.75f), RgbaFloat.Blue),
+                new(new(0.75f, -0.75f), RgbaFloat.Yellow)
             };
 
             Span<ushort> inds = stackalloc ushort[] { 0, 1, 2, 3 };
@@ -82,7 +82,7 @@ void main()
             VertexBuffer = factory.CreateBuffer(new((uint)(Unsafe.SizeOf<VertexPositionColor>() * 4), BufferUsage.VertexBuffer));
             device.UpdateBuffer(VertexBuffer, 0, _vert);
             
-            IndexBuffer = factory.CreateBuffer(new((uint)(Unsafe.SizeOf<ushort>() * 4), BufferUsage.IndexBuffer));
+            IndexBuffer = factory.CreateBuffer(new(sizeof(ushort) * 4, BufferUsage.IndexBuffer));
             device.UpdateBuffer(IndexBuffer, 0, inds);
 
             VertexLayoutDescription vertexLayout = new(
@@ -90,12 +90,12 @@ void main()
                 new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4));
             
             Shaders = factory.CreateFromSpirv(
-                new(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main"), 
+                new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main"), 
                 new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main"));
 
             var pp = new GraphicsPipelineDescription
             {
-                BlendState = BlendStateDescription.SingleAdditiveBlend,
+                BlendState = BlendStateDescription.SingleOverrideBlend,
                 DepthStencilState = new(true, true, ComparisonKind.LessEqual),
                 RasterizerState = new RasterizerStateDescription(cullMode: FaceCullMode.Back,
                                                                  fillMode: PolygonFillMode.Solid,
