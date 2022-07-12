@@ -6,7 +6,10 @@ namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
 /// <summary>
 /// Represents the definition of a single polygon
 /// </summary>
-public readonly struct PolygonDefinition : IReadOnlyList<Vector2>
+/// <remarks>
+/// Vertices should be defined in a space relative to themselves, as transformations and positions should be handled by the owner of the definition
+/// </remarks>
+public readonly struct PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquatable
 {
     private readonly Vector2[] Vertices;
 
@@ -77,4 +80,16 @@ public readonly struct PolygonDefinition : IReadOnlyList<Vector2>
 
     /// <inheritdoc/>
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    /// <inheritdoc/>
+    public bool Equals(object? other, IEqualityComparer comparer)
+    {
+        return ((IStructuralEquatable)Vertices).Equals(other, comparer);
+    }
+
+    /// <inheritdoc/>
+    public int GetHashCode(IEqualityComparer comparer)
+    {
+        return ((IStructuralEquatable)Vertices).GetHashCode(comparer);
+    }
 }
