@@ -32,7 +32,6 @@ public class PlayerNode : Node, IDrawableNode
 
     public PlayerNode()
     {
-        DrawOp = new(ImageTextures.RobinSpriteSheet);
         int size = 32;
         int xoff = size * 4;
         int yoff = 0;
@@ -131,6 +130,7 @@ public class PlayerNode : Node, IDrawableNode
             }
         };
         DrawOperationManager = new(this);
+        DrawOp = DrawOperationManager.AddDrawOperation(new TextureDrawing(ImageTextures.RobinSpriteSheet));
     }
 
     protected override ValueTask<bool> Updating(TimeSpan delta)
