@@ -1,4 +1,6 @@
-﻿namespace VDStudios.MagicEngine;
+﻿using System.Runtime.Intrinsics.Arm;
+
+namespace VDStudios.MagicEngine;
 
 /// <summary>
 /// Represents a list of <see cref="DrawOperation"/> objects belonging to a <see cref="IDrawableNode"/> and their general behaviour
@@ -65,11 +67,20 @@ public class DrawOperationManager
     /// Adds a new <see cref="DrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
     /// </summary>
     /// <typeparam name="TDrawOp">The type of <see cref="DrawOperation"/> to instantiate and add</typeparam>
+    public TDrawOp AddDrawOperation<TDrawOp>(TDrawOp dop) where TDrawOp : DrawOperation
+    {
+        InternalAddDrawOperation(dop);
+        return dop;
+    }
+
+    /// <summary>
+    /// Adds a new <see cref="DrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
+    /// </summary>
+    /// <typeparam name="TDrawOp">The type of <see cref="DrawOperation"/> to instantiate and add</typeparam>
     public TDrawOp AddDrawOperation<TDrawOp>() where TDrawOp : DrawOperation, new()
     {
         var dop = new TDrawOp();
-        dop.SetOwner(this);
-        AddDrawOperation(dop);
+        InternalAddDrawOperation(dop);
         return dop;
     }
 
@@ -80,8 +91,7 @@ public class DrawOperationManager
     public TDrawOp AddDrawOperation<TDrawOp>(Func<TDrawOp> factory) where TDrawOp : DrawOperation
     {
         var dop = factory();
-        dop.SetOwner(this);
-        AddDrawOperation(dop);
+        InternalAddDrawOperation(dop);
         return dop;
     }
 
@@ -124,8 +134,9 @@ public class DrawOperationManager
         HasPendingRegistrations = false;
     }
 
-    private void AddDrawOperation(DrawOperation operation)
+    private void InternalAddDrawOperation(DrawOperation operation)
     {
+        operation.SetOwner(this);
         try
         {
             AddingDrawOperation(operation);
