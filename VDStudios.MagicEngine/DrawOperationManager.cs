@@ -1,6 +1,4 @@
-﻿using System.Runtime.Intrinsics.Arm;
-
-namespace VDStudios.MagicEngine;
+﻿namespace VDStudios.MagicEngine;
 
 /// <summary>
 /// Represents a list of <see cref="DrawOperation"/> objects belonging to a <see cref="IDrawableNode"/> and their general behaviour
