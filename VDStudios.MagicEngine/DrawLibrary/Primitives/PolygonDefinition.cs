@@ -92,4 +92,6 @@ public readonly struct PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEq
     {
         return ((IStructuralEquatable)Vertices).GetHashCode(comparer);
     }
+
+    internal bool RefEquals(PolygonDefinition other) => ReferenceEquals(this.Vertices, other.Vertices);
 }
