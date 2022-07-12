@@ -44,21 +44,29 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     public int IndexOf(PolygonDefinition item)
     {
         lock (_polygons)
+        {
             return ((IList<PolygonDefinition>)_polygons).IndexOf(item);
+        }
     }
 
     /// <inheritdoc/>
     public void Insert(int index, PolygonDefinition item)
     {
         lock (_polygons)
+        {
+            NotifyPendingGPUUpdate();
             ((IList<PolygonDefinition>)_polygons).Insert(index, item);
+        }
     }
 
     /// <inheritdoc/>
     public void RemoveAt(int index)
     {
         lock (_polygons)
+        {
+            NotifyPendingGPUUpdate();
             ((IList<PolygonDefinition>)_polygons).RemoveAt(index);
+        }
     }
 
     /// <inheritdoc/>
@@ -67,13 +75,18 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
         get
         {
             lock (_polygons)
+            {
                 return ((IList<PolygonDefinition>)_polygons)[index];
+            }
         }
 
         set
         {
             lock (_polygons)
+            {
+                NotifyPendingGPUUpdate();
                 ((IList<PolygonDefinition>)_polygons)[index] = value;
+            }
         }
     }
 
@@ -81,35 +94,50 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     public void Add(PolygonDefinition item)
     {
         lock (_polygons)
+        {
+            NotifyPendingGPUUpdate();
             ((ICollection<PolygonDefinition>)_polygons).Add(item);
+        }
     }
 
     /// <inheritdoc/>
     public void Clear()
     {
         lock (_polygons)
+        {
+            NotifyPendingGPUUpdate();
             ((ICollection<PolygonDefinition>)_polygons).Clear();
+        }
     }
 
     /// <inheritdoc/>
     public bool Contains(PolygonDefinition item)
     {
         lock (_polygons)
+        {
+            NotifyPendingGPUUpdate();
             return ((ICollection<PolygonDefinition>)_polygons).Contains(item);
+        }
     }
 
     /// <inheritdoc/>
     public void CopyTo(PolygonDefinition[] array, int arrayIndex)
     {
         lock (_polygons)
+        {
+            NotifyPendingGPUUpdate();
             ((ICollection<PolygonDefinition>)_polygons).CopyTo(array, arrayIndex);
+        }
     }
 
     /// <inheritdoc/>
     public bool Remove(PolygonDefinition item)
     {
         lock (_polygons)
+        {
+            NotifyPendingGPUUpdate();
             return ((ICollection<PolygonDefinition>)_polygons).Remove(item);
+        }
     }
 
     /// <inheritdoc/>
