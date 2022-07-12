@@ -215,6 +215,7 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
         foreach (var i in PolygonBuffer)
             i.Dispose();
 
+        var pool = ArrayPool<ushort>.Shared;
         lock (_polygons)
         {
             if (_polygons.Count > PolygonBuffer.Length)
@@ -222,7 +223,23 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
 
             int i = 0;
             for (; i < _polygons.Count; i++)
-                PolygonBuffer[i] = new(_polygons[i], device.ResourceFactory);
+            {
+                var pol = PolygonBuffer[i] = new(_polygons[i], device.ResourceFactory);
+
+                var bc = pol.Polygon.Count + 1;
+                var buffer = pool.Rent(bc);
+                try
+                {
+                    for (int ind = 0; ind < pol.Polygon.Count; ind++)
+                        buffer[ind] = (ushort)ind;
+                    buffer[pol.Polygon.Count] = 0;
+                    commandList.UpdateBuffer<ushort>(pol.IndexBuffer, 0, ((Span<ushort>)buffer).Slice(0, bc));
+                }
+                finally
+                {
+                    pool.Return(buffer);
+                }
+            }
             for (; i < PolygonBuffer.Length; i++)
                 PolygonBuffer[i] = default;
 
@@ -247,18 +264,28 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
         public readonly PolygonDefinition Polygon;
 
         /// <summary>
-        /// The buffer holding the data for this polygon
+        /// The buffer holding the vertex data for this polygon
         /// </summary>
-        public readonly DeviceBuffer Buffer;
+        public readonly DeviceBuffer VertexBuffer;
+
+        /// <summary>
+        /// The buffer holding the index data for this polygon
+        /// </summary>
+        public readonly DeviceBuffer IndexBuffer;
 
         public PolygonDat(PolygonDefinition def, ResourceFactory factory)
         {
             if (def.RefEquals(default)) 
                 throw new ArgumentException($"PolygonDefinition def cannot be an empty struct (default)", nameof(def));
             
-            Buffer = factory.CreateBuffer(new(
+            VertexBuffer = factory.CreateBuffer(new(
                 (uint)(Unsafe.SizeOf<Vector2>() * def.Count),
                 BufferUsage.VertexBuffer
+            ));
+
+            IndexBuffer = factory.CreateBuffer(new(
+                sizeof(ushort) * ((uint)def.Count + 1),
+                BufferUsage.IndexBuffer
             ));
 
             Polygon = def;
@@ -266,7 +293,7 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
 
         public void Dispose()
         {
-            ((IDisposable)Buffer).Dispose();
+            ((IDisposable)VertexBuffer).Dispose();
         }
     }
 
