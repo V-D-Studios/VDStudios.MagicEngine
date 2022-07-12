@@ -15,9 +15,6 @@ using Texture = Veldrid.Texture;
 
 namespace VDStudios.MagicEngine.DrawLibrary;
 
-/// <summary>
-/// An operation that renders a Texture at a given position
-/// </summary>
 public class GradientColorShow : DrawOperation
 {
     #region Private Resources
