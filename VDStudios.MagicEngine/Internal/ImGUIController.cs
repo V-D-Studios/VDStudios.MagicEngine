@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using static SDL2.NET.Window;
 using Veldrid;
 using ImGuiNET;
-using PixelFormat = Veldrid.PixelFormat;
 using VDStudios.MagicEngine.Properties;
 using Veldrid.SPIRV;
 
