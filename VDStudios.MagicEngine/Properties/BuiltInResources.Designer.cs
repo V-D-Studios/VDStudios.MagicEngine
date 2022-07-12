@@ -63,6 +63,26 @@ namespace VDStudios.MagicEngine.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        public static byte[] DefaultPolygonFragmentShader {
+            get {
+                object obj = ResourceManager.GetObject("DefaultPolygonFragmentShader", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        public static byte[] DefaultPolygonVertexShader {
+            get {
+                object obj = ResourceManager.GetObject("DefaultPolygonVertexShader", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         public static byte[] DefaultTextureComputeShader {
             get {
                 object obj = ResourceManager.GetObject("DefaultTextureComputeShader", resourceCulture);
