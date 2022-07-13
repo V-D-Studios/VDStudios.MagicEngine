@@ -173,6 +173,11 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     protected Shader[] Shaders;
 
     /// <summary>
+    /// The Pipeline that will be used to render the polygons
+    /// </summary>
+    protected Pipeline Pipeline;
+
+    /// <summary>
     /// The temporary buffer into which the polygons held in this object will be copied for drawing. This array may be larger than necessary, see <see cref="PolygonBufferFill"/>
     /// </summary>
     /// <remarks>
@@ -200,12 +205,40 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
     {
         Shaders = factory.CreateFromSpirv(VertexShaderDesc, FragmentShaderDesc);
+
+        VertexLayoutDescription vertexLayout = new(
+            new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2));
+
+        Pipeline = factory.CreateGraphicsPipeline(new(
+            BlendStateDescription.SingleAlphaBlend,
+            DepthStencilStateDescription.DepthOnlyLessEqual,
+            RasterizerStateDescription.Default,
+            PrimitiveTopology.LineStrip,
+            new ShaderSetDescription(new VertexLayoutDescription[]
+            {
+                vertexLayout
+            }, Shaders),
+            Array.Empty<ResourceLayout>(),
+            device.SwapchainFramebuffer.OutputDescription
+        ));
+
+        NotifyPendingGPUUpdate();
+
         return ValueTask.CompletedTask;
     }
 
     /// <inheritdoc/>
-    protected override ValueTask Draw(TimeSpan delta, CommandList commandList, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
+    protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
     {
+        cl.SetFramebuffer(mainBuffer);
+        foreach(var pd in PolygonBuffer)
+        {
+            cl.SetVertexBuffer(0, pd.VertexBuffer);
+            cl.SetIndexBuffer(pd.IndexBuffer, IndexFormat.UInt16);
+            cl.SetPipeline(Pipeline);
+            cl.DrawIndexed(pd.IndexCount, 2, 0, 0, 0);
+        }
+
         return ValueTask.CompletedTask;
     }
 
@@ -226,7 +259,7 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
             {
                 var pol = PolygonBuffer[i] = new(_polygons[i], device.ResourceFactory);
 
-                var bc = pol.Polygon.Count + 1;
+                var bc = pol.IndexCount;
                 var buffer = pool.Rent(bc);
                 try
                 {
@@ -273,6 +306,11 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
         /// </summary>
         public readonly DeviceBuffer IndexBuffer;
 
+        /// <summary>
+        /// The count of indices in this Polygon
+        /// </summary>
+        public readonly ushort IndexCount;
+
         public PolygonDat(PolygonDefinition def, ResourceFactory factory)
         {
             if (def.RefEquals(default)) 
@@ -287,6 +325,8 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
                 sizeof(ushort) * ((uint)def.Count + 1),
                 BufferUsage.IndexBuffer
             ));
+
+            IndexCount = (ushort)(def.Count + 1);
 
             Polygon = def;
         }
