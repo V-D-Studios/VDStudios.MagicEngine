@@ -267,7 +267,8 @@ void main() {
         foreach (var i in PolygonBuffer)
             i.Dispose();
 
-        var pool = ArrayPool<ushort>.Shared;
+        var ushortPool = ArrayPool<ushort>.Shared;
+        var vec2Pool = ArrayPool<Vector2>.Shared;
         lock (_polygons)
         {
             if (_polygons.Count > PolygonBuffer.Length)
@@ -279,17 +280,23 @@ void main() {
                 var pol = PolygonBuffer[i] = new(_polygons[i], device.ResourceFactory);
 
                 var bc = pol.IndexCount;
-                var buffer = pool.Rent(bc);
+                var indexBuffer = ushortPool.Rent(bc);
+                var vertexBuffer = vec2Pool.Rent(bc - 1);
                 try
                 {
                     for (int ind = 0; ind < pol.Polygon.Count; ind++)
-                        buffer[ind] = (ushort)ind;
-                    buffer[pol.Polygon.Count] = 0;
-                    commandList.UpdateBuffer<ushort>(pol.IndexBuffer, 0, ((Span<ushort>)buffer).Slice(0, bc));
+                    {
+                        vertexBuffer[ind] = pol.Polygon[ind];
+                        indexBuffer[ind] = (ushort)ind;
+                    }
+                    indexBuffer[pol.Polygon.Count] = 0;
+                    commandList.UpdateBuffer(pol.IndexBuffer, 0, ((Span<ushort>)indexBuffer).Slice(0, bc));
+                    commandList.UpdateBuffer(pol.VertexBuffer, 0, ((Span<Vector2>)vertexBuffer).Slice(0, bc - 1));
                 }
                 finally
                 {
-                    pool.Return(buffer);
+                    ushortPool.Return(indexBuffer);
+                    vec2Pool.Return(vertexBuffer);
                 }
             }
             for (; i < PolygonBuffer.Length; i++)
@@ -353,6 +360,7 @@ void main() {
         public void Dispose()
         {
             ((IDisposable)VertexBuffer).Dispose();
+            ((IDisposable)IndexBuffer).Dispose();
         }
     }
 
