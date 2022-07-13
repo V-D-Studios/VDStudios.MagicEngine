@@ -25,6 +25,22 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
 
     private ShaderDescription VertexShaderDesc;
     private ShaderDescription FragmentShaderDesc;
+    
+    private const string VertexCode = @"#version 450
+
+layout(location = 0) in vec2 Position;
+
+void main() {
+    gl_Position = vec4(Position, 0.0, 1.0);
+}";
+
+    private const string FragmentCode = @"#version 450
+
+layout(location = 0) out vec4 outColor;
+
+void main() {
+    outColor = vec4(1.0, 0.0, 0.0, 1.0);
+}";
 
     /// <summary>
     /// Instantiates a new <see cref="PolygonList"/>
@@ -204,10 +220,13 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
     {
-        Shaders = factory.CreateFromSpirv(VertexShaderDesc, FragmentShaderDesc);
-
         VertexLayoutDescription vertexLayout = new(
             new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2));
+
+        Shaders = factory.CreateFromSpirv(
+            new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main"), 
+            new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main")
+        );
 
         Pipeline = factory.CreateGraphicsPipeline(new(
             BlendStateDescription.SingleAlphaBlend,
@@ -236,7 +255,7 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
             cl.SetVertexBuffer(0, pd.VertexBuffer);
             cl.SetIndexBuffer(pd.IndexBuffer, IndexFormat.UInt16);
             cl.SetPipeline(Pipeline);
-            cl.DrawIndexed(pd.IndexCount, 2, 0, 0, 0);
+            cl.DrawIndexed(pd.IndexCount, 1, 0, 0, 0);
         }
 
         return ValueTask.CompletedTask;
