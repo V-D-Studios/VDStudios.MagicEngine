@@ -187,7 +187,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
     /// <remarks>
     /// It's best to leave this property alone, the code in <see cref="PolygonList"/> will take care of it
     /// </remarks>
-    protected PolygonDat[] PolygonBuffer = Array.Empty<PolygonDat>();
+    protected List<PolygonDat> PolygonBuffer = new();
 
     /// <summary>
     /// The fill of <see cref="PolygonBuffer"/>. Think of <see cref="List{T}.Count"/> vs <see cref="List{T}.Capacity"/>
