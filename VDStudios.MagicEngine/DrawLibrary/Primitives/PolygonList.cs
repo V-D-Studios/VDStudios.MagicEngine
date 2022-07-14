@@ -255,49 +255,75 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         return ValueTask.CompletedTask;
     }
 
+    private void UpdateVertices(ref PolygonDat pol, GraphicsDevice device, CommandList commandList)
+    {
+        var vec2Pool = ArrayPool<Vector2>.Shared;
+        int i = 0;
+        for (; i < _polygons.Count; i++)
+        {
+            pol = PolygonBuffer[i] = new(_polygons[i], device.ResourceFactory);
+
+            var bc = pol.Polygon.Count;
+            var vertexBuffer = vec2Pool.Rent(bc);
+            try
+            {
+                for (int ind = 0; ind < pol.Polygon.Count; ind++)
+                    vertexBuffer[ind] = pol.Polygon[ind];
+                commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer.AsSpan(0, bc));
+            }
+            finally
+            {
+                vec2Pool.Return(vertexBuffer);
+            }
+        }
+    }
+
+    private void UpdateIndices(ref PolygonDat pol, GraphicsDevice device, CommandList commandList)
+    {
+        var ushortPool = ArrayPool<ushort>.Shared;
+        int i = 0;
+        for (; i < _polygons.Count; i++)
+        {
+            pol = PolygonBuffer[i] = new(_polygons[i], device.ResourceFactory);
+
+            var bc = pol.IndexCount;
+            var indexBuffer = ushortPool.Rent(bc);
+            try
+            {
+                for (int ind = 0; ind < pol.Polygon.Count; ind++)
+                    indexBuffer[ind] = (ushort)ind;
+                indexBuffer[pol.Polygon.Count] = 0;
+                commandList.UpdateBuffer(pol.IndexBuffer, 0, indexBuffer.AsSpan(0, bc));
+            }
+            finally
+            {
+                ushortPool.Return(indexBuffer);
+            }
+        }
+    }
+
     /// <inheritdoc/>
     protected override ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList, DeviceBuffer screenSizeBuffer)
     {
-        foreach (var i in PolygonBuffer)
-            i.Dispose();
-
-        var ushortPool = ArrayPool<ushort>.Shared;
-        var vec2Pool = ArrayPool<Vector2>.Shared;
         lock (_polygons)
         {
-            if (_polygons.Count > PolygonBuffer.Length)
-                PolygonBuffer = new PolygonDat[_polygons.Capacity];
-
-            int i = 0;
-            for (; i < _polygons.Count; i++)
+            while (IndicesToUpdate.TryDequeue(out var dat))
             {
-                var pol = PolygonBuffer[i] = new(_polygons[i], device.ResourceFactory);
+                if (dat.Discard)
+                {
+                    PolygonBuffer[dat.Index].Dispose();
+                    PolygonBuffer.RemoveAt(dat.Index);
+                    continue;
+                }
 
-                var bc = pol.IndexCount;
-                var indexBuffer = ushortPool.Rent(bc);
-                var vertexBuffer = vec2Pool.Rent(bc - 1);
-                try
-                {
-                    for (int ind = 0; ind < pol.Polygon.Count; ind++)
-                    {
-                        vertexBuffer[ind] = pol.Polygon[ind];
-                        indexBuffer[ind] = (ushort)ind;
-                    }
-                    indexBuffer[pol.Polygon.Count] = 0;
-                    commandList.UpdateBuffer(pol.IndexBuffer, 0, indexBuffer.AsSpan(0, bc));
-                    commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer.AsSpan(0, bc - 1));
-                }
-                finally
-                {
-                    ushortPool.Return(indexBuffer);
-                    vec2Pool.Return(vertexBuffer);
-                }
+                if (dat.) 
             }
-            for (; i < PolygonBuffer.Length; i++)
-                PolygonBuffer[i] = default;
-
-            PolygonBufferFill = _polygons.Count;
         }
+
+        for (; i < PolygonBuffer.Length; i++)
+            PolygonBuffer[i] = default;
+
+        PolygonBufferFill = _polygons.Count;
 
         return ValueTask.CompletedTask;
     }
