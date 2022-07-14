@@ -26,14 +26,18 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     private ShaderDescription VertexShaderDesc;
     private ShaderDescription FragmentShaderDesc;
 
+    private readonly PolygonListDescription Description;
+
     /// <summary>
     /// Instantiates a new <see cref="PolygonList"/>
     /// </summary>
     /// <param name="polygons">The polygons to fill this list with</param>
+    /// <param name="description">Provides data for the configuration of this <see cref="PolygonList"/></param>
     /// <param name="fragmentShaderSpirv">The description of this <see cref="PolygonList"/>'s Fragment Shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
     /// <param name="vertexShaderSpirv">The description of this <see cref="PolygonList"/>'s Vertex Shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
-    public PolygonList(IEnumerable<PolygonDefinition> polygons, ShaderDescription? vertexShaderSpirv = null, ShaderDescription? fragmentShaderSpirv = null)
+    public PolygonList(IEnumerable<PolygonDefinition> polygons, PolygonListDescription description, ShaderDescription? vertexShaderSpirv = null, ShaderDescription? fragmentShaderSpirv = null)
     {
+        Description = description;
         _polygons = new(polygons);
         VertexShaderDesc = vertexShaderSpirv ?? new ShaderDescription(ShaderStages.Vertex, BuiltInResources.DefaultPolygonVertexShader.GetUTF8Bytes(), "main");
         FragmentShaderDesc = fragmentShaderSpirv ?? new ShaderDescription(ShaderStages.Fragment, BuiltInResources.DefaultPolygonFragmentShader.GetUTF8Bytes(), "main");
