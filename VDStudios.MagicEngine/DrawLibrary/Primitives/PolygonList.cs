@@ -274,8 +274,8 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
                         indexBuffer[ind] = (ushort)ind;
                     }
                     indexBuffer[pol.Polygon.Count] = 0;
-                    commandList.UpdateBuffer(pol.IndexBuffer, 0, ((Span<ushort>)indexBuffer).Slice(0, bc));
-                    commandList.UpdateBuffer(pol.VertexBuffer, 0, ((Span<Vector2>)vertexBuffer).Slice(0, bc - 1));
+                    commandList.UpdateBuffer(pol.IndexBuffer, 0, indexBuffer.AsSpan(0, bc));
+                    commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer.AsSpan(0, bc - 1));
                 }
                 finally
                 {
