@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -17,9 +18,9 @@ namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
 /// Represents an operation to draw a list of 2D shapes with arbitrary sides
 /// </summary>
 /// <remarks>
-/// Not to be confused with Polyhedron, a 3D shape
+/// Not to be confused with Polyhedron, a 3D shape. This class implements all elements of <see cref="IList{T}"/> except for <see cref="ICollection{T}.Remove(T)"/>
 /// </remarks>
-public class PolygonList : DrawOperation, IList<PolygonDefinition>
+public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
 {
     private readonly List<PolygonDefinition> _polygons;
 
@@ -39,11 +40,18 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     {
         Description = description;
         _polygons = new(polygons);
+
+        IndicesToUpdate.EnsureCapacity(_polygons.Capacity);
+        for (int i = 0; i < _polygons.Count; i++)
+            IndicesToUpdate.Enqueue(new(i, true, true));
+
         VertexShaderDesc = vertexShaderSpirv ?? new ShaderDescription(ShaderStages.Vertex, BuiltInResources.DefaultPolygonVertexShader.GetUTF8Bytes(), "main");
         FragmentShaderDesc = fragmentShaderSpirv ?? new ShaderDescription(ShaderStages.Fragment, BuiltInResources.DefaultPolygonFragmentShader.GetUTF8Bytes(), "main");
     }
 
     #region List
+
+    private readonly Queue<UpdateDat> IndicesToUpdate = new();
 
     /// <inheritdoc/>
     public int IndexOf(PolygonDefinition item)
@@ -59,8 +67,9 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     {
         lock (_polygons)
         {
-            NotifyPendingGPUUpdate();
             ((IList<PolygonDefinition>)_polygons).Insert(index, item);
+            IndicesToUpdate.Enqueue(new(index, true, true));
+            NotifyPendingGPUUpdate();
         }
     }
 
@@ -69,8 +78,9 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     {
         lock (_polygons)
         {
-            NotifyPendingGPUUpdate();
             ((IList<PolygonDefinition>)_polygons).RemoveAt(index);
+            IndicesToUpdate.Enqueue(new(index, false, false, true));
+            NotifyPendingGPUUpdate();
         }
     }
 
@@ -89,8 +99,9 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
         {
             lock (_polygons)
             {
-                NotifyPendingGPUUpdate();
                 ((IList<PolygonDefinition>)_polygons)[index] = value;
+                IndicesToUpdate.Enqueue(new(index, true, true));
+                NotifyPendingGPUUpdate();
             }
         }
     }
@@ -100,8 +111,9 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     {
         lock (_polygons)
         {
-            NotifyPendingGPUUpdate();
+            IndicesToUpdate.Enqueue(new(_polygons.Count - 1, true, true));
             ((ICollection<PolygonDefinition>)_polygons).Add(item);
+            NotifyPendingGPUUpdate();
         }
     }
 
@@ -111,6 +123,8 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
         lock (_polygons)
         {
             NotifyPendingGPUUpdate();
+            for (int i = 0; i < _polygons.Count; i++)
+                IndicesToUpdate.Enqueue(new(i, false, false, true));
             ((ICollection<PolygonDefinition>)_polygons).Clear();
         }
     }
@@ -120,7 +134,6 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     {
         lock (_polygons)
         {
-            NotifyPendingGPUUpdate();
             return ((ICollection<PolygonDefinition>)_polygons).Contains(item);
         }
     }
@@ -130,25 +143,12 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     {
         lock (_polygons)
         {
-            NotifyPendingGPUUpdate();
             ((ICollection<PolygonDefinition>)_polygons).CopyTo(array, arrayIndex);
         }
     }
 
     /// <inheritdoc/>
-    public bool Remove(PolygonDefinition item)
-    {
-        lock (_polygons)
-        {
-            NotifyPendingGPUUpdate();
-            return ((ICollection<PolygonDefinition>)_polygons).Remove(item);
-        }
-    }
-
-    /// <inheritdoc/>
     public int Count => ((ICollection<PolygonDefinition>)_polygons).Count;
-
-    bool ICollection<PolygonDefinition>.IsReadOnly => false;
 
     /// <inheritdoc/>
     public IEnumerator<PolygonDefinition> GetEnumerator()
@@ -305,6 +305,8 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
     #endregion
 
     #region Helper Classes
+
+    private readonly record struct UpdateDat(int Index, bool UpdateVertices, bool UpdateIndices, bool Discard = false);
 
     /// <summary>
     /// Represents polygon and device related data
