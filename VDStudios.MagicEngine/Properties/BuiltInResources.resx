@@ -119,18 +119,18 @@
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="DefaultPolygonFragmentShader" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>assets\default\defaultpolygonfragmentshader.glsl;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>assets\default\defaultpolygonfragmentshader.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-16</value>
   </data>
   <data name="DefaultPolygonVertexShader" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>assets\default\defaultpolygonvertexshader.glsl;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>assets\default\defaultpolygonvertexshader.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-16</value>
   </data>
   <data name="DefaultTextureComputeShader" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>assets\default\defaulttexturecomputeshader.glsl;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>assets\default\defaulttexturecomputeshader.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;Windows-1252</value>
   </data>
   <data name="DefaultTextureFragmentShader" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>assets\default\defaulttexturefragmentshader.glsl;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>assets\default\defaulttexturefragmentshader.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;Windows-1252</value>
   </data>
   <data name="DefaultTextureVertexShader" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>assets\default\defaulttexturevertexshader.glsl;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>assets\default\defaulttexturevertexshader.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;Windows-1252</value>
   </data>
 </root>
