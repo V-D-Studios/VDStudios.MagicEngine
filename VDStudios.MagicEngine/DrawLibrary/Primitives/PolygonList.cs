@@ -215,7 +215,13 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
         Pipeline = factory.CreateGraphicsPipeline(new(
             BlendStateDescription.SingleAlphaBlend,
             DepthStencilStateDescription.DepthOnlyLessEqual,
-            RasterizerStateDescription.Default,
+            new(
+                FaceCullMode.Front,
+                PolygonFillMode.Solid,
+                FrontFace.Clockwise,
+                true,
+                false
+            ),
             PrimitiveTopology.LineStrip,
             new ShaderSetDescription(new VertexLayoutDescription[]
             {
