@@ -26,7 +26,7 @@ public class FloatingShapesNode : Node, IDrawableNode
         {
             new(triangle),
             new(rectangle)
-        }, new() { FillMode = PolygonFillMode.Wireframe }));
+        }, new() { RenderMode = PolygonRenderMode.LineStripWireframe }));
     }
 
     public DrawOperationManager DrawOperationManager { get; }

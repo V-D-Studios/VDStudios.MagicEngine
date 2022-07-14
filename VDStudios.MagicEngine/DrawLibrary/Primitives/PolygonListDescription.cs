@@ -8,7 +8,7 @@ namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
 public struct PolygonListDescription
 {
     /// <summary>
-    /// Describes how the polygons for the destination <see cref="PolygonList"/> will be filled
+    /// Describes how the polygons for the destination <see cref="PolygonList"/> will be rendered
     /// </summary>
-    public PolygonFillMode FillMode;
+    public PolygonRenderMode RenderMode;
 }
