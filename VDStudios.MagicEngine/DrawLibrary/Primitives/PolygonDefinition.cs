@@ -57,6 +57,30 @@ public readonly struct PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEq
     }
 
     /// <summary>
+    /// Creates a new Span over the portion of this <see cref="PolygonDefinition"/> beginning at <paramref name="start"/> for <paramref name="length"/>
+    /// </summary>
+    /// <param name="start"></param>
+    /// <param name="length"></param>
+    /// <returns>The span representation of this <see cref="PolygonDefinition"/></returns>
+    public ReadOnlySpan<Vector2> AsSpan(int start, int length)
+        => Vertices.AsSpan(start, length);
+
+    /// <summary>
+    /// Creates a new Span over the portion of this <see cref="PolygonDefinition"/> beginning at <paramref name="start"/> for the rest of this <see cref="PolygonDefinition"/>
+    /// </summary>
+    /// <param name="start"></param>
+    /// <returns>The span representation of this <see cref="PolygonDefinition"/></returns>
+    public ReadOnlySpan<Vector2> AsSpan(int start)
+        => Vertices.AsSpan(start);
+
+    /// <summary>
+    /// Creates a new Span over this <see cref="PolygonDefinition"/>
+    /// </summary>
+    /// <returns>The span representation of this <see cref="PolygonDefinition"/></returns>
+    public ReadOnlySpan<Vector2> AsSpan()
+        => Vertices.AsSpan();
+
+    /// <summary>
     /// Copies the vertices of this <see cref="PolygonDefinition"/> into <paramref name="destination"/>
     /// </summary>
     /// <param name="destination">The <see cref="Span{T}"/> to copy this <see cref="PolygonDefinition"/>'s vertices into</param>
