@@ -213,12 +213,22 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             DepthStencilStateDescription.DepthOnlyLessEqual,
             new(
                 FaceCullMode.Front,
-                PolygonFillMode.Solid,
+                Description.RenderMode switch
+                {
+                    PolygonRenderMode.LineStripWireframe or PolygonRenderMode.TriangulatedWireframe => PolygonFillMode.Wireframe,
+                    PolygonRenderMode.TriangulatedFill => PolygonFillMode.Solid,
+                    _ => throw new InvalidOperationException($"Unknown PolygonRenderMode: {Description.RenderMode}")
+                },
                 FrontFace.Clockwise,
                 true,
                 false
             ),
-            PrimitiveTopology.LineStrip,
+            Description.RenderMode switch
+            {
+                PolygonRenderMode.TriangulatedFill or PolygonRenderMode.TriangulatedWireframe => PrimitiveTopology.TriangleStrip,
+                PolygonRenderMode.LineStripWireframe => PrimitiveTopology.LineStrip,
+                _ => throw new InvalidOperationException($"Unknown PolygonRenderMode: {Description.RenderMode}")
+            },
             new ShaderSetDescription(new VertexLayoutDescription[]
             {
                 vertexLayout
