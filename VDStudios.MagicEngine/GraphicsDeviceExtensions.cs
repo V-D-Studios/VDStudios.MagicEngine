@@ -27,6 +27,28 @@ public static class GraphicsDeviceExtensions
     /// <param name="buffer">The resource to update</param>
     /// <param name="data">A <see cref="ReadOnlySpan{T}"/> containing the data to upload</param>
     /// <param name="bufferOffsetInBytes">An offset, in bytes, from the beginning of <paramref name="buffer"/>'s storage, at which new data will be uploaded</param>
+    public unsafe static void UpdateBuffer<T>(this GraphicsDevice device, DeviceBuffer buffer, uint bufferOffsetInBytes, Span<T> data) where T : unmanaged 
+        => UpdateBuffer(device, buffer, bufferOffsetInBytes, (ReadOnlySpan<T>)data);
+
+    /// <summary>
+    /// Updates a <see cref="DeviceBuffer"/> region with new data that may be stack allocated. This method must use a blittable value type <typeparamref name="T"/>
+    /// </summary>
+    /// <typeparam name="T">The blittable value type to update the buffer with</typeparam>
+    /// <param name="commandList">The <see cref="CommandList"/> to update <paramref name="buffer"/> with</param>
+    /// <param name="buffer">The resource to update</param>
+    /// <param name="data">A <see cref="ReadOnlySpan{T}"/> containing the data to upload</param>
+    /// <param name="bufferOffsetInBytes">An offset, in bytes, from the beginning of <paramref name="buffer"/>'s storage, at which new data will be uploaded</param>
+    public unsafe static void UpdateBuffer<T>(this CommandList commandList, DeviceBuffer buffer, uint bufferOffsetInBytes, Span<T> data) where T : unmanaged 
+        => UpdateBuffer(commandList, buffer, bufferOffsetInBytes, (ReadOnlySpan<T>)data);
+
+    /// <summary>
+    /// Updates a <see cref="DeviceBuffer"/> region with new data that may be stack allocated. This method must use a blittable value type <typeparamref name="T"/>
+    /// </summary>
+    /// <typeparam name="T">The blittable value type to update the buffer with</typeparam>
+    /// <param name="device">The <see cref="GraphicsDevice"/> to update <paramref name="buffer"/> with</param>
+    /// <param name="buffer">The resource to update</param>
+    /// <param name="data">A <see cref="ReadOnlySpan{T}"/> containing the data to upload</param>
+    /// <param name="bufferOffsetInBytes">An offset, in bytes, from the beginning of <paramref name="buffer"/>'s storage, at which new data will be uploaded</param>
     public unsafe static void UpdateBuffer<T>(this GraphicsDevice device, DeviceBuffer buffer, uint bufferOffsetInBytes, ReadOnlySpan<T> data) where T : unmanaged
     {
         fixed (T* d = data)
