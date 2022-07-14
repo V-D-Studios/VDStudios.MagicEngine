@@ -24,4 +24,10 @@ public static class AssortedExtensions
     /// </summary>
     public static Vector2 ToVector(this FPoint point)
         => new(point.X, point.Y);
+
+    /// <summary>
+    /// Gets the bytes associated to a given <see cref="string"/>
+    /// </summary>
+    public static byte[] GetUTF8Bytes(this string str)
+        => Encoding.UTF8.GetBytes(str);
 }
