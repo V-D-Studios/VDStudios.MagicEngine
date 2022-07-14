@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using VDStudios.MagicEngine.DrawLibrary.Primitives;
+using Veldrid;
 
 namespace VDStudios.MagicEngine.Demo.Nodes;
 public class FloatingShapesNode : Node, IDrawableNode
@@ -25,7 +26,7 @@ public class FloatingShapesNode : Node, IDrawableNode
         {
             new(triangle),
             new(rectangle)
-        }));
+        }, new() { FillMode = PolygonFillMode.Wireframe }));
     }
 
     public DrawOperationManager DrawOperationManager { get; }
