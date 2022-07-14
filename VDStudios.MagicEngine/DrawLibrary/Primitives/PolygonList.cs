@@ -252,6 +252,7 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
             i.Dispose();
 
         var ushortPool = ArrayPool<ushort>.Shared;
+        var vec2Pool = ArrayPool<Vector2>.Shared;
         lock (_polygons)
         {
             if (_polygons.Count > PolygonBuffer.Length)
@@ -264,16 +265,22 @@ public class PolygonList : DrawOperation, IList<PolygonDefinition>
 
                 var bc = pol.IndexCount;
                 var indexBuffer = ushortPool.Rent(bc);
+                var vertexBuffer = vec2Pool.Rent(bc - 1);
                 try
                 {
-                    for (int ind = 0; ind < pol.Polygon.Count; ind++) indexBuffer[ind] = (ushort)ind;
+                    for (int ind = 0; ind < pol.Polygon.Count; ind++)
+                    {
+                        vertexBuffer[ind] = pol.Polygon[ind];
+                        indexBuffer[ind] = (ushort)ind;
+                    }
                     indexBuffer[pol.Polygon.Count] = 0;
-                    commandList.UpdateBuffer(pol.IndexBuffer, 0, (ReadOnlySpan<ushort>)indexBuffer.AsSpan(0, bc));
-                    commandList.UpdateBuffer(pol.VertexBuffer, 0, pol.Polygon);
+                    commandList.UpdateBuffer(pol.IndexBuffer, 0, ((Span<ushort>)indexBuffer).Slice(0, bc));
+                    commandList.UpdateBuffer(pol.VertexBuffer, 0, ((Span<Vector2>)vertexBuffer).Slice(0, bc - 1));
                 }
                 finally
                 {
                     ushortPool.Return(indexBuffer);
+                    vec2Pool.Return(vertexBuffer);
                 }
             }
             for (; i < PolygonBuffer.Length; i++)
