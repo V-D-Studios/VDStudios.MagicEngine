@@ -90,7 +90,7 @@ public class GradientColorShow : DrawOperation
 
         _computeShader = factory.CreateFromSpirv(new(
             ShaderStages.Compute,
-            BuiltInResources.DefaultTextureComputeShader,
+            BuiltInResources.DefaultTextureComputeShader.GetUTF8Bytes(),
             "main"
         ));
 
@@ -109,12 +109,12 @@ public class GradientColorShow : DrawOperation
         Shader[] shaders = factory.CreateFromSpirv(
             new ShaderDescription(
                     ShaderStages.Vertex,
-                    BuiltInResources.DefaultTextureVertexShader,
+                    BuiltInResources.DefaultTextureVertexShader.GetUTF8Bytes(),
                     "main"
                 ),
             new ShaderDescription(
                     ShaderStages.Fragment,
-                    BuiltInResources.DefaultTextureFragmentShader,
+                    BuiltInResources.DefaultTextureFragmentShader.GetUTF8Bytes(),
                     "main"
                 )
             );
