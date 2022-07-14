@@ -182,20 +182,12 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
     protected Pipeline Pipeline;
 
     /// <summary>
-    /// The temporary buffer into which the polygons held in this object will be copied for drawing. This array may be larger than necessary, see <see cref="PolygonBufferFill"/>
+    /// The temporary buffer into which the polygons held in this object will be copied for drawing.
     /// </summary>
     /// <remarks>
     /// It's best to leave this property alone, the code in <see cref="PolygonList"/> will take care of it
     /// </remarks>
     protected List<PolygonDat> PolygonBuffer = new();
-
-    /// <summary>
-    /// The fill of <see cref="PolygonBuffer"/>. Think of <see cref="List{T}.Count"/> vs <see cref="List{T}.Capacity"/>
-    /// </summary>
-    /// <remarks>
-    /// It's best to leave this property alone, the code in <see cref="PolygonList"/> will take care of it. This property is not read-only because <see cref="PolygonBuffer"/> is mutable
-    /// </remarks>
-    protected int PolygonBufferFill = 0;
 
     #endregion
 
@@ -331,8 +323,6 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         for (int i = PolygonBuffer.Count - 1; i >= 0; i--)
             if (PolygonBuffer[i].remove)
                 PolygonBuffer.RemoveAt(i);
-
-        PolygonBufferFill = _polygons.Count;
 
         return ValueTask.CompletedTask;
     }
