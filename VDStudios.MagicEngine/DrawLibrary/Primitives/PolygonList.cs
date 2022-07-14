@@ -255,14 +255,12 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         return ValueTask.CompletedTask;
     }
 
-    private void UpdateVertices(ref PolygonDat pol, GraphicsDevice device, CommandList commandList)
+    private void UpdateVertices(in PolygonDat pol, CommandList commandList)
     {
         var vec2Pool = ArrayPool<Vector2>.Shared;
         int i = 0;
         for (; i < _polygons.Count; i++)
         {
-            pol = PolygonBuffer[i] = new(_polygons[i], device.ResourceFactory);
-
             var bc = pol.Polygon.Count;
             var vertexBuffer = vec2Pool.Rent(bc);
             try
@@ -278,14 +276,12 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         }
     }
 
-    private void UpdateIndices(ref PolygonDat pol, GraphicsDevice device, CommandList commandList)
+    private void UpdateIndices(in PolygonDat pol, CommandList commandList)
     {
         var ushortPool = ArrayPool<ushort>.Shared;
         int i = 0;
         for (; i < _polygons.Count; i++)
         {
-            pol = PolygonBuffer[i] = new(_polygons[i], device.ResourceFactory);
-
             var bc = pol.IndexCount;
             var indexBuffer = ushortPool.Rent(bc);
             try
@@ -318,14 +314,14 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
                     case 0:
                         var polybuffer = CollectionsMarshal.AsSpan(PolygonBuffer);
                         if (dat.UpdateVertices)
-                            UpdateVertices(ref polybuffer[dat.Index], device, commandList);
+                            UpdateVertices(in polybuffer[dat.Index], commandList);
                         if (dat.UpdateIndices)
-                            UpdateIndices(ref polybuffer[dat.Index], device, commandList);
+                            UpdateIndices(in polybuffer[dat.Index], commandList);
                         continue;
                     case > 0:
                         var np = new PolygonDat(_polygons[dat.Index], device.ResourceFactory);
-                        UpdateVertices(ref np, device, commandList);
-                        UpdateIndices(ref np, device, commandList);
+                        UpdateVertices(in np, commandList);
+                        UpdateIndices(in np, commandList);
                         PolygonBuffer.Insert(dat.Index, np);
                         continue;
                 }
