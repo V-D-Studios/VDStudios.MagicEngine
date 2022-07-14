@@ -64,8 +64,5 @@
 	    <LastGenOutput>BuiltInResources.Designer.cs</LastGenOutput>
 	  </EmbeddedResource>
 	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="Properties\Assets\Default\" />
-	</ItemGroup>
 
 </Project>
