@@ -43,7 +43,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
 
         IndicesToUpdate.EnsureCapacity(_polygons.Capacity);
         for (int i = 0; i < _polygons.Count; i++)
-            IndicesToUpdate.Enqueue(new(i, true, true));
+            IndicesToUpdate.Enqueue(new(i, true, true, 1));
 
         VertexShaderDesc = vertexShaderSpirv ?? new ShaderDescription(ShaderStages.Vertex, BuiltInResources.DefaultPolygonVertexShader.GetUTF8Bytes(), "main");
         FragmentShaderDesc = fragmentShaderSpirv ?? new ShaderDescription(ShaderStages.Fragment, BuiltInResources.DefaultPolygonFragmentShader.GetUTF8Bytes(), "main");
@@ -68,7 +68,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         lock (_polygons)
         {
             ((IList<PolygonDefinition>)_polygons).Insert(index, item);
-            IndicesToUpdate.Enqueue(new(index, true, true));
+            IndicesToUpdate.Enqueue(new(index, true, true, 1));
             NotifyPendingGPUUpdate();
         }
     }
@@ -79,7 +79,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         lock (_polygons)
         {
             ((IList<PolygonDefinition>)_polygons).RemoveAt(index);
-            IndicesToUpdate.Enqueue(new(index, false, false, true));
+            IndicesToUpdate.Enqueue(new(index, false, false, -1));
             NotifyPendingGPUUpdate();
         }
     }
@@ -100,7 +100,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             lock (_polygons)
             {
                 ((IList<PolygonDefinition>)_polygons)[index] = value;
-                IndicesToUpdate.Enqueue(new(index, true, true));
+                IndicesToUpdate.Enqueue(new(index, true, true, 1));
                 NotifyPendingGPUUpdate();
             }
         }
@@ -111,7 +111,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
     {
         lock (_polygons)
         {
-            IndicesToUpdate.Enqueue(new(_polygons.Count - 1, true, true));
+            IndicesToUpdate.Enqueue(new(_polygons.Count - 1, true, true, 1));
             ((ICollection<PolygonDefinition>)_polygons).Add(item);
             NotifyPendingGPUUpdate();
         }
@@ -124,7 +124,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         {
             NotifyPendingGPUUpdate();
             for (int i = 0; i < _polygons.Count; i++)
-                IndicesToUpdate.Enqueue(new(i, false, false, true));
+                IndicesToUpdate.Enqueue(new(i, false, false, -1));
             ((ICollection<PolygonDefinition>)_polygons).Clear();
         }
     }
@@ -309,19 +309,32 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         {
             while (IndicesToUpdate.TryDequeue(out var dat))
             {
-                if (dat.Discard)
+                switch (dat.Added)
                 {
-                    PolygonBuffer[dat.Index].Dispose();
-                    PolygonBuffer.RemoveAt(dat.Index);
-                    continue;
+                    case < 0:
+                        var pd = PolygonBuffer[dat.Index];
+                        pd.Dispose();
+                        continue;
+                    case 0:
+                        var polybuffer = CollectionsMarshal.AsSpan(PolygonBuffer);
+                        if (dat.UpdateVertices)
+                            UpdateVertices(ref polybuffer[dat.Index], device, commandList);
+                        if (dat.UpdateIndices)
+                            UpdateIndices(ref polybuffer[dat.Index], device, commandList);
+                        continue;
+                    case > 0:
+                        var np = new PolygonDat(_polygons[dat.Index], device.ResourceFactory);
+                        UpdateVertices(ref np, device, commandList);
+                        UpdateIndices(ref np, device, commandList);
+                        PolygonBuffer.Insert(dat.Index, np);
+                        continue;
                 }
-
-                if (dat.) 
             }
         }
 
-        for (; i < PolygonBuffer.Length; i++)
-            PolygonBuffer[i] = default;
+        for (int i = PolygonBuffer.Count - 1; i >= 0; i--)
+            if (PolygonBuffer[i].remove)
+                PolygonBuffer.RemoveAt(i);
 
         PolygonBufferFill = _polygons.Count;
 
@@ -332,13 +345,14 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
 
     #region Helper Classes
 
-    private readonly record struct UpdateDat(int Index, bool UpdateVertices, bool UpdateIndices, bool Discard = false);
+    private readonly record struct UpdateDat(int Index, bool UpdateVertices, bool UpdateIndices, sbyte Added);
 
     /// <summary>
     /// Represents polygon and device related data
     /// </summary>
-    protected readonly struct PolygonDat : IDisposable
+    protected struct PolygonDat : IDisposable
     {
+        internal bool remove = false;
         /// <summary>
         /// The polygon in question
         /// </summary>
@@ -383,6 +397,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         {
             ((IDisposable)VertexBuffer).Dispose();
             ((IDisposable)IndexBuffer).Dispose();
+            remove = true;
         }
     }
 
