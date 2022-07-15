@@ -1,17 +1,100 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Numerics;
 
 namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
 
 /// <summary>
-/// Represents the definition of a single polygon
+/// Represents the definition of a single polygon, starting from the furthest to the bottom and to the left, in CW order
 /// </summary>
 /// <remarks>
 /// Vertices should be defined in a space relative to themselves, as transformations and positions should be handled by the owner of the definition
 /// </remarks>
-public readonly struct PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquatable
+public struct PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquatable
 {
     private readonly Vector2[] Vertices;
+
+    #region Analysis
+
+    private bool isConvexAnalyzed = false;
+    private bool isConvex = false;
+
+    /// <summary>
+    /// <c>true</c> if this <see cref="PolygonDefinition"/> represents a Convex polygon. That is, a polygon with no internal angles greater than 180 deg
+    /// </summary>
+    public bool IsConvex
+    {
+        get
+        {
+            if (!isConvexAnalyzed)
+            {
+                isConvex = AnalyzeConvexity();
+                isConvexAnalyzed = true;
+            }
+            return isConvex;
+        }
+    }
+
+    /// <summary>
+    /// <c>true</c> if this <see cref="PolygonDefinition"/> has self intersecting segments
+    /// </summary>
+    [Obsolete("This property is not fully implemented, and will not actually analyze the polygon.")]
+    public bool IsSelfIntersecting
+    {
+        get
+        {
+            if (isConvexAnalyzed && isConvex)
+                return false;
+            return false;
+        }
+    }
+
+    private bool AnalyzeConvexity() 
+    {
+        const float Pi = MathF.PI;
+        const float TwoPi = MathF.PI * 2;
+
+        if (Vertices.Length <= 3)
+            return false;
+
+        Vector2 prev = Vertices[^1];
+        Vector2 curr = Vertices[^2];
+        float odir;
+        float ndir = MathF.Atan2(curr.Y - prev.Y, curr.X - prev.X);
+        float anglesum = 0f;
+        float angle;
+        float orientation = 0f;
+
+        for (int i = 0; i < Vertices.Length; i++)
+        {
+            prev = curr;
+            odir = ndir;
+            curr = Vertices[i];
+            ndir = MathF.Atan2(curr.Y - prev.Y, curr.X - prev.X);
+            if (prev == curr)
+                return false;
+            angle = ndir - odir;
+            if (angle <= -Pi)
+                angle += TwoPi;
+            else if (angle > Pi)
+                angle -= TwoPi;
+
+            if (i is 0)
+            {
+                if (angle == 0)
+                    return false;
+                orientation = angle > 0 ? 1 : -1;
+            }
+            else if (orientation * angle <= 0)
+                return false;
+
+            anglesum += angle;
+        }
+
+        return MathF.Abs(MathF.Abs(MathF.Round(anglesum / TwoPi)) - 1) > 0.00001;
+    }
+
+    #endregion
 
     /// <summary>
     /// Queries this <see cref="PolygonDefinition"/> for the <see cref="Vector2"/> that represents the vertex at <paramref name="index"/>
