@@ -274,28 +274,65 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         }
     }
 
-    private void UpdateIndices(in PolygonDat pol, CommandList commandList)
+    private unsafe void UpdateIndices(ref PolygonDat pol, CommandList commandList)
     {
-        var ushortPool = ArrayPool<ushort>.Shared; 
+        var pool = ArrayPool<ushort>.Shared; 
+
         if (Description.RenderMode is PolygonRenderMode.LineStripWireframe)
         {
-            var bc = pol.LineStripIndexCount;
-            var indexBuffer = ushortPool.Rent(bc);
+            var indexCount = pol.LineStripIndexCount;
+            var indexBuffer = pool.Rent(indexCount);
             try
             {
                 for (int ind = 0; ind < pol.Polygon.Count; ind++)
                     indexBuffer[ind] = (ushort)ind;
                 indexBuffer[pol.Polygon.Count] = 0;
-                commandList.UpdateBuffer(pol.IndexBuffer, 0, indexBuffer.AsSpan(0, bc));
+                PolygonDat.SetLineStripIndicesBufferSize(ref pol, Device!.ResourceFactory);
+                commandList.UpdateBuffer(pol.IndexBuffer!, 0, indexBuffer.AsSpan(0, indexCount));
             }
             finally
             {
-                ushortPool.Return(indexBuffer);
+                pool.Return(indexBuffer);
             }
             return;
         }
 
-        //Triangulate
+        // Triangulation
+
+        // For Convex polygons
+
+        if (pol.Polygon.IsConvex) 
+        {
+            // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single count.
+            // There's probably an easier way to compute this
+
+            var count = pol.Polygon.Count;
+            var indexCount = (count - 2) * 3;
+
+            var buffer = pool.Rent(indexCount);
+            int bufind = 0;
+
+            ushort p0 = 0;
+            ushort pHelper = 1;
+            ushort pTemp;
+            try
+            {
+                for (ushort i = 2; i < count; i++)
+                {
+                    pTemp = i;
+                    buffer[bufind++] = p0;
+                    buffer[bufind++] = pHelper;
+                    buffer[bufind++] = pTemp;
+                    pHelper = pTemp;
+                }
+                PolygonDat.SetTriangulatedIndicesBufferSize(ref pol, indexCount, Device!.ResourceFactory);
+                commandList.UpdateBuffer(pol.IndexBuffer!, 0, buffer.AsSpan(0, indexCount));
+            }
+            finally
+            {
+                pool.Return(buffer);
+            }
+        }
     }
 
     /// <inheritdoc/>
@@ -316,12 +353,12 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
                         if (dat.UpdateVertices)
                             UpdateVertices(in polybuffer[dat.Index], commandList);
                         if (dat.UpdateIndices)
-                            UpdateIndices(in polybuffer[dat.Index], commandList);
+                            UpdateIndices(ref polybuffer[dat.Index], commandList);
                         continue;
                     case > 0:
                         var np = new PolygonDat(_polygons[dat.Index], device.ResourceFactory);
                         UpdateVertices(in np, commandList);
-                        UpdateIndices(in np, commandList);
+                        UpdateIndices(ref np, commandList);
                         PolygonBuffer.Insert(dat.Index, np);
                         continue;
                 }
@@ -360,12 +397,31 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         /// <summary>
         /// The buffer holding the index data for this polygon
         /// </summary>
-        public readonly DeviceBuffer IndexBuffer;
+        /// <remarks>
+        /// This buffer will be null until <see cref="SetTriangulatedIndicesBufferSize"/> or <see cref="SetLineStripIndicesBufferSize"/> is called. This is guaranteed, by the methods of <see cref="PolygonList"/>, to be the case before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> is called
+        /// </remarks>
+        public DeviceBuffer? IndexBuffer = null;
 
         /// <summary>
         /// The count of indices in this Polygon
         /// </summary>
         public readonly ushort LineStripIndexCount;
+
+        public static void SetTriangulatedIndicesBufferSize(ref PolygonDat dat, int indexCount, ResourceFactory factory)
+        {
+            dat.IndexBuffer = factory.CreateBuffer(new(
+                sizeof(ushort) * (uint)indexCount,
+                BufferUsage.IndexBuffer
+            ));
+        }
+
+        public static void SetLineStripIndicesBufferSize(ref PolygonDat dat, ResourceFactory factory)
+        {
+            dat.IndexBuffer = factory.CreateBuffer(new(
+                sizeof(ushort) * (uint)dat.LineStripIndexCount,
+                BufferUsage.IndexBuffer
+            ));
+        }
 
         public PolygonDat(PolygonDefinition def, ResourceFactory factory)
         {
@@ -375,11 +431,6 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             VertexBuffer = factory.CreateBuffer(new(
                 (uint)(Unsafe.SizeOf<Vector2>() * def.Count),
                 BufferUsage.VertexBuffer
-            ));
-
-            IndexBuffer = factory.CreateBuffer(new(
-                sizeof(ushort) * ((uint)def.Count + 1),
-                BufferUsage.IndexBuffer
             ));
 
             LineStripIndexCount = (ushort)(def.Count + 1);
