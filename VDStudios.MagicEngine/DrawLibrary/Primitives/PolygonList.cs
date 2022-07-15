@@ -251,40 +251,35 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             cl.SetVertexBuffer(0, pd.VertexBuffer);
             cl.SetIndexBuffer(pd.IndexBuffer, IndexFormat.UInt16);
             cl.SetPipeline(Pipeline);
-            cl.DrawIndexed(pd.IndexCount, 1, 0, 0, 0);
+            cl.DrawIndexed(pd.LineStripIndexCount, 1, 0, 0, 0);
         }
 
         return ValueTask.CompletedTask;
     }
 
-    private void UpdateVertices(in PolygonDat pol, CommandList commandList)
+    private static void UpdateVertices(in PolygonDat pol, CommandList commandList)
     {
         var vec2Pool = ArrayPool<Vector2>.Shared;
-        int i = 0;
-        for (; i < _polygons.Count; i++)
+        var bc = pol.Polygon.Count;
+        var vertexBuffer = vec2Pool.Rent(bc);
+        try
         {
-            var bc = pol.Polygon.Count;
-            var vertexBuffer = vec2Pool.Rent(bc);
-            try
-            {
-                for (int ind = 0; ind < pol.Polygon.Count; ind++)
-                    vertexBuffer[ind] = pol.Polygon[ind];
-                commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer.AsSpan(0, bc));
-            }
-            finally
-            {
-                vec2Pool.Return(vertexBuffer);
-            }
+            for (int ind = 0; ind < pol.Polygon.Count; ind++)
+                vertexBuffer[ind] = pol.Polygon[ind];
+            commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer.AsSpan(0, bc));
+        }
+        finally
+        {
+            vec2Pool.Return(vertexBuffer);
         }
     }
 
     private void UpdateIndices(in PolygonDat pol, CommandList commandList)
     {
-        var ushortPool = ArrayPool<ushort>.Shared;
-        int i = 0;
-        for (; i < _polygons.Count; i++)
+        var ushortPool = ArrayPool<ushort>.Shared; 
+        if (Description.RenderMode is PolygonRenderMode.LineStripWireframe)
         {
-            var bc = pol.IndexCount;
+            var bc = pol.LineStripIndexCount;
             var indexBuffer = ushortPool.Rent(bc);
             try
             {
@@ -297,7 +292,10 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             {
                 ushortPool.Return(indexBuffer);
             }
+            return;
         }
+
+        //Triangulate
     }
 
     /// <inheritdoc/>
@@ -367,7 +365,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         /// <summary>
         /// The count of indices in this Polygon
         /// </summary>
-        public readonly ushort IndexCount;
+        public readonly ushort LineStripIndexCount;
 
         public PolygonDat(PolygonDefinition def, ResourceFactory factory)
         {
@@ -384,7 +382,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
                 BufferUsage.IndexBuffer
             ));
 
-            IndexCount = (ushort)(def.Count + 1);
+            LineStripIndexCount = (ushort)(def.Count + 1);
 
             Polygon = def;
         }
