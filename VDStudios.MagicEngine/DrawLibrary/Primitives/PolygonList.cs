@@ -251,7 +251,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             cl.SetVertexBuffer(0, pd.VertexBuffer);
             cl.SetIndexBuffer(pd.IndexBuffer, IndexFormat.UInt16);
             cl.SetPipeline(Pipeline);
-            cl.DrawIndexed(pd.LineStripIndexCount, 1, 0, 0, 0);
+            cl.DrawIndexed(pd.CurrentIndexCount, 1, 0, 0, 0);
         }
 
         return ValueTask.CompletedTask;
@@ -276,17 +276,18 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
 
     private unsafe void UpdateIndices(ref PolygonDat pol, CommandList commandList)
     {
-        var pool = ArrayPool<ushort>.Shared; 
+        var pool = ArrayPool<ushort>.Shared;
+        var count = pol.Polygon.Count;
 
-        if (Description.RenderMode is PolygonRenderMode.LineStripWireframe)
+        if (count <= 3 || Description.RenderMode is PolygonRenderMode.LineStripWireframe)
         {
             var indexCount = pol.LineStripIndexCount;
             var indexBuffer = pool.Rent(indexCount);
             try
             {
-                for (int ind = 0; ind < pol.Polygon.Count; ind++)
+                for (int ind = 0; ind < count; ind++)
                     indexBuffer[ind] = (ushort)ind;
-                indexBuffer[pol.Polygon.Count] = 0;
+                indexBuffer[count] = 0;
                 PolygonDat.SetLineStripIndicesBufferSize(ref pol, Device!.ResourceFactory);
                 commandList.UpdateBuffer(pol.IndexBuffer!, 0, indexBuffer.AsSpan(0, indexCount));
             }
@@ -306,8 +307,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single count.
             // There's probably an easier way to compute this
 
-            var count = pol.Polygon.Count;
-            var indexCount = (count - 2) * 3;
+            var indexCount = (count - 1) * 3;
 
             var buffer = pool.Rent(indexCount);
             int bufind = 0;
@@ -317,7 +317,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             ushort pTemp;
             try
             {
-                for (ushort i = 2; i < count; i++)
+                for (ushort i = 1; i < count; i++)
                 {
                     pTemp = i;
                     buffer[bufind++] = p0;
@@ -332,7 +332,11 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             {
                 pool.Return(buffer);
             }
+
+            return;
         }
+
+        throw new InvalidOperationException($"Non-convex polygons are not supported yet");
     }
 
     /// <inheritdoc/>
@@ -403,6 +407,11 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         public DeviceBuffer? IndexBuffer = null;
 
         /// <summary>
+        /// The actual current count of indices for this polygon
+        /// </summary>
+        public ushort CurrentIndexCount;
+
+        /// <summary>
         /// The count of indices in this Polygon
         /// </summary>
         public readonly ushort LineStripIndexCount;
@@ -413,6 +422,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
                 sizeof(ushort) * (uint)indexCount,
                 BufferUsage.IndexBuffer
             ));
+            dat.CurrentIndexCount = (ushort)indexCount;
         }
 
         public static void SetLineStripIndicesBufferSize(ref PolygonDat dat, ResourceFactory factory)
@@ -421,6 +431,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
                 sizeof(ushort) * (uint)dat.LineStripIndexCount,
                 BufferUsage.IndexBuffer
             ));
+            dat.CurrentIndexCount = (ushort)dat.LineStripIndexCount;
         }
 
         public PolygonDat(PolygonDefinition def, ResourceFactory factory)
@@ -434,7 +445,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             ));
 
             LineStripIndexCount = (ushort)(def.Count + 1);
-
+            CurrentIndexCount = 0;
             Polygon = def;
         }
 

@@ -51,11 +51,13 @@ public struct PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquatable
 
     private bool AnalyzeConvexity() 
     {
+        return true;
+
         const float Pi = MathF.PI;
         const float TwoPi = MathF.PI * 2;
 
         if (Vertices.Length <= 3)
-            return false;
+            return true;
 
         Vector2 prev = Vertices[^1];
         Vector2 curr = Vertices[^2];
