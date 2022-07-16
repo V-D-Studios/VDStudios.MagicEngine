@@ -279,9 +279,9 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         var pool = ArrayPool<ushort>.Shared;
         var count = pol.Polygon.Count;
 
+        int indexCount = pol.LineStripIndexCount;
         if (count <= 3 || Description.RenderMode is PolygonRenderMode.LineStripWireframe)
         {
-            var indexCount = pol.LineStripIndexCount;
             var indexBuffer = pool.Rent(indexCount);
             try
             {
@@ -304,7 +304,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single count.
         // There's probably an easier way to compute this
 
-        var indexCount = (count - 1) * 3;
+        indexCount = (count - 1) * 3;
 
         var buffer = pool.Rent(indexCount);
         int bufind = 0;
