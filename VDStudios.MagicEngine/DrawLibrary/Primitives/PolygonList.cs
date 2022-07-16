@@ -18,7 +18,7 @@ namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
 /// Represents an operation to draw a list of 2D shapes with arbitrary sides
 /// </summary>
 /// <remarks>
-/// Not to be confused with Polyhedron, a 3D shape. This class implements all elements of <see cref="IList{T}"/> except for <see cref="ICollection{T}.Remove(T)"/>
+/// Not to be confused with Polyhedron, a 3D shape. This class currently only works for Convex polygons! This class implements all elements of <see cref="IList{T}"/> except for <see cref="ICollection{T}.Remove(T)"/>
 /// </remarks>
 public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
 {
@@ -301,42 +301,34 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         // Triangulation
 
         // For Convex polygons
+        // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single count.
+        // There's probably an easier way to compute this
 
-        if (pol.Polygon.IsConvex) 
+        var indexCount = (count - 1) * 3;
+
+        var buffer = pool.Rent(indexCount);
+        int bufind = 0;
+
+        ushort p0 = 0;
+        ushort pHelper = 1;
+        ushort pTemp;
+        try
         {
-            // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single count.
-            // There's probably an easier way to compute this
-
-            var indexCount = (count - 1) * 3;
-
-            var buffer = pool.Rent(indexCount);
-            int bufind = 0;
-
-            ushort p0 = 0;
-            ushort pHelper = 1;
-            ushort pTemp;
-            try
+            for (ushort i = 1; i < count; i++)
             {
-                for (ushort i = 1; i < count; i++)
-                {
-                    pTemp = i;
-                    buffer[bufind++] = p0;
-                    buffer[bufind++] = pHelper;
-                    buffer[bufind++] = pTemp;
-                    pHelper = pTemp;
-                }
-                PolygonDat.SetTriangulatedIndicesBufferSize(ref pol, indexCount, Device!.ResourceFactory);
-                commandList.UpdateBuffer(pol.IndexBuffer!, 0, buffer.AsSpan(0, indexCount));
+                pTemp = i;
+                buffer[bufind++] = p0;
+                buffer[bufind++] = pHelper;
+                buffer[bufind++] = pTemp;
+                pHelper = pTemp;
             }
-            finally
-            {
-                pool.Return(buffer);
-            }
-
-            return;
+            PolygonDat.SetTriangulatedIndicesBufferSize(ref pol, indexCount, Device!.ResourceFactory);
+            commandList.UpdateBuffer(pol.IndexBuffer!, 0, buffer.AsSpan(0, indexCount));
         }
-
-        throw new InvalidOperationException($"Non-convex polygons are not supported yet");
+        finally
+        {
+            pool.Return(buffer);
+        }
     }
 
     /// <inheritdoc/>
