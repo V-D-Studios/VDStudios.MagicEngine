@@ -10,7 +10,7 @@ namespace VDStudios.MagicEngine.Geometry;
 /// <remarks>
 /// Vertices should be defined in a space relative to themselves, as transformations and positions should be handled by the owner of the definition
 /// </remarks>
-public struct PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquatable
+public sealed class PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquatable
 {
     private readonly Vector2[] Vertices;
 
@@ -117,6 +117,4 @@ public struct PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquatable
     {
         return ((IStructuralEquatable)Vertices).GetHashCode(comparer);
     }
-
-    internal bool RefEquals(PolygonDefinition other) => ReferenceEquals(Vertices, other.Vertices);
 }

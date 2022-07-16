@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine.Geometry;
 using Veldrid;
 using Veldrid.SPIRV;
 
@@ -428,8 +429,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
 
         public PolygonDat(PolygonDefinition def, ResourceFactory factory)
         {
-            if (def.RefEquals(default)) 
-                throw new ArgumentException($"PolygonDefinition def cannot be an empty struct (default)", nameof(def));
+            ArgumentNullException.ThrowIfNull(def);
             
             VertexBuffer = factory.CreateBuffer(new(
                 (uint)(Unsafe.SizeOf<Vector2>() * def.Count),
