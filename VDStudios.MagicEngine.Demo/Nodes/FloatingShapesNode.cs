@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using VDStudios.MagicEngine.DrawLibrary.Primitives;
+using VDStudios.MagicEngine.Geometry;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Demo.Nodes;

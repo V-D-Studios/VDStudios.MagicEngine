@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Numerics;
 
-namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
+namespace VDStudios.MagicEngine.Geometry;
 
 /// <summary>
 /// Represents the definition of a single polygon, starting from the furthest to the bottom and to the left, in CW order
@@ -118,5 +118,5 @@ public struct PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquatable
         return ((IStructuralEquatable)Vertices).GetHashCode(comparer);
     }
 
-    internal bool RefEquals(PolygonDefinition other) => ReferenceEquals(this.Vertices, other.Vertices);
+    internal bool RefEquals(PolygonDefinition other) => ReferenceEquals(Vertices, other.Vertices);
 }

@@ -1,4 +1,6 @@
-﻿namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
+﻿using VDStudios.MagicEngine.Geometry;
+
+namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
 
 /// <summary>
 /// Represents the way a given <see cref="PolygonList"/> will render an arbitrary polygon
