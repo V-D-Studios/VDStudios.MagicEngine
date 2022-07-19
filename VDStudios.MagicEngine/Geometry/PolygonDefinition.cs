@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SDL2.NET;
+using System;
 using System.Collections;
 using System.Numerics;
 
@@ -12,6 +13,77 @@ namespace VDStudios.MagicEngine.Geometry;
 /// </remarks>
 public sealed class PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquatable
 {
+    #region Predefined Polygons
+
+    /// <summary>
+    /// Creates a new <see cref="PolygonDefinition"/> object that describes a Rectangle represented by <paramref name="rectangle"/>
+    /// </summary>
+    /// <param name="rectangle">The rectangle describing the location and dimensions of the polygon to define</param>
+    /// <returns>A new <see cref="PolygonDefinition"/> with four vertices describing the rectangle</returns>
+    public static PolygonDefinition Rectangle(FRectangle rectangle)
+    {
+        var (w, h, x, y) = rectangle;
+        return Rectangle(new(x, y), new(w, h));
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="PolygonDefinition"/> object that describes a Rectangle represented by <paramref name="rectangle"/>
+    /// </summary>
+    /// <param name="rectangle">The rectangle describing the location and dimensions of the polygon to define</param>
+    /// <returns>A new <see cref="PolygonDefinition"/> with four vertices describing the rectangle</returns>
+    public static PolygonDefinition Rectangle(Rectangle rectangle)
+    {
+        var (w, h, x, y) = rectangle;
+        return Rectangle(new(x, y), new(w, h));
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="PolygonDefinition"/> object that describes a Rectangle located at <paramref name="x"/> and <paramref name="y"/> with dimensions of <paramref name="width"/> and <paramref name="height"/>
+    /// </summary>
+    /// <param name="x">The location of the Rectangle along the <c>X</c> axis</param>
+    /// <param name="y">The location of the Rectangle along the <c>Y</c> axis</param>
+    /// <param name="width">The width of the Rectangle</param>
+    /// <param name="height">The height of the Rectangle</param>
+    /// <returns>A new <see cref="PolygonDefinition"/> with four vertices describing the rectangle</returns>
+    public static PolygonDefinition Rectangle(float x, float y, float width, float height)
+        => Rectangle(new(x, y), new(width, height));
+
+    /// <summary>
+    /// Creates a new <see cref="PolygonDefinition"/> object that describes a Rectangle located at <paramref name="x"/> and <paramref name="y"/> with dimensions <paramref name="size"/>
+    /// </summary>
+    /// <param name="x">The location of the Rectangle along the <c>X</c> axis</param>
+    /// <param name="y">The location of the Rectangle along the <c>Y</c> axis</param>
+    /// <param name="size">The size of the Rectangle, with <see cref="Vector2.X"/> being the width, and <see cref="Vector2.Y"/> being the height</param>
+    /// <returns>A new <see cref="PolygonDefinition"/> with four vertices describing the rectangle</returns>
+    public static PolygonDefinition Rectangle(float x, float y, Vector2 size)
+        => Rectangle(new(x, y), size);
+
+    /// <summary>
+    /// Creates a new <see cref="PolygonDefinition"/> object that describes a Rectangle located at <paramref name="position"/> with dimensions of <paramref name="width"/> and <paramref name="height"/>
+    /// </summary>
+    /// <param name="position">The position of the Rectangle</param>
+    /// <param name="width">The width of the Rectangle</param>
+    /// <param name="height">The height of the Rectangle</param>
+    /// <returns>A new <see cref="PolygonDefinition"/> with four vertices describing the rectangle</returns>
+    public static PolygonDefinition Rectangle(Vector2 position, float width, float height)
+        => Rectangle(position, new(width, height));
+
+    /// <summary>
+    /// Creates a new <see cref="PolygonDefinition"/> object that describes a Rectangle located at <paramref name="position"/> with dimensions <paramref name="size"/>
+    /// </summary>
+    /// <param name="position">The position of the Rectangle</param>
+    /// <param name="size">The size of the Rectangle, with <see cref="Vector2.X"/> being the width, and <see cref="Vector2.Y"/> being the height</param>
+    /// <returns>A new <see cref="PolygonDefinition"/> with four vertices describing the rectangle</returns>
+    public static PolygonDefinition Rectangle(Vector2 position, Vector2 size) => new(stackalloc Vector2[]
+    {
+        position,
+        new(position.X, position.Y + size.Y),
+        position + size,
+        new(position.X + size.X, position.Y)
+    });
+
+    #endregion
+
     private readonly Vector2[] Vertices;
 
     /// <summary>
