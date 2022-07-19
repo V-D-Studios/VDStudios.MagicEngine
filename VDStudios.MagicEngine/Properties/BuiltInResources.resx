@@ -130,6 +130,12 @@
   <data name="DefaultTextureFragmentShader" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>assets\default\defaulttexturefragmentshader.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;Windows-1252</value>
   </data>
+  <data name="DefaultTexturePolygonFragmentShader" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>assets\default\defaulttexturepolygonfragmentshader.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-16</value>
+  </data>
+  <data name="DefaultTexturePolygonVertexShader" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>assets\default\defaulttexturepolygonvertexshader.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-16</value>
+  </data>
   <data name="DefaultTextureVertexShader" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>assets\default\defaulttexturevertexshader.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;Windows-1252</value>
   </data>

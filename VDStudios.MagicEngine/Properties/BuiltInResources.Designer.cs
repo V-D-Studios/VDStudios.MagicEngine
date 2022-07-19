@@ -148,6 +148,36 @@ namespace VDStudios.MagicEngine.Properties {
         /// <summary>
         ///   Looks up a localized string similar to #version 450
         ///
+        ///layout(location = 0) out vec4 outColor;
+        ///
+        ///void main() {
+        ///    outColor = vec4(1.0, 0.0, 0.0, 1.0);
+        ///}.
+        /// </summary>
+        public static string DefaultTexturePolygonFragmentShader {
+            get {
+                return ResourceManager.GetString("DefaultTexturePolygonFragmentShader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to #version 450
+        ///
+        ///layout(location = 0) in vec2 Position;
+        ///
+        ///void main() {
+        ///    gl_Position = vec4(Position, 0.0, 1.0);
+        ///}.
+        /// </summary>
+        public static string DefaultTexturePolygonVertexShader {
+            get {
+                return ResourceManager.GetString("DefaultTexturePolygonVertexShader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to #version 450
+        ///
         ///layout (location = 0) in vec2 Position;
         ///layout (location = 1) in vec2 TexCoords;
         ///layout (location = 0) out vec2 fsin_TexCoords;
