@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine.DrawLibrary.Primitives;
 using Veldrid;
 using Veldrid.ImageSharp;
 using Veldrid.SPIRV;
@@ -14,7 +15,7 @@ namespace VDStudios.MagicEngine.DrawLibrary;
 /// <summary>
 /// An operation that renders a Texture at a given position
 /// </summary>
-public class TextureDrawing : DrawOperation
+public class TexturePolygon : PolygonList
 {
     #region Private Resources
 
@@ -39,7 +40,7 @@ public class TextureDrawing : DrawOperation
     #region Properties
 
     /// <summary>
-    /// The actual position at which to draw this <see cref="TextureDrawing"/>
+    /// The actual position at which to draw this <see cref="TexturePolygon"/>
     /// </summary>
     public Vector2 Position { get; set; }
 
@@ -53,7 +54,7 @@ public class TextureDrawing : DrawOperation
     private TextureFactory? txfactory;
 
     /// <summary>
-    /// Whether this <see cref="TextureDrawing"/> solely owns <see cref="Texture"/>
+    /// Whether this <see cref="TexturePolygon"/> solely owns <see cref="Texture"/>
     /// </summary>
     /// <remarks>
     /// If <c>true</c>, this object will assume all responsibility for <see cref="Texture"/>. If this assumption is broken, unexpected behaviour and/or exceptions may occur. Thus, if <c>true</c>, it's better to copy the <see cref="Texture"/> into another object before manipulating it
@@ -65,36 +66,36 @@ public class TextureDrawing : DrawOperation
     #region Construction
 
     /// <summary>
-    /// Instances a new <see cref="TextureDrawing"/> object
+    /// Instances a new <see cref="TexturePolygon"/> object
     /// </summary>
     /// <param name="texture">The texture to draw</param>
-    /// <param name="ownsTexture">Whether or not this <see cref="TextureDrawing"/> is the sole owner of <paramref name="texture"/>. If <c>true</c>, this object will assume that it's solely responsible for <paramref name="texture"/>; including but not limited to disposing of it when this object is disposed</param>
+    /// <param name="ownsTexture">Whether or not this <see cref="TexturePolygon"/> is the sole owner of <paramref name="texture"/>. If <c>true</c>, this object will assume that it's solely responsible for <paramref name="texture"/>; including but not limited to disposing of it when this object is disposed</param>
     /// <param name="relativePosition"></param>
-    public TextureDrawing(Texture texture, bool ownsTexture = false, DataDependency<Vector2>? relativePosition = null)
+    public TexturePolygon(Texture texture, bool ownsTexture = false, DataDependency<Vector2>? relativePosition = null)
     {
         ArgumentNullException.ThrowIfNull(texture);
         Texture = texture;
     }
 
     /// <summary>
-    /// Instances a new <see cref="TextureDrawing"/> object
+    /// Instances a new <see cref="TexturePolygon"/> object
     /// </summary>
     /// <param name="textureFactory">A delegated method that instantiates or retrieves the <see cref="global::Veldrid.Texture"/> to draw</param>
-    /// <param name="ownsTexture">Whether or not this <see cref="TextureDrawing"/> is the sole owner of the <see cref="global::Veldrid.Texture"/> produced by <paramref name="textureFactory"/>. If <c>true</c>, this object will assume that it's solely responsible for <paramref name="Texture"/>; including but not limited to disposing of it when this object is disposed</param>
+    /// <param name="ownsTexture">Whether or not this <see cref="TexturePolygon"/> is the sole owner of the <see cref="global::Veldrid.Texture"/> produced by <paramref name="textureFactory"/>. If <c>true</c>, this object will assume that it's solely responsible for <paramref name="Texture"/>; including but not limited to disposing of it when this object is disposed</param>
     /// <param name="relativePosition"></param>
-    public TextureDrawing(TextureFactory textureFactory, bool ownsTexture = false, DataDependency<Vector2>? relativePosition = null)
+    public TexturePolygon(TextureFactory textureFactory, bool ownsTexture = false, DataDependency<Vector2>? relativePosition = null)
     {
         ArgumentNullException.ThrowIfNull(textureFactory);
         txfactory = textureFactory;
     }
 
     /// <summary>
-    /// Instances a new <see cref="TextureDrawing"/> object
+    /// Instances a new <see cref="TexturePolygon"/> object
     /// </summary>
-    /// <param name="texture">An <see cref="ImageSharpTexture"/> ready to be bound to this <see cref="TextureDrawing"/>'s <see cref="GraphicsDevice"/></param>
-    /// <param name="ownsTexture">Whether or not this <see cref="TextureDrawing"/> is the sole owner of the <see cref="global::Veldrid.Texture"/> produced by <paramref name="textureFactory"/>. If <c>true</c>, this object will assume that it's solely responsible for <paramref name="Texture"/>; including but not limited to disposing of it when this object is disposed</param>
+    /// <param name="texture">An <see cref="ImageSharpTexture"/> ready to be bound to this <see cref="TexturePolygon"/>'s <see cref="GraphicsDevice"/></param>
+    /// <param name="ownsTexture">Whether or not this <see cref="TexturePolygon"/> is the sole owner of the <see cref="global::Veldrid.Texture"/> produced by <paramref name="textureFactory"/>. If <c>true</c>, this object will assume that it's solely responsible for <paramref name="Texture"/>; including but not limited to disposing of it when this object is disposed</param>
     /// <param name="relativePosition"></param>
-    public TextureDrawing(ImageSharpTexture texture, bool ownsTexture = false, DataDependency<Vector2>? relativePosition = null)
+    public TexturePolygon(ImageSharpTexture texture, bool ownsTexture = false, DataDependency<Vector2>? relativePosition = null)
     {
         ArgumentNullException.ThrowIfNull(texture);
         txfactory = texture.CreateDeviceTexture;
