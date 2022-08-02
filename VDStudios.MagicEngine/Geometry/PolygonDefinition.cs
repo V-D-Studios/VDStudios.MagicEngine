@@ -87,6 +87,11 @@ public sealed class PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquat
     private readonly Vector2[] Vertices;
 
     /// <summary>
+    /// A name given to this <see cref="PolygonDefinition"/> for debugging purposes
+    /// </summary>
+    public string? Name { get; set; }
+
+    /// <summary>
     /// Queries this <see cref="PolygonDefinition"/> for the <see cref="Vector2"/> that represents the vertex at <paramref name="index"/>
     /// </summary>
     /// <param name="index">The index of the vertex to query</param>
