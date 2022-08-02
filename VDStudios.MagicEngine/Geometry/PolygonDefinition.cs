@@ -80,7 +80,7 @@ public sealed class PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquat
         new(position.X, position.Y + size.Y),
         position + size,
         new(position.X + size.X, position.Y)
-    });
+    }, true);
 
     #endregion
 
@@ -99,21 +99,27 @@ public sealed class PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquat
     public int Count => Vertices?.Length ?? -1;
 
     /// <summary>
+    /// Whether or not the Polygon represented by this <see cref="PolygonDefinition"/> is convex
+    /// </summary>
+    public bool IsConvex { get; private set; }
+
+    /// <summary>
     /// Creates a new <see cref="PolygonDefinition"/> with the vectors provided in <paramref name="vertices"/> up until <paramref name="vertexCount"/>, or until the length of <paramref name="vertices"/> if it's a negative number
     /// </summary>
     /// <param name="vertices">The vertices of the polygon</param>
-    /// <param name="vertexCount">The amount of vertices to take from <paramref name="vertices"/>, starting at index <c>0</c></param>
-    public PolygonDefinition(Vector2[] vertices, int vertexCount = -1)
-        : this(((Span<Vector2>)vertices).Slice(0, vertexCount > 0 ? vertexCount : vertices.Length)) { }
+    /// <param name="vertexCount">The amount of vertices to take from <paramref name="vertices"/>. <c>0</c> represents all indices, negative numbers start from the end</param>
+    public PolygonDefinition(Vector2[] vertices, bool isConvex, int vertexCount = 0)
+        : this(vertices.AsSpan(0, vertexCount is 0 ? vertices.Length : vertexCount > 0 ? Index.FromStart(vertexCount).GetOffset(vertices.Length) : Index.FromEnd(vertexCount).GetOffset(vertices.Length)), isConvex) { }
 
     /// <summary>
     /// Creates a new <see cref="PolygonDefinition"/> with the vectors provided in <paramref name="vertices"/>
     /// </summary>
     /// <param name="vertices">The vertices of the polygon</param>
-    public PolygonDefinition(ReadOnlySpan<Vector2> vertices)
+    public PolygonDefinition(ReadOnlySpan<Vector2> vertices, bool isConvex)
     {
         if (vertices.Length is < 3)
             throw new ArgumentException("A polygon must have at least 3 vertices", nameof(vertices));
+        IsConvex = isConvex;
         Vertices = new Vector2[vertices.Length];
         vertices.CopyTo(Vertices);
     }
