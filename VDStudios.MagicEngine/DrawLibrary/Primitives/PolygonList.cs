@@ -302,34 +302,39 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         // Triangulation
 
         // For Convex polygons
-        // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single count.
+        // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single variable (count).
         // There's probably an easier way to compute this
+
+        if (pol.Polygon.IsConvex is false)
+            throw new InvalidOperationException($"Triangulation of Concave Polygons is not supported yet");
+
+        if (count is 4) // And is Convex
+        {
+            PolygonDat.SetTriangulatedIndicesBufferSize(ref pol, 6, Device!.ResourceFactory);
+            commandList.UpdateBuffer(pol.IndexBuffer!, 0, stackalloc ushort[6] { 1, 0, 3, 1, 2, 3 });
+            return;
+        }
 
         indexCount = (count - 1) * 3;
 
-        var buffer = pool.Rent(indexCount);
+        Span<ushort> buffer = stackalloc ushort[indexCount];
         int bufind = 0;
 
         ushort p0 = 0;
         ushort pHelper = 1;
         ushort pTemp;
-        try
+
+        for (ushort i = 1; i < count; i++)
         {
-            for (ushort i = 1; i < count; i++)
-            {
-                pTemp = i;
-                buffer[bufind++] = p0;
-                buffer[bufind++] = pHelper;
-                buffer[bufind++] = pTemp;
-                pHelper = pTemp;
-            }
-            PolygonDat.SetTriangulatedIndicesBufferSize(ref pol, indexCount, Device!.ResourceFactory);
-            commandList.UpdateBuffer(pol.IndexBuffer!, 0, buffer.AsSpan(0, indexCount));
+            pTemp = i;
+            buffer[bufind++] = p0;
+            buffer[bufind++] = pHelper;
+            buffer[bufind++] = pTemp;
+            pHelper = pTemp;
         }
-        finally
-        {
-            pool.Return(buffer);
-        }
+
+        PolygonDat.SetTriangulatedIndicesBufferSize(ref pol, indexCount, Device!.ResourceFactory);
+        commandList.UpdateBuffer(pol.IndexBuffer!, 0, buffer);
     }
 
     /// <inheritdoc/>
