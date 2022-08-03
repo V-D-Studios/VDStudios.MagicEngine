@@ -16,14 +16,11 @@ using Veldrid.SPIRV;
 namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
 
 /// <summary>
-/// Represents an operation to draw a list of 2D shapes with arbitrary sides
+/// Represents an operation to draw a list of 2D shapes
 /// </summary>
-/// <remarks>
-/// Not to be confused with Polyhedron, a 3D shape. This class currently only works for Convex polygons! This class implements all elements of <see cref="IList{T}"/> except for <see cref="ICollection{T}.Remove(T)"/>
-/// </remarks>
-public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
+public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
 {
-    private readonly List<PolygonDefinition> _polygons;
+    private readonly List<ShapeDefinition> _shapes;
 
     private ShaderDescription VertexShaderDesc;
     private ShaderDescription FragmentShaderDesc;
@@ -31,19 +28,19 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
     private readonly PolygonListDescription Description;
 
     /// <summary>
-    /// Instantiates a new <see cref="PolygonList"/>
+    /// Instantiates a new <see cref="ShapeBuffer"/>
     /// </summary>
     /// <param name="polygons">The polygons to fill this list with</param>
-    /// <param name="description">Provides data for the configuration of this <see cref="PolygonList"/></param>
-    /// <param name="fragmentShaderSpirv">The description of this <see cref="PolygonList"/>'s Fragment Shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
-    /// <param name="vertexShaderSpirv">The description of this <see cref="PolygonList"/>'s Vertex Shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
-    public PolygonList(IEnumerable<PolygonDefinition> polygons, PolygonListDescription description, ShaderDescription? vertexShaderSpirv = null, ShaderDescription? fragmentShaderSpirv = null)
+    /// <param name="description">Provides data for the configuration of this <see cref="ShapeBuffer"/></param>
+    /// <param name="fragmentShaderSpirv">The description of this <see cref="ShapeBuffer"/>'s Fragment Shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
+    /// <param name="vertexShaderSpirv">The description of this <see cref="ShapeBuffer"/>'s Vertex Shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
+    public ShapeBuffer(IEnumerable<ShapeDefinition> polygons, PolygonListDescription description, ShaderDescription? vertexShaderSpirv = null, ShaderDescription? fragmentShaderSpirv = null)
     {
         Description = description;
-        _polygons = new(polygons);
+        _shapes = new(polygons);
 
-        IndicesToUpdate.EnsureCapacity(_polygons.Capacity);
-        for (int i = 0; i < _polygons.Count; i++)
+        IndicesToUpdate.EnsureCapacity(_shapes.Capacity);
+        for (int i = 0; i < _shapes.Count; i++)
             IndicesToUpdate.Enqueue(new(i, true, true, 1));
 
         VertexShaderDesc = vertexShaderSpirv ?? new ShaderDescription(ShaderStages.Vertex, BuiltInResources.DefaultPolygonVertexShader.GetUTF8Bytes(), "main");
@@ -55,20 +52,20 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
     private readonly Queue<UpdateDat> IndicesToUpdate = new();
 
     /// <inheritdoc/>
-    public int IndexOf(PolygonDefinition item)
+    public int IndexOf(ShapeDefinition item)
     {
-        lock (_polygons)
+        lock (_shapes)
         {
-            return ((IList<PolygonDefinition>)_polygons).IndexOf(item);
+            return ((IList<ShapeDefinition>)_shapes).IndexOf(item);
         }
     }
 
     /// <inheritdoc/>
-    public void Insert(int index, PolygonDefinition item)
+    public void Insert(int index, ShapeDefinition item)
     {
-        lock (_polygons)
+        lock (_shapes)
         {
-            ((IList<PolygonDefinition>)_polygons).Insert(index, item);
+            ((IList<ShapeDefinition>)_shapes).Insert(index, item);
             IndicesToUpdate.Enqueue(new(index, true, true, 1));
             NotifyPendingGPUUpdate();
         }
@@ -77,30 +74,30 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
     /// <inheritdoc/>
     public void RemoveAt(int index)
     {
-        lock (_polygons)
+        lock (_shapes)
         {
-            ((IList<PolygonDefinition>)_polygons).RemoveAt(index);
+            ((IList<ShapeDefinition>)_shapes).RemoveAt(index);
             IndicesToUpdate.Enqueue(new(index, false, false, -1));
             NotifyPendingGPUUpdate();
         }
     }
 
     /// <inheritdoc/>
-    public PolygonDefinition this[int index]
+    public ShapeDefinition this[int index]
     {
         get
         {
-            lock (_polygons)
+            lock (_shapes)
             {
-                return ((IList<PolygonDefinition>)_polygons)[index];
+                return ((IList<ShapeDefinition>)_shapes)[index];
             }
         }
 
         set
         {
-            lock (_polygons)
+            lock (_shapes)
             {
-                ((IList<PolygonDefinition>)_polygons)[index] = value;
+                ((IList<ShapeDefinition>)_shapes)[index] = value;
                 IndicesToUpdate.Enqueue(new(index, true, true, 1));
                 NotifyPendingGPUUpdate();
             }
@@ -108,12 +105,12 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
     }
 
     /// <inheritdoc/>
-    public void Add(PolygonDefinition item)
+    public void Add(ShapeDefinition item)
     {
-        lock (_polygons)
+        lock (_shapes)
         {
-            IndicesToUpdate.Enqueue(new(_polygons.Count - 1, true, true, 1));
-            ((ICollection<PolygonDefinition>)_polygons).Add(item);
+            IndicesToUpdate.Enqueue(new(_shapes.Count - 1, true, true, 1));
+            ((ICollection<ShapeDefinition>)_shapes).Add(item);
             NotifyPendingGPUUpdate();
         }
     }
@@ -121,45 +118,59 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
     /// <inheritdoc/>
     public void Clear()
     {
-        lock (_polygons)
+        lock (_shapes)
         {
             NotifyPendingGPUUpdate();
-            for (int i = 0; i < _polygons.Count; i++)
+            for (int i = 0; i < _shapes.Count; i++)
                 IndicesToUpdate.Enqueue(new(i, false, false, -1));
-            ((ICollection<PolygonDefinition>)_polygons).Clear();
+            ((ICollection<ShapeDefinition>)_shapes).Clear();
         }
     }
 
     /// <inheritdoc/>
-    public bool Contains(PolygonDefinition item)
+    public bool Contains(ShapeDefinition item)
     {
-        lock (_polygons)
+        lock (_shapes)
         {
-            return ((ICollection<PolygonDefinition>)_polygons).Contains(item);
+            return ((ICollection<ShapeDefinition>)_shapes).Contains(item);
         }
     }
 
     /// <inheritdoc/>
-    public void CopyTo(PolygonDefinition[] array, int arrayIndex)
+    public void CopyTo(ShapeDefinition[] array, int arrayIndex)
     {
-        lock (_polygons)
+        lock (_shapes)
         {
-            ((ICollection<PolygonDefinition>)_polygons).CopyTo(array, arrayIndex);
+            ((ICollection<ShapeDefinition>)_shapes).CopyTo(array, arrayIndex);
         }
     }
 
-    /// <inheritdoc/>
-    public int Count => ((ICollection<PolygonDefinition>)_polygons).Count;
+    private void QueryForChange() // call every frame
+    {
+        lock (_shapes)
+            for (int i = 0; i < ShapeBufferList.Count; i++) 
+            {
+                var sh = ShapeBufferList[i];
+                if (sh.LastVersion != sh.Polygon.Version)
+                {
+                    NotifyPendingGPUUpdate();
+                    IndicesToUpdate.Enqueue(new(i, true, true, 0));
+                }
+            }
+    }
 
     /// <inheritdoc/>
-    public IEnumerator<PolygonDefinition> GetEnumerator()
+    public int Count => ((ICollection<ShapeDefinition>)_shapes).Count;
+
+    /// <inheritdoc/>
+    public IEnumerator<ShapeDefinition> GetEnumerator()
     {
-        return ((IEnumerable<PolygonDefinition>)_polygons).GetEnumerator();
+        return ((IEnumerable<ShapeDefinition>)_shapes).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        return ((IEnumerable)_polygons).GetEnumerator();
+        return ((IEnumerable)_shapes).GetEnumerator();
     }
 
     #endregion
@@ -186,9 +197,9 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
     /// The temporary buffer into which the polygons held in this object will be copied for drawing.
     /// </summary>
     /// <remarks>
-    /// It's best to leave this property alone, the code in <see cref="PolygonList"/> will take care of it
+    /// It's best to leave this property alone, the code in <see cref="ShapeBuffer"/> will take care of it
     /// </remarks>
-    protected List<PolygonDat> PolygonBuffer = new();
+    protected List<ShapeDat> ShapeBufferList = new();
 
     #endregion
 
@@ -246,8 +257,9 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
     /// <inheritdoc/>
     protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
     {
+        QueryForChange();
         cl.SetFramebuffer(mainBuffer);
-        foreach(var pd in PolygonBuffer)
+        foreach(var pd in ShapeBufferList)
         {
             cl.SetVertexBuffer(0, pd.VertexBuffer);
             cl.SetIndexBuffer(pd.IndexBuffer, IndexFormat.UInt16);
@@ -258,7 +270,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         return ValueTask.CompletedTask;
     }
 
-    private static void UpdateVertices(in PolygonDat pol, CommandList commandList)
+    private static void UpdateVertices(in ShapeDat pol, CommandList commandList)
     {
         var vec2Pool = ArrayPool<Vector2>.Shared;
         var bc = pol.Polygon.Count;
@@ -275,27 +287,19 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         }
     }
 
-    private unsafe void UpdateIndices(ref PolygonDat pol, CommandList commandList)
+    private void UpdateIndices(ref ShapeDat pol, CommandList commandList)
     {
-        var pool = ArrayPool<ushort>.Shared;
         var count = pol.Polygon.Count;
 
         int indexCount = pol.LineStripIndexCount;
         if (count <= 3 || Description.RenderMode is PolygonRenderMode.LineStripWireframe)
         {
-            var indexBuffer = pool.Rent(indexCount);
-            try
-            {
-                for (int ind = 0; ind < count; ind++)
-                    indexBuffer[ind] = (ushort)ind;
-                indexBuffer[count] = 0;
-                PolygonDat.SetLineStripIndicesBufferSize(ref pol, Device!.ResourceFactory);
-                commandList.UpdateBuffer(pol.IndexBuffer!, 0, indexBuffer.AsSpan(0, indexCount));
-            }
-            finally
-            {
-                pool.Return(indexBuffer);
-            }
+            Span<ushort> indexBuffer = stackalloc ushort[indexCount];
+            for (int ind = 0; ind < count; ind++)
+                indexBuffer[ind] = (ushort)ind;
+            indexBuffer[count] = 0;
+            ShapeDat.SetLineStripIndicesBufferSize(ref pol, Device!.ResourceFactory);
+            commandList.UpdateBuffer(pol.IndexBuffer!, 0, indexBuffer);
             return;
         }
 
@@ -310,7 +314,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
 
         if (count is 4) // And is Convex
         {
-            PolygonDat.SetTriangulatedIndicesBufferSize(ref pol, 6, Device!.ResourceFactory);
+            ShapeDat.SetTriangulatedIndicesBufferSize(ref pol, 6, Device!.ResourceFactory);
             commandList.UpdateBuffer(pol.IndexBuffer!, 0, stackalloc ushort[6] { 1, 0, 3, 1, 2, 3 });
             return;
         }
@@ -333,43 +337,45 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             pHelper = pTemp;
         }
 
-        PolygonDat.SetTriangulatedIndicesBufferSize(ref pol, indexCount, Device!.ResourceFactory);
+        ShapeDat.SetTriangulatedIndicesBufferSize(ref pol, indexCount, Device!.ResourceFactory);
         commandList.UpdateBuffer(pol.IndexBuffer!, 0, buffer);
     }
 
     /// <inheritdoc/>
     protected override ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList, DeviceBuffer screenSizeBuffer)
     {
-        lock (_polygons)
+        lock (_shapes)
         {
             while (IndicesToUpdate.TryDequeue(out var dat))
             {
                 switch (dat.Added)
                 {
                     case < 0:
-                        var pd = PolygonBuffer[dat.Index];
+                        var pd = ShapeBufferList[dat.Index];
                         pd.Dispose();
                         continue;
                     case 0:
-                        var polybuffer = CollectionsMarshal.AsSpan(PolygonBuffer);
+                        var polybuffer = CollectionsMarshal.AsSpan(ShapeBufferList);
                         if (dat.UpdateVertices)
                             UpdateVertices(in polybuffer[dat.Index], commandList);
                         if (dat.UpdateIndices)
                             UpdateIndices(ref polybuffer[dat.Index], commandList);
+                        ShapeDat.UpdateLastVer(ref polybuffer[dat.Index]);
                         continue;
                     case > 0:
-                        var np = new PolygonDat(_polygons[dat.Index], device.ResourceFactory);
+                        var np = new ShapeDat(_shapes[dat.Index], device.ResourceFactory);
                         UpdateVertices(in np, commandList);
                         UpdateIndices(ref np, commandList);
-                        PolygonBuffer.Insert(dat.Index, np);
+                        ShapeBufferList.Insert(dat.Index, np);
+                        ShapeDat.UpdateLastVer(ref np);
                         continue;
                 }
             }
         }
 
-        for (int i = PolygonBuffer.Count - 1; i >= 0; i--)
-            if (PolygonBuffer[i].remove)
-                PolygonBuffer.RemoveAt(i);
+        for (int i = ShapeBufferList.Count - 1; i >= 0; i--)
+            if (ShapeBufferList[i].remove)
+                ShapeBufferList.RemoveAt(i);
 
         return ValueTask.CompletedTask;
     }
@@ -383,13 +389,13 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
     /// <summary>
     /// Represents polygon and device related data
     /// </summary>
-    protected struct PolygonDat : IDisposable
+    protected struct ShapeDat : IDisposable
     {
         internal bool remove = false;
         /// <summary>
         /// The polygon in question
         /// </summary>
-        public readonly PolygonDefinition Polygon;
+        public readonly ShapeDefinition Polygon;
 
         /// <summary>
         /// The buffer holding the vertex data for this polygon
@@ -400,7 +406,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         /// The buffer holding the index data for this polygon
         /// </summary>
         /// <remarks>
-        /// This buffer will be null until <see cref="SetTriangulatedIndicesBufferSize"/> or <see cref="SetLineStripIndicesBufferSize"/> is called. This is guaranteed, by the methods of <see cref="PolygonList"/>, to be the case before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> is called
+        /// This buffer will be null until <see cref="SetTriangulatedIndicesBufferSize"/> or <see cref="SetLineStripIndicesBufferSize"/> is called. This is guaranteed, by the methods of <see cref="ShapeBuffer"/>, to be the case before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> is called
         /// </remarks>
         public DeviceBuffer? IndexBuffer = null;
 
@@ -414,7 +420,9 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
         /// </summary>
         public readonly ushort LineStripIndexCount;
 
-        public static void SetTriangulatedIndicesBufferSize(ref PolygonDat dat, int indexCount, ResourceFactory factory)
+        public int LastVersion;
+
+        public static void SetTriangulatedIndicesBufferSize(ref ShapeDat dat, int indexCount, ResourceFactory factory)
         {
             dat.IndexBuffer = factory.CreateBuffer(new(
                 sizeof(ushort) * (uint)indexCount,
@@ -423,7 +431,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             dat.CurrentIndexCount = (ushort)indexCount;
         }
 
-        public static void SetLineStripIndicesBufferSize(ref PolygonDat dat, ResourceFactory factory)
+        public static void SetLineStripIndicesBufferSize(ref ShapeDat dat, ResourceFactory factory)
         {
             dat.IndexBuffer = factory.CreateBuffer(new(
                 sizeof(ushort) * (uint)dat.LineStripIndexCount,
@@ -432,7 +440,12 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             dat.CurrentIndexCount = (ushort)dat.LineStripIndexCount;
         }
 
-        public PolygonDat(PolygonDefinition def, ResourceFactory factory)
+        public static void UpdateLastVer(ref ShapeDat dat)
+        {
+            dat.LastVersion = dat.Polygon.Version;
+        }
+
+        public ShapeDat(ShapeDefinition def, ResourceFactory factory)
         {
             ArgumentNullException.ThrowIfNull(def);
             
@@ -444,6 +457,7 @@ public class PolygonList : DrawOperation, IReadOnlyList<PolygonDefinition>
             LineStripIndexCount = (ushort)(def.Count + 1);
             CurrentIndexCount = 0;
             Polygon = def;
+            LastVersion = 0;
         }
 
         public void Dispose()
