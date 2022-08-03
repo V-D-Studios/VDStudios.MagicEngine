@@ -154,7 +154,7 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
                 if (sh.LastVersion != sh.Shape.Version)
                 {
                     NotifyPendingGPUUpdate();
-                    IndicesToUpdate.Enqueue(new(i, true, true, 0));
+                    IndicesToUpdate.Enqueue(new(i, true, sh.LastCount != sh.Shape.Count, 0));
                 }
             }
     }
@@ -272,12 +272,13 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
 
     private void UpdateVertices(ref ShapeDat pol, CommandList commandList)
     {
-        var bc = pol.Shape.Count;
-        Span<Vector2> vertexBuffer = stackalloc Vector2[bc];
+        var vc = pol.Shape.Count;
+        Span<Vector2> vertexBuffer = stackalloc Vector2[vc];
 
         for (int ind = 0; ind < pol.Shape.Count; ind++)
             vertexBuffer[ind] = pol.Shape[ind];
-        ShapeDat.SetVertexBufferSize(ref pol, Device!.ResourceFactory);
+        if (vc < pol.Shape.Count)
+            ShapeDat.SetVertexBufferSize(ref pol, Device!.ResourceFactory);
         commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer);
     }
 
@@ -415,6 +416,7 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
         public readonly ushort LineStripIndexCount;
 
         public int LastVersion;
+        public int LastCount;
 
         public static void SetVertexBufferSize(ref ShapeDat dat, ResourceFactory factory)
         {
@@ -445,6 +447,7 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
         public static void UpdateLastVer(ref ShapeDat dat)
         {
             dat.LastVersion = dat.Shape.Version;
+            dat.LastCount = dat.Shape.Count;
         }
 
         public ShapeDat(ShapeDefinition def, ResourceFactory factory)
@@ -455,6 +458,7 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
             CurrentIndexCount = 0;
             Shape = def;
             LastVersion = 0;
+            LastCount = 0;
         }
 
         public void Dispose()
