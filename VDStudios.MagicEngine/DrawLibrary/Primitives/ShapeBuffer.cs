@@ -25,7 +25,7 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
     private ShaderDescription VertexShaderDesc;
     private ShaderDescription FragmentShaderDesc;
 
-    private readonly PolygonListDescription Description;
+    private readonly ShapeBufferDescription Description;
 
     /// <summary>
     /// Instantiates a new <see cref="ShapeBuffer"/>
@@ -34,7 +34,7 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
     /// <param name="description">Provides data for the configuration of this <see cref="ShapeBuffer"/></param>
     /// <param name="fragmentShaderSpirv">The description of this <see cref="ShapeBuffer"/>'s Fragment Shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
     /// <param name="vertexShaderSpirv">The description of this <see cref="ShapeBuffer"/>'s Vertex Shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
-    public ShapeBuffer(IEnumerable<ShapeDefinition> polygons, PolygonListDescription description, ShaderDescription? vertexShaderSpirv = null, ShaderDescription? fragmentShaderSpirv = null)
+    public ShapeBuffer(IEnumerable<ShapeDefinition> polygons, ShapeBufferDescription description, ShaderDescription? vertexShaderSpirv = null, ShaderDescription? fragmentShaderSpirv = null)
     {
         Description = description;
         _shapes = new(polygons);
