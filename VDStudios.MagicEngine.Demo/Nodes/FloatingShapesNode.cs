@@ -1,16 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using VDStudios.MagicEngine.DrawLibrary.Primitives;
 using VDStudios.MagicEngine.Geometry;
+using VDStudios.MagicEngine.GUILibrary.ImGUI;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Demo.Nodes;
 public class FloatingShapesNode : Node, IDrawableNode
 {
+    CircumferenceDefinition circumference;
+
     public FloatingShapesNode()
     {
         Span<Vector2> triangle = stackalloc Vector2[] { new(-.15f + .5f, -.15f + .5f), new(.15f + .5f, -.15f + .5f), new(.5f, .15f + .5f) };
@@ -38,17 +42,47 @@ public class FloatingShapesNode : Node, IDrawableNode
         var circ = PolygonDefinition.Circle(new(-.2f, .15f), .3f, 5);
         circ.Name = "Circle";
 
+        circumference = new CircumferenceDefinition(new(-.7f, .6f), .65f);
+
+        var watch = new Watch("Circle division watch", new()
+        {
+            ([NotNullWhen(true)] out string? x) =>
+            {
+                x = circumference.Subdivisions.ToString();
+                return true;
+            }
+        });
+        Game.MainGraphicsManager.AddElement(watch);
+
         DrawOperationManager = new DrawOperationManagerDrawQueueDelegate(this, (q, o) =>
         {
             q.Enqueue(o, -1);
         });
-        DrawOperationManager.AddDrawOperation(new ShapeBuffer(new PolygonDefinition[]
+        DrawOperationManager.AddDrawOperation(new ShapeBuffer(new ShapeDefinition[]
         {
-            new(triangle, true) { Name = "Triangle" },
-            new(hexagon, true) { Name = "Hexagon" },
-            new(rectangle, true) { Name = "Rectangle" },
-            circ
-        }, new() { RenderMode = PolygonRenderMode.TriangulatedWireframe }));
+            new PolygonDefinition(triangle, true) { Name = "Triangle" },
+            new PolygonDefinition(hexagon, true) { Name = "Hexagon" },
+            new PolygonDefinition(rectangle, true) { Name = "Rectangle" },
+            circ,
+            circumference
+        }, new() { RenderMode = PolygonRenderMode.TriangulatedFill }));
+    }
+
+    TimeSpan tb;
+    static readonly TimeSpan tb_ceil = TimeSpan.FromSeconds(3);
+    int x = 0;
+    protected override ValueTask<bool> Updating(TimeSpan delta)
+    {
+        Span<int> sequence = stackalloc int[] { 3, 6, 9, 12, 15, 18, 21, 18, 15, 12, 9, 6 };
+        tb += delta;
+        if (tb > tb_ceil)
+        {
+            tb = default;
+            if (x >= sequence.Length)
+                x = 0;
+            circumference.Subdivisions = sequence[x++];
+        }
+        return ValueTask.FromResult(true);
     }
 
     public DrawOperationManager DrawOperationManager { get; }
