@@ -39,9 +39,9 @@ public class FloatingShapesNode : Node, IDrawableNode
         });
         DrawOperationManager.AddDrawOperation(new PolygonList(new PolygonDefinition[]
         {
-            new(triangle, true){ Name = "Triangle" },
-            new(hexagon, true){ Name = "Hexagon" },
-            new(rectangle, true){ Name= "Rectangle" }
+            new(triangle, true) { Name = "Triangle" },
+            new(hexagon, true) { Name = "Hexagon" },
+            new(rectangle, true) { Name = "Rectangle" }
         }, new() { RenderMode = PolygonRenderMode.TriangulatedWireframe }));
     }
 
