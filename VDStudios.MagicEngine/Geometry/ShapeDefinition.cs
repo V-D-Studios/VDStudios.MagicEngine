@@ -9,6 +9,16 @@ namespace VDStudios.MagicEngine.Geometry;
 public abstract class ShapeDefinition : IReadOnlyList<Vector2>
 {
     /// <summary>
+    /// Used for concurrency purposes, and to query for changes
+    /// </summary>
+    protected int version = 0;
+
+    /// <summary>
+    /// Used for concurrency purposes, and to query for changes
+    /// </summary>
+    public int Version => version;
+
+    /// <summary>
     /// Instances a new object of type ShapeDefinition
     /// </summary>
     /// <param name="isConvex"></param>

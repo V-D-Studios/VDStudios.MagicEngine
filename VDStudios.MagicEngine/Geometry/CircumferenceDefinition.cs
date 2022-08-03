@@ -83,6 +83,7 @@ public class CircumferenceDefinition : ShapeDefinition
                 throw new ArgumentException("A Circumference's subdivision count cannot be less than 3", nameof(value));
             subdiv = value;
             ___regenRequired = true;
+            version++;
         }
     }
     private int subdiv;
@@ -119,6 +120,7 @@ public class CircumferenceDefinition : ShapeDefinition
         }
         ___vertexBuffer = vertices;
     }
+
     /// <inheritdoc/>
     public override ReadOnlySpan<Vector2> AsSpan(int start, int length)
         => VertexBuffer.AsSpan(start, length);

@@ -114,7 +114,7 @@ public class PolygonDefinition : ShapeDefinition, IStructuralEquatable
     /// <summary>
     /// The current vertex count, or -1, if <c>default</c>
     /// </summary>
-    public int Count => Vertices?.Length ?? -1;
+    public override int Count => Vertices?.Length ?? -1;
 
     /// <summary>
     /// Creates a new <see cref="PolygonDefinition"/> with the vectors provided in <paramref name="vertices"/> up until <paramref name="vertexCount"/>, or until the length of <paramref name="vertices"/> if it's a negative number
@@ -182,4 +182,7 @@ public class PolygonDefinition : ShapeDefinition, IStructuralEquatable
     {
         return ((Span<Vector2>)Vertices).TryCopyTo(destination);
     }
+
+    /// <inheritdoc/>
+    public override Vector2 this[int index] => Vertices[index];
 }
