@@ -64,7 +64,19 @@ public class CircumferenceDefinition : ShapeDefinition
     /// <summary>
     /// The center point of the circumference
     /// </summary>
-    public Vector2 CenterPoint { get; }
+    public Vector2 CenterPoint
+    {
+        get => cenp;
+        set
+        {
+            if (value == cenp)
+                return;
+            cenp = value;
+            ___regenRequired = true;
+            version++;
+        }
+    }
+    private Vector2 cenp;
 
     /// <summary>
     /// The radius of the circumference
@@ -79,7 +91,7 @@ public class CircumferenceDefinition : ShapeDefinition
         get => subdiv;
         set
         {
-            if (subdiv < 3)
+            if (value < 3)
                 throw new ArgumentException("A Circumference's subdivision count cannot be less than 3", nameof(value));
             subdiv = value;
             ___regenRequired = true;
