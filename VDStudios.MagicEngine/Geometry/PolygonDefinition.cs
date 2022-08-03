@@ -136,6 +136,20 @@ public class PolygonDefinition : ShapeDefinition, IStructuralEquatable
         vertices.CopyTo(Vertices);
     }
 
+    /// <summary>
+    /// Applies <paramref name="transformation"/> to each vertex in this <see cref="PolygonDefinition"/>
+    /// </summary>
+    /// <param name="transformation">The transformation matrix to apply to every vertex</param>
+    public void Transform(Matrix3x2 transformation)
+    {
+        for (int i = 0; i < Vertices.Length; i++)
+        {
+            ref var vertex = ref Vertices[i];
+            vertex = Vector2.Transform(vertex, transformation);
+        }
+        version++;
+    }
+
     /// <inheritdoc/>
     public bool Equals(object? other, IEqualityComparer comparer)
     {
