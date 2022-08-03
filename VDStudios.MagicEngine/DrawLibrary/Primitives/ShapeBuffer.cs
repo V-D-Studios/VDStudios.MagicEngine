@@ -273,11 +273,13 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
     private void UpdateVertices(ref ShapeDat pol, CommandList commandList)
     {
         var vc = pol.Shape.Count;
+        var vc_bytes = (uint)Unsafe.SizeOf<Vector2>() * (uint)vc;
+
         Span<Vector2> vertexBuffer = stackalloc Vector2[vc];
 
         for (int ind = 0; ind < pol.Shape.Count; ind++)
             vertexBuffer[ind] = pol.Shape[ind];
-        if (vc < pol.Shape.Count)
+        if (pol.VertexBuffer is null || vc_bytes > pol.VertexBuffer.SizeInBytes)  
             ShapeDat.SetVertexBufferSize(ref pol, Device!.ResourceFactory);
         commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer);
     }
