@@ -11,7 +11,7 @@ namespace VDStudios.MagicEngine.Geometry;
 /// <remarks>
 /// Vertices should be defined in a space relative to themselves, as transformations and positions should be handled by the owner of the definition
 /// </remarks>
-public sealed class PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquatable
+public class PolygonDefinition : ShapeDefinition, IStructuralEquatable
 {
     #region Predefined Polygons
 
@@ -112,26 +112,9 @@ public sealed class PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquat
     private readonly Vector2[] Vertices;
 
     /// <summary>
-    /// A name given to this <see cref="PolygonDefinition"/> for debugging purposes
-    /// </summary>
-    public string? Name { get; set; }
-
-    /// <summary>
-    /// Queries this <see cref="PolygonDefinition"/> for the <see cref="Vector2"/> that represents the vertex at <paramref name="index"/>
-    /// </summary>
-    /// <param name="index">The index of the vertex to query</param>
-    /// <returns>The <see cref="Vector2"/> at <paramref name="index"/></returns>
-    public Vector2 this[int index] => Vertices is not null ? Vertices[index] : throw new InvalidOperationException("The default value for PolygonDefinition cannot be queried");
-
-    /// <summary>
     /// The current vertex count, or -1, if <c>default</c>
     /// </summary>
     public int Count => Vertices?.Length ?? -1;
-
-    /// <summary>
-    /// Whether or not the Polygon represented by this <see cref="PolygonDefinition"/> is convex
-    /// </summary>
-    public bool IsConvex { get; private set; }
 
     /// <summary>
     /// Creates a new <see cref="PolygonDefinition"/> with the vectors provided in <paramref name="vertices"/> up until <paramref name="vertexCount"/>, or until the length of <paramref name="vertices"/> if it's a negative number
@@ -145,74 +128,13 @@ public sealed class PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquat
     /// Creates a new <see cref="PolygonDefinition"/> with the vectors provided in <paramref name="vertices"/>
     /// </summary>
     /// <param name="vertices">The vertices of the polygon</param>
-    public PolygonDefinition(ReadOnlySpan<Vector2> vertices, bool isConvex)
+    public PolygonDefinition(ReadOnlySpan<Vector2> vertices, bool isConvex) : base(isConvex)
     {
         if (vertices.Length is < 3)
             throw new ArgumentException("A polygon must have at least 3 vertices", nameof(vertices));
-        IsConvex = isConvex;
         Vertices = new Vector2[vertices.Length];
         vertices.CopyTo(Vertices);
     }
-
-    /// <summary>
-    /// Copies the vertices of this <see cref="PolygonDefinition"/> into a new array
-    /// </summary>
-    /// <returns>The newly created and now filled array</returns>
-    public Vector2[] ToArray()
-    {
-        var ret = new Vector2[Vertices.Length];
-        Vertices.CopyTo(ret, 0);
-        return ret;
-    }
-
-    /// <summary>
-    /// Creates a new Span over the portion of this <see cref="PolygonDefinition"/> beginning at <paramref name="start"/> for <paramref name="length"/>
-    /// </summary>
-    /// <param name="start"></param>
-    /// <param name="length"></param>
-    /// <returns>The span representation of this <see cref="PolygonDefinition"/></returns>
-    public ReadOnlySpan<Vector2> AsSpan(int start, int length)
-        => Vertices.AsSpan(start, length);
-
-    /// <summary>
-    /// Creates a new Span over the portion of this <see cref="PolygonDefinition"/> beginning at <paramref name="start"/> for the rest of this <see cref="PolygonDefinition"/>
-    /// </summary>
-    /// <param name="start"></param>
-    /// <returns>The span representation of this <see cref="PolygonDefinition"/></returns>
-    public ReadOnlySpan<Vector2> AsSpan(int start)
-        => Vertices.AsSpan(start);
-
-    /// <summary>
-    /// Creates a new Span over this <see cref="PolygonDefinition"/>
-    /// </summary>
-    /// <returns>The span representation of this <see cref="PolygonDefinition"/></returns>
-    public ReadOnlySpan<Vector2> AsSpan()
-        => Vertices.AsSpan();
-
-    /// <summary>
-    /// Copies the vertices of this <see cref="PolygonDefinition"/> into <paramref name="destination"/>
-    /// </summary>
-    /// <param name="destination">The <see cref="Span{T}"/> to copy this <see cref="PolygonDefinition"/>'s vertices into</param>
-    public void CopyTo(Span<Vector2> destination)
-    {
-        ((Span<Vector2>)Vertices).CopyTo(destination);
-    }
-
-    /// <summary>
-    /// Attempts to copy the vertices of this <see cref="PolygonDefinition"/> into <paramref name="destination"/> and returns a value that indicates whether the operation succeeded or not
-    /// </summary>
-    /// <param name="destination">The <see cref="Span{T}"/> to copy this <see cref="PolygonDefinition"/>'s vertices into</param>
-    /// <returns>true if the operation was succesful, false otherwise</returns>
-    public bool TryCopyTo(Span<Vector2> destination)
-    {
-        return ((Span<Vector2>)Vertices).TryCopyTo(destination);
-    }
-
-    /// <inheritdoc/>
-    public IEnumerator<Vector2> GetEnumerator() => ((IEnumerable<Vector2>)Vertices).GetEnumerator();
-
-    /// <inheritdoc/>
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <inheritdoc/>
     public bool Equals(object? other, IEqualityComparer comparer)
@@ -224,5 +146,40 @@ public sealed class PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquat
     public int GetHashCode(IEqualityComparer comparer)
     {
         return ((IStructuralEquatable)Vertices).GetHashCode(comparer);
+    }
+
+    /// <inheritdoc/>
+    public override ReadOnlySpan<Vector2> AsSpan(int start, int length)
+        => Vertices.AsSpan(start, length);
+
+    /// <inheritdoc/>
+    public override ReadOnlySpan<Vector2> AsSpan(int start)
+        => Vertices.AsSpan(start);
+
+    /// <inheritdoc/>
+    public override ReadOnlySpan<Vector2> AsSpan()
+        => Vertices.AsSpan();
+
+    /// <inheritdoc/>
+    public override void CopyTo(Span<Vector2> destination)
+    {
+        ((Span<Vector2>)Vertices).CopyTo(destination);
+    }
+
+    /// <inheritdoc/>
+    public override IEnumerator<Vector2> GetEnumerator() => ((IEnumerable<Vector2>)Vertices).GetEnumerator();
+
+    /// <inheritdoc/>
+    public override Vector2[] ToArray()
+    {
+        var ret = new Vector2[Vertices.Length];
+        Vertices.CopyTo(ret, 0);
+        return ret;
+    }
+
+    /// <inheritdoc/>
+    public override bool TryCopyTo(Span<Vector2> destination)
+    {
+        return ((Span<Vector2>)Vertices).TryCopyTo(destination);
     }
 }
