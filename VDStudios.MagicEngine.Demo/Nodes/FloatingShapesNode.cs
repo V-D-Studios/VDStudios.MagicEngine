@@ -24,6 +24,8 @@ public class FloatingShapesNode : Node, IDrawableNode
             new(149.59669171830413f / 500f - 0.5f, 149.7064357876441f / 500f - 0.5f),
             new(157.05319901188642f / 500f - 0.5f, 365.87640633068054f / 500f - 0.5f)
         };
+        
+        // Apparently, oddly numbered polygons have their last vertex skipped?
 
         Span<Vector2> rectangle = stackalloc Vector2[]
         {
@@ -33,20 +35,20 @@ public class FloatingShapesNode : Node, IDrawableNode
             new(.15f - .5f, -.15f - .5f)
         };
 
-        var circ = PolygonDefinition.Circle(new(-.2f, .15f), .3f, 30);
+        var circ = PolygonDefinition.Circle(new(-.2f, .15f), .3f, 5);
         circ.Name = "Circle";
 
         DrawOperationManager = new DrawOperationManagerDrawQueueDelegate(this, (q, o) =>
         {
             q.Enqueue(o, -1);
         });
-        DrawOperationManager.AddDrawOperation(new PolygonList(new PolygonDefinition[]
+        DrawOperationManager.AddDrawOperation(new ShapeBuffer(new PolygonDefinition[]
         {
             new(triangle, true) { Name = "Triangle" },
             new(hexagon, true) { Name = "Hexagon" },
             new(rectangle, true) { Name = "Rectangle" },
             circ
-        }, new() { RenderMode = PolygonRenderMode.TriangulatedFill }));
+        }, new() { RenderMode = PolygonRenderMode.TriangulatedWireframe }));
     }
 
     public DrawOperationManager DrawOperationManager { get; }
