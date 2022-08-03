@@ -151,7 +151,7 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
             for (int i = 0; i < ShapeBufferList.Count; i++) 
             {
                 var sh = ShapeBufferList[i];
-                if (sh.LastVersion != sh.Polygon.Version)
+                if (sh.LastVersion != sh.Shape.Version)
                 {
                     NotifyPendingGPUUpdate();
                     IndicesToUpdate.Enqueue(new(i, true, true, 0));
@@ -270,26 +270,20 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
         return ValueTask.CompletedTask;
     }
 
-    private static void UpdateVertices(in ShapeDat pol, CommandList commandList)
+    private void UpdateVertices(ref ShapeDat pol, CommandList commandList)
     {
-        var vec2Pool = ArrayPool<Vector2>.Shared;
-        var bc = pol.Polygon.Count;
-        var vertexBuffer = vec2Pool.Rent(bc);
-        try
-        {
-            for (int ind = 0; ind < pol.Polygon.Count; ind++)
-                vertexBuffer[ind] = pol.Polygon[ind];
-            commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer.AsSpan(0, bc));
-        }
-        finally
-        {
-            vec2Pool.Return(vertexBuffer);
-        }
+        var bc = pol.Shape.Count;
+        Span<Vector2> vertexBuffer = stackalloc Vector2[bc];
+
+        for (int ind = 0; ind < pol.Shape.Count; ind++)
+            vertexBuffer[ind] = pol.Shape[ind];
+        ShapeDat.SetVertexBufferSize(ref pol, Device!.ResourceFactory);
+        commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer);
     }
 
     private void UpdateIndices(ref ShapeDat pol, CommandList commandList)
     {
-        var count = pol.Polygon.Count;
+        var count = pol.Shape.Count;
 
         int indexCount = pol.LineStripIndexCount;
         if (count <= 3 || Description.RenderMode is PolygonRenderMode.LineStripWireframe)
@@ -309,7 +303,7 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
         // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single variable (count).
         // There's probably an easier way to compute this
 
-        if (pol.Polygon.IsConvex is false)
+        if (pol.Shape.IsConvex is false)
             throw new InvalidOperationException($"Triangulation of Concave Polygons is not supported yet");
 
         if (count is 4) // And is Convex
@@ -357,14 +351,14 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
                     case 0:
                         var polybuffer = CollectionsMarshal.AsSpan(ShapeBufferList);
                         if (dat.UpdateVertices)
-                            UpdateVertices(in polybuffer[dat.Index], commandList);
+                            UpdateVertices(ref polybuffer[dat.Index], commandList);
                         if (dat.UpdateIndices)
                             UpdateIndices(ref polybuffer[dat.Index], commandList);
                         ShapeDat.UpdateLastVer(ref polybuffer[dat.Index]);
                         continue;
                     case > 0:
                         var np = new ShapeDat(_shapes[dat.Index], device.ResourceFactory);
-                        UpdateVertices(in np, commandList);
+                        UpdateVertices(ref np, commandList);
                         UpdateIndices(ref np, commandList);
                         ShapeBufferList.Insert(dat.Index, np);
                         ShapeDat.UpdateLastVer(ref np);
@@ -395,12 +389,12 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
         /// <summary>
         /// The polygon in question
         /// </summary>
-        public readonly ShapeDefinition Polygon;
+        public readonly ShapeDefinition Shape;
 
         /// <summary>
         /// The buffer holding the vertex data for this polygon
         /// </summary>
-        public readonly DeviceBuffer VertexBuffer;
+        public DeviceBuffer VertexBuffer = null;
 
         /// <summary>
         /// The buffer holding the index data for this polygon
@@ -422,6 +416,14 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
 
         public int LastVersion;
 
+        public static void SetVertexBufferSize(ref ShapeDat dat, ResourceFactory factory)
+        {
+            dat.VertexBuffer = factory.CreateBuffer(new(
+                (uint)(Unsafe.SizeOf<Vector2>() * dat.Shape.Count),
+                BufferUsage.VertexBuffer
+            ));
+        }
+
         public static void SetTriangulatedIndicesBufferSize(ref ShapeDat dat, int indexCount, ResourceFactory factory)
         {
             dat.IndexBuffer = factory.CreateBuffer(new(
@@ -442,21 +444,16 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
 
         public static void UpdateLastVer(ref ShapeDat dat)
         {
-            dat.LastVersion = dat.Polygon.Version;
+            dat.LastVersion = dat.Shape.Version;
         }
 
         public ShapeDat(ShapeDefinition def, ResourceFactory factory)
         {
             ArgumentNullException.ThrowIfNull(def);
             
-            VertexBuffer = factory.CreateBuffer(new(
-                (uint)(Unsafe.SizeOf<Vector2>() * def.Count),
-                BufferUsage.VertexBuffer
-            ));
-
             LineStripIndexCount = (ushort)(def.Count + 1);
             CurrentIndexCount = 0;
-            Polygon = def;
+            Shape = def;
             LastVersion = 0;
         }
 
