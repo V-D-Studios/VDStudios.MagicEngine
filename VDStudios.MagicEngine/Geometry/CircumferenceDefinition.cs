@@ -122,7 +122,7 @@ public class CircumferenceDefinition : ShapeDefinition
     private void GenerateVertices()
     {
         var pbuf = CenterPoint with { X = CenterPoint.X + Radius };
-        var rot = Matrix3x2.CreateRotation(MathF.Tau / Subdivisions, CenterPoint);
+        var rot = Matrix3x2.CreateRotation(-MathF.Tau / Subdivisions, CenterPoint);
 
         var vertices = new Vector2[Subdivisions];
         for (int i = 0; i < Subdivisions; i++)
