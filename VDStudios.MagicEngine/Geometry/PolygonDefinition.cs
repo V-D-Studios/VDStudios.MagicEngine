@@ -16,6 +16,31 @@ public sealed class PolygonDefinition : IReadOnlyList<Vector2>, IStructuralEquat
     #region Predefined Polygons
 
     /// <summary>
+    /// Creates a new <see cref="PolygonDefinition"/> object that describes a Circle
+    /// </summary>
+    /// <param name="center">The center point of the circle</param>
+    /// <param name="radius">The length of each point along the circle from its center, or half its diameter</param>
+    /// <param name="subdivisions">The amount of vertices the circle will have. Must be larger than 3</param>
+    /// <returns>A new <see cref="PolygonDefinition"/> with <paramref name="subdivisions"/> vertices describing the circle</returns>
+    public static PolygonDefinition Circle(Vector2 center, float radius, int subdivisions = 30)
+    {
+        if (subdivisions < 3)
+            throw new ArgumentException("Subdivisions cannot be less than 3", nameof(subdivisions));
+
+        var pbuf = center with { X = center.X + radius };
+        var rot = Matrix3x2.CreateRotation(MathF.Tau / subdivisions, center);
+
+        Span<Vector2> vertices = stackalloc Vector2[subdivisions];
+        for (int i = 0; i < subdivisions; i++)
+        {
+            vertices[i] = pbuf;
+            pbuf = Vector2.Transform(pbuf, rot);
+        }
+
+        return new PolygonDefinition(vertices, true);
+    }
+
+    /// <summary>
     /// Creates a new <see cref="PolygonDefinition"/> object that describes a Rectangle represented by <paramref name="rectangle"/>
     /// </summary>
     /// <param name="rectangle">The rectangle describing the location and dimensions of the polygon to define</param>

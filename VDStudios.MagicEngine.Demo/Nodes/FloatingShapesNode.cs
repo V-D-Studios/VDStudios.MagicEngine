@@ -33,6 +33,9 @@ public class FloatingShapesNode : Node, IDrawableNode
             new(.15f - .5f, -.15f - .5f)
         };
 
+        var circ = PolygonDefinition.Circle(new(-.2f, .15f), .3f, 30);
+        circ.Name = "Circle";
+
         DrawOperationManager = new DrawOperationManagerDrawQueueDelegate(this, (q, o) =>
         {
             q.Enqueue(o, -1);
@@ -41,8 +44,9 @@ public class FloatingShapesNode : Node, IDrawableNode
         {
             new(triangle, true) { Name = "Triangle" },
             new(hexagon, true) { Name = "Hexagon" },
-            new(rectangle, true) { Name = "Rectangle" }
-        }, new() { RenderMode = PolygonRenderMode.TriangulatedWireframe }));
+            new(rectangle, true) { Name = "Rectangle" },
+            circ
+        }, new() { RenderMode = PolygonRenderMode.TriangulatedFill }));
     }
 
     public DrawOperationManager DrawOperationManager { get; }
