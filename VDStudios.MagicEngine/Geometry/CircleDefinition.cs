@@ -41,9 +41,9 @@ public readonly struct Radius
 }
 
 /// <summary>
-/// Represents the definition of a single circumference
+/// Represents the definition of a single circle
 /// </summary>
-public class CircumferenceDefinition : ShapeDefinition
+public class CircleDefinition : ShapeDefinition
 {
     private Vector2[] ___vertexBuffer = Array.Empty<Vector2>();
     private bool ___regenRequired = true;
@@ -64,7 +64,7 @@ public class CircumferenceDefinition : ShapeDefinition
     }
 
     /// <summary>
-    /// The center point of the circumference
+    /// The center point of the circle
     /// </summary>
     public Vector2 CenterPoint
     {
@@ -81,7 +81,7 @@ public class CircumferenceDefinition : ShapeDefinition
     private Vector2 cenp;
 
     /// <summary>
-    /// The radius of the circumference
+    /// The radius of the circle
     /// </summary>
     public Radius Radius { get; }
 
@@ -109,12 +109,12 @@ public class CircumferenceDefinition : ShapeDefinition
     public override Vector2 this[int index] => VertexBuffer[index];
 
     /// <summary>
-    /// Instances a new object of type <see cref="CircumferenceDefinition"/>
+    /// Instances a new object of type <see cref="CircleDefinition"/>
     /// </summary>
-    /// <param name="centerPoint">The center point of the circumference</param>
-    /// <param name="radius">The length of each point along the circumference from its center, or half its diameter</param>
-    /// <param name="subdivisions">The amount of vertices the circumference will have. Must be larger than 3</param>
-    public CircumferenceDefinition(Vector2 centerPoint, Radius radius, int subdivisions = 30) : base(true)
+    /// <param name="centerPoint">The center point of the circle</param>
+    /// <param name="radius">The length of each point along the circle from its center, or half its diameter</param>
+    /// <param name="subdivisions">The amount of vertices the circle will have. Must be larger than 3</param>
+    public CircleDefinition(Vector2 centerPoint, Radius radius, int subdivisions = 30) : base(true)
     {
         CenterPoint = centerPoint;
         Radius = radius;
@@ -125,11 +125,11 @@ public class CircumferenceDefinition : ShapeDefinition
     /// Generates a list of vertices using the given information
     /// </summary>
     /// <remarks>
-    /// This is the method used internally by <see cref="CircumferenceDefinition"/>, can be used to generate vertices into an external buffer separately from a <see cref="CircumferenceDefinition"/> instance. To do it relative to an instance, consider using <see cref="CopyTo(Span{Vector2})"/> instead
+    /// This is the method used internally by <see cref="CircleDefinition"/>, can be used to generate vertices into an external buffer separately from a <see cref="CircleDefinition"/> instance. To do it relative to an instance, consider using <see cref="CopyTo(Span{Vector2})"/> instead
     /// </remarks>
-    /// <param name="center">The centerpoint of the circumference</param>
-    /// <param name="radius">The radius of the circumference</param>
-    /// <param name="subdivisions">The amount of vertices to subdivide the circumference into</param>
+    /// <param name="center">The centerpoint of the circle</param>
+    /// <param name="radius">The radius of the circle</param>
+    /// <param name="subdivisions">The amount of vertices to subdivide the circle into</param>
     /// <param name="buffer">The location in memory into which to store the newly generated vertices</param>
     public static void GenerateVertices(Vector2 center, Radius radius, int subdivisions, Span<Vector2> buffer)
     {
