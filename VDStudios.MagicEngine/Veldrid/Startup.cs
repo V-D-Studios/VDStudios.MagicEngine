@@ -8,7 +8,6 @@ using Veldrid;
 using SDL2.NET;
 using static SDL2.Bindings.SDL;
 using SDL2.Bindings;
-using PixelFormat = Veldrid.PixelFormat;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 

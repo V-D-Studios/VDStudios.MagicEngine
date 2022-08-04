@@ -16,13 +16,13 @@ public sealed class UPSWatch : GUIElement
     static UPSWatch()
     {
         tickStrings = new(5, 100);
-        tickStrings[1] = "1 tick";
+        tickStrings[1] = "000001 tick";
 
         msStrings = new(5, 100);
-        msStrings[1] = "1ms";
+        msStrings[1] = "001.00 ms";
 
         upsStrings = new(5, 100);
-        upsStrings[1] = "1 update per second";
+        upsStrings[1] = "0001 update per second";
     }
 
     /// <inheritdoc/>
@@ -33,11 +33,12 @@ public sealed class UPSWatch : GUIElement
         var ups = Math.Truncate(1 / Game.AverageDelta.TotalSeconds);
 
         ImGui.Begin("Update metrics");
-        ImGui.Text(tickStrings.GetOrAdd(tpu, GenStr, " ticks"));
-        ImGui.Text(msStrings.GetOrAdd(mspu, GenStr, "ms"));
-        ImGui.Text(upsStrings.GetOrAdd(ups, GenStr, " updates per second"));
+        ImGui.Text(tickStrings.GetOrAdd(tpu, GenStrTicks));
+        ImGui.Text(msStrings.GetOrAdd(mspu, GenStrMs));
+        ImGui.Text(upsStrings.GetOrAdd(ups, GenStrUPS));
         ImGui.End();
     }
-
-    private string GenStr<TInt>(TInt fps, string metric) => $"{fps:#.##}{metric}";
+    private string GenStrTicks(long tpu) => tpu.ToString("000000");
+    private string GenStrMs(double msu) => msu.ToString("000.00");
+    private string GenStrUPS(double fps) => fps.ToString("0000");
 }

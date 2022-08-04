@@ -23,6 +23,8 @@ public sealed class DemoScene : Scene
 
         Log.Debug("Attaching ColorBackgroundNode");
         await Attach(new ColorBackgroundNode());
+        await Attach(new FloatingShapesNode());
+        //await Attach(new PlayerNode());
 
         int top = Random.Shared.Next(1, 6);
         Log.Debug("Templating a TestNode tree with {childrenCount} children", top);

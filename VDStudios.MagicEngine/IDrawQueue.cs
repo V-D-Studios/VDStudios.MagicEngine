@@ -1,12 +1,11 @@
 ﻿using System.Collections.Concurrent;
-using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
 
 /// <summary>
 /// The engine's Draw Queue
 /// </summary>
-public interface IDrawQueue<T> where T : InternalGraphicalOperation
+public interface IDrawQueue<T> where T : GraphicsObject
 {
     /// <summary>
     /// The current amount of items in the Draw Queue

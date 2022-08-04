@@ -270,3 +270,15 @@ public delegate object? TemplatedGUIElementConfigurator(GUIElement element);
 public delegate GraphicsManager DrawOperationGraphicsManagerSelector(GraphicsManager main, IReadOnlyList<GraphicsManager> allManagers,  DrawOperation operation, IDrawableNode node, DrawOperationManager manager);
 
 #endregion
+
+#region Assorted Delegates
+
+/// <summary>
+/// Represents a method that can produce a new Texture for a given <see cref="GraphicsDevice"/>
+/// </summary>
+/// <param name="device">The device to create the <see cref="global::Veldrid.Texture"/> on</param>
+/// <param name="factory">The factory (belonging to <paramref name="device"/>) to create the <see cref="global::Veldrid.Texture"/> with</param>
+/// <returns></returns>
+public delegate Texture TextureFactory(GraphicsDevice device, ResourceFactory factory);
+
+#endregion

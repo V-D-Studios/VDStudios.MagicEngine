@@ -30,7 +30,8 @@ internal sealed class UpdateSynchronicityBatch
         lock (Batches)
         {
             var batch = Batches[(int)tendency];
-            if (batch is null) Batches[(int)tendency] = batch = new(3);
+            if (batch is null)
+                Batches[(int)tendency] = batch = new(3);
             batch.Add(node.Id, node);
         }
     }

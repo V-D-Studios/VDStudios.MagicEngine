@@ -1,29 +1,23 @@
-﻿using System;
+﻿using SDL2.NET;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine.Properties;
+using VDStudios.MagicEngine.Utility;
 using Veldrid;
 using Veldrid.ImageSharp;
 using Veldrid.SPIRV;
-using VDStudios.MagicEngine.Demo.ResourceExtensions;
+using PixelFormat = Veldrid.PixelFormat;
+using Texture = Veldrid.Texture;
 
-namespace VDStudios.MagicEngine.Demo.DrawOps;
-public class ImageAnimationOperation : DrawOperation
+namespace VDStudios.MagicEngine.DrawLibrary;
+
+public class GradientColorShow : DrawOperation
 {
-    #region Construction
-
-    ImageSharpTexture sharpTexture;
-
-    public ImageAnimationOperation(ImageSharpTexture texture)
-    {
-        sharpTexture = texture;
-    }
-
-    #endregion
-
-    #region Resources
+    #region Private Resources
 
     private DeviceBuffer _shiftBuffer;
     private DeviceBuffer _vertexBuffer;
@@ -41,14 +35,64 @@ public class ImageAnimationOperation : DrawOperation
     private float _ticks;
     private uint _computeTexSize = 512;
 
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// The actual position at which to draw this <see cref="GradientColorShow"/>
+    /// </summary>
+    public Vector2 Position { get; set; }
+
+    #endregion
+
+    /// <inheritdoc/>
+    protected override ValueTask CreateWindowSizedResources(GraphicsDevice device, ResourceFactory factory, DeviceBuffer screenSizeBuffer)
+    {
+        _computeTargetTexture?.Dispose();
+        _computeTargetTextureView?.Dispose();
+        _computeResourceSet?.Dispose();
+        _graphicsResourceSet?.Dispose();
+
+        _computeTargetTexture = factory.CreateTexture(TextureDescription.Texture2D(
+            _computeTexSize,
+            _computeTexSize,
+            1,
+            1,
+            PixelFormat.R32_G32_B32_A32_Float,
+            TextureUsage.Sampled | TextureUsage.Storage));
+
+        _computeTargetTextureView = factory.CreateTextureView(_computeTargetTexture);
+
+        _computeResourceSet = factory.CreateResourceSet(new ResourceSetDescription(
+            _computeLayout,
+            _computeTargetTextureView,
+            screenSizeBuffer,
+            _shiftBuffer));
+
+        _graphicsResourceSet = factory.CreateResourceSet(new ResourceSetDescription(
+            _graphicsLayout,
+            _computeTargetTextureView,
+            _computeTargetTextureView,
+            _computeTargetTextureView,
+            device.PointSampler));
+
+        WinSize = Manager!.WindowSize;
+        return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
     {
-        NotifyPendingGPUUpdate();
         _shiftBuffer = factory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
         _vertexBuffer = factory.CreateBuffer(new BufferDescription(16 * 4, BufferUsage.VertexBuffer));
         _indexBuffer = factory.CreateBuffer(new BufferDescription(2 * 6, BufferUsage.IndexBuffer));
 
-        _computeShader = factory.CreateTextureComputeShader();
+        _computeShader = factory.CreateFromSpirv(new(
+            ShaderStages.Compute,
+            BuiltInResources.DefaultTextureComputeShader.GetUTF8Bytes(),
+            "main"
+        ));
 
         _computeLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Tex", ResourceKind.TextureReadWrite, ShaderStages.Compute),
@@ -62,8 +106,19 @@ public class ImageAnimationOperation : DrawOperation
 
         _computePipeline = factory.CreateComputePipeline(ref computePipelineDesc);
 
-        Shader[] shaders = { factory.CreateTextureVertexShader(), factory.CreateTextureFragmentShader() };
-            
+        Shader[] shaders = factory.CreateFromSpirv(
+            new ShaderDescription(
+                    ShaderStages.Vertex,
+                    BuiltInResources.DefaultTextureVertexShader.GetUTF8Bytes(),
+                    "main"
+                ),
+            new ShaderDescription(
+                    ShaderStages.Fragment,
+                    BuiltInResources.DefaultTextureFragmentShader.GetUTF8Bytes(),
+                    "main"
+                )
+            );
+
         ShaderSetDescription shaderSet = new ShaderSetDescription(
             new VertexLayoutDescription[]
             {
@@ -90,73 +145,21 @@ public class ImageAnimationOperation : DrawOperation
 
         _graphicsPipeline = factory.CreateGraphicsPipeline(ref fullScreenQuadDesc);
 
-        return ValueTask.CompletedTask;
-    }
-
-    protected override ValueTask CreateWindowSizedResources(GraphicsDevice device, ResourceFactory factory, DeviceBuffer? screenSizeBuffer)
-    {
-        _computeTargetTexture?.Dispose();
-        _computeTargetTextureView?.Dispose();
-        _computeResourceSet?.Dispose();
-        _graphicsResourceSet?.Dispose();
-
-        _computeTargetTexture = ImageTextures.RobinSpriteSheet.CreateDeviceTexture(device, factory);
-
-        _computeTargetTextureView = factory.CreateTextureView(_computeTargetTexture);
-
-        _computeResourceSet = factory.CreateResourceSet(new ResourceSetDescription(
-            _computeLayout,
-            _computeTargetTextureView,
-            screenSizeBuffer,
-            _shiftBuffer));
-
-        _graphicsResourceSet = factory.CreateResourceSet(new ResourceSetDescription(
-            _graphicsLayout,
-            _computeTargetTextureView,
-            _computeTargetTextureView,
-            _computeTargetTextureView,
-            device.PointSampler));
-
         NotifyPendingGPUUpdate();
 
         return ValueTask.CompletedTask;
     }
 
-    #endregion
+    private Size WinSize;
 
-    #region Drawing
-
-    private readonly object sync = new();
-
-    Viewport Source;
-    Viewport Destination;
-
-    public void SetState(Viewport src, Viewport dst)
+    /// <inheritdoc/>
+    protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
     {
-        lock (sync)
-        {
-            Source = src;
-            Destination = dst;
-        }
-    }
-
-    protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer? screenSizeBuffer)
-    {
-        Viewport src;
-        Viewport dst;
-        lock (sync)
-        {
-            src = Source;
-            dst = Destination;
-        }
-
-        var winSize = Manager.WindowSize;
-
         _ticks += (float)delta.TotalMilliseconds;
         Vector4 shifts = new(
-            winSize.Width * (float)Math.Cos(_ticks / 500f), // Red shift
-            winSize.Height * (float)Math.Sin(_ticks / 1250f), // Green shift
-            (float)Math.Sin(_ticks / 1000f), // Blue shift
+            WinSize.Width * MathF.Cos(_ticks / 500f), // Red shift
+            WinSize.Height * MathF.Sin(_ticks / 1250f), // Green shift
+            MathF.Sin(_ticks / 1000f), // Blue shift
             0); // Padding
         cl.UpdateBuffer(_shiftBuffer, 0, ref shifts);
 
@@ -177,29 +180,24 @@ public class ImageAnimationOperation : DrawOperation
         return ValueTask.CompletedTask;
     }
 
-    #endregion
-
-    #region GPU State
-
-    protected override ValueTask UpdateGPUState(GraphicsDevice device, CommandList cl, DeviceBuffer? screenSizeBuffer)
+    /// <inheritdoc/>
+    protected override ValueTask UpdateGPUState(GraphicsDevice device, CommandList cl, DeviceBuffer screenSizeBuffer)
     {
         cl.UpdateBuffer(screenSizeBuffer, 0, new Vector4(_computeTexSize, _computeTexSize, 0, 0));
 
-        Vector4[] quadVerts =
+        Span<Vector4> quadVerts = stackalloc Vector4[]
         {
-                new Vector4(-1, 1, 0, 0),
-                new Vector4(1, 1, 1, 0),
-                new Vector4(1, -1, 1, 1),
-                new Vector4(-1, -1, 0, 1),
-            };
+            new Vector4(-1, 1, 0, 0),
+            new Vector4(1, 1, 1, 0),
+            new Vector4(1, -1, 1, 1),
+            new Vector4(-1, -1, 0, 1),
+        };
 
-        ushort[] indices = { 0, 1, 2, 0, 2, 3 };
+        Span<ushort> indices = stackalloc ushort[] { 0, 1, 2, 0, 2, 3 };
 
         cl.UpdateBuffer(_vertexBuffer, 0, quadVerts);
         cl.UpdateBuffer(_indexBuffer, 0, indices);
 
         return ValueTask.CompletedTask;
     }
-
-    #endregion
 }

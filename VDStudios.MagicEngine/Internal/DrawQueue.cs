@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace VDStudios.MagicEngine.Internal;
 
-internal sealed class DrawQueue<T> : IDrawQueue<T> where T : InternalGraphicalOperation
+internal sealed class DrawQueue<T> : IDrawQueue<T> where T : GraphicsObject
 {
     #region Fields
 
