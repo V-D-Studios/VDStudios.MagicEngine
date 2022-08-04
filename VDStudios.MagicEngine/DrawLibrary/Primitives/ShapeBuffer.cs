@@ -316,7 +316,8 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
             return;
         }
 
-        indexCount = (count - 1) * 3;
+        ushort i = count % 2 == 0 ? (ushort)0u : (ushort)1u;
+        indexCount = (count - i) * 3;
 
         Span<ushort> buffer = stackalloc ushort[indexCount];
         int bufind = 0;
@@ -325,7 +326,7 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
         ushort pHelper = 1;
         ushort pTemp;
 
-        for (ushort i = 1; i < count; i++)
+        for (; i < count; i++)
         {
             pTemp = i;
             buffer[bufind++] = p0;
