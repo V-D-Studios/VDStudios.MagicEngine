@@ -48,16 +48,18 @@ public class CircumferenceDefinition : ShapeDefinition
     private Vector2[] ___vertexBuffer = Array.Empty<Vector2>();
     private bool ___regenRequired = true;
 
-    private Vector2[] VertexBuffer
+    private Span<Vector2> VertexBuffer
     {
         get
         {
             if (___regenRequired)
             {
-                GenerateVertices();
+                if (___vertexBuffer.Length < Subdivisions)
+                    ___vertexBuffer = new Vector2[Subdivisions];
+                GenerateVertices(CenterPoint, Radius, Subdivisions, ___vertexBuffer.AsSpan(0, Subdivisions));
                 ___regenRequired = false;
             }
-            return ___vertexBuffer;
+            return ___vertexBuffer.AsSpan(0, Subdivisions);
         }
     }
 
@@ -119,52 +121,64 @@ public class CircumferenceDefinition : ShapeDefinition
         Subdivisions = subdivisions;
     }
 
-    private void GenerateVertices()
+    /// <summary>
+    /// Generates a list of vertices using the given information
+    /// </summary>
+    /// <remarks>
+    /// This is the method used internally by <see cref="CircumferenceDefinition"/>, can be used to generate vertices into an external buffer separately from a <see cref="CircumferenceDefinition"/> instance. To do it relative to an instance, consider using <see cref="CopyTo(Span{Vector2})"/> instead
+    /// </remarks>
+    /// <param name="center">The centerpoint of the circumference</param>
+    /// <param name="radius">The radius of the circumference</param>
+    /// <param name="subdivisions">The amount of vertices to subdivide the circumference into</param>
+    /// <param name="buffer">The location in memory into which to store the newly generated vertices</param>
+    public static void GenerateVertices(Vector2 center, Radius radius, int subdivisions, Span<Vector2> buffer)
     {
-        var pbuf = CenterPoint with { X = CenterPoint.X + Radius };
-        var rot = Matrix3x2.CreateRotation(-MathF.Tau / Subdivisions, CenterPoint);
+        var pbuf = new Vector2(center.X - radius, center.Y);
+        var rot = Matrix3x2.CreateRotation(-MathF.Tau / subdivisions, center);
 
-        var vertices = new Vector2[Subdivisions];
-        for (int i = 0; i < Subdivisions; i++)
+        for (int i = 0; i < subdivisions; i++)
         {
-            vertices[i] = pbuf;
+            buffer[i] = pbuf;
             pbuf = Vector2.Transform(pbuf, rot);
         }
-        ___vertexBuffer = vertices;
     }
 
     /// <inheritdoc/>
     public override ReadOnlySpan<Vector2> AsSpan(int start, int length)
-        => VertexBuffer.AsSpan(start, length);
+        => VertexBuffer.Slice(start, length);
 
     /// <inheritdoc/>
     public override ReadOnlySpan<Vector2> AsSpan(int start)
-        => VertexBuffer.AsSpan(start);
+        => VertexBuffer.Slice(start);
 
     /// <inheritdoc/>
     public override ReadOnlySpan<Vector2> AsSpan()
-        => VertexBuffer.AsSpan();
+        => VertexBuffer;
 
     /// <inheritdoc/>
     public override void CopyTo(Span<Vector2> destination)
     {
-        ((Span<Vector2>)VertexBuffer).CopyTo(destination);
+        VertexBuffer.CopyTo(destination);
     }
 
     /// <inheritdoc/>
-    public override IEnumerator<Vector2> GetEnumerator() => ((IEnumerable<Vector2>)VertexBuffer).GetEnumerator();
+    public override IEnumerator<Vector2> GetEnumerator()
+    {
+        for (int i = 0; i < VertexBuffer.Length; i++)
+            yield return VertexBuffer[i];
+    }
 
     /// <inheritdoc/>
     public override Vector2[] ToArray()
     {
         var ret = new Vector2[VertexBuffer.Length];
-        VertexBuffer.CopyTo(ret, 0);
+        VertexBuffer.CopyTo(ret);
         return ret;
     }
 
     /// <inheritdoc/>
     public override bool TryCopyTo(Span<Vector2> destination)
     {
-        return ((Span<Vector2>)VertexBuffer).TryCopyTo(destination);
+        return VertexBuffer.TryCopyTo(destination);
     }
 }
