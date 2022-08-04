@@ -73,7 +73,7 @@ public class FloatingShapesNode : Node, IDrawableNode
             hexagon,
             new PolygonDefinition(rectangle, true) { Name = "Rectangle" },
             circ,
-            circumference
+            circle
         }, new() { RenderMode = PolygonRenderMode.TriangulatedFill }));
     }
 
