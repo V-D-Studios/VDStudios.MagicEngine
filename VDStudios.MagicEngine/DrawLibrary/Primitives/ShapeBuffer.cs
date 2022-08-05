@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SDL2.NET;
+using System;
 using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
@@ -16,25 +17,37 @@ using Veldrid.SPIRV;
 namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
 
 /// <summary>
-/// Represents an operation to draw a list of 2D shapes
+/// Represents an operation to draw a list of 2D shapes, using normal <see cref="Vector2"/> as vertices
 /// </summary>
-public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
+public class ShapeBuffer : ShapeBuffer<Vector2>
 {
-    private readonly List<ShapeDefinition> _shapes;
-
-    private ShaderDescription VertexShaderDesc;
-    private ShaderDescription FragmentShaderDesc;
-
-    private readonly ShapeBufferDescription Description;
-
     /// <summary>
     /// Instantiates a new <see cref="ShapeBuffer"/>
     /// </summary>
     /// <param name="polygons">The polygons to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="ShapeBuffer"/></param>
-    /// <param name="fragmentShaderSpirv">The description of this <see cref="ShapeBuffer"/>'s Fragment Shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
-    /// <param name="vertexShaderSpirv">The description of this <see cref="ShapeBuffer"/>'s Vertex Shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
-    public ShapeBuffer(IEnumerable<ShapeDefinition> polygons, ShapeBufferDescription description, ShaderDescription? vertexShaderSpirv = null, ShaderDescription? fragmentShaderSpirv = null)
+    public ShapeBuffer(IEnumerable<ShapeDefinition> polygons, ShapeBufferDescription description)
+        : base(polygons, description, ShapeVertexGenerator.Default)
+    { }
+}
+
+/// <summary>
+/// Represents an operation to draw a list of 2D shapes
+/// </summary>
+public class ShapeBuffer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition> where TVertex : unmanaged
+{
+    private readonly List<ShapeDefinition> _shapes;
+    private readonly IShapeBufferVertexGenerator<TVertex> _gen;
+    
+    private readonly ShapeBufferDescription Description;
+
+    /// <summary>
+    /// Instantiates a new <see cref="ShapeBuffer{TVertex}"/>
+    /// </summary>
+    /// <param name="polygons">The polygons to fill this list with</param>
+    /// <param name="description">Provides data for the configuration of this <see cref="ShapeBuffer{TVertex}"/></param>
+    /// <param name="generator">The <see cref="IShapeBufferVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
+    public ShapeBuffer(IEnumerable<ShapeDefinition> polygons, ShapeBufferDescription description, IShapeBufferVertexGenerator<TVertex> generator)
     {
         Description = description;
         _shapes = new(polygons);
@@ -42,9 +55,8 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
         IndicesToUpdate.EnsureCapacity(_shapes.Capacity);
         for (int i = 0; i < _shapes.Count; i++)
             IndicesToUpdate.Enqueue(new(i, true, true, 1));
-
-        VertexShaderDesc = vertexShaderSpirv ?? new ShaderDescription(ShaderStages.Vertex, BuiltInResources.DefaultPolygonVertexShader.GetUTF8Bytes(), "main");
-        FragmentShaderDesc = fragmentShaderSpirv ?? new ShaderDescription(ShaderStages.Fragment, BuiltInResources.DefaultPolygonFragmentShader.GetUTF8Bytes(), "main");
+        
+        _gen = generator;
     }
 
     #region List
@@ -197,7 +209,7 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
     /// The temporary buffer into which the polygons held in this object will be copied for drawing.
     /// </summary>
     /// <remarks>
-    /// It's best to leave this property alone, the code in <see cref="ShapeBuffer"/> will take care of it
+    /// It's best to leave this property alone, the code in <see cref="ShapeBuffer{TVertex}"/> will take care of it
     /// </remarks>
     protected List<ShapeDat> ShapeBufferList = new();
 
@@ -209,15 +221,17 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
         return ValueTask.CompletedTask;
     }
 
+    private ShaderDescription vertexDefault = new(ShaderStages.Vertex, BuiltInResources.DefaultPolygonVertexShader.GetUTF8Bytes(), "main");
+    private ShaderDescription fragmnDefault = new(ShaderStages.Fragment, BuiltInResources.DefaultPolygonFragmentShader.GetUTF8Bytes(), "main");
+    private static readonly VertexLayoutDescription DefaultVector2Layout 
+        = new(new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate));
+
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
     {
-        VertexLayoutDescription vertexLayout = new(
-            new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2));
-
         Shaders = factory.CreateFromSpirv(
-            VertexShaderDesc,
-            FragmentShaderDesc
+            Description.VertexShaderSpirv ?? vertexDefault,
+            Description.FragmentShaderSpirv ?? fragmnDefault
         );
 
         Pipeline = factory.CreateGraphicsPipeline(new(
@@ -243,7 +257,7 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
             },
             new ShaderSetDescription(new VertexLayoutDescription[]
             {
-                vertexLayout
+                Description.VertexLayout ?? DefaultVector2Layout
             }, Shaders),
             Array.Empty<ResourceLayout>(),
             device.SwapchainFramebuffer.OutputDescription
@@ -273,12 +287,12 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
     private void UpdateVertices(ref ShapeDat pol, CommandList commandList)
     {
         var vc = pol.Shape.Count;
-        var vc_bytes = (uint)Unsafe.SizeOf<Vector2>() * (uint)vc;
+        var vc_bytes = (uint)Unsafe.SizeOf<TVertex>() * (uint)vc;
 
-        Span<Vector2> vertexBuffer = stackalloc Vector2[vc];
+        Span<TVertex> vertexBuffer = stackalloc TVertex[vc];
 
         for (int ind = 0; ind < pol.Shape.Count; ind++)
-            vertexBuffer[ind] = pol.Shape[ind];
+            vertexBuffer[ind] = _gen.Generate(ind, pol.Shape[ind], pol.Shape);
         if (pol.VertexBuffer is null || vc_bytes > pol.VertexBuffer.SizeInBytes)  
             ShapeDat.SetVertexBufferSize(ref pol, Device!.ResourceFactory);
         commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer);
@@ -404,7 +418,7 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
         /// The buffer holding the index data for this polygon
         /// </summary>
         /// <remarks>
-        /// This buffer will be null until <see cref="SetTriangulatedIndicesBufferSize"/> or <see cref="SetLineStripIndicesBufferSize"/> is called. This is guaranteed, by the methods of <see cref="ShapeBuffer"/>, to be the case before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> is called
+        /// This buffer will be null until <see cref="SetTriangulatedIndicesBufferSize"/> or <see cref="SetLineStripIndicesBufferSize"/> is called. This is guaranteed, by the methods of <see cref="ShapeBuffer{TVertex}"/>, to be the case before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> is called
         /// </remarks>
         public DeviceBuffer? IndexBuffer = null;
 
@@ -424,7 +438,7 @@ public class ShapeBuffer : DrawOperation, IReadOnlyList<ShapeDefinition>
         public static void SetVertexBufferSize(ref ShapeDat dat, ResourceFactory factory)
         {
             dat.VertexBuffer = factory.CreateBuffer(new(
-                (uint)(Unsafe.SizeOf<Vector2>() * dat.Shape.Count),
+                (uint)(Unsafe.SizeOf<TVertex>() * dat.Shape.Count),
                 BufferUsage.VertexBuffer
             ));
         }
