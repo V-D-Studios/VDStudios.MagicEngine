@@ -21,3 +21,20 @@ public interface IShapeBufferVertexGenerator<TVertex> where TVertex : unmanaged
     /// <returns>The newly generated vertex</returns>
     public TVertex Generate(int index, Vector2 shapeVertex, ShapeDefinition shape);
 }
+
+/// <summary>
+/// Represents an <see cref="IShapeBufferVertexGenerator{TVertex}"/> that returns the passed <see cref="Vector2"/> vertex of the shape as-is
+/// </summary>
+/// <remarks>
+/// This is a singleton class, see <see cref="Default"/>
+/// </remarks>
+public sealed class ShapeVertexGenerator : IShapeBufferVertexGenerator<Vector2>
+{
+    /// <inheritdoc/>
+    public Vector2 Generate(int index, Vector2 shapeVertex, ShapeDefinition shape) => shapeVertex;
+
+    /// <summary>
+    /// The default <see cref="ShapeVertexGenerator"/> for <see cref="ShapeBuffer"/> objects that don't need any aditional data for their vertices
+    /// </summary>
+    public static IShapeBufferVertexGenerator<Vector2> Default { get; } = new ShapeVertexGenerator();
+}
