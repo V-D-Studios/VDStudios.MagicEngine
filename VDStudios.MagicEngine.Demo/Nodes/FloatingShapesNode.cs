@@ -13,6 +13,33 @@ using Veldrid;
 namespace VDStudios.MagicEngine.Demo.Nodes;
 public class FloatingShapesNode : Node, IDrawableNode
 {
+    private struct ColorVertex
+    {
+        public Vector2 Position;
+        public RgbaFloat Color;
+    }
+
+    private class ColorVertexGenerator : IShapeBufferVertexGenerator<ColorVertex>
+    {
+        private static readonly RgbaFloat[] Colors = new RgbaFloat[]
+        {
+            new(.1f, .5f, 1f, 1f),
+            new(1f, .5f, .1f, 1f),
+            new(.5f, 1f, .5f, 1f),
+            new(.1f, .5f, 1f, .6f),
+            new(1f, .5f, .1f, .6f),
+            new(.5f, 1f, .5f, .6f),
+            new(.1f, .5f, 1f, .3f),
+            new(1f, .5f, .1f, .3f),
+            new(.5f, 1f, .5f, .3f),
+        };
+
+        public ColorVertex Generate(int index, Vector2 shapeVertex, ShapeDefinition shape)
+        {
+            return new() { Position = shapeVertex, Color = Colors[index % Colors.Length] };
+        }
+    }
+
     CircleDefinition circle;
     PolygonDefinition hexagon;
 
@@ -67,15 +94,46 @@ public class FloatingShapesNode : Node, IDrawableNode
         {
             q.Enqueue(o, -1);
         });
-        DrawOperationManager.AddDrawOperation(new ShapeBuffer(new ShapeDefinition[]
+        DrawOperationManager.AddDrawOperation(new ShapeBuffer<ColorVertex>(new ShapeDefinition[]
         {
             new PolygonDefinition(triangle, true) { Name = "Triangle" },
             hexagon,
             new PolygonDefinition(rectangle, true) { Name = "Rectangle" },
             circ,
             circle
-        }, new() { RenderMode = PolygonRenderMode.TriangulatedFill }));
+        }, new() {
+            RenderMode = PolygonRenderMode.TriangulatedFill,
+            VertexLayout = new VertexLayoutDescription(
+                new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
+                new VertexElementDescription("Color", VertexElementFormat.Float4, VertexElementSemantic.TextureCoordinate)),
+            FragmentShaderSpirv = new(ShaderStages.Fragment, FSNFragment.GetUTF8Bytes(), "main"),
+            VertexShaderSpirv = new(ShaderStages.Vertex, FSNVertex.GetUTF8Bytes(), "main")
+        }, new ColorVertexGenerator()));
     }
+
+    private static readonly string FSNFragment = @"
+#version 450
+
+layout(location = 0) out vec4 fsout_Color;
+layout(location = 0) in vec4 fsin_Color;
+
+void main() {
+    fsout_Color = fsin_Color;
+}
+";
+
+    private static readonly string FSNVertex = @"
+#version 450
+
+layout(location = 0) in vec2 Position;
+layout(location = 1) in vec4 Color;
+layout(location = 0) out vec4 fsin_Color;
+
+void main() {
+    fsin_Color = Color;
+    gl_Position = vec4(Position, 0.0, 1.0);
+}
+";
 
     TimeSpan tb;
     static readonly TimeSpan tb_ceil = TimeSpan.FromSeconds(1.5);
