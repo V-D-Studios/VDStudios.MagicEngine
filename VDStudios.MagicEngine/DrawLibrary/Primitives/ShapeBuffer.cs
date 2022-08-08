@@ -259,7 +259,7 @@ public class ShapeBuffer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition
             {
                 Description.VertexLayout ?? DefaultVector2Layout
             }, Shaders),
-            Array.Empty<ResourceLayout>(),
+            Description.ResourceLayoutBuilder?.Invoke(Manager!, device, factory) ?? Array.Empty<ResourceLayout>(),
             device.SwapchainFramebuffer.OutputDescription
         ));
 
