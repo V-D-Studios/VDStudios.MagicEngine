@@ -115,10 +115,8 @@ public class FloatingShapesNode : Node, IDrawableNode
                 new VertexElementDescription("Color", VertexElementFormat.Float4, VertexElementSemantic.TextureCoordinate)),
             FragmentShaderSpirv = new(ShaderStages.Fragment, FSNFragment.GetUTF8Bytes(), "main"),
             VertexShaderSpirv = new(ShaderStages.Vertex, FSNVertex.GetUTF8Bytes(), "main"),
-            ResourceLayoutBuilder = (m, d, f) =>
-            {
-                return new ResourceLayout[] { m.WindowAspectTransformLayout };
-            }
+            ResourceLayoutBuilder = (m, d, f) => new ResourceLayout[] { m.WindowAspectTransformLayout },
+            ResourceSetBuilder = (m, d, f) => new ResourceSet[] { m.WindowAspectTransformSet }
         }, new ColorVertexGenerator()));
     }
 
@@ -144,7 +142,8 @@ layout(binding = 0) uniform WindowAspectTransform {
 };
 
 void main() {
-    fsin_Color = Color;
+    vec4 x = WindowScale * Color;
+    fsin_Color = vec4(x.x, x.y, x.z, 1.0f);
     gl_Position = vec4(Position, 0.0, 1.0);
 }
 ";
@@ -163,8 +162,6 @@ void main() {
             xoff = -.01f;
 
         offset.X += xoff * (float)delta.TotalSeconds;
-
-        hexagon.Transform(Matrix3x2.CreateTranslation(offset));
 
         tb += delta;
         if (tb > tb_ceil)
