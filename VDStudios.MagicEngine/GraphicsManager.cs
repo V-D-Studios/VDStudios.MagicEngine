@@ -72,6 +72,29 @@ public class GraphicsManager : GameObject, IDisposable
     public Size WindowSize { get; private set; }
 
     /// <summary>
+    /// A transformation matrix to transform points in window space so that objects drawn in relative window coordinates (-1f to 1f) maintain their original aspect ratio
+    /// </summary>
+    public WindowTransformation WindowAspectTransform { get; private set; }
+
+    private bool WinSizeChanged = true;
+
+    /// <summary>
+    /// A uniform <see cref="DeviceBuffer"/> containing the data from <see cref="WindowAspectTransform"/>
+    /// </summary>
+    /// <remarks>
+    /// Do not modify this at all -- This buffer belongs to <see cref="GraphicsManager"/>
+    /// </remarks>
+    public DeviceBuffer WindowAspectTransformBuffer { get; private set; }
+
+    /// <summary>
+    /// Represents the <see cref="ResourceLayout"/> that describes <see cref="WindowAspectTransformBuffer"/>
+    /// </summary>
+    /// <remarks>
+    /// This layout binds <see cref="WindowAspectTransformBuffer"/> under the name of <c>WindowAspectTransform</c>
+    /// </remarks>
+    public ResourceLayout WindowAspectTransformLayout { get; private set; } 
+
+    /// <summary>
     /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager"/> is running
     /// </summary>
     public float FramesPerSecond => fak.Average;
@@ -525,6 +548,11 @@ public class GraphicsManager : GameObject, IDisposable
             Device.MainSwapchain.Resize((uint)ww, (uint)wh);
             ImGuiController.WindowResized(ww, wh);
             WindowSize = newSize;
+            WindowAspectTransform = new WindowTransformation()
+            {
+                WindowScale = Matrix4x4.CreateScale((float)ww / wh, 1, 1)
+            };
+            WinSizeChanged = true;
             Vector4 size;
             LastReportedWinSize = size = new(ww, wh, 0, 0);
             SizeChanged = true;
@@ -581,7 +609,7 @@ public class GraphicsManager : GameObject, IDisposable
         var drawBuffer = new ValueTask<CommandList>[10];
 
         var gd = Device!;
-
+        
         var managercl = CreateCommandList(gd, gd.ResourceFactory);
 
         ulong frameCount = 0;
@@ -596,7 +624,7 @@ public class GraphicsManager : GameObject, IDisposable
         var (ww, wh) = WindowSize;
         DefaultManagerParameters.DataRef = DefaultManagerParameters.DataRef with
         {
-            Transform = Matrix4x4.CreateTranslation(new Vector3(ww / 2f, wh / 2f, 0))
+            Transform = Matrix4x4.CreateTranslation(new Vector3(1f, 1f, 0))
         };
 
         Log.Information("Entering main rendering loop");
@@ -648,6 +676,11 @@ public class GraphicsManager : GameObject, IDisposable
                             ops.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
 
                         managercl.Begin();
+                        if (WinSizeChanged)
+                        {
+                            managercl.UpdateBuffer(WindowAspectTransformBuffer, 0, WindowAspectTransform);
+                            WinSizeChanged = false;
+                        }
                         PrepareForDraw(managercl, gd.SwapchainFramebuffer); // Set the base of the frame: clear the background, etc.
                         managercl.End();
                         gd.SubmitCommands(managercl);
@@ -782,6 +815,11 @@ public class GraphicsManager : GameObject, IDisposable
         var (ww, wh) = window.Size;
         ImGuiController = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
         ScreenSizeBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
+
+        var bufferDesc = new BufferDescription(16 * ((uint)Unsafe.SizeOf<WindowTransformation>() / 16 + 1), BufferUsage.UniformBuffer);
+        var resourDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("WindowScale", ResourceKind.UniformBuffer, ShaderStages.Vertex));
+        WindowAspectTransformBuffer = gd.ResourceFactory.CreateBuffer(ref bufferDesc);
+        WindowAspectTransformLayout = gd.ResourceFactory.CreateResourceLayout(ref resourDesc);
 
         Window_SizeChanged(window, Game.TotalTime, window.Size);
 
