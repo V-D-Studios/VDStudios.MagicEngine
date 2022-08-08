@@ -40,6 +40,7 @@ public class ShapeBuffer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition
     private readonly IShapeBufferVertexGenerator<TVertex> _gen;
     
     private readonly ShapeBufferDescription Description;
+    private ResourceSet[] ResourceSets;
 
     /// <summary>
     /// Instantiates a new <see cref="ShapeBuffer{TVertex}"/>
@@ -263,6 +264,8 @@ public class ShapeBuffer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition
             device.SwapchainFramebuffer.OutputDescription
         ));
 
+        ResourceSets = Description.ResourceSetBuilder?.Invoke(Manager!, device, factory) ?? Array.Empty<ResourceSet>();
+
         NotifyPendingGPUUpdate();
 
         return ValueTask.CompletedTask;
@@ -278,6 +281,8 @@ public class ShapeBuffer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition
             cl.SetVertexBuffer(0, pd.VertexBuffer);
             cl.SetIndexBuffer(pd.IndexBuffer, IndexFormat.UInt16);
             cl.SetPipeline(Pipeline);
+            for (uint index = 0; index < ResourceSets.Length; index++)
+                cl.SetGraphicsResourceSet(index, ResourceSets[index]);
             cl.DrawIndexed(pd.CurrentIndexCount, 1, 0, 0, 0);
         }
 

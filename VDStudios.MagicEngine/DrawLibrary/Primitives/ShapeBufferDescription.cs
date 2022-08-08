@@ -29,6 +29,11 @@ public readonly struct ShapeBufferDescription
     public ShaderDescription? FragmentShaderSpirv { get; init; }
 
     /// <summary>
+    /// Represents the method that will be used to build an array of <see cref="ResourceSet"/>s for the <see cref="ShapeBuffer{TVertex}"/>
+    /// </summary>
+    public ResourceSetBuilder? ResourceSetBuilder { get; init; }
+
+    /// <summary>
     /// Represents the method that will be used to build a set of <see cref="ResourceLayout"/>s for the <see cref="ShapeBuffer{TVertex}"/>
     /// </summary>
     public ResourceLayoutBuilder? ResourceLayoutBuilder { get; init; }
@@ -41,12 +46,14 @@ public readonly struct ShapeBufferDescription
     /// <param name="vertexShaderSpirv">Describes the Vertex shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
     /// <param name="fragmentShaderSpirv">Describes the Fragment shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
     /// <param name="resourceLayoutBuilder">Represents the method that will be used to build a set of <see cref="ResourceLayout"/>s for the <see cref="ShapeBuffer{TVertex}"/>; or <c>null</c> to use an empty set</param>
-    public ShapeBufferDescription(PolygonRenderMode renderMode, VertexLayoutDescription? vertexLayout, ShaderDescription? vertexShaderSpirv, ShaderDescription? fragmentShaderSpirv, ResourceLayoutBuilder? resourceLayoutBuilder)
+    /// <param name="resourceSetBuilder">Represents the method that will be used to build an array of <see cref="ResourceSet"/>s for the <see cref="ShapeBuffer{TVertex}"/>; or <c>null</c> to use an empty array</param>
+    public ShapeBufferDescription(PolygonRenderMode renderMode, VertexLayoutDescription? vertexLayout, ShaderDescription? vertexShaderSpirv, ShaderDescription? fragmentShaderSpirv, ResourceLayoutBuilder? resourceLayoutBuilder, ResourceSetBuilder? resourceSetBuilder)
     {
         RenderMode = renderMode;
         VertexLayout = vertexLayout;
         VertexShaderSpirv = vertexShaderSpirv;
         FragmentShaderSpirv = fragmentShaderSpirv;
+        ResourceSetBuilder = resourceSetBuilder;
         ResourceLayoutBuilder = resourceLayoutBuilder;
     }
 }
