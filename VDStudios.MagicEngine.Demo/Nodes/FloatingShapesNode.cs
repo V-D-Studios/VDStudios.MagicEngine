@@ -23,20 +23,27 @@ public class FloatingShapesNode : Node, IDrawableNode
     {
         private static readonly RgbaFloat[] Colors = new RgbaFloat[]
         {
-            new(.1f, .5f, 1f, 1f),
-            new(1f, .5f, .1f, 1f),
-            new(.5f, 1f, .5f, 1f),
-            new(.1f, .5f, 1f, .6f),
-            new(1f, .5f, .1f, .6f),
-            new(.5f, 1f, .5f, .6f),
-            new(.1f, .5f, 1f, .3f),
-            new(1f, .5f, .1f, .3f),
-            new(.5f, 1f, .5f, .3f),
+            new(1f, .2f, .2f, 1f),
+            new(.2f, 1f, .2f, 1f),
+            new(.2f, .2f, 1f, 1f),
         };
 
         public ColorVertex Generate(int index, Vector2 shapeVertex, ShapeDefinition shape)
         {
-            return new() { Position = shapeVertex, Color = Colors[index % Colors.Length] };
+            if (shape.Count is 3)
+                goto Preset;
+            if (shape.Count is 4)
+            {
+                if (index is >= 2)
+                    index--;
+                goto Preset;
+            }
+
+            var x = shape.Count / 3d;
+            return new() { Position = shapeVertex, Color = Colors[index < x ? 0 : index > x * 2 ? 2 : 1] };
+
+        Preset:
+            return new() { Position = shapeVertex, Color = Colors[index] };
         }
     }
 
