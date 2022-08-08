@@ -379,7 +379,7 @@ public abstract class Node : NodeBase
         lock (parent.sync)
             Id = parent.Children.Add(this);
 
-        if (DrawableSelf is IDrawableNode ds && parent is IDrawableNode dn && dn.DrawOperationManager.cascadedParameters is DataDependency<DrawParameters> p) 
+        if (DrawableSelf is IDrawableNode ds && parent is IDrawableNode dn && dn.DrawOperationManager.cascadedParameters is DrawParameters p) 
             ds.DrawOperationManager.CascadeThroughNode(p);
 
         if (parent.Root is Scene root)

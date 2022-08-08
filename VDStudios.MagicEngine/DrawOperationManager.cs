@@ -50,7 +50,7 @@ public class DrawOperationManager
     /// <summary>
     /// Passes <paramref name="parameters"/> down through <see cref="Owner"/>'s children, to replace the <see cref="DataDependencySource{T}"/> they reference
     /// </summary>
-    public void CascadeThroughNode(DataDependency<DrawParameters> parameters)
+    public void CascadeThroughNode(DrawParameters parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         cascadedParameters = parameters;
@@ -59,7 +59,7 @@ public class DrawOperationManager
             if (child is IDrawableNode dn) 
                 dn.DrawOperationManager.CascadeThroughNode(parameters); 
     }
-    internal DataDependency<DrawParameters>? cascadedParameters;
+    internal DrawParameters? cascadedParameters;
 
     /// <summary>
     /// Adds a new <see cref="DrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
@@ -110,7 +110,7 @@ public class DrawOperationManager
 
     #region Internal
 
-    internal void ProcessNewDrawData(DataDependency<DrawParameters> parameters)
+    internal void ProcessNewDrawData(DrawParameters parameters)
     {
         foreach (var dop in DrawOperations)
             UpdateOperationDrawParameters(parameters, dop);
@@ -170,11 +170,11 @@ public class DrawOperationManager
     #region Reaction Methods
 
     /// <summary>
-    /// This method is called automatically when this <see cref="DrawOperationManager"/> is receiving new <see cref="DrawParameters"/> for its <see cref="DrawOperation"/>s
+    /// This method is called automatically when this <see cref="DrawOperationManager"/> is receiving new <see cref="DrawTransformation"/> for its <see cref="DrawOperation"/>s
     /// </summary>
     /// <param name="drawParameters">The parameters received</param>
     /// <param name="operation">The operation to assign the parameters into</param>
-    protected virtual void UpdateOperationDrawParameters(DataDependency<DrawParameters> drawParameters, DrawOperation operation)
+    protected virtual void UpdateOperationDrawParameters(DrawParameters drawParameters, DrawOperation operation)
     {
         operation.ReferenceParameters = drawParameters;
     }

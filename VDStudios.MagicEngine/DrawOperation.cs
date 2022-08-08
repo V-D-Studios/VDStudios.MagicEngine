@@ -31,15 +31,12 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// <remarks>
     /// Rather than change this manually, it's better to let the owner of this <see cref="DrawOperation"/> assign it in the next cascade assignment
     /// </remarks>
-    public DataDependency<DrawParameters>? ReferenceParameters { get; set; }
+    public DrawParameters? ReferenceParameters { get; set; }
 
     /// <summary>
-    /// The data held by <see cref="ReferenceParameters"/> if it's not null, or <see cref="GraphicsManager.DefaultManagerParameters"/> of the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered onto if it is
+    /// Returns either <see cref="ReferenceParameters"/> or <see cref="GraphicsManager.DrawParameters"/> if the former is <c>null</c>
     /// </summary>
-    /// <remarks>
-    /// It's often a good idea to query this property only once per method, and cache it in a local variable
-    /// </remarks>
-    public DrawParameters Parameters => ReferenceParameters?.ConcurrentData ?? Manager!.DefaultManagerParameters.ConcurrentData;
+    public DrawParameters Parameters => ReferenceParameters ?? Manager.DrawParameters;
 
     /// <summary>
     /// The owner <see cref="DrawOperationManager"/> of this <see cref="DrawOperation"/>
@@ -137,17 +134,20 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
             var device = Device!;
             var ssb = Manager!.ScreenSizeBuffer!;
 
-            if (pendingGpuUpdate)
-            {
-                pendingGpuUpdate = false;
-                commands.Begin();
-                await UpdateGPUState(device, commands, ssb);
-                commands.End();
-                device.SubmitCommands(commands);
-            }
             commands.Begin();
-            await Draw(delta, commands, device, device.SwapchainFramebuffer, ssb).ConfigureAwait(false);
-            commands.End();
+            try
+            {
+                if (pendingGpuUpdate)
+                {
+                    pendingGpuUpdate = false;
+                    await UpdateGPUState(device, commands, ssb);
+                }
+                await Draw(delta, commands, device, device.SwapchainFramebuffer, ssb).ConfigureAwait(false);
+            }
+            finally
+            {
+                commands.End();
+            }
             return commands;
         }
         finally

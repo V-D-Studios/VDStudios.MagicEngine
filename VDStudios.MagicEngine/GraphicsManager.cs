@@ -79,6 +79,11 @@ public class GraphicsManager : GameObject, IDisposable
     private bool WinSizeChanged = true;
 
     /// <summary>
+    /// Represents the <see cref="ResourceLayout"/> that describes the usage of a <see cref="DrawTransformation"/> buffer in <see cref="DrawParameters.TransformationBuffer"/>
+    /// </summary>
+    public ResourceLayout DrawTransformationLayout { get; private set; }
+
+    /// <summary>
     /// A uniform <see cref="DeviceBuffer"/> containing the data from <see cref="WindowAspectTransform"/>
     /// </summary>
     /// <remarks>
@@ -595,9 +600,9 @@ public class GraphicsManager : GameObject, IDisposable
     }
 
     /// <summary>
-    /// The default <see cref="DataDependencySource{T}"/> containing <see cref="DrawParameters"/> for all <see cref="DrawOperation"/>s that don't already have one
+    /// The default <see cref="DataDependencySource{T}"/> containing <see cref="DrawTransformation"/> for all <see cref="DrawOperation"/>s that don't already have one
     /// </summary>
-    protected internal DataDependencySource<DrawParameters> DefaultManagerParameters { get; } = new(default);
+    protected internal DrawParameters DrawParameters { get; private set; }
 
     private void UpdateWindowTransformationBuffer(CommandList cl)
     {
@@ -617,6 +622,8 @@ public class GraphicsManager : GameObject, IDisposable
         var removalQueue = new Queue<Guid>(10);
         TimeSpan delta = default;
 
+        DrawParameters = new(new(Matrix4x4.Identity, Matrix4x4.Identity), this);
+
         var drawBuffer = new ValueTask<CommandList>[10];
 
         var gd = Device!;
@@ -633,10 +640,6 @@ public class GraphicsManager : GameObject, IDisposable
         });
 
         var (ww, wh) = WindowSize;
-        DefaultManagerParameters.DataRef = DefaultManagerParameters.DataRef with
-        {
-            Transform = Matrix4x4.CreateTranslation(new Vector3(1f, 1f, 0))
-        };
 
         Log.Information("Entering main rendering loop");
         while (IsRunning) // Running Loop
@@ -828,8 +831,11 @@ public class GraphicsManager : GameObject, IDisposable
 
         var bufferDesc = new BufferDescription(MathUtils.FitToUniformBuffer<WindowTransformation>(), BufferUsage.UniformBuffer);
         var resourDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("WindowScale", ResourceKind.UniformBuffer, ShaderStages.Vertex));
+        var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
+
         WindowAspectTransformBuffer = gd.ResourceFactory.CreateBuffer(ref bufferDesc);
         WindowAspectTransformLayout = gd.ResourceFactory.CreateResourceLayout(ref resourDesc);
+        DrawTransformationLayout = gd.ResourceFactory.CreateResourceLayout(ref dTransDesc);
         var resSetDesc = new ResourceSetDescription(WindowAspectTransformLayout, WindowAspectTransformBuffer);
         WindowAspectTransformSet = gd.ResourceFactory.CreateResourceSet(ref resSetDesc);
 
