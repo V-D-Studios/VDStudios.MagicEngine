@@ -281,4 +281,13 @@ public delegate GraphicsManager DrawOperationGraphicsManagerSelector(GraphicsMan
 /// <returns></returns>
 public delegate Texture TextureFactory(GraphicsDevice device, ResourceFactory factory);
 
+/// <summary>
+/// Represents a method that is used to create a new <see cref="ResourceLayout"/> set
+/// </summary>
+/// <param name="manager">The <see cref="GraphicsManager"/> that owns the draw operation the layout is being generated</param>
+/// <param name="device">The <see cref="GraphicsDevice"/> owned by <paramref name="manager"/></param>
+/// <param name="factory">The <see cref="ResourceFactory"/> owned by <paramref name="device"/></param>
+/// <returns>The new <see cref="ResourceLayout"/> set</returns>
+public delegate ResourceLayout[] ResourceLayoutBuilder(GraphicsManager manager, GraphicsDevice device, ResourceFactory factory);
+
 #endregion
