@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using Veldrid;
 
-namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
+namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 
 /// <summary>
 /// Represents a description to configure a <see cref="ShapeRenderer{TVertex}"/>

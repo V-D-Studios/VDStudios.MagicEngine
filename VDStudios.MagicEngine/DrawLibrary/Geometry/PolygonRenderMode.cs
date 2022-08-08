@@ -1,6 +1,6 @@
 ﻿using VDStudios.MagicEngine.Geometry;
 
-namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
+namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 
 /// <summary>
 /// Represents the way a given <see cref="ShapeRenderer"/> will render an arbitrary polygon

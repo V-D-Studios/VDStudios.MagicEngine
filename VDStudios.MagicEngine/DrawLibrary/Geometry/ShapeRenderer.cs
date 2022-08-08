@@ -14,7 +14,7 @@ using VDStudios.MagicEngine.Geometry;
 using Veldrid;
 using Veldrid.SPIRV;
 
-namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
+namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 
 /// <summary>
 /// Represents an operation to draw a list of 2D shapes, using normal <see cref="Vector2"/> as vertices

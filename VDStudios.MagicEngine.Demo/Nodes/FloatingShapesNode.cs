@@ -5,7 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
-using VDStudios.MagicEngine.DrawLibrary.Primitives;
+using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
 using Veldrid;

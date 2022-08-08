@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using VDStudios.MagicEngine.Geometry;
 
-namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
+namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 
 /// <summary>
 /// Represents an object that generates vertices for a <see cref="ShapeRenderer{TVertex}"/>
