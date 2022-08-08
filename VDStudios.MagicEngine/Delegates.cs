@@ -284,10 +284,19 @@ public delegate Texture TextureFactory(GraphicsDevice device, ResourceFactory fa
 /// <summary>
 /// Represents a method that is used to create a new <see cref="ResourceLayout"/> set
 /// </summary>
-/// <param name="manager">The <see cref="GraphicsManager"/> that owns the draw operation the layout is being generated</param>
+/// <param name="manager">The <see cref="GraphicsManager"/> that owns the draw operation the layout is being generated for</param>
 /// <param name="device">The <see cref="GraphicsDevice"/> owned by <paramref name="manager"/></param>
 /// <param name="factory">The <see cref="ResourceFactory"/> owned by <paramref name="device"/></param>
 /// <returns>The new <see cref="ResourceLayout"/> set</returns>
 public delegate ResourceLayout[] ResourceLayoutBuilder(GraphicsManager manager, GraphicsDevice device, ResourceFactory factory);
+
+/// <summary>
+/// Represents a method that is used to create a new <see cref="ResourceSet"/> array
+/// </summary>
+/// <param name="manager">The <see cref="GraphicsManager"/> that owns the draw operation the array is being generated for</param>
+/// <param name="device">The <see cref="GraphicsDevice"/> owned by <paramref name="manager"/></param>
+/// <param name="factory">The <see cref="ResourceFactory"/> owned by <paramref name="device"/></param>
+/// <returns>The new <see cref="ResourceLayout"/> array</returns>
+public delegate ResourceSet[] ResourceSetBuilder(GraphicsManager manager, GraphicsDevice device, ResourceFactory factory);
 
 #endregion
