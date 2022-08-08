@@ -141,12 +141,11 @@ layout(location = 1) in vec4 Color;
 layout(location = 0) out vec4 fsin_Color;
 layout(binding = 0) uniform WindowAspectTransform {
     layout(offset = 0) mat4 WindowScale;
-    layout(offset = 1) vec2 Test;
 };
 
 void main() {
     fsin_Color = Color;
-    gl_Position = vec4(Test + Position, 0.0, 1.0);
+    gl_Position = vec4(Position, 0.0, 1.0);
 }
 ";
 
