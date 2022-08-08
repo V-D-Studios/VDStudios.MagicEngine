@@ -18,6 +18,9 @@ public class PolygonDefinition : ShapeDefinition, IStructuralEquatable
     /// <summary>
     /// Creates a new <see cref="PolygonDefinition"/> object that describes a Circle
     /// </summary>
+    /// <remarks>
+    /// This method creates a Polygon whose vertices are all equally distant from <paramref name="center"/> by <paramref name="radius"/>. To define an actual circle, see <see cref="CircleDefinition"/>
+    /// </remarks>
     /// <param name="center">The center point of the circle</param>
     /// <param name="radius">The length of each point along the circle from its center, or half its diameter</param>
     /// <param name="subdivisions">The amount of vertices the circle will have. Must be larger than 3</param>
