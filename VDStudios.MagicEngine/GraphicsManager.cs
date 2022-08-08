@@ -95,6 +95,11 @@ public class GraphicsManager : GameObject, IDisposable
     public ResourceLayout WindowAspectTransformLayout { get; private set; } 
 
     /// <summary>
+    /// Represents the <see cref="ResourceSet"/> that will be used to bind <see cref="WindowAspectTransformBuffer"/> to a shader
+    /// </summary>
+    public ResourceSet WindowAspectTransformSet { get; private set; }
+
+    /// <summary>
     /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager"/> is running
     /// </summary>
     public float FramesPerSecond => fak.Average;
@@ -550,7 +555,7 @@ public class GraphicsManager : GameObject, IDisposable
             WindowSize = newSize;
             WindowAspectTransform = new WindowTransformation()
             {
-                WindowScale = Matrix4x4.CreateScale((float)ww / wh, 1, 1)
+                WindowScale = Matrix4x4.CreateScale(wh / (float)ww, 1, 1)
             };
             WinSizeChanged = true;
             Vector4 size;
@@ -593,6 +598,12 @@ public class GraphicsManager : GameObject, IDisposable
     /// The default <see cref="DataDependencySource{T}"/> containing <see cref="DrawParameters"/> for all <see cref="DrawOperation"/>s that don't already have one
     /// </summary>
     protected internal DataDependencySource<DrawParameters> DefaultManagerParameters { get; } = new(default);
+
+    private void UpdateWindowTransformationBuffer(CommandList cl)
+    {
+        Span<WindowTransformation> trans = stackalloc WindowTransformation[1] { WindowAspectTransform };
+        cl.UpdateBuffer(WindowAspectTransformBuffer, 0, trans);
+    }
 
     private async Task Run()
     {
@@ -654,6 +665,10 @@ public class GraphicsManager : GameObject, IDisposable
                         if (SizeChanged) // Handle Window Size Changes, this could potentially be refactored. Jump to the 'else' block
                         {
                             SizeChanged = false;
+                            managercl.Begin();
+                            UpdateWindowTransformationBuffer(managercl);
+                            managercl.End();
+                            Device.SubmitCommands(managercl);
                             foreach (var kv in ops)
                                 if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
                                 {
@@ -676,11 +691,6 @@ public class GraphicsManager : GameObject, IDisposable
                             ops.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
 
                         managercl.Begin();
-                        if (WinSizeChanged)
-                        {
-                            managercl.UpdateBuffer(WindowAspectTransformBuffer, 0, WindowAspectTransform);
-                            WinSizeChanged = false;
-                        }
                         PrepareForDraw(managercl, gd.SwapchainFramebuffer); // Set the base of the frame: clear the background, etc.
                         managercl.End();
                         gd.SubmitCommands(managercl);
@@ -820,6 +830,8 @@ public class GraphicsManager : GameObject, IDisposable
         var resourDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("WindowScale", ResourceKind.UniformBuffer, ShaderStages.Vertex));
         WindowAspectTransformBuffer = gd.ResourceFactory.CreateBuffer(ref bufferDesc);
         WindowAspectTransformLayout = gd.ResourceFactory.CreateResourceLayout(ref resourDesc);
+        var resSetDesc = new ResourceSetDescription(WindowAspectTransformLayout, WindowAspectTransformBuffer);
+        WindowAspectTransformSet = gd.ResourceFactory.CreateResourceSet(ref resSetDesc);
 
         Window_SizeChanged(window, Game.TotalTime, window.Size);
 
