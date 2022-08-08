@@ -3,7 +3,7 @@
 namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
 
 /// <summary>
-/// Represents the way a given <see cref="ShapeBuffer"/> will render an arbitrary polygon
+/// Represents the way a given <see cref="ShapeRenderer"/> will render an arbitrary polygon
 /// </summary>
 public enum PolygonRenderMode : byte
 {

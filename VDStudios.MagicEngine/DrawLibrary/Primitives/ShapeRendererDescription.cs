@@ -4,50 +4,50 @@ using Veldrid;
 namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
 
 /// <summary>
-/// Represents a description to configure a <see cref="ShapeBuffer{TVertex}"/>
+/// Represents a description to configure a <see cref="ShapeRenderer{TVertex}"/>
 /// </summary>
-public readonly struct ShapeBufferDescription
+public readonly struct ShapeRendererDescription
 {
     /// <summary>
-    /// Describes how the polygons for the destination <see cref="ShapeBuffer{TVertex}"/> will be rendered
+    /// Describes how the polygons for the destination <see cref="ShapeRenderer{TVertex}"/> will be rendered
     /// </summary>
     public PolygonRenderMode RenderMode { get; init; }
 
     /// <summary>
-    /// Describes the vertex buffer's structure for the given <see cref="ShapeBuffer{TVertex}"/>
+    /// Describes the vertex buffer's structure for the given <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
     public VertexLayoutDescription? VertexLayout { get; init; }
 
     /// <summary>
-    /// Describes the Vertex shader for the <see cref="ShapeBuffer{TVertex}"/> in Vulkan style GLSL or SPIR-V bytecode
+    /// Describes the Vertex shader for the <see cref="ShapeRenderer{TVertex}"/> in Vulkan style GLSL or SPIR-V bytecode
     /// </summary>
     public ShaderDescription? VertexShaderSpirv { get; init; }
 
     /// <summary>
-    /// Describes the Fragment shader for the <see cref="ShapeBuffer{TVertex}"/> in Vulkan style GLSL or SPIR-V bytecode
+    /// Describes the Fragment shader for the <see cref="ShapeRenderer{TVertex}"/> in Vulkan style GLSL or SPIR-V bytecode
     /// </summary>
     public ShaderDescription? FragmentShaderSpirv { get; init; }
 
     /// <summary>
-    /// Represents the method that will be used to build an array of <see cref="ResourceSet"/>s for the <see cref="ShapeBuffer{TVertex}"/>
+    /// Represents the method that will be used to build an array of <see cref="ResourceSet"/>s for the <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
     public ResourceSetBuilder? ResourceSetBuilder { get; init; }
 
     /// <summary>
-    /// Represents the method that will be used to build a set of <see cref="ResourceLayout"/>s for the <see cref="ShapeBuffer{TVertex}"/>
+    /// Represents the method that will be used to build a set of <see cref="ResourceLayout"/>s for the <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
     public ResourceLayoutBuilder? ResourceLayoutBuilder { get; init; }
 
     /// <summary>
-    /// Creates a new <see cref="ShapeBufferDescription"/>
+    /// Creates a new <see cref="ShapeRendererDescription"/>
     /// </summary>
     /// <param name="renderMode">Describes how the polygons will be rendered</param>
     /// <param name="vertexLayout">Describes the vertex buffer's structure; or <c>null</c> to use the default (A single element with the structure of a <see cref="Vector2"/>)</param>
     /// <param name="vertexShaderSpirv">Describes the Vertex shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
     /// <param name="fragmentShaderSpirv">Describes the Fragment shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
-    /// <param name="resourceLayoutBuilder">Represents the method that will be used to build a set of <see cref="ResourceLayout"/>s for the <see cref="ShapeBuffer{TVertex}"/>; or <c>null</c> to use an empty set</param>
-    /// <param name="resourceSetBuilder">Represents the method that will be used to build an array of <see cref="ResourceSet"/>s for the <see cref="ShapeBuffer{TVertex}"/>; or <c>null</c> to use an empty array</param>
-    public ShapeBufferDescription(PolygonRenderMode renderMode, VertexLayoutDescription? vertexLayout, ShaderDescription? vertexShaderSpirv, ShaderDescription? fragmentShaderSpirv, ResourceLayoutBuilder? resourceLayoutBuilder, ResourceSetBuilder? resourceSetBuilder)
+    /// <param name="resourceLayoutBuilder">Represents the method that will be used to build a set of <see cref="ResourceLayout"/>s for the <see cref="ShapeRenderer{TVertex}"/>; or <c>null</c> to use an empty set</param>
+    /// <param name="resourceSetBuilder">Represents the method that will be used to build an array of <see cref="ResourceSet"/>s for the <see cref="ShapeRenderer{TVertex}"/>; or <c>null</c> to use an empty array</param>
+    public ShapeRendererDescription(PolygonRenderMode renderMode, VertexLayoutDescription? vertexLayout, ShaderDescription? vertexShaderSpirv, ShaderDescription? fragmentShaderSpirv, ResourceLayoutBuilder? resourceLayoutBuilder, ResourceSetBuilder? resourceSetBuilder)
     {
         RenderMode = renderMode;
         VertexLayout = vertexLayout;

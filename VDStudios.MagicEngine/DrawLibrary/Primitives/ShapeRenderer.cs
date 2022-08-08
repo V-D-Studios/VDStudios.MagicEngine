@@ -19,14 +19,14 @@ namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
 /// <summary>
 /// Represents an operation to draw a list of 2D shapes, using normal <see cref="Vector2"/> as vertices
 /// </summary>
-public class ShapeBuffer : ShapeBuffer<Vector2>
+public class ShapeRenderer : ShapeRenderer<Vector2>
 {
     /// <summary>
-    /// Instantiates a new <see cref="ShapeBuffer"/>
+    /// Instantiates a new <see cref="ShapeRenderer"/>
     /// </summary>
     /// <param name="polygons">The polygons to fill this list with</param>
-    /// <param name="description">Provides data for the configuration of this <see cref="ShapeBuffer"/></param>
-    public ShapeBuffer(IEnumerable<ShapeDefinition> polygons, ShapeBufferDescription description)
+    /// <param name="description">Provides data for the configuration of this <see cref="ShapeRenderer"/></param>
+    public ShapeRenderer(IEnumerable<ShapeDefinition> polygons, ShapeRendererDescription description)
         : base(polygons, description, ShapeVertexGenerator.Default)
     { }
 }
@@ -34,21 +34,21 @@ public class ShapeBuffer : ShapeBuffer<Vector2>
 /// <summary>
 /// Represents an operation to draw a list of 2D shapes
 /// </summary>
-public class ShapeBuffer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition> where TVertex : unmanaged
+public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition> where TVertex : unmanaged
 {
     private readonly List<ShapeDefinition> _shapes;
-    private readonly IShapeBufferVertexGenerator<TVertex> _gen;
+    private readonly IShapeRendererVertexGenerator<TVertex> _gen;
     
-    private readonly ShapeBufferDescription Description;
+    private readonly ShapeRendererDescription Description;
     private ResourceSet[] ResourceSets;
 
     /// <summary>
-    /// Instantiates a new <see cref="ShapeBuffer{TVertex}"/>
+    /// Instantiates a new <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
     /// <param name="polygons">The polygons to fill this list with</param>
-    /// <param name="description">Provides data for the configuration of this <see cref="ShapeBuffer{TVertex}"/></param>
-    /// <param name="generator">The <see cref="IShapeBufferVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
-    public ShapeBuffer(IEnumerable<ShapeDefinition> polygons, ShapeBufferDescription description, IShapeBufferVertexGenerator<TVertex> generator)
+    /// <param name="description">Provides data for the configuration of this <see cref="ShapeRenderer{TVertex}"/></param>
+    /// <param name="generator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
+    public ShapeRenderer(IEnumerable<ShapeDefinition> polygons, ShapeRendererDescription description, IShapeRendererVertexGenerator<TVertex> generator)
     {
         Description = description;
         _shapes = new(polygons);
@@ -210,7 +210,7 @@ public class ShapeBuffer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition
     /// The temporary buffer into which the polygons held in this object will be copied for drawing.
     /// </summary>
     /// <remarks>
-    /// It's best to leave this property alone, the code in <see cref="ShapeBuffer{TVertex}"/> will take care of it
+    /// It's best to leave this property alone, the code in <see cref="ShapeRenderer{TVertex}"/> will take care of it
     /// </remarks>
     protected List<ShapeDat> ShapeBufferList = new();
 
@@ -423,7 +423,7 @@ public class ShapeBuffer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition
         /// The buffer holding the index data for this polygon
         /// </summary>
         /// <remarks>
-        /// This buffer will be null until <see cref="SetTriangulatedIndicesBufferSize"/> or <see cref="SetLineStripIndicesBufferSize"/> is called. This is guaranteed, by the methods of <see cref="ShapeBuffer{TVertex}"/>, to be the case before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> is called
+        /// This buffer will be null until <see cref="SetTriangulatedIndicesBufferSize"/> or <see cref="SetLineStripIndicesBufferSize"/> is called. This is guaranteed, by the methods of <see cref="ShapeRenderer{TVertex}"/>, to be the case before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> is called
         /// </remarks>
         public DeviceBuffer? IndexBuffer = null;
 

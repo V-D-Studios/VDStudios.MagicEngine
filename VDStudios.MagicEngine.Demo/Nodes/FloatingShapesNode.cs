@@ -19,7 +19,7 @@ public class FloatingShapesNode : Node, IDrawableNode
         public RgbaFloat Color;
     }
 
-    private class ColorVertexGenerator : IShapeBufferVertexGenerator<ColorVertex>
+    private class ColorVertexGenerator : IShapeRendererVertexGenerator<ColorVertex>
     {
         private static readonly RgbaFloat[] Colors = new RgbaFloat[]
         {
@@ -101,7 +101,7 @@ public class FloatingShapesNode : Node, IDrawableNode
         {
             q.Enqueue(o, -1);
         });
-        DrawOperationManager.AddDrawOperation(new ShapeBuffer<ColorVertex>(new ShapeDefinition[]
+        DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(new ShapeDefinition[]
         {
             new PolygonDefinition(triangle, true) { Name = "Triangle" },
             hexagon,
