@@ -151,17 +151,8 @@ void main() {
     static readonly TimeSpan tb_ceil = TimeSpan.FromSeconds(1.5);
     int x = 0;
     readonly int[] SubDivSeq = Enumerable.Range(3, 60).ToArray();
-    Vector2 offset;
-    float xoff = .01f;
     protected override ValueTask<bool> Updating(TimeSpan delta)
     {
-        if (offset.X <= -1)
-            xoff = .01f;
-        else if (offset.X >= 1) 
-            xoff = -.01f;
-
-        offset.X += xoff * (float)delta.TotalSeconds;
-
         tb += delta;
         if (tb > tb_ceil)
         {
