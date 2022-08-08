@@ -142,9 +142,8 @@ layout(binding = 0) uniform WindowAspectTransform {
 };
 
 void main() {
-    vec4 x = WindowScale * Color;
-    fsin_Color = vec4(x.x, x.y, x.z, 1.0f);
-    gl_Position = vec4(Position, 0.0, 1.0);
+    fsin_Color = Color;
+    gl_Position = WindowScale * vec4(Position, 0.0, 1.0);
 }
 ";
 
