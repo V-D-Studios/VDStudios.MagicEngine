@@ -101,23 +101,34 @@ public class FloatingShapesNode : Node, IDrawableNode
         {
             q.Enqueue(o, -1);
         });
-        DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(new ShapeDefinition[]
-        {
-            new PolygonDefinition(triangle, true) { Name = "Triangle" },
-            hexagon,
-            new PolygonDefinition(rectangle, true) { Name = "Rectangle" },
-            circ,
-            circle
-        }, new() {
-            RenderMode = PolygonRenderMode.TriangulatedFill,
-            VertexLayout = new VertexLayoutDescription(
-                new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
-                new VertexElementDescription("Color", VertexElementFormat.Float4, VertexElementSemantic.TextureCoordinate)),
-            FragmentShaderSpirv = new(ShaderStages.Fragment, FSNFragment.GetUTF8Bytes(), "main"),
-            VertexShaderSpirv = new(ShaderStages.Vertex, FSNVertex.GetUTF8Bytes(), "main"),
-            ResourceLayoutBuilder = (m, d, f) => new ResourceLayout[] { m.WindowAspectTransformLayout },
-            ResourceSetBuilder = (m, d, f) => new ResourceSet[] { m.WindowAspectTransformSet }
-        }, new ColorVertexGenerator()));
+        DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(
+            new ShapeDefinition[]
+            {
+                new PolygonDefinition(triangle, true) { Name = "Triangle" },
+                hexagon,
+                new PolygonDefinition(rectangle, true) { Name = "Rectangle" },
+                circ,
+                circle
+            }, 
+            new(
+                BlendStateDescription.SingleAlphaBlend,
+                DepthStencilStateDescription.DepthOnlyLessEqual,
+                FaceCullMode.Front,
+                FrontFace.Clockwise,
+                true,
+                false,
+                PolygonRenderMode.TriangulatedFill,
+                new VertexLayoutDescription(
+                    new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
+                    new VertexElementDescription("Color", VertexElementFormat.Float4, VertexElementSemantic.TextureCoordinate)
+                ),
+                new(ShaderStages.Fragment, FSNFragment.GetUTF8Bytes(), "main"),
+                new(ShaderStages.Vertex, FSNVertex.GetUTF8Bytes(), "main"),
+                (m, d, f) => new ResourceSet[] { m.WindowAspectTransformSet },
+                (m, d, f) => new ResourceLayout[] { m.WindowAspectTransformLayout }
+            ),
+            new ColorVertexGenerator())
+        );
     }
 
     private static readonly string FSNFragment = @"

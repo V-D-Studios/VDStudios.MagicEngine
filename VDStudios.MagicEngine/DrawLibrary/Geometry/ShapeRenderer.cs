@@ -236,17 +236,17 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         );
 
         Pipeline = factory.CreateGraphicsPipeline(new(
-            BlendStateDescription.SingleAlphaBlend,
-            DepthStencilStateDescription.DepthOnlyLessEqual,
+            Description.BlendState,
+            Description.DepthStencilState,
             new(
-                FaceCullMode.Front,
+                Description.FaceCullMode,
                 Description.RenderMode switch
                 {
                     PolygonRenderMode.LineStripWireframe or PolygonRenderMode.TriangulatedWireframe => PolygonFillMode.Wireframe,
                     PolygonRenderMode.TriangulatedFill => PolygonFillMode.Solid,
                     _ => throw new InvalidOperationException($"Unknown PolygonRenderMode: {Description.RenderMode}")
                 },
-                FrontFace.Clockwise,
+                Description.FrontFace,
                 true,
                 false
             ),
