@@ -247,8 +247,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                     _ => throw new InvalidOperationException($"Unknown PolygonRenderMode: {Description.RenderMode}")
                 },
                 Description.FrontFace,
-                true,
-                false
+                Description.DepthClipEnabled,
+                Description.ScissorTestEnabled
             ),
             Description.RenderMode switch
             {
