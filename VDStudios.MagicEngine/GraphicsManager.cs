@@ -35,7 +35,7 @@ public class GraphicsManager : GameObject, IDisposable
     public GraphicsManager() : base("Graphics & Input", "Rendering")
     {
         initLock.Wait();
-        graphics_thread = new(() => Run().Wait());
+        graphics_thread = Run();
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
 
         CurrentSnapshot = new(this);
@@ -450,7 +450,7 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region Running
 
-    private readonly Thread graphics_thread;
+    private readonly Task graphics_thread;
 
     #region Public Properties
 
@@ -612,6 +612,7 @@ public class GraphicsManager : GameObject, IDisposable
 
     private async Task Run()
     {
+        await Task.Yield();
         var framelock = FrameLock;
         var drawlock = DrawLock;
         var glock = GUILock;
