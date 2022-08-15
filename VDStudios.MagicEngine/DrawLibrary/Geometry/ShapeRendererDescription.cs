@@ -87,8 +87,15 @@ public readonly struct ShapeRendererDescription
         ScissorTestEnabled = scissorTestEnabled;
         RenderMode = renderMode;
         VertexLayout = vertexLayout;
+
+        if (vertexShaderSpirv is ShaderDescription vsd && !vsd.Stage.HasFlag(ShaderStages.Vertex))
+            throw new ArgumentException("Cannot pass a ShaderDescription whose stage is not set to Vertex", nameof(vertexShaderSpirv));
         VertexShaderSpirv = vertexShaderSpirv;
+
+        if (fragmentShaderSpirv is ShaderDescription fsd && !fsd.Stage.HasFlag(ShaderStages.Fragment))
+            throw new ArgumentException("Cannot pass a ShaderDescription whose stage is not set to Fragment", nameof(fragmentShaderSpirv));
         FragmentShaderSpirv = fragmentShaderSpirv;
+        
         ResourceLayoutAndSetBuilder = resourceLayoutAndSetBuilder;
     }
 }
