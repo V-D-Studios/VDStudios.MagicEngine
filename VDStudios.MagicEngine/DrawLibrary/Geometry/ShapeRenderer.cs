@@ -37,8 +37,24 @@ public class ShapeRenderer : ShapeRenderer<Vector2>
 public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition> where TVertex : unmanaged
 {
     private readonly List<ShapeDefinition> _shapes;
-    private readonly IShapeRendererVertexGenerator<TVertex> _gen;
     
+    /// <summary>
+    /// The Vertex Generator for this <see cref="ShapeRenderer{TVertex}"/>
+    /// </summary>
+    /// <remarks>
+    /// Can NEVER be null; an exception will be thrown if an attempt is made to set this property to null
+    /// </remarks>
+    protected IShapeRendererVertexGenerator<TVertex> TVertexGenerator
+    {
+        get => _gen;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _gen = value;
+        }
+    }
+    private IShapeRendererVertexGenerator<TVertex> _gen;
+
     private readonly ShapeRendererDescription Description;
     private ResourceSet[] ResourceSets;
 
@@ -57,7 +73,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         for (int i = 0; i < _shapes.Count; i++)
             IndicesToUpdate.Enqueue(new(i, true, true, 1));
         
-        _gen = generator;
+        TVertexGenerator = generator;
     }
 
     #region List
@@ -289,7 +305,15 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         return ValueTask.CompletedTask;
     }
 
-    private void UpdateVertices(ref ShapeDat pol, CommandList commandList)
+    /// <summary>
+    /// Updates the vertices of a given polygon in the renderer
+    /// </summary>
+    /// <remarks>
+    /// CAUTION: Only override this method if you know what you're doing! By default, this method creates a stack-allocated span of <typeparamref name="TVertex"/> instances, generates the vertices using <see cref="TVertexGenerator"/>, and submits it to <see cref="ShapeDat.VertexBuffer"/>, adjusting its size as appropriate
+    /// </remarks>
+    /// <param name="pol">A reference to the polygon's internal data context</param>
+    /// <param name="commandList"></param>
+    protected virtual void UpdateVertices(ref ShapeDat pol, CommandList commandList)
     {
         var vc = pol.Shape.Count;
         var vc_bytes = (uint)Unsafe.SizeOf<TVertex>() * (uint)vc;
@@ -297,13 +321,22 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         Span<TVertex> vertexBuffer = stackalloc TVertex[vc];
 
         for (int ind = 0; ind < pol.Shape.Count; ind++)
-            vertexBuffer[ind] = _gen.Generate(ind, pol.Shape[ind], pol.Shape);
+            vertexBuffer[ind] = TVertexGenerator.Generate(ind, pol.Shape[ind], pol.Shape);
         if (pol.VertexBuffer is null || vc_bytes > pol.VertexBuffer.SizeInBytes)  
             ShapeDat.SetVertexBufferSize(ref pol, Device!.ResourceFactory);
         commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer);
     }
 
-    private void UpdateIndices(ref ShapeDat pol, CommandList commandList)
+    /// <summary>
+    /// Updates the indices of a given polygon in the renderer
+    /// </summary>
+    /// <remarks>
+    /// CAUTION: Only override this method if you know what you're doing! By default, this method chooses the appropriate method to define the polygon's indices: Triangulation, uploading as-is, pre-triangulated buffers for specific types of polygon, etc.
+    /// </remarks>
+    /// <param name="pol"></param>
+    /// <param name="commandList"></param>
+    /// <exception cref="InvalidOperationException"></exception>
+    protected virtual void UpdateIndices(ref ShapeDat pol, CommandList commandList)
     {
         var count = pol.Shape.Count;
 
