@@ -35,7 +35,6 @@ public class GraphicsManager : GameObject, IDisposable
     public GraphicsManager() : base("Graphics & Input", "Rendering")
     {
         initLock.Wait();
-        graphics_thread = Run();
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
 
         CurrentSnapshot = new(this);
@@ -450,7 +449,7 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region Running
 
-    private readonly Task graphics_thread;
+    private Task graphics_thread;
 
     #region Public Properties
 
@@ -582,7 +581,7 @@ public class GraphicsManager : GameObject, IDisposable
         Starting();
         SetupWindow();
         initLock.Release();
-        graphics_thread.Start();
+        graphics_thread = Run();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
