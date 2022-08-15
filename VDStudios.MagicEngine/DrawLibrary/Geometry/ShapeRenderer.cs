@@ -249,7 +249,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <remarks>
     /// CAUTION: Make sure the behaviour is thoroughly documented before overriding this method.
     /// </remarks>
-    protected virtual void InterceptResources(ref ResourceLayout[] layouts, ref ResourceSet[] sets) { }
+    protected virtual void InterceptResources(ref ResourceLayout[] layouts, ref ResourceSet[] sets, ResourceFactory factory) { }
 
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
@@ -267,7 +267,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         if (layouts.Length != sets.Length)
             throw new InvalidOperationException("The length of the ResourceLayout array and ResourceSet array must be equal -- Failure of this condition means that not all layouts and sets correspond");
 
-        InterceptResources(ref layouts, ref sets);
+        InterceptResources(ref layouts, ref sets, factory);
 
         if (layouts.Length != sets.Length)
             throw new InvalidOperationException("The length of the ResourceLayout array and ResourceSet array must be equal -- Failure of this condition means that not all layouts and sets correspond");
