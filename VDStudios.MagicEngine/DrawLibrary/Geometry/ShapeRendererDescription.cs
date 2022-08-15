@@ -59,14 +59,9 @@ public readonly struct ShapeRendererDescription
     public ShaderDescription? FragmentShaderSpirv { get; }
 
     /// <summary>
-    /// Represents the method that will be used to build an array of <see cref="ResourceSet"/>s for the <see cref="ShapeRenderer{TVertex}"/>
+    /// Represents the method that will be used to build an array of <see cref="ResourceSet"/>s and <see cref="ResourceLayout"/>s for the <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
-    public ResourceSetBuilder? ResourceSetBuilder { get; }
-
-    /// <summary>
-    /// Represents the method that will be used to build a set of <see cref="ResourceLayout"/>s for the <see cref="ShapeRenderer{TVertex}"/>
-    /// </summary>
-    public ResourceLayoutBuilder? ResourceLayoutBuilder { get; }
+    public ResourceLayoutAndSetBuilder? ResourceLayoutAndSetBuilder { get; }
 
     /// <summary>
     /// Creates a new <see cref="ShapeRendererDescription"/>
@@ -81,9 +76,8 @@ public readonly struct ShapeRendererDescription
     /// <param name="vertexLayout">Describes the vertex buffer's structure; or <c>null</c> to use the default (A single element with the structure of a <see cref="Vector2"/>)</param>
     /// <param name="vertexShaderSpirv">Describes the Vertex shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
     /// <param name="fragmentShaderSpirv">Describes the Fragment shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
-    /// <param name="resourceLayoutBuilder">Represents the method that will be used to build a set of <see cref="ResourceLayout"/>s for the <see cref="ShapeRenderer{TVertex}"/>; or <c>null</c> to use an empty set</param>
-    /// <param name="resourceSetBuilder">Represents the method that will be used to build an array of <see cref="ResourceSet"/>s for the <see cref="ShapeRenderer{TVertex}"/>; or <c>null</c> to use an empty array</param>
-    public ShapeRendererDescription(BlendStateDescription blendState, DepthStencilStateDescription? depthStencilState, FaceCullMode faceCullMode, FrontFace frontFace, bool depthClipEnabled, bool scissorTestEnabled, PolygonRenderMode renderMode, VertexLayoutDescription? vertexLayout, ShaderDescription? vertexShaderSpirv, ShaderDescription? fragmentShaderSpirv, ResourceSetBuilder? resourceSetBuilder, ResourceLayoutBuilder? resourceLayoutBuilder)
+    /// <param name="resourceLayoutAndSetBuilder">Represents the method that will be used to build a set of <see cref="ResourceLayout"/>s and <see cref="ResourceSet"/>s for the <see cref="ShapeRenderer{TVertex}"/>; or <c>null</c> to use an empty set</param>
+    public ShapeRendererDescription(BlendStateDescription blendState, DepthStencilStateDescription? depthStencilState, FaceCullMode faceCullMode, FrontFace frontFace, bool depthClipEnabled, bool scissorTestEnabled, PolygonRenderMode renderMode, VertexLayoutDescription? vertexLayout, ShaderDescription? vertexShaderSpirv, ShaderDescription? fragmentShaderSpirv, ResourceLayoutAndSetBuilder? resourceLayoutAndSetBuilder)
     {
         BlendState = blendState;
         DepthStencilState = depthStencilState;
@@ -95,7 +89,6 @@ public readonly struct ShapeRendererDescription
         VertexLayout = vertexLayout;
         VertexShaderSpirv = vertexShaderSpirv;
         FragmentShaderSpirv = fragmentShaderSpirv;
-        ResourceSetBuilder = resourceSetBuilder;
-        ResourceLayoutBuilder = resourceLayoutBuilder;
+        ResourceLayoutAndSetBuilder = resourceLayoutAndSetBuilder;
     }
 }

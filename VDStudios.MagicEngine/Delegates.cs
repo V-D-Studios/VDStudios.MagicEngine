@@ -282,21 +282,16 @@ public delegate GraphicsManager DrawOperationGraphicsManagerSelector(GraphicsMan
 public delegate Texture TextureFactory(GraphicsDevice device, ResourceFactory factory);
 
 /// <summary>
-/// Represents a method that is used to create a new <see cref="ResourceLayout"/> set
+/// Represents a method that is used to create both a new <see cref="ResourceLayout"/> array and a new <see cref="ResourceSet"/> array
 /// </summary>
 /// <param name="manager">The <see cref="GraphicsManager"/> that owns the draw operation the layout is being generated for</param>
 /// <param name="device">The <see cref="GraphicsDevice"/> owned by <paramref name="manager"/></param>
 /// <param name="factory">The <see cref="ResourceFactory"/> owned by <paramref name="device"/></param>
-/// <returns>The new <see cref="ResourceLayout"/> set</returns>
-public delegate ResourceLayout[] ResourceLayoutBuilder(GraphicsManager manager, GraphicsDevice device, ResourceFactory factory);
-
-/// <summary>
-/// Represents a method that is used to create a new <see cref="ResourceSet"/> array
-/// </summary>
-/// <param name="manager">The <see cref="GraphicsManager"/> that owns the draw operation the array is being generated for</param>
-/// <param name="device">The <see cref="GraphicsDevice"/> owned by <paramref name="manager"/></param>
-/// <param name="factory">The <see cref="ResourceFactory"/> owned by <paramref name="device"/></param>
-/// <returns>The new <see cref="ResourceLayout"/> array</returns>
-public delegate ResourceSet[] ResourceSetBuilder(GraphicsManager manager, GraphicsDevice device, ResourceFactory factory);
+/// <param name="sets">The new set of <see cref="ResourceSet"/>s</param>
+/// <param name="layouts">The new set of <see cref="ResourceLayout"/>s</param>
+/// <remarks>
+/// Both <c>out</c> arrays must correspond to each other by index; that is, The <see cref="ResourceLayout"/> at index <c>x</c> must describe the <see cref="ResourceSet"/> at index <c>x</c>; while the <see cref="ResourceLayout"/> at index <c>y</c> must describe the <see cref="ResourceSet"/> at index <c>y</c>
+/// </remarks>
+public delegate void ResourceLayoutAndSetBuilder(GraphicsManager manager, GraphicsDevice device, ResourceFactory factory, out ResourceLayout[] layouts, out ResourceSet[] sets);
 
 #endregion

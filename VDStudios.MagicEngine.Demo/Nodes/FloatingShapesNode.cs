@@ -124,8 +124,11 @@ public class FloatingShapesNode : Node, IDrawableNode
                 ),
                 new(ShaderStages.Fragment, FSNFragment.GetUTF8Bytes(), "main"),
                 new(ShaderStages.Vertex, FSNVertex.GetUTF8Bytes(), "main"),
-                (m, d, f) => new ResourceSet[] { m.WindowAspectTransformSet },
-                (m, d, f) => new ResourceLayout[] { m.WindowAspectTransformLayout }
+                static (GraphicsManager m, GraphicsDevice d, ResourceFactory f, out ResourceLayout[] l, out ResourceSet[] s) =>
+                {
+                    l = new ResourceLayout[] { m.WindowAspectTransformLayout };
+                    s = new ResourceSet[] { m.WindowAspectTransformSet };
+                }
             ),
             new ColorVertexGenerator())
         );

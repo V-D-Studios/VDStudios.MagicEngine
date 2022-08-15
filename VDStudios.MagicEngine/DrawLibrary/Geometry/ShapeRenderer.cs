@@ -246,6 +246,19 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
     {
+        ResourceLayout[] layouts;
+        ResourceSet[] sets;
+        if (Description.ResourceLayoutAndSetBuilder is not null)
+            Description.ResourceLayoutAndSetBuilder.Invoke(Manager!, device, factory, out layouts, out sets);
+        else
+        {
+            layouts = Array.Empty<ResourceLayout>();
+            sets = Array.Empty<ResourceSet>();
+        }
+
+        if (layouts.Length != sets.Length)
+            throw new InvalidOperationException("The length of the ResourceLayout array and ResourceSet array must be equal -- Failure of this condition means that not all layouts and sets correspond");
+
         Shaders = factory.CreateFromSpirv(
             Description.VertexShaderSpirv ?? vertexDefault,
             Description.FragmentShaderSpirv ?? fragmnDefault
@@ -276,11 +289,11 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             {
                 Description.VertexLayout ?? DefaultVector2Layout
             }, Shaders),
-            Description.ResourceLayoutBuilder?.Invoke(Manager!, device, factory) ?? Array.Empty<ResourceLayout>(),
+            layouts,
             device.SwapchainFramebuffer.OutputDescription
         ));
 
-        ResourceSets = Description.ResourceSetBuilder?.Invoke(Manager!, device, factory) ?? Array.Empty<ResourceSet>();
+        ResourceSets = sets;
 
         NotifyPendingGPUUpdate();
 
