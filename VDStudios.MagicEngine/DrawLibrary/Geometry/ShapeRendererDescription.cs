@@ -11,62 +11,62 @@ public readonly struct ShapeRendererDescription
     /// <summary>
     /// A description of the blend state, which controls how color values are blended into each color target.
     /// </summary>
-    public BlendStateDescription BlendState { get; init; }
+    public BlendStateDescription BlendState { get; }
 
     /// <summary>
     /// A description of the depth stencil state, which controls depth tests, writing, and comparisons.
     /// </summary>
-    public DepthStencilStateDescription DepthStencilState { get; init; }
+    public DepthStencilStateDescription DepthStencilState { get; }
 
     /// <summary>
     /// Controls which face will be culled.
     /// </summary>
-    public FaceCullMode FaceCullMode { get; init; }
+    public FaceCullMode FaceCullMode { get; }
 
     /// <summary>
     /// Controls the winding order used to determine the front face of primitives.
     /// </summary>
-    public FrontFace FrontFace { get; init; }
+    public FrontFace FrontFace { get; }
 
     /// <summary>
     /// Controls whether depth clipping is enabled.
     /// </summary>
-    public bool DepthClipEnabled { get; init; }
+    public bool DepthClipEnabled { get; }
 
     /// <summary>
     /// Controls whether the scissor test is enabled.
     /// </summary>
-    public bool ScissorTestEnabled { get; init; }
+    public bool ScissorTestEnabled { get; }
 
     /// <summary>
     /// Describes how the polygons for the destination <see cref="ShapeRenderer{TVertex}"/> will be rendered
     /// </summary>
-    public PolygonRenderMode RenderMode { get; init; }
+    public PolygonRenderMode RenderMode { get; }
 
     /// <summary>
     /// Describes the vertex buffer's structure for the given <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
-    public VertexLayoutDescription? VertexLayout { get; init; }
+    public VertexLayoutDescription? VertexLayout { get; }
 
     /// <summary>
     /// Describes the Vertex shader for the <see cref="ShapeRenderer{TVertex}"/> in Vulkan style GLSL or SPIR-V bytecode
     /// </summary>
-    public ShaderDescription? VertexShaderSpirv { get; init; }
+    public ShaderDescription? VertexShaderSpirv { get; }
 
     /// <summary>
     /// Describes the Fragment shader for the <see cref="ShapeRenderer{TVertex}"/> in Vulkan style GLSL or SPIR-V bytecode
     /// </summary>
-    public ShaderDescription? FragmentShaderSpirv { get; init; }
+    public ShaderDescription? FragmentShaderSpirv { get; }
 
     /// <summary>
     /// Represents the method that will be used to build an array of <see cref="ResourceSet"/>s for the <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
-    public ResourceSetBuilder? ResourceSetBuilder { get; init; }
+    public ResourceSetBuilder? ResourceSetBuilder { get; }
 
     /// <summary>
     /// Represents the method that will be used to build a set of <see cref="ResourceLayout"/>s for the <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
-    public ResourceLayoutBuilder? ResourceLayoutBuilder { get; init; }
+    public ResourceLayoutBuilder? ResourceLayoutBuilder { get; }
 
     /// <summary>
     /// Creates a new <see cref="ShapeRendererDescription"/>
