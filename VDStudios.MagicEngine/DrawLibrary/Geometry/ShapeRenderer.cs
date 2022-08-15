@@ -243,6 +243,14 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     private static readonly VertexLayoutDescription DefaultVector2Layout 
         = new(new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate));
 
+    /// <summary>
+    /// Intercepts the resource layouts and sets for this <see cref="ShapeRenderer"/>. Does nothing by default
+    /// </summary>
+    /// <remarks>
+    /// CAUTION: Make sure the behaviour is thoroughly documented before overriding this method.
+    /// </remarks>
+    protected virtual void InterceptResources(ref ResourceLayout[] layouts, ref ResourceSet[] sets) { }
+
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
     {
@@ -255,6 +263,11 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             layouts = Array.Empty<ResourceLayout>();
             sets = Array.Empty<ResourceSet>();
         }
+
+        if (layouts.Length != sets.Length)
+            throw new InvalidOperationException("The length of the ResourceLayout array and ResourceSet array must be equal -- Failure of this condition means that not all layouts and sets correspond");
+
+        InterceptResources(ref layouts, ref sets);
 
         if (layouts.Length != sets.Length)
             throw new InvalidOperationException("The length of the ResourceLayout array and ResourceSet array must be equal -- Failure of this condition means that not all layouts and sets correspond");
