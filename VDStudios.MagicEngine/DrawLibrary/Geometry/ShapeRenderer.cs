@@ -24,10 +24,10 @@ public class ShapeRenderer : ShapeRenderer<Vector2>
     /// <summary>
     /// Instantiates a new <see cref="ShapeRenderer"/>
     /// </summary>
-    /// <param name="polygons">The polygons to fill this list with</param>
+    /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="ShapeRenderer"/></param>
-    public ShapeRenderer(IEnumerable<ShapeDefinition> polygons, ShapeRendererDescription description)
-        : base(polygons, description, ShapeVertexGenerator.Default)
+    public ShapeRenderer(IEnumerable<ShapeDefinition> shapes, ShapeRendererDescription description)
+        : base(shapes, description, ShapeVertexGenerator.Default)
     { }
 }
 
@@ -61,13 +61,13 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <summary>
     /// Instantiates a new <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
-    /// <param name="polygons">The polygons to fill this list with</param>
+    /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="ShapeRenderer{TVertex}"/></param>
     /// <param name="generator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
-    public ShapeRenderer(IEnumerable<ShapeDefinition> polygons, ShapeRendererDescription description, IShapeRendererVertexGenerator<TVertex> generator)
+    public ShapeRenderer(IEnumerable<ShapeDefinition> shapes, ShapeRendererDescription description, IShapeRendererVertexGenerator<TVertex> generator)
     {
         Description = description;
-        _shapes = new(polygons);
+        _shapes = new(shapes);
 
         IndicesToUpdate.EnsureCapacity(_shapes.Capacity);
         for (int i = 0; i < _shapes.Count; i++)
@@ -213,17 +213,17 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     #region Resources
 
     /// <summary>
-    /// The shaders that will be used to render the polygons
+    /// The shaders that will be used to render the shapes
     /// </summary>
     protected Shader[] Shaders;
 
     /// <summary>
-    /// The Pipeline that will be used to render the polygons
+    /// The Pipeline that will be used to render the shapes
     /// </summary>
     protected Pipeline Pipeline;
 
     /// <summary>
-    /// The temporary buffer into which the polygons held in this object will be copied for drawing.
+    /// The temporary buffer into which the shapes held in this object will be copied for drawing.
     /// </summary>
     /// <remarks>
     /// It's best to leave this property alone, the code in <see cref="ShapeRenderer{TVertex}"/> will take care of it
@@ -287,31 +287,44 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         return ValueTask.CompletedTask;
     }
 
+    /// <summary>
+    /// Submits the commands necessary to render each individual shape on-screen
+    /// </summary>
+    /// <param name="shape">The data context specific of the shape being drawn</param>
+    /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
+    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
+    /// <param name="cl">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
+    /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
+    /// <param name="screenSizeBuffer">A <see cref="DeviceBuffer"/> filled with a <see cref="Vector4"/> containing <see cref="GraphicsManager.Window"/>'s size in the form of <c>Vector4(x: Width, y: Height, 0, 0)</c></param>
+
+    protected virtual void DrawShape(TimeSpan delta, ShapeDat shape, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
+    {
+        cl.SetVertexBuffer(0, shape.VertexBuffer);
+        cl.SetIndexBuffer(shape.IndexBuffer, IndexFormat.UInt16);
+        cl.SetPipeline(Pipeline);
+        for (uint index = 0; index < ResourceSets.Length; index++)
+            cl.SetGraphicsResourceSet(index, ResourceSets[index]);
+        cl.DrawIndexed(shape.CurrentIndexCount, 1, 0, 0, 0);
+    }
+
     /// <inheritdoc/>
     protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
     {
         QueryForChange();
         cl.SetFramebuffer(mainBuffer);
-        foreach(var pd in ShapeBufferList)
-        {
-            cl.SetVertexBuffer(0, pd.VertexBuffer);
-            cl.SetIndexBuffer(pd.IndexBuffer, IndexFormat.UInt16);
-            cl.SetPipeline(Pipeline);
-            for (uint index = 0; index < ResourceSets.Length; index++)
-                cl.SetGraphicsResourceSet(index, ResourceSets[index]);
-            cl.DrawIndexed(pd.CurrentIndexCount, 1, 0, 0, 0);
-        }
+        foreach (var pd in ShapeBufferList)
+            DrawShape(delta, pd, cl, device, mainBuffer, screenSizeBuffer);
 
         return ValueTask.CompletedTask;
     }
 
     /// <summary>
-    /// Updates the vertices of a given polygon in the renderer
+    /// Updates the vertices of a given shape in the renderer
     /// </summary>
     /// <remarks>
     /// CAUTION: Only override this method if you know what you're doing! By default, this method creates a stack-allocated span of <typeparamref name="TVertex"/> instances, generates the vertices using <see cref="TVertexGenerator"/>, and submits it to <see cref="ShapeDat.VertexBuffer"/>, adjusting its size as appropriate
     /// </remarks>
-    /// <param name="pol">A reference to the polygon's internal data context</param>
+    /// <param name="pol">A reference to the shape's internal data context</param>
     /// <param name="commandList"></param>
     protected virtual void UpdateVertices(ref ShapeDat pol, CommandList commandList)
     {
@@ -328,10 +341,10 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     }
 
     /// <summary>
-    /// Updates the indices of a given polygon in the renderer
+    /// Updates the indices of a given shape in the renderer
     /// </summary>
     /// <remarks>
-    /// CAUTION: Only override this method if you know what you're doing! By default, this method chooses the appropriate method to define the polygon's indices: Triangulation, uploading as-is, pre-triangulated buffers for specific types of polygon, etc.
+    /// CAUTION: Only override this method if you know what you're doing! By default, this method chooses the appropriate method to define the shape's indices: Triangulation, uploading as-is, pre-triangulated buffers for specific types of shape, etc.
     /// </remarks>
     /// <param name="pol"></param>
     /// <param name="commandList"></param>
@@ -354,7 +367,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
         // Triangulation
 
-        // For Convex polygons
+        // For Convex shapes
         // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single variable (count).
         // There's probably an easier way to compute this
 
@@ -437,23 +450,23 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     private readonly record struct UpdateDat(int Index, bool UpdateVertices, bool UpdateIndices, sbyte Added);
 
     /// <summary>
-    /// Represents polygon and device related data
+    /// Represents shape and device related data
     /// </summary>
     protected struct ShapeDat : IDisposable
     {
         internal bool remove = false;
         /// <summary>
-        /// The polygon in question
+        /// The shape in question
         /// </summary>
         public readonly ShapeDefinition Shape;
 
         /// <summary>
-        /// The buffer holding the vertex data for this polygon
+        /// The buffer holding the vertex data for this shape
         /// </summary>
         public DeviceBuffer VertexBuffer = null;
 
         /// <summary>
-        /// The buffer holding the index data for this polygon
+        /// The buffer holding the index data for this shape
         /// </summary>
         /// <remarks>
         /// This buffer will be null until <see cref="SetTriangulatedIndicesBufferSize"/> or <see cref="SetLineStripIndicesBufferSize"/> is called. This is guaranteed, by the methods of <see cref="ShapeRenderer{TVertex}"/>, to be the case before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> is called
@@ -461,7 +474,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         public DeviceBuffer? IndexBuffer = null;
 
         /// <summary>
-        /// The actual current count of indices for this polygon
+        /// The actual current count of indices for this shape
         /// </summary>
         public ushort CurrentIndexCount;
 
