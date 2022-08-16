@@ -90,7 +90,7 @@ public class GradientColorShow : DrawOperation
 
         _computeShader = factory.CreateFromSpirv(new(
             ShaderStages.Compute,
-            BuiltInResources.DefaultTextureComputeShader.GetUTF8Bytes(),
+            Compute.GetUTF8Bytes(),
             "main"
         ));
 
@@ -109,12 +109,12 @@ public class GradientColorShow : DrawOperation
         Shader[] shaders = factory.CreateFromSpirv(
             new ShaderDescription(
                     ShaderStages.Vertex,
-                    BuiltInResources.DefaultTextureVertexShader.GetUTF8Bytes(),
+                    Vertex.GetUTF8Bytes(),
                     "main"
                 ),
             new ShaderDescription(
                     ShaderStages.Fragment,
-                    BuiltInResources.DefaultTextureFragmentShader.GetUTF8Bytes(),
+                    Fragment.GetUTF8Bytes(),
                     "main"
                 )
             );
@@ -200,4 +200,60 @@ public class GradientColorShow : DrawOperation
 
         return ValueTask.CompletedTask;
     }
+
+    private const string Compute = @"#version 450
+
+layout(set = 0, binding = 1) uniform ScreenSizeBuffer
+{
+    float ScreenWidth;
+    float ScreenHeight;
+    vec2 Padding_;
+};
+
+layout(set = 0, binding = 2) uniform ShiftBuffer
+{
+    float RShift;
+    float GShift;
+    float BShift;
+    float Padding1_;
+};
+
+layout(set = 0, binding = 0, rgba32f) uniform image2D Tex;
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+void main()
+{
+    float x = (gl_GlobalInvocationID.x + RShift);
+    float y = (gl_GlobalInvocationID.y + GShift);
+
+    imageStore(Tex, ivec2(gl_GlobalInvocationID.xy), vec4(x / ScreenWidth, y / ScreenHeight, BShift, 1));
+}";
+
+    private const string Vertex = @"#version 450
+
+layout (location = 0) in vec2 Position;
+layout (location = 1) in vec2 TexCoords;
+layout (location = 0) out vec2 fsin_TexCoords;
+
+void main()
+{
+    fsin_TexCoords = TexCoords;
+    gl_Position = vec4(Position, 0, 1);
+}";
+
+    private const string Fragment = @"#version 450
+
+layout(set = 0, binding = 0) uniform texture2D Tex;
+layout(set = 0, binding = 1) uniform texture2D Tex11;
+layout(set = 0, binding = 2) uniform texture2D Tex22;
+layout(set = 0, binding = 3) uniform sampler SS;
+
+layout(location = 0) in vec2 fsin_TexCoords;
+layout(location = 0) out vec4 OutColor;
+
+void main()
+{
+    OutColor = texture(sampler2D(Tex, SS), fsin_TexCoords) + texture(sampler2D(Tex11, SS), fsin_TexCoords) * .01 + texture(sampler2D(Tex22, SS), fsin_TexCoords) * .01;
+}";
 }

@@ -66,7 +66,7 @@ namespace VDStudios.MagicEngine.Properties {
         ///layout(location = 0) out vec4 outColor;
         ///
         ///void main() {
-        ///    outColor = vec4(1.0, 0.0, 0.0, 1.0);
+        ///    outColor = vec4(1.0, 50.0, 1.0, 0.5);
         ///}.
         /// </summary>
         public static string DefaultPolygonFragmentShader {
@@ -93,65 +93,12 @@ namespace VDStudios.MagicEngine.Properties {
         /// <summary>
         ///   Looks up a localized string similar to #version 450
         ///
-        ///layout(set = 0, binding = 1) uniform ScreenSizeBuffer
-        ///{
-        ///    float ScreenWidth;
-        ///    float ScreenHeight;
-        ///    vec2 Padding_;
-        ///};
-        ///
-        ///layout(set = 0, binding = 2) uniform ShiftBuffer
-        ///{
-        ///    float RShift;
-        ///    float GShift;
-        ///    float BShift;
-        ///    float Padding1_;
-        ///};
-        ///
-        ///layout(set = 0, binding = 0, rgba32f) uniform image2D Tex;
-        ///
-        ///layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
-        ///
-        ///void main()
-        ///{
-        ///    float x = (gl_GlobalInvocationID.x + RShift);
-        ///    float y = (gl_GlobalIn [rest of string was truncated]&quot;;.
-        /// </summary>
-        public static string DefaultTextureComputeShader {
-            get {
-                return ResourceManager.GetString("DefaultTextureComputeShader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to #version 450
-        ///
-        ///layout(set = 0, binding = 0) uniform texture2D Tex;
-        ///layout(set = 0, binding = 1) uniform texture2D Tex11;
-        ///layout(set = 0, binding = 2) uniform texture2D Tex22;
-        ///layout(set = 0, binding = 3) uniform sampler SS;
-        ///
-        ///layout(location = 0) in vec2 fsin_TexCoords;
-        ///layout(location = 0) out vec4 OutColor;
-        ///
-        ///void main()
-        ///{
-        ///    OutColor = texture(sampler2D(Tex, SS), fsin_TexCoords) + texture(sampler2D(Tex11, SS), fsin_TexCoords) * .01 + texture(sampler2D(Tex22, SS), fsin_TexCoords) * .01;
-        ///}.
-        /// </summary>
-        public static string DefaultTextureFragmentShader {
-            get {
-                return ResourceManager.GetString("DefaultTextureFragmentShader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to #version 450
-        ///
         ///layout(location = 0) out vec4 outColor;
+        ///layout(set = 0, binding = 0) uniform sampler2D sampler;
+        ///layout(set = 0, binding = 1) uniform texture2D tex;
         ///
         ///void main() {
-        ///    outColor = vec4(1.0, 0.0, 0.0, 1.0);
+        ///    outColor = texture(tex, sampler);
         ///}.
         /// </summary>
         public static string DefaultTexturePolygonFragmentShader {
@@ -172,25 +119,6 @@ namespace VDStudios.MagicEngine.Properties {
         public static string DefaultTexturePolygonVertexShader {
             get {
                 return ResourceManager.GetString("DefaultTexturePolygonVertexShader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to #version 450
-        ///
-        ///layout (location = 0) in vec2 Position;
-        ///layout (location = 1) in vec2 TexCoords;
-        ///layout (location = 0) out vec2 fsin_TexCoords;
-        ///
-        ///void main()
-        ///{
-        ///    fsin_TexCoords = TexCoords;
-        ///    gl_Position = vec4(Position, 0, 1);
-        ///}.
-        /// </summary>
-        public static string DefaultTextureVertexShader {
-            get {
-                return ResourceManager.GetString("DefaultTextureVertexShader", resourceCulture);
             }
         }
     }
