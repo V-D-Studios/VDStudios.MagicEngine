@@ -6,62 +6,62 @@ namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 /// <summary>
 /// Represents a description to configure a <see cref="ShapeRenderer{TVertex}"/>
 /// </summary>
-public readonly struct ShapeRendererDescription
+public struct ShapeRendererDescription
 {
     /// <summary>
     /// A description of the blend state, which controls how color values are blended into each color target.
     /// </summary>
-    public BlendStateDescription BlendState { get; }
+    public BlendStateDescription BlendState;
 
     /// <summary>
     /// A description of the depth stencil state, which controls depth tests, writing, and comparisons.
     /// </summary>
-    public DepthStencilStateDescription DepthStencilState { get; }
+    public DepthStencilStateDescription DepthStencilState;
 
     /// <summary>
     /// Controls which face will be culled.
     /// </summary>
-    public FaceCullMode FaceCullMode { get; }
+    public FaceCullMode FaceCullMode;
 
     /// <summary>
     /// Controls the winding order used to determine the front face of primitives.
     /// </summary>
-    public FrontFace FrontFace { get; }
+    public FrontFace FrontFace;
 
     /// <summary>
     /// Controls whether depth clipping is enabled.
     /// </summary>
-    public bool DepthClipEnabled { get; }
+    public bool DepthClipEnabled;
 
     /// <summary>
     /// Controls whether the scissor test is enabled.
     /// </summary>
-    public bool ScissorTestEnabled { get; }
+    public bool ScissorTestEnabled;
 
     /// <summary>
     /// Describes how the polygons for the destination <see cref="ShapeRenderer{TVertex}"/> will be rendered
     /// </summary>
-    public PolygonRenderMode RenderMode { get; }
+    public PolygonRenderMode RenderMode;
 
     /// <summary>
     /// Describes the vertex buffer's structure for the given <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
-    public VertexLayoutDescription? VertexLayout { get; }
+    public VertexLayoutDescription? VertexLayout;
 
     /// <summary>
     /// Describes the Vertex shader for the <see cref="ShapeRenderer{TVertex}"/> in Vulkan style GLSL or SPIR-V bytecode
     /// </summary>
-    public ShaderDescription? VertexShaderSpirv { get; }
+    public ShaderDescription? VertexShaderSpirv;
 
     /// <summary>
     /// Describes the Fragment shader for the <see cref="ShapeRenderer{TVertex}"/> in Vulkan style GLSL or SPIR-V bytecode
     /// </summary>
-    public ShaderDescription? FragmentShaderSpirv { get; }
+    public ShaderDescription? FragmentShaderSpirv;
 
     /// <summary>
     /// Represents the method that will be used to build an array of <see cref="ResourceSet"/>s and <see cref="ResourceLayout"/>s for the <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
-    public ResourceLayoutAndSetBuilder? ResourceLayoutAndSetBuilder { get; }
+    public ResourceLayoutAndSetBuilder? ResourceLayoutAndSetBuilder;
 
     /// <summary>
     /// Creates a new <see cref="ShapeRendererDescription"/>

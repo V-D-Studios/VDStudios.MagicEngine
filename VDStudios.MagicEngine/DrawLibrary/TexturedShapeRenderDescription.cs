@@ -6,15 +6,15 @@ namespace VDStudios.MagicEngine.DrawLibrary;
 /// <summary>
 /// Represents a description to configure
 /// </summary>
-public readonly struct TexturedShapeRenderDescription
+public struct TexturedShapeRenderDescription
 {
     /// <summary>
     /// The Description for the backing <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
-    public ShapeRendererDescription ShapeRenderer { get; }
+    public ShapeRendererDescription ShapeRenderer;
 
     /// <summary>
     /// The description for the Sampler
     /// </summary>
-    public SamplerDescription Sampler { get; }
+    public SamplerDescription Sampler;
 }
