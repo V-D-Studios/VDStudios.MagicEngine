@@ -358,15 +358,17 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     protected virtual void UpdateVertices(ref ShapeDat pol, CommandList commandList)
     {
         var vc = pol.Shape.Count;
+        Span<TVertex> vertexBuffer = TVertexGenerator.QueryAllocCPUBuffer(pol.Shape) ? stackalloc TVertex[vc] : default;
+
         var vc_bytes = (uint)Unsafe.SizeOf<TVertex>() * (uint)vc;
 
-        Span<TVertex> vertexBuffer = stackalloc TVertex[vc];
-
-        for (int ind = 0; ind < pol.Shape.Count; ind++)
-            vertexBuffer[ind] = TVertexGenerator.Generate(ind, pol.Shape[ind], pol.Shape);
         if (pol.VertexBuffer is null || vc_bytes > pol.VertexBuffer.SizeInBytes)  
             ShapeDat.SetVertexBufferSize(ref pol, Device!.ResourceFactory);
-        commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer);
+
+        TVertexGenerator.Generate(pol.Shape, vertexBuffer, commandList, pol.VertexBuffer, out bool vertexBufferAlreadyUpdated);
+
+        if (!vertexBufferAlreadyUpdated)
+            commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer);
     }
 
     /// <summary>
