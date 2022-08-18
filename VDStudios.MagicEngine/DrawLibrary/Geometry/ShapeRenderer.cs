@@ -55,7 +55,10 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     }
     private IShapeRendererVertexGenerator<TVertex> _gen;
 
-    private readonly ShapeRendererDescription Description;
+    /// <summary>
+    /// Be careful when modifying this -- And know that most changes won't have any effect after <see cref="CreateResources(GraphicsDevice, ResourceFactory)"/> is called
+    /// </summary>
+    protected ShapeRendererDescription ShapeRendererDescription;
     private ResourceSet[] ResourceSets;
 
     /// <summary>
@@ -66,7 +69,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <param name="generator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
     public ShapeRenderer(IEnumerable<ShapeDefinition> shapes, ShapeRendererDescription description, IShapeRendererVertexGenerator<TVertex> generator)
     {
-        Description = description;
+        ShapeRendererDescription = description;
         _shapes = new(shapes);
 
         IndicesToUpdate.EnsureCapacity(_shapes.Capacity);
@@ -256,8 +259,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     {
         ResourceLayout[] layouts;
         ResourceSet[] sets;
-        if (Description.ResourceLayoutAndSetBuilder is not null)
-            Description.ResourceLayoutAndSetBuilder.Invoke(Manager!, device, factory, out layouts, out sets);
+        if (ShapeRendererDescription.ResourceLayoutAndSetBuilder is not null)
+            ShapeRendererDescription.ResourceLayoutAndSetBuilder.Invoke(Manager!, device, factory, out layouts, out sets);
         else
         {
             layouts = Array.Empty<ResourceLayout>();
@@ -273,34 +276,34 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             throw new InvalidOperationException("The length of the ResourceLayout array and ResourceSet array must be equal -- Failure of this condition means that not all layouts and sets correspond");
 
         Shaders = factory.CreateFromSpirv(
-            Description.VertexShaderSpirv ?? vertexDefault,
-            Description.FragmentShaderSpirv ?? fragmnDefault
+            ShapeRendererDescription.VertexShaderSpirv ?? vertexDefault,
+            ShapeRendererDescription.FragmentShaderSpirv ?? fragmnDefault
         );
 
         Pipeline = factory.CreateGraphicsPipeline(new(
-            Description.BlendState,
-            Description.DepthStencilState,
+            ShapeRendererDescription.BlendState,
+            ShapeRendererDescription.DepthStencilState,
             new(
-                Description.FaceCullMode,
-                Description.RenderMode switch
+                ShapeRendererDescription.FaceCullMode,
+                ShapeRendererDescription.RenderMode switch
                 {
                     PolygonRenderMode.LineStripWireframe or PolygonRenderMode.TriangulatedWireframe => PolygonFillMode.Wireframe,
                     PolygonRenderMode.TriangulatedFill => PolygonFillMode.Solid,
-                    _ => throw new InvalidOperationException($"Unknown PolygonRenderMode: {Description.RenderMode}")
+                    _ => throw new InvalidOperationException($"Unknown PolygonRenderMode: {ShapeRendererDescription.RenderMode}")
                 },
-                Description.FrontFace,
-                Description.DepthClipEnabled,
-                Description.ScissorTestEnabled
+                ShapeRendererDescription.FrontFace,
+                ShapeRendererDescription.DepthClipEnabled,
+                ShapeRendererDescription.ScissorTestEnabled
             ),
-            Description.RenderMode switch
+            ShapeRendererDescription.RenderMode switch
             {
                 PolygonRenderMode.TriangulatedFill or PolygonRenderMode.TriangulatedWireframe => PrimitiveTopology.TriangleStrip,
                 PolygonRenderMode.LineStripWireframe => PrimitiveTopology.LineStrip,
-                _ => throw new InvalidOperationException($"Unknown PolygonRenderMode: {Description.RenderMode}")
+                _ => throw new InvalidOperationException($"Unknown PolygonRenderMode: {ShapeRendererDescription.RenderMode}")
             },
             new ShaderSetDescription(new VertexLayoutDescription[]
             {
-                Description.VertexLayout ?? DefaultVector2Layout
+                ShapeRendererDescription.VertexLayout ?? DefaultVector2Layout
             }, Shaders),
             layouts,
             device.SwapchainFramebuffer.OutputDescription
@@ -380,7 +383,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         var count = pol.Shape.Count;
 
         int indexCount = pol.LineStripIndexCount;
-        if (count <= 3 || Description.RenderMode is PolygonRenderMode.LineStripWireframe)
+        if (count <= 3 || ShapeRendererDescription.RenderMode is PolygonRenderMode.LineStripWireframe)
         {
             Span<ushort> indexBuffer = stackalloc ushort[indexCount];
             for (int ind = 0; ind < count; ind++)
