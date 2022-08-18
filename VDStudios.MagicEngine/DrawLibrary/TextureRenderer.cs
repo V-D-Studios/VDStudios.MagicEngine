@@ -156,11 +156,10 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
         return base.CreateResources(device, factory);
     }
 
-    /// <inheritdoc/>
-    protected override ValueTask Draw(TimeSpan delta, CommandList commandList, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
-    {
-        throw new NotImplementedException();
-    }
+    ///// <inheritdoc/>
+    //protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
+    //{
+    //}
 
     #endregion
 }

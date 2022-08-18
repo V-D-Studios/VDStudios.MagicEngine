@@ -36,7 +36,18 @@ public class ShapeRenderer : ShapeRenderer<Vector2>
 /// </summary>
 public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition> where TVertex : unmanaged
 {
+    /// <summary>
+    /// This list is always updated instantaneously, and represents the real-time state of the renderer before it's properly updated for the next draw sequence
+    /// </summary>
     private readonly List<ShapeDefinition> _shapes;
+
+    /// <summary>
+    /// This enumerable is always updated instantaneously, and represents the real-time state of the renderer before it's properly updated for the next draw sequence
+    /// </summary>
+    /// <remarks>
+    /// Don't mutate this property -- Use <see cref="ShapeRenderer{TVertex}"/>'s methods instead. This property is meant exclusively to be passed to a <see cref="IShapeRendererVertexGenerator{TVertex}"/>
+    /// </remarks>
+    protected IEnumerable<ShapeDefinition> Shapes => _shapes;
     
     /// <summary>
     /// The Vertex Generator for this <see cref="ShapeRenderer{TVertex}"/>
@@ -358,14 +369,14 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     protected virtual void UpdateVertices(ref ShapeDat pol, CommandList commandList)
     {
         var vc = pol.Shape.Count;
-        Span<TVertex> vertexBuffer = TVertexGenerator.QueryAllocCPUBuffer(pol.Shape) ? stackalloc TVertex[vc] : default;
+        Span<TVertex> vertexBuffer = TVertexGenerator.QueryAllocCPUBuffer(pol.Shape, Shapes) ? stackalloc TVertex[vc] : default;
 
         var vc_bytes = (uint)Unsafe.SizeOf<TVertex>() * (uint)vc;
 
         if (pol.VertexBuffer is null || vc_bytes > pol.VertexBuffer.SizeInBytes)  
             ShapeDat.SetVertexBufferSize(ref pol, Device!.ResourceFactory);
 
-        TVertexGenerator.Generate(pol.Shape, vertexBuffer, commandList, pol.VertexBuffer, out bool vertexBufferAlreadyUpdated);
+        TVertexGenerator.Generate(pol.Shape, Shapes, vertexBuffer, commandList, pol.VertexBuffer, out bool vertexBufferAlreadyUpdated);
 
         if (!vertexBufferAlreadyUpdated)
             commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer);

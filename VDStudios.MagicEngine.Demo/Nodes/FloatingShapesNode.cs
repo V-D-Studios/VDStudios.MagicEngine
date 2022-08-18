@@ -28,7 +28,7 @@ public class FloatingShapesNode : Node, IDrawableNode
             new(.2f, .2f, 1f, 1f),
         };
 
-        public ColorVertex Generate(int index, Vector2 shapeVertex, ShapeDefinition shape)
+        private static ColorVertex Generate(int index, Vector2 shapeVertex, ShapeDefinition shape)
         {
             if (shape.Count is 3)
                 goto Preset;
@@ -44,6 +44,18 @@ public class FloatingShapesNode : Node, IDrawableNode
 
         Preset:
             return new() { Position = shapeVertex, Color = Colors[index] };
+        }
+
+        public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<ColorVertex> vertices, CommandList commandList, DeviceBuffer vertexBuffer, out bool useDeviceBuffer)
+        {
+            Generate(shape, allShapes, vertices);
+            useDeviceBuffer = false;
+        }
+
+        public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<ColorVertex> vertices)
+        {
+            for (int i = 0; i < vertices.Length; i++) 
+                vertices[i] = Generate(i, shape[i], shape);
         }
     }
 
