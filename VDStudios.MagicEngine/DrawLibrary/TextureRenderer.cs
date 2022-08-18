@@ -109,10 +109,10 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// <param name="factory"></param>
     protected override void InterceptResources(ref ResourceLayout[] layouts, ref ResourceSet[] sets, ResourceFactory factory)
     {
-        var nl = new ResourceLayout[layouts.Length + 2];
-        var ns = new ResourceSet[sets.Length + 2];
-        layouts.CopyTo(nl, 2);
-        sets.CopyTo(ns, 2);
+        var nl = new ResourceLayout[layouts.Length + 1];
+        var ns = new ResourceSet[sets.Length + 1];
+        layouts.CopyTo(nl, 1);
+        sets.CopyTo(ns, 1);
 
         var layoutDesc = new ResourceLayoutDescription(
             new ResourceLayoutElementDescription(
