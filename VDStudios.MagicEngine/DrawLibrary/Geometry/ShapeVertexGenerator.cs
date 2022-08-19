@@ -13,16 +13,10 @@ namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 public sealed class ShapeVertexGenerator : IShapeRendererVertexGenerator<Vector2>
 {
     /// <inheritdoc/>
-    public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> shapes, Span<Vector2> vertices)
+    public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> shapes, Span<Vector2> vertices, CommandList commandList, DeviceBuffer vertexBuffer, out bool useDeviceBuffer, ref object? context)
     {
         for (int i = 0; i < vertices.Length; i++)
             vertices[i] = shape[i];
-    }
-
-    /// <inheritdoc/>
-    public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> shapes, Span<Vector2> vertices, CommandList commandList, DeviceBuffer vertexBuffer, out bool useDeviceBuffer)
-    {
-        Generate(shape, shapes, vertices);
         useDeviceBuffer = false;
     }
 

@@ -46,16 +46,11 @@ public class FloatingShapesNode : Node, IDrawableNode
             return new() { Position = shapeVertex, Color = Colors[index] };
         }
 
-        public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<ColorVertex> vertices, CommandList commandList, DeviceBuffer vertexBuffer, out bool useDeviceBuffer)
+        public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<ColorVertex> vertices, CommandList commandList, DeviceBuffer vertexBuffer, out bool useDeviceBuffer, ref object? context)
         {
-            Generate(shape, allShapes, vertices);
-            useDeviceBuffer = false;
-        }
-
-        public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<ColorVertex> vertices)
-        {
-            for (int i = 0; i < vertices.Length; i++) 
+            for (int i = 0; i < vertices.Length; i++)
                 vertices[i] = Generate(i, shape[i], shape);
+            useDeviceBuffer = false;
         }
     }
 

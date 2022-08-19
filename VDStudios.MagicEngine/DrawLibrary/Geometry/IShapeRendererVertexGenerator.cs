@@ -10,7 +10,7 @@ namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 public interface IShapeRendererVertexGenerator<TVertex> where TVertex : unmanaged
 {
     /// <summary>
-    /// Queries this generator to know if a CPU buffer should be allocated on the stack. If false, only the <see cref="DeviceBuffer"/> passed to <see cref="Generate(ShapeDefinition, IEnumerable{ShapeDefinition}, Span{TVertex}, CommandList, DeviceBuffer, out bool)"/> will be usable, while the <see cref="Span{T}"/> will have a length of 0
+    /// Queries this generator to know if a CPU buffer should be allocated on the stack. If false, only the <see cref="DeviceBuffer"/> passed to <see cref="Generate(ShapeDefinition, IEnumerable{ShapeDefinition}, Span{TVertex}, CommandList, DeviceBuffer, out bool, ref object?)"/> will be usable, while the <see cref="Span{T}"/> will have a length of 0
     /// </summary>
     /// <param name="shape">The <see cref="ShapeDefinition"/> the vertices will be generated for</param>
     /// <param name="allShapes">All the shapes that are currently owned by the <see cref="ShapeRenderer{TVertex}"/></param>
@@ -28,16 +28,6 @@ public interface IShapeRendererVertexGenerator<TVertex> where TVertex : unmanage
     /// <param name="commandList">The command list in the context of the <see cref="ShapeRenderer{TVertex}"/> that owns <paramref name="shape"/></param>
     /// <param name="allShapes">All the shapes that are currently owned by the <see cref="ShapeRenderer{TVertex}"/></param>
     /// <param name="useDeviceBuffer">Set to <c>true</c> if <paramref name="vertexBuffer"/> was filled in this method and should be used as-is, <c>false</c> if <paramref name="vertices"/> was filled instead and needs to be copied over</param>
-    public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<TVertex> vertices, CommandList commandList, DeviceBuffer vertexBuffer, out bool useDeviceBuffer);
-
-    /// <summary>
-    /// This method is called when the owning <see cref="ShapeRenderer{TVertex}"/> is requesting new <typeparamref name="TVertex"/> data, but should be strictly buffered in the CPU. This is most commonly called by a generator in which this generator is nested
-    /// </summary>
-    /// <remarks>
-    /// Most commonly, this means the VertexBuffer for a given shape is being regenerated. No heavy work should be done here -- Let transformations and such happen in the GPU through shaders
-    /// </remarks>
-    /// <param name="shape">The shape the vertex is being generated for</param>
-    /// <param name="allShapes">All the shapes that are currently owned by the <see cref="ShapeRenderer{TVertex}"/></param>
-    /// <param name="vertices">The span that will contain the vertices that are generated on the CPU. In this method, <see cref="QueryAllocCPUBuffer(ShapeDefinition, IEnumerable{ShapeDefinition})"/> is ignored and <paramref name="vertices"/> is always allocated</param>
-    public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<TVertex> vertices);
+    /// <param name="context">An optional context parameter. The same reference will be used for all the calls relating to a <see cref="ShapeRenderer{TVertex}"/> in a single vertex regeneration</param>
+    public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<TVertex> vertices, CommandList commandList, DeviceBuffer vertexBuffer, out bool useDeviceBuffer, ref object? context);
 }
