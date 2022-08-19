@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using SDL2.NET.Input;
+using System.Numerics;
 using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
 using Veldrid;
@@ -10,11 +11,18 @@ namespace VDStudios.MagicEngine.DrawLibrary;
 /// </summary>
 public class TextureVertexGeneratorFill : IShapeRendererVertexGenerator<TextureVertex<Vector2>> 
 {
+    /// <inheritdoc/>
     public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<TextureVertex<Vector2>> vertices, CommandList commandList, DeviceBuffer vertexBuffer, out bool useDeviceBuffer, ref object? context)
     {
-
+        Vector2 distant = default;
+        for (int i = 0; i < vertices.Length; i++)
+            if (shape[i].Length() > distant.Length())
+                distant = Vector2.Abs(shape[i]);
+        Matrix3x2 trans = Matrix3x2.CreateScale(1 / distant.X, 1 / distant.Y);
 
         for (int i = 0; i < vertices.Length; i++)
-            vertices[i] = new();
+            vertices[i] = new(Vector2.Transform(shape[i], trans), shape[i]);
+
+        useDeviceBuffer = false;
     }
 }
