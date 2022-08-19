@@ -26,6 +26,17 @@ public struct TextureVertex<TVertex> where TVertex : unmanaged
     /// The vertex data encapsulated in this <see cref="TexturedShapeRenderer{TVertex}"/>
     /// </summary>
     public TVertex Vertex { get; }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="TextureVertex{TVertex}"/>
+    /// </summary>
+    /// <param name="textureCoordinate">The texture coordinate the vertex represents</param>
+    /// <param name="vertex">The actual vertex data</param>
+    public TextureVertex(Vector2 textureCoordinate, TVertex vertex)
+    {
+        TextureCoordinate = textureCoordinate;
+        Vertex = vertex;
+    }
 }
 
 /// <summary>

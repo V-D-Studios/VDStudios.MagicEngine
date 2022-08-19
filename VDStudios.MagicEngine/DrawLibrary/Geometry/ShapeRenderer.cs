@@ -366,17 +366,20 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// </remarks>
     /// <param name="pol">A reference to the shape's internal data context</param>
     /// <param name="commandList"></param>
-    protected virtual void UpdateVertices(ref ShapeDat pol, CommandList commandList)
+    /// <param name="gen">The generator that will be used by this method. Prevents <see cref="TVertexGenerator"/> from being changed while the vertices are being generated</param>
+    /// <param name="index">The index of the shape in relation to the amount of shapes whose vertices are being regenerated</param>
+    /// <param name="generatorContext">Represents a handle to the <see cref="IShapeRendererVertexGenerator{TVertex}"/>'s context for the current vertex update batch.</param>
+    protected virtual void UpdateVertices(ref ShapeDat pol, CommandList commandList, int index, IShapeRendererVertexGenerator<TVertex> gen, ref object? generatorContext)
     {
         var vc = pol.Shape.Count;
-        Span<TVertex> vertexBuffer = TVertexGenerator.QueryAllocCPUBuffer(pol.Shape, Shapes) ? stackalloc TVertex[vc] : default;
+        Span<TVertex> vertexBuffer = gen.QueryAllocCPUBuffer(pol.Shape, Shapes, ref generatorContext) ? stackalloc TVertex[vc] : default;
 
         var vc_bytes = (uint)Unsafe.SizeOf<TVertex>() * (uint)vc;
 
         if (pol.VertexBuffer is null || vc_bytes > pol.VertexBuffer.SizeInBytes)  
             ShapeDat.SetVertexBufferSize(ref pol, Device!.ResourceFactory);
 
-        TVertexGenerator.Generate(pol.Shape, Shapes, vertexBuffer, commandList, pol.VertexBuffer, out bool vertexBufferAlreadyUpdated);
+        gen.Generate(pol.Shape, Shapes, vertexBuffer, commandList, pol.VertexBuffer, index, out bool vertexBufferAlreadyUpdated, ref generatorContext);
 
         if (!vertexBufferAlreadyUpdated)
             commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer);
@@ -451,30 +454,38 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     {
         lock (_shapes)
         {
-            while (IndicesToUpdate.TryDequeue(out var dat))
+            if (IndicesToUpdate.TryDequeue(out var dat))
             {
-                switch (dat.Added)
+                var gen = TVertexGenerator;
+                object? genContext = null;
+                int ind = 0;
+                gen.Start(this, Shapes, IndicesToUpdate.Count, ref genContext);
+                do
                 {
-                    case < 0:
-                        var pd = ShapeBufferList[dat.Index];
-                        pd.Dispose();
-                        continue;
-                    case 0:
-                        var polybuffer = CollectionsMarshal.AsSpan(ShapeBufferList);
-                        if (dat.UpdateVertices)
-                            UpdateVertices(ref polybuffer[dat.Index], commandList);
-                        if (dat.UpdateIndices)
-                            UpdateIndices(ref polybuffer[dat.Index], commandList);
-                        ShapeDat.UpdateLastVer(ref polybuffer[dat.Index]);
-                        continue;
-                    case > 0:
-                        var np = new ShapeDat(_shapes[dat.Index], device.ResourceFactory);
-                        UpdateVertices(ref np, commandList);
-                        UpdateIndices(ref np, commandList);
-                        ShapeBufferList.Insert(dat.Index, np);
-                        ShapeDat.UpdateLastVer(ref np);
-                        continue;
-                }
+                    switch (dat.Added)
+                    {
+                        case < 0:
+                            var pd = ShapeBufferList[dat.Index];
+                            pd.Dispose();
+                            continue;
+                        case 0:
+                            var polybuffer = CollectionsMarshal.AsSpan(ShapeBufferList);
+                            if (dat.UpdateVertices)
+                                UpdateVertices(ref polybuffer[dat.Index], commandList, ind++, gen, ref genContext);
+                            if (dat.UpdateIndices)
+                                UpdateIndices(ref polybuffer[dat.Index], commandList);
+                            ShapeDat.UpdateLastVer(ref polybuffer[dat.Index]);
+                            continue;
+                        case > 0:
+                            var np = new ShapeDat(_shapes[dat.Index], device.ResourceFactory);
+                            UpdateVertices(ref np, commandList, ind++, gen, ref genContext);
+                            UpdateIndices(ref np, commandList);
+                            ShapeBufferList.Insert(dat.Index, np);
+                            ShapeDat.UpdateLastVer(ref np);
+                            continue;
+                    }
+                } while (IndicesToUpdate.TryDequeue(out dat));
+                gen.Stop(this, ref genContext);
             }
         }
 

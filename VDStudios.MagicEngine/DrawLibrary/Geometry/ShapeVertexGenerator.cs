@@ -12,16 +12,22 @@ namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 /// </remarks>
 public sealed class ShapeVertexGenerator : IShapeRendererVertexGenerator<Vector2>
 {
+    /// <summary>
+    /// The default <see cref="ShapeVertexGenerator"/> for <see cref="ShapeRenderer"/> objects that don't need any aditional data for their vertices
+    /// </summary>
+    public static IShapeRendererVertexGenerator<Vector2> Default { get; } = new ShapeVertexGenerator();
+
     /// <inheritdoc/>
-    public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> shapes, Span<Vector2> vertices, CommandList commandList, DeviceBuffer vertexBuffer, out bool useDeviceBuffer, ref object? context)
+    public void Start(ShapeRenderer<Vector2> renderer, IEnumerable<ShapeDefinition> allShapes, int regenCount, ref object? context) { }
+
+    /// <inheritdoc/>
+    public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<Vector2> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, out bool useDeviceBuffer, ref object? context)
     {
         for (int i = 0; i < vertices.Length; i++)
             vertices[i] = shape[i];
         useDeviceBuffer = false;
     }
 
-    /// <summary>
-    /// The default <see cref="ShapeVertexGenerator"/> for <see cref="ShapeRenderer"/> objects that don't need any aditional data for their vertices
-    /// </summary>
-    public static IShapeRendererVertexGenerator<Vector2> Default { get; } = new ShapeVertexGenerator();
+    /// <inheritdoc/>
+    public void Stop(ShapeRenderer<Vector2> renderer, ref object? context) { }
 }
