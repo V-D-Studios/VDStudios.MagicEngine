@@ -546,6 +546,10 @@ public class Game : SDLApplication<Game>
 
             scene = CurrentScene;
 
+            if (frameCount % 100 == 0)
+                foreach (var manager in ActiveGraphicsManagers)
+                    await manager.AwaitIfFaulted();
+
             await scene.Update(delta).ConfigureAwait(false);
             await scene.RegisterDrawOperations();
 

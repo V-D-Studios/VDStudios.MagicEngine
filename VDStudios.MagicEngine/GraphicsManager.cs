@@ -451,6 +451,12 @@ public class GraphicsManager : GameObject, IDisposable
 
     private Task graphics_thread;
 
+    internal async ValueTask AwaitIfFaulted()
+    {
+        if (graphics_thread.IsFaulted)
+            await graphics_thread;
+    }
+
     #region Public Properties
 
     /// <summary>
