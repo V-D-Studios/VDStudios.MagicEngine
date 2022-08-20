@@ -5,10 +5,14 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine.Demo.Properties;
+using VDStudios.MagicEngine.DrawLibrary;
 using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
+using VDStudios.MagicEngine.Properties;
 using Veldrid;
+using Veldrid.ImageSharp;
 
 namespace VDStudios.MagicEngine.Demo.Nodes;
 public class FloatingShapesNode : Node, IDrawableNode
@@ -145,6 +149,51 @@ public class FloatingShapesNode : Node, IDrawableNode
                 }
             ),
             new ColorVertexGenerator())
+        );
+
+        var robstrm = new MemoryStream(Assets.robin);
+        var img = new ImageSharpTexture(robstrm);
+        DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
+            img,
+            new ShapeDefinition[]
+            {
+                PolygonDefinition.Rectangle(0,0,.4f,.4f)
+            },
+            new(
+                new(
+                    BlendStateDescription.SingleAlphaBlend,
+                    DepthStencilStateDescription.DepthOnlyLessEqual,
+                    FaceCullMode.Front,
+                    FrontFace.Clockwise,
+                    true,
+                    false,
+                    PolygonRenderMode.TriangulatedFill,
+                    new VertexLayoutDescription(
+                        new VertexElementDescription("TexturePosition", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
+                        new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate)
+                    ),
+                    null,
+                    null,
+                    static (GraphicsManager m, GraphicsDevice d, ResourceFactory f, out ResourceLayout[] l, out ResourceSet[] s) =>
+                    {
+                        l = new ResourceLayout[] { m.WindowAspectTransformLayout };
+                        s = new ResourceSet[] { m.WindowAspectTransformSet };
+                    }
+                ),
+                new(
+                    SamplerAddressMode.Clamp,
+                    SamplerAddressMode.Clamp,
+                    SamplerAddressMode.Clamp,
+                    SamplerFilter.MinLinear_MagLinear_MipLinear,
+                    ComparisonKind.LessEqual,
+                    0,
+                    1,
+                    1,
+                    1,
+                    SamplerBorderColor.TransparentBlack
+                )
+            ),
+            new TextureVertexGeneratorFill())
         );
     }
 
