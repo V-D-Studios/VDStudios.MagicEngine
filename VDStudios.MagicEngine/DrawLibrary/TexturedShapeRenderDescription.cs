@@ -17,4 +17,15 @@ public struct TexturedShapeRenderDescription
     /// The description for the Sampler
     /// </summary>
     public SamplerDescription Sampler;
+
+    /// <summary>
+    /// Instances a new <see cref="TexturedShapeRenderDescription"/>
+    /// </summary>
+    /// <param name="shapeRenderer"></param>
+    /// <param name="sampler"></param>
+    public TexturedShapeRenderDescription(ShapeRendererDescription shapeRenderer, SamplerDescription sampler)
+    {
+        ShapeRenderer = shapeRenderer;
+        Sampler = sampler;
+    }
 }
