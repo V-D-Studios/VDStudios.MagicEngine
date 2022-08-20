@@ -151,13 +151,13 @@ public class FloatingShapesNode : Node, IDrawableNode
             new ColorVertexGenerator())
         );
 
-        var robstrm = new MemoryStream(Assets.robin);
+        var robstrm = new MemoryStream(Assets.boundary_test);
         var img = new ImageSharpTexture(robstrm);
         DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
             img,
             new ShapeDefinition[]
             {
-                PolygonDefinition.Rectangle(0,0,.4f,.4f)
+                PolygonDefinition.Rectangle(0, 0, .6f, 1f)
             },
             new(
                 new(
@@ -184,12 +184,12 @@ public class FloatingShapesNode : Node, IDrawableNode
                     SamplerAddressMode.Clamp,
                     SamplerAddressMode.Clamp,
                     SamplerAddressMode.Clamp,
-                    SamplerFilter.MinLinear_MagLinear_MipLinear,
-                    ComparisonKind.LessEqual,
+                    SamplerFilter.MinPoint_MagPoint_MipPoint,
+                    null,
                     0,
-                    1,
-                    1,
-                    1,
+                    0,
+                    0,
+                    0,
                     SamplerBorderColor.TransparentBlack
                 )
             ),
