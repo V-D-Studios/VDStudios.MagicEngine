@@ -15,6 +15,7 @@ using Veldrid;
 using Veldrid.ImageSharp;
 
 namespace VDStudios.MagicEngine.Demo.Nodes;
+
 public class FloatingShapesNode : Node, IDrawableNode
 {
     private struct ColorVertex
@@ -96,6 +97,7 @@ public class FloatingShapesNode : Node, IDrawableNode
         circ.Name = "Circle";
 
         circle = new CircleDefinition(Vector2.Zero, .65f);
+        var texturedRect = PolygonDefinition.Rectangle(0, 0, .6f, .2f);
 
         var watch = new Watch("Circle division watch", new()
         {
@@ -110,6 +112,11 @@ public class FloatingShapesNode : Node, IDrawableNode
             () =>
             {
                 Log.Debug("Flagged for circle subdivided in {parts} parts", circle.Subdivisions);
+                return true;
+            },
+            () =>
+            {
+                texturedRect.ForceUpdate();
                 return true;
             }
         });
@@ -157,7 +164,7 @@ public class FloatingShapesNode : Node, IDrawableNode
             img,
             new ShapeDefinition[]
             {
-                PolygonDefinition.Rectangle(0, 0, .6f, 1f)
+                texturedRect
             },
             new(
                 new(
