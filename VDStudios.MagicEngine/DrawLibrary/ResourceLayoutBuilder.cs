@@ -48,7 +48,7 @@ public sealed class ResourceLayoutBuilder : IPoolableObject, IEnumerable<Resourc
     public int Count => resources.Count;
 
     /// <summary>
-    /// Builds the Layouts described in this builder
+    /// Builds the Layouts described in this builder, along with the resource array
     /// </summary>
     /// <param name="bindings"></param>
     /// <param name="factory"></param>
