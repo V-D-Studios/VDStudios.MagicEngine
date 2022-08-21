@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Numerics;
+using VDStudios.MagicEngine.DrawLibrary.Geometry;
 
 namespace VDStudios.MagicEngine.Geometry;
 
@@ -26,6 +27,11 @@ public abstract class ShapeDefinition : IReadOnlyList<Vector2>
     {
         IsConvex = isConvex;
     }
+
+    /// <summary>
+    /// Notifies the shape that there has been an update it may not be aware of. This can be useful to, for example, force a <see cref="ShapeRenderer{TVertex}"/> to regenerate vertices
+    /// </summary>
+    public virtual void ForceUpdate() => Interlocked.Increment(ref version);
 
     /// <summary>
     /// A name given to this <see cref="PolygonDefinition"/> for debugging purposes
