@@ -149,11 +149,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                 ),
                 new(ShaderStages.Vertex, FSNVertex.GetUTF8Bytes(), "main"),
                 new(ShaderStages.Fragment, FSNFragment.GetUTF8Bytes(), "main"),
-                static (GraphicsManager m, GraphicsDevice d, ResourceFactory f, out ResourceLayout[] l, out ResourceSet[] s) =>
-                {
-                    l = new ResourceLayout[] { m.WindowAspectTransformLayout };
-                    s = new ResourceSet[] { m.WindowAspectTransformSet };
-                }
+                GraphicsManager.AddWindowAspectTransform
             ),
             new ColorVertexGenerator())
         );
@@ -181,11 +177,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                     ),
                     null,
                     null,
-                    static (GraphicsManager m, GraphicsDevice d, ResourceFactory f, out ResourceLayout[] l, out ResourceSet[] s) =>
-                    {
-                        l = new ResourceLayout[] { m.WindowAspectTransformLayout };
-                        s = new ResourceSet[] { m.WindowAspectTransformSet };
-                    }
+                    GraphicsManager.AddWindowAspectTransform
                 ),
                 new(
                     SamplerAddressMode.Clamp,
