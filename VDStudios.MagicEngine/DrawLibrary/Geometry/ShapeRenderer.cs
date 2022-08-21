@@ -381,7 +381,10 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void UpdateIndices(ref ShapeDat pol, CommandList commandList)
     {
+        const int MaxVertices = 21845;
         var count = pol.Shape.Count;
+        if (count >= MaxVertices)
+            throw new NotSupportedException($"Triangulating indices for shapes with {MaxVertices} or more vertices is not supported! The shape in question has {count}. The ints used for indices are 16 bits wide, and switching to 32 or 64 bits is not yet supported");
 
         int indexCount = pol.LineStripIndexCount;
         if (count <= 3 || ShapeRendererDescription.RenderMode is PolygonRenderMode.LineStripWireframe)
