@@ -288,6 +288,7 @@ public delegate Texture TextureFactory(GraphicsDevice device, ResourceFactory fa
 /// <param name="manager">The <see cref="GraphicsManager"/> that owns the draw operation the layout is being generated for</param>
 /// <param name="device">The <see cref="GraphicsDevice"/> owned by <paramref name="manager"/></param>
 /// <param name="builder">The collection of layouts and descriptions</param>
-public delegate void ResourceBuilder(GraphicsManager manager, GraphicsDevice device, ResourceSetBuilder builder);
+/// <param name="factory">The <see cref="ResourceFactory"/> associated with <paramref name="device"/></param>
+public delegate void ResourceBuilder(GraphicsManager manager, GraphicsDevice device, ResourceFactory factory, ResourceSetBuilder builder);
 
 #endregion
