@@ -115,7 +115,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <param name="factory"></param>
     /// <param name="builder"></param>
     public static void AddWindowAspectTransform(GraphicsManager manager, GraphicsDevice device, ResourceFactory factory, ResourceSetBuilder builder)
-        => builder.InsertFirst(manager.WindowAspectTransformLayout, new BindableResource[] { manager.WindowAspectTransformBuffer }, out _);
+        => builder.InsertFirst(manager.WindowAspectTransformLayout, manager.WindowAspectTransformResources, out _);
 
     /// <summary>
     /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager"/> is running
@@ -856,8 +856,7 @@ public class GraphicsManager : GameObject, IDisposable
         WindowAspectTransformBuffer = gd.ResourceFactory.CreateBuffer(ref bufferDesc);
         WindowAspectTransformLayout = gd.ResourceFactory.CreateResourceLayout(ref resourDesc);
         DrawTransformationLayout = gd.ResourceFactory.CreateResourceLayout(ref dTransDesc);
-        var resSetDesc = new ResourceSetDescription(WindowAspectTransformLayout, WindowAspectTransformBuffer);
-        WindowAspectTransformSet = gd.ResourceFactory.CreateResourceSet(ref resSetDesc);
+        WindowAspectTransformResources = new BindableResource[] { WindowAspectTransformBuffer };
 
         Window_SizeChanged(window, Game.TotalTime, window.Size);
 

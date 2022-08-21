@@ -262,7 +262,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     protected override ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
     {
         if (ShapeRendererDescription.ResourceLayoutAndSetBuilder is not null)
-            ShapeRendererDescription.ResourceLayoutAndSetBuilder.Invoke(Manager!, device, builder);
+            ShapeRendererDescription.ResourceLayoutAndSetBuilder.Invoke(Manager!, device, factory, builder);
         return ValueTask.CompletedTask;
     }
 
