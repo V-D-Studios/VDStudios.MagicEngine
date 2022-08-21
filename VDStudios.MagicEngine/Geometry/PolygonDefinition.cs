@@ -33,7 +33,7 @@ public class PolygonDefinition : ShapeDefinition, IStructuralEquatable
         var pbuf = center with { X = center.X + radius };
         var rot = Matrix3x2.CreateRotation(MathF.Tau / subdivisions, center);
 
-        Span<Vector2> vertices = stackalloc Vector2[subdivisions];
+        Span<Vector2> vertices = subdivisions > 5000 ? new Vector2[subdivisions] : stackalloc Vector2[subdivisions];
         for (int i = 0; i < subdivisions; i++)
         {
             vertices[i] = pbuf;

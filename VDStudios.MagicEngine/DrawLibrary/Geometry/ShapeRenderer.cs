@@ -355,7 +355,9 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     protected virtual void UpdateVertices(ref ShapeDat pol, CommandList commandList, int index, IShapeRendererVertexGenerator<TVertex> gen, ref object? generatorContext)
     {
         var vc = pol.Shape.Count;
-        Span<TVertex> vertexBuffer = gen.QueryAllocCPUBuffer(pol.Shape, Shapes, ref generatorContext) ? stackalloc TVertex[vc] : default;
+        Span<TVertex> vertexBuffer = 
+            gen.QueryAllocCPUBuffer(pol.Shape, Shapes, ref generatorContext) ?
+            vc > 5000 ? new TVertex[vc] : stackalloc TVertex[vc] : default;
 
         var vc_bytes = (uint)Unsafe.SizeOf<TVertex>() * (uint)vc;
 
@@ -384,7 +386,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         int indexCount = pol.LineStripIndexCount;
         if (count <= 3 || ShapeRendererDescription.RenderMode is PolygonRenderMode.LineStripWireframe)
         {
-            Span<ushort> indexBuffer = stackalloc ushort[indexCount];
+            Span<ushort> indexBuffer = indexCount > 5000 ? new ushort[indexCount] : stackalloc ushort[indexCount];
             for (int ind = 0; ind < count; ind++)
                 indexBuffer[ind] = (ushort)ind;
             indexBuffer[count] = 0;
@@ -412,7 +414,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         ushort i = count % 2 == 0 ? (ushort)0u : (ushort)1u;
         indexCount = (count - i) * 3;
 
-        Span<ushort> buffer = stackalloc ushort[indexCount];
+        Span<ushort> buffer = indexCount > 5000 ? new ushort[indexCount] : stackalloc ushort[indexCount];
         int bufind = 0;
 
         ushort p0 = 0;
