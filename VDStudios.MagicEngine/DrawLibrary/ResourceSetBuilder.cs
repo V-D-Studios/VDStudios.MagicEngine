@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Resources;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,6 +21,29 @@ namespace VDStudios.MagicEngine.DrawLibrary;
 /// </remarks>
 public sealed class ResourceSetBuilder : IPoolableObject, IEnumerable<ResourceSetEntry>
 {
+    private static ResourceLayoutBuilder DefaultNewLayout() => new();
+    private readonly Func<ResourceLayoutBuilder>? rlf;
+    private readonly Action<ResourceLayoutBuilder>? rlc;
+    private ResourceLayoutBuilder NewLayout() => rlf?.Invoke() ?? DefaultNewLayout();
+
+    /// <summary>
+    /// Instances a new object of type <see cref="ResourceSetBuilder"/>
+    /// </summary>
+    public ResourceSetBuilder() { }
+
+    /// <summary>
+    /// Instances a new object of type <see cref="ResourceSetBuilder"/>
+    /// </summary>
+    /// <param name="resourceLayoutFactory">The method to ues when adding or inserting new <see cref="ResourceLayoutBuilder"/>s</param>
+    /// <param name="resourceLayoutCleaner">The method to use on each <see cref="ResourceLayoutBuilder"/> when clearing this object</param>
+    public ResourceSetBuilder(Func<ResourceLayoutBuilder> resourceLayoutFactory, Action<ResourceLayoutBuilder> resourceLayoutCleaner)
+    {
+        ArgumentNullException.ThrowIfNull(resourceLayoutFactory);
+        ArgumentNullException.ThrowIfNull(resourceLayoutCleaner);
+        rlf = resourceLayoutFactory;
+        rlc = resourceLayoutCleaner;
+    }
+
     private readonly object sync = new();
     /// <summary>
     /// Represents an entry describing a resource set in this <see cref="ResourceSetBuilder"/>
@@ -49,24 +74,60 @@ public sealed class ResourceSetBuilder : IPoolableObject, IEnumerable<ResourceSe
     public int Count => resources.Count;
 
     /// <summary>
+    /// Builds the ResourceSets and Layouts described in this builder
+    /// </summary>
+    /// <param name="sets"></param>
+    /// <param name="layouts"></param>
+    /// <param name="factory"></param>
+    public void Build(out global::Veldrid.ResourceSet[] sets, out ResourceLayout[] layouts, ResourceFactory factory)
+    {
+        sets = new global::Veldrid.ResourceSet[Count];
+        layouts = new ResourceLayout[Count];
+        for (int i = 0; i < resources.Count; i++)
+            sets[i] = factory.CreateResourceSet(new(layouts[i] = resources[i].Resource.Build(out var bindings, factory), bindings));
+    }
+
+    /// <summary>
     /// Clears this <see cref="ResourceSetBuilder"/>
     /// </summary>
     public void Clear()
     {
-        resources.Clear();
+        if (rlc is not Action<ResourceLayoutBuilder> cleaner)
+        {
+            resources.Clear();
+            return;
+        }
+
+        ResourceSetEntry[] pool;
+        lock (sync)
+        {
+            int count = resources.Count;
+            pool = ArrayPool<ResourceSetEntry>.Shared.Rent(count);
+            resources.CopyTo(pool);
+            resources.Clear();
+        }
+        try
+        {
+            foreach (var rlb in resources)
+                cleaner(rlb.Resource);
+        }
+        finally
+        {
+            ArrayPool<ResourceSetEntry>.Shared.Return(pool, true);
+        }
     }
 
     /// <summary>
     /// Adds the <see cref="ResourceLayoutBuilder"/> as the first layout of the set
     /// </summary>
-    /// <param name="layout">The layout to add</param>
-    /// <returns>The relative position the layout was added at</returns>
-    public int InsertFirst(ResourceLayoutBuilder layout)
+    /// <param name="addedAt">The relative position the layout was added at</param>
+    /// <returns>The newly added layout builder</returns>
+    public ResourceLayoutBuilder InsertFirst(out int addedAt)
     {
-        int ret;
+        var layout = NewLayout();
         lock (sync)
-            resources.Add(new ResourceSetEntry() { Resource = layout, Position = ret = --firstPos });
-        return ret;
+            resources.Add(new ResourceSetEntry() { Resource = layout, Position = addedAt = --firstPos });
+        return layout;
     }
 
     /// <summary>
@@ -75,45 +136,36 @@ public sealed class ResourceSetBuilder : IPoolableObject, IEnumerable<ResourceSe
     /// <remarks>
     /// If any other layouts are in the builder that share the same relative position, the order in which they'll appear is non-deterministic
     /// </remarks>
-    /// <param name="layout">The layout to add</param>
     /// <param name="position">The position to add the layout at</param>
-    public void Add(ResourceLayoutBuilder layout, int position)
+    /// <returns>The newly added layout builder</returns>
+    public ResourceLayoutBuilder Add(int position)
     {
+        var layout = NewLayout();
         lock (sync)
             resources.Add(new ResourceSetEntry() { Resource = layout, Position = position });
-    }
-
-    /// <summary>
-    /// Adds the layout description under the given relative position, but performs no sorting. Further manipulation of the builder may result in the layout being otherwised sorted
-    /// </summary>
-    /// <remarks>
-    /// If any other layouts are in the builder that share the same relative position, the order in which they'll appear is non-deterministic
-    /// </remarks>
-    /// <param name="layout">The layout to add</param>
-    public void Add(ResourceSetEntry layout)
-    {
-        lock (sync)
-            resources.Add(layout);
+        return layout;
     }
 
     /// <summary>
     /// Adds the layout description in the layout, and moves layouts that come after
     /// </summary>
-    /// <param name="layout">The layout to add</param>
     /// <param name="position">The position to add the layout at</param>
     /// <param name="moved">The amount of layouts that were moved in the layout after this operation</param>
-    /// <returns>The relative position the layout was added at</returns>
-    public int Insert(ResourceLayoutBuilder layout, int position, out int moved)
+    /// <param name="addedAt">The relative position the layout was added at</param>
+    /// <returns>The newly added layout builder</returns>
+    public ResourceLayoutBuilder Insert(int position, out int addedAt, out int moved)
     {
         moved = 0;
         lock (sync)
         {
             if (position >= lastPos)
-                return InsertLast(layout);
+                return InsertLast(out addedAt);
             if (position < firstPos)
-                return InsertFirst(layout);
+                return InsertFirst(out addedAt);
 
             var span = CollectionsMarshal.AsSpan(resources);
+            var layout = NewLayout();
+            addedAt = position;
 
             var abpos = Math.Abs(position);
             if (abpos + firstPos > abpos - lastPos) // firstPos should always be 0 or negative, while lastPos is always 0 or positive
@@ -137,21 +189,22 @@ public sealed class ResourceSetBuilder : IPoolableObject, IEnumerable<ResourceSe
                     }
             }
 
-            return position;
+            resources.Add(new ResourceSetEntry() { Resource = layout, Position = position });
+            return layout;
         }
     }
 
     /// <summary>
     /// Adds the layout description as the last layout of the layout
     /// </summary>
-    /// <param name="layout">The layout to add</param>
-    /// <returns>The position the layout was added at</returns>
-    public int InsertLast(ResourceLayoutBuilder layout)
+    /// <param name="addedAt">The relative position the layout was added at</param>
+    /// <returns>The newly added layout builder</returns>
+    public ResourceLayoutBuilder InsertLast(out int addedAt)
     {
-        int ret;
+        var layout = NewLayout();
         lock (sync)
-            resources.Add(new ResourceSetEntry() { Resource = layout, Position = ret = lastPos++ });
-        return ret;
+            resources.Add(new ResourceSetEntry() { Resource = layout, Position = addedAt = lastPos++ });
+        return layout;
     }
 
     /// <inheritdoc/>

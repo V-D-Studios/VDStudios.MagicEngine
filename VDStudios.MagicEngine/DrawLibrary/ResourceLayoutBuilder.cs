@@ -11,7 +11,7 @@ namespace VDStudios.MagicEngine.DrawLibrary;
 /// <remarks>
 /// An object of this class is always thread-safe by the use of locking: If a thread accesses an object while another one is using it, that thread will be blocked until the object is available again
 /// </remarks>
-public sealed class ResourceLayoutBuilder : IEnumerable<ResourceLayoutEntry>
+public sealed class ResourceLayoutBuilder : IPoolableObject, IEnumerable<ResourceLayoutEntry>
 {
     private readonly object sync = new();
     /// <summary>
@@ -22,12 +22,12 @@ public sealed class ResourceLayoutBuilder : IEnumerable<ResourceLayoutEntry>
         /// <summary>
         /// The description of the resource
         /// </summary>
-        public ResourceLayoutElementDescription Description { get; set; }
+        public ResourceLayoutElementDescription Description;
 
         /// <summary>
         /// The actual resource that will be bound
         /// </summary>
-        public BindableResource Resource { get; set; }
+        public BindableResource Resource;
 
         /// <summary>
         /// The relative position the resource will have in this layout when built
@@ -35,7 +35,7 @@ public sealed class ResourceLayoutBuilder : IEnumerable<ResourceLayoutEntry>
         /// <remarks>
         /// The actual position of the resource will be defined by the other elements. For example, even if <see cref="Position"/> is set to <see cref="int.MaxValue"/>, the resource will be positioned after every other resource with a smaller position parameter. If there are 6 resources in the layout, all of which have a position smaller than <see cref="int.MaxValue"/>, this resource will be last, and set at index 5
         /// </remarks>
-        public int Position { get; set; }
+        public int Position;
     }
 
     private readonly List<ResourceLayoutEntry> resources = new(10);
@@ -46,6 +46,28 @@ public sealed class ResourceLayoutBuilder : IEnumerable<ResourceLayoutEntry>
     /// Gets the number of resource descriptions contained in this <see cref="ResourceLayoutBuilder"/>
     /// </summary>
     public int Count => resources.Count;
+
+    /// <summary>
+    /// Builds the Layouts described in this builder
+    /// </summary>
+    /// <param name="bindings"></param>
+    /// <param name="factory"></param>
+    public ResourceLayout Build(out BindableResource[] bindings, ResourceFactory factory)
+    {
+        lock (sync)
+        {
+            bindings = new BindableResource[Count];
+            var elements = new ResourceLayoutElementDescription[Count];
+            int i = 0;
+            foreach (var resc in this.OrderByDescending(x => x.Position)) 
+            {
+                bindings[i] = resc.Resource;
+                elements[i++] = resc.Description;
+            }
+            
+            return factory.CreateResourceLayout(new ResourceLayoutDescription(elements));
+        }
+    }
 
     /// <summary>
     /// Clears this <see cref="ResourceLayoutBuilder"/>
