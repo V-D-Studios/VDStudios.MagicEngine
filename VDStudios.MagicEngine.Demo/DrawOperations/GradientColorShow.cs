@@ -82,7 +82,7 @@ public class GradientColorShow : DrawOperation
     }
 
     /// <inheritdoc/>
-    protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
+    protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? sets, ResourceLayout[]? layouts)
     {
         _shiftBuffer = factory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
         _vertexBuffer = factory.CreateBuffer(new BufferDescription(16 * 4, BufferUsage.VertexBuffer));
