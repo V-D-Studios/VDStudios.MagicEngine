@@ -1,4 +1,5 @@
 ﻿using SDL2.NET;
+using SharpDX.DXGI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -112,52 +113,12 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
               new VertexElementDescription("TexturePosition", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
               new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate)
           );
-    /// <summary>
-    /// Intercepts the <see cref="ShapeRenderer"/>'s resources, and injects the Sampler's layout and set to the first element of the respective arrays
-    /// </summary>
-    /// <param name="layouts"></param>
-    /// <param name="sets"></param>
-    /// <param name="factory"></param>
-    protected override void InterceptResources(ref ResourceLayout[] layouts, ref ResourceSet[] sets, ResourceFactory factory)
-    {
-        {
-            var nl = new ResourceLayout[layouts.Length + 1];
-            var ns = new ResourceSet[sets.Length + 1];
-            layouts.CopyTo(nl, 1);
-            sets.CopyTo(ns, 1);
-            layouts = nl;
-            sets = ns;
-        }
-
-        var layoutDesc = new ResourceLayoutDescription(
-            new ResourceLayoutElementDescription(
-                "TSamp",
-                ResourceKind.Sampler,
-                ShaderStages.Fragment
-            ),
-            new ResourceLayoutElementDescription(
-                "Tex",
-                ResourceKind.TextureReadOnly,
-                ShaderStages.Fragment
-            )
-        );
-
-        var layout = factory.CreateResourceLayout(ref layoutDesc);
-
-        var setDesc = new ResourceSetDescription(layout, Sampler, Texture);
-
-        var set = factory.CreateResourceSet(ref setDesc);
-
-        layouts[0] = layout;
-        sets[0] = set;
-    }
 
     /// <inheritdoc/>
-    protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
+    protected override async ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
     {
-        ShapeRendererDescription.VertexShaderSpirv ??= vertexDefault;
-        ShapeRendererDescription.FragmentShaderSpirv ??= fragmnDefault;
-        ShapeRendererDescription.VertexLayout ??= DefaultVector2TexPosLayout;
+        await base.CreateResourceSets(device, builder, factory);
+        var layout = builder.InsertFirst(out _);
 
         var texture = TextureFactory.Invoke(device, factory);
         if (texture is null)
@@ -168,7 +129,30 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
         }
         Sampler = factory.CreateSampler(TextureRendererDescription.Sampler);
         Texture = texture;
-        return base.CreateResources(device, factory);
+
+        layout.InsertFirst(new ResourceLayoutElementDescription(
+                "Tex",
+                ResourceKind.TextureReadOnly,
+                ShaderStages.Fragment
+            ),
+            Texture
+        );
+        layout.InsertFirst(new ResourceLayoutElementDescription(
+                "TSamp",
+                ResourceKind.Sampler,
+                ShaderStages.Fragment
+            ),
+            Sampler
+        );
+    }
+
+    /// <inheritdoc/>
+    protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? sets, ResourceLayout[]? layouts)
+    {
+        ShapeRendererDescription.VertexShaderSpirv ??= vertexDefault;
+        ShapeRendererDescription.FragmentShaderSpirv ??= fragmnDefault;
+        ShapeRendererDescription.VertexLayout ??= DefaultVector2TexPosLayout;
+        return base.CreateResources(device, factory, sets, layouts);
     }
 
     ///// <inheritdoc/>

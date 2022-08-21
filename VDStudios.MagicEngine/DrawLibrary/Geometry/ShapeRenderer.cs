@@ -1,4 +1,5 @@
 ﻿using SDL2.NET;
+using SharpDX.DXGI;
 using System;
 using System.Buffers;
 using System.Collections;
@@ -257,35 +258,17 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     private static readonly VertexLayoutDescription DefaultVector2Layout 
         = new(new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate));
 
-    /// <summary>
-    /// Intercepts the resource layouts and sets for this <see cref="ShapeRenderer"/>. Does nothing by default
-    /// </summary>
-    /// <remarks>
-    /// CAUTION: Make sure the behaviour is thoroughly documented before overriding this method.
-    /// </remarks>
-    protected virtual void InterceptResources(ref ResourceLayout[] layouts, ref ResourceSet[] sets, ResourceFactory factory) { }
+    /// <inheritdoc/>
+    protected override ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
+    {
+        if (ShapeRendererDescription.ResourceLayoutAndSetBuilder is not null)
+            ShapeRendererDescription.ResourceLayoutAndSetBuilder.Invoke(Manager!, device, builder);
+        return ValueTask.CompletedTask;
+    }
 
     /// <inheritdoc/>
-    protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
+    protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? resourcesSets, ResourceLayout[]? resourceLayouts)
     {
-        ResourceLayout[] layouts;
-        ResourceSet[] sets;
-        if (ShapeRendererDescription.ResourceLayoutAndSetBuilder is not null)
-            ShapeRendererDescription.ResourceLayoutAndSetBuilder.Invoke(Manager!, device, factory, out layouts, out sets);
-        else
-        {
-            layouts = Array.Empty<ResourceLayout>();
-            sets = Array.Empty<ResourceSet>();
-        }
-
-        if (layouts.Length != sets.Length)
-            throw new InvalidOperationException("The length of the ResourceLayout array and ResourceSet array must be equal -- Failure of this condition means that not all layouts and sets correspond");
-
-        InterceptResources(ref layouts, ref sets, factory);
-
-        if (layouts.Length != sets.Length)
-            throw new InvalidOperationException("The length of the ResourceLayout array and ResourceSet array must be equal -- Failure of this condition means that not all layouts and sets correspond");
-
         Shaders = factory.CreateFromSpirv(
             ShapeRendererDescription.VertexShaderSpirv ?? vertexDefault,
             ShapeRendererDescription.FragmentShaderSpirv ?? fragmnDefault
@@ -316,11 +299,11 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             {
                 ShapeRendererDescription.VertexLayout ?? DefaultVector2Layout
             }, Shaders),
-            layouts,
+            resourceLayouts,
             device.SwapchainFramebuffer.OutputDescription
         ));
 
-        ResourceSets = sets;
+        ResourceSets = resourcesSets;
 
         NotifyPendingGPUUpdate();
 

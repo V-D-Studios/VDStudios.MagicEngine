@@ -61,7 +61,7 @@ public struct ShapeRendererDescription
     /// <summary>
     /// Represents the method that will be used to build an array of <see cref="ResourceSet"/>s and <see cref="ResourceLayout"/>s for the <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
-    public ResourceLayoutAndSetBuilder? ResourceLayoutAndSetBuilder;
+    public MagicEngine.ResourceBuilder? ResourceLayoutAndSetBuilder;
 
     /// <summary>
     /// Creates a new <see cref="ShapeRendererDescription"/>
@@ -77,7 +77,7 @@ public struct ShapeRendererDescription
     /// <param name="vertexShaderSpirv">Describes the Vertex shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
     /// <param name="fragmentShaderSpirv">Describes the Fragment shader in Vulkan style GLSL or SPIR-V bytecode; or <c>null</c> to use the default</param>
     /// <param name="resourceLayoutAndSetBuilder">Represents the method that will be used to build a set of <see cref="ResourceLayout"/>s and <see cref="ResourceSet"/>s for the <see cref="ShapeRenderer{TVertex}"/>; or <c>null</c> to use an empty set</param>
-    public ShapeRendererDescription(BlendStateDescription blendState, DepthStencilStateDescription depthStencilState, FaceCullMode faceCullMode, FrontFace frontFace, bool depthClipEnabled, bool scissorTestEnabled, PolygonRenderMode renderMode, VertexLayoutDescription? vertexLayout, ShaderDescription? vertexShaderSpirv, ShaderDescription? fragmentShaderSpirv, ResourceLayoutAndSetBuilder? resourceLayoutAndSetBuilder)
+    public ShapeRendererDescription(BlendStateDescription blendState, DepthStencilStateDescription depthStencilState, FaceCullMode faceCullMode, FrontFace frontFace, bool depthClipEnabled, bool scissorTestEnabled, PolygonRenderMode renderMode, VertexLayoutDescription? vertexLayout, ShaderDescription? vertexShaderSpirv, ShaderDescription? fragmentShaderSpirv, MagicEngine.ResourceBuilder? resourceLayoutAndSetBuilder)
     {
         BlendState = blendState;
         DepthStencilState = depthStencilState;
