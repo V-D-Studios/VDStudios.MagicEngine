@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine.DrawLibrary;
 using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Internal;
 using Veldrid;
@@ -99,9 +100,22 @@ public class GraphicsManager : GameObject, IDisposable
     public ResourceLayout WindowAspectTransformLayout { get; private set; } 
 
     /// <summary>
-    /// Represents the <see cref="ResourceSet"/> that will be used to bind <see cref="WindowAspectTransformBuffer"/> to a shader
+    /// Represents the <see cref="BindableResource"/> array that is to be associated with <see cref="WindowAspectTransformLayout"/>
     /// </summary>
-    public ResourceSet WindowAspectTransformSet { get; private set; }
+    /// <remarks>
+    /// This array contains a single element: <see cref="WindowAspectTransformBuffer"/>
+    /// </remarks>
+    public BindableResource[] WindowAspectTransformResources { get; private set; }
+
+    /// <summary>
+    /// Adds the necessary resources to provide the Window aspect transformation buffer as a bound resource to a shader
+    /// </summary>
+    /// <param name="manager"></param>
+    /// <param name="device"></param>
+    /// <param name="factory"></param>
+    /// <param name="builder"></param>
+    public static void AddWindowAspectTransform(GraphicsManager manager, GraphicsDevice device, ResourceFactory factory, ResourceSetBuilder builder)
+        => builder.InsertFirst(manager.WindowAspectTransformLayout, new BindableResource[] { manager.WindowAspectTransformBuffer }, out _);
 
     /// <summary>
     /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager"/> is running
