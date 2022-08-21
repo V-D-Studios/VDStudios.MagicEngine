@@ -43,9 +43,6 @@ public struct TextureVertex<TVertex> where TVertex : unmanaged
 /// <summary>
 /// A draw operation that renders a Texture onto the screen
 /// </summary>
-/// <remarks>
-/// This class overrides <see cref="ShapeRenderer{TVertex}.InterceptResources(ref ResourceLayout[], ref ResourceSet[], ResourceFactory)"/> and ensures the very first <see cref="ResourceLayout"/> and <see cref="ResourceSet"/> pair bind to this Renderer's <see cref="global::Veldrid.Sampler"/> and <see cref="Texture"/>, in the same set, at index 0 and 1 respectively
-/// </remarks>
 public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVertex>> where TVertex : unmanaged
 {
     #region Construction
@@ -53,7 +50,7 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// <summary>
     /// Creates a new <see cref="TexturedShapeRenderer{TVertex}"/> object
     /// </summary>
-    /// <param name="texture">The Device Texture for this Renderer</param>
+    /// <param name="texture">The Device Texture for this Renderer. Must be created with <see cref="TextureUsage.Sampled"/></param>
     /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="TexturedShapeRenderer{TVertex}"/></param>
     /// <param name="vertexGenerator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
@@ -68,7 +65,7 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// <summary>
     /// Creates a new <see cref="TexturedShapeRenderer{TVertex}"/> object
     /// </summary>
-    /// <param name="textureFactory">Represents the method that will create the Device Texture for this Renderer</param>
+    /// <param name="textureFactory">Represents the method that will create the Device Texture for this Renderer. Must be created with <see cref="TextureUsage.Sampled"/></param>
     /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="TexturedShapeRenderer{TVertex}"/></param>
     /// <param name="vertexGenerator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
@@ -94,7 +91,7 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// <summary>
     /// The texture that this <see cref="TexturedShapeRenderer{TVertex}"/> is in charge of rendering. Will become available after <see cref="CreateResources(GraphicsDevice, ResourceFactory)"/> is called
     /// </summary>
-    protected Texture Texture;
+    protected TextureView Texture;
 
     #endregion
 
@@ -128,8 +125,16 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
             throw exc;
         }
         Sampler = factory.CreateSampler(TextureRendererDescription.Sampler);
-        Texture = texture;
-
+        Texture = factory.CreateTextureView(new TextureViewDescription()
+        {
+            BaseMipLevel = TextureRendererDescription.TextureBaseMipLevel ?? 0u,
+            MipLevels = TextureRendererDescription.TextureMipLevels ?? texture.MipLevels,
+            BaseArrayLayer = TextureRendererDescription.TextureBaseArrayLayer ?? 0u,
+            ArrayLayers = TextureRendererDescription.TextureArrayLayers ?? texture.ArrayLayers,
+            Format = TextureRendererDescription.TexturePixelFormat ?? texture.Format,
+            Target = texture
+        });
+        
         layout.InsertFirst(new ResourceLayoutElementDescription(
                 "Tex",
                 ResourceKind.TextureReadOnly,
