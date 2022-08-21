@@ -97,7 +97,7 @@ public class FloatingShapesNode : Node, IDrawableNode
         circ.Name = "Circle";
 
         circle = new CircleDefinition(Vector2.Zero, .65f);
-        var texturedRect = PolygonDefinition.Rectangle(0, 0, .6f, .2f);
+        var texturedRect = PolygonDefinition.Circle(new(.25f, .25f), .25f, 21844);
 
         var watch = new Watch("Circle division watch", new()
         {
