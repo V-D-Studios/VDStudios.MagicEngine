@@ -75,7 +75,7 @@ void main()
         private Shader[] Shaders;
         private Pipeline Pipeline;
 
-        protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
+        protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? sets, ResourceLayout[]? layouts)
         {
             Span<VertexPositionColor> _vert = stackalloc VertexPositionColor[]
             {
