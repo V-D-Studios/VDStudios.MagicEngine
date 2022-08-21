@@ -23,7 +23,7 @@ public class TextureVertexGeneratorFill : IShapeRendererVertexGenerator<TextureV
         Matrix3x2 trans = Matrix3x2.CreateScale(1 / distant.X, 1 / distant.Y);
 
         for (int i = 0; i < vertices.Length; i++)
-            vertices[i] = new(Vector2.Transform(shape[i], trans), shape[i]);
+            vertices[i] = new(Vector2.Transform(shape[vertices.Length - 1 - i], trans), shape[i]);
 
         useDeviceBuffer = false;
     }
