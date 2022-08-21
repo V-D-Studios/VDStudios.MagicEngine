@@ -22,7 +22,12 @@ public sealed class ResourceLayoutBuilder : IEnumerable<ResourceLayoutEntry>
         /// <summary>
         /// The description of the resource
         /// </summary>
-        public ResourceLayoutElementDescription Resource { get; set; }
+        public ResourceLayoutElementDescription Description { get; set; }
+
+        /// <summary>
+        /// The actual resource that will be bound
+        /// </summary>
+        public BindableResource Resource { get; set; }
 
         /// <summary>
         /// The relative position the resource will have in this layout when built
@@ -54,12 +59,13 @@ public sealed class ResourceLayoutBuilder : IEnumerable<ResourceLayoutEntry>
     /// Adds the element description as the first element of the layout
     /// </summary>
     /// <param name="element">The element to add</param>
+    /// <param name="resource">The resource to be bound</param>
     /// <returns>The relative position the element was added at</returns>
-    public int InsertFirst(ResourceLayoutElementDescription element)
+    public int InsertFirst(ResourceLayoutElementDescription element, BindableResource resource)
     {
         int ret;
         lock (sync)
-            resources.Add(new ResourceLayoutEntry() { Resource = element, Position = ret = --firstPos });
+            resources.Add(new ResourceLayoutEntry() { Description = element, Position = ret = --firstPos, Resource = resource });
         return ret;
     }
 
@@ -71,10 +77,11 @@ public sealed class ResourceLayoutBuilder : IEnumerable<ResourceLayoutEntry>
     /// </remarks>
     /// <param name="element">The element to add</param>
     /// <param name="position">The position to add the element at</param>
-    public void Add(ResourceLayoutElementDescription element, int position)
+    /// <param name="resource">The resource to be bound</param>
+    public void Add(ResourceLayoutElementDescription element, int position, BindableResource resource)
     {
         lock (sync)
-            resources.Add(new ResourceLayoutEntry() { Resource = element, Position = position });
+            resources.Add(new ResourceLayoutEntry() { Description = element, Position = position, Resource = resource });
     }
 
     /// <summary>
@@ -95,17 +102,18 @@ public sealed class ResourceLayoutBuilder : IEnumerable<ResourceLayoutEntry>
     /// </summary>
     /// <param name="element">The element to add</param>
     /// <param name="position">The position to add the element at</param>
+    /// <param name="resource">The resource to be bound</param>
     /// <param name="moved">The amount of elements that were moved in the layout after this operation</param>
     /// <returns>The relative position the element was added at</returns>
-    public int Insert(ResourceLayoutElementDescription element, int position, out int moved)
+    public int Insert(ResourceLayoutElementDescription element, int position, BindableResource resource, out int moved)
     {
         moved = 0;
         lock (sync)
         {
             if (position >= lastPos)
-                return InsertLast(element);
+                return InsertLast(element, resource);
             if (position < firstPos)
-                return InsertFirst(element);
+                return InsertFirst(element, resource);
 
             var span = CollectionsMarshal.AsSpan(resources);
 
@@ -131,6 +139,8 @@ public sealed class ResourceLayoutBuilder : IEnumerable<ResourceLayoutEntry>
                     }
             }
 
+            resources.Add(new ResourceLayoutEntry() { Description = element, Position = position, Resource = resource });
+
             return position;
         }
     }
@@ -139,12 +149,13 @@ public sealed class ResourceLayoutBuilder : IEnumerable<ResourceLayoutEntry>
     /// Adds the element description as the last element of the layout
     /// </summary>
     /// <param name="element">The element to add</param>
+    /// <param name="resource">The resource to be bound</param>
     /// <returns>The position the element was added at</returns>
-    public int InsertLast(ResourceLayoutElementDescription element)
+    public int InsertLast(ResourceLayoutElementDescription element, BindableResource resource)
     {
         int ret;
         lock (sync)
-            resources.Add(new ResourceLayoutEntry() { Resource = element, Position = ret = lastPos++ });
+            resources.Add(new ResourceLayoutEntry() { Description = element, Position = ret = lastPos++, Resource = resource });
         return ret;
     }
 
