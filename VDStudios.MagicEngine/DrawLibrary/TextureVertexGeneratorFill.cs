@@ -18,20 +18,12 @@ public class TextureVertexGeneratorFill : IShapeRendererVertexGenerator<TextureV
     public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<TextureVertex<Vector2>> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, out bool useDeviceBuffer, ref object? context)
     {
         Vector2 distant = default;
-        Vector2 offset = default;
         for (int i = 0; i < vertices.Length; i++)
-        {
-            if (shape[i].Length() > distant.Length())
-                distant = Vector2.Abs(shape[i]);
-            if (shape[i].X < 0 && shape[i].X < offset.X)
-                offset.X = shape[i].X;
-            if (shape[i].Y < 0 && shape[i].Y < offset.Y)
-                offset.Y = shape[i].Y;
-        }
+            distant = Vector2.Max(distant, Vector2.Abs(shape[i]));
         Matrix3x2 trans = Matrix3x2.CreateScale(1 / distant.X, 1 / distant.Y);
 
-        for (int i = vertices.Length - 1; i >= 0; --i)
-            vertices[i] = new(Vector2.Transform(shape[i] , trans), shape[i]);
+        for (int i = 0; i < vertices.Length; i++)
+            vertices[i] = new(Vector2.Transform(shape[i], trans), shape[i]);
 
         useDeviceBuffer = false;
     }
