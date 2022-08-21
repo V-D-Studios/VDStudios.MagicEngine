@@ -212,7 +212,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
     /// <param name="builder">The collection of descriptions that will be used to build the resource sets for this <see cref="DrawOperation"/>. This object is borrowed from a pool and will be cleared and returned after this method returns</param>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
-    protected abstract ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory);
+    protected virtual ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory) => ValueTask.CompletedTask;
 
     /// <summary>
     /// Creates the necessary resources for this <see cref="DrawOperation"/>
