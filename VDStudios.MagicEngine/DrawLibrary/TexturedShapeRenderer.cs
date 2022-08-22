@@ -82,6 +82,27 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     #region Resources
 
     /// <summary>
+    /// Represents a transformation matrix that transforms stored texture coordinates to display only a portion of the Texture
+    /// </summary>
+    public Matrix4x4 TextureViewTransform
+    {
+        get => TextureViewTransform_field;
+        set
+        {
+            lock (TextureViewTransformSync)
+            {
+                TextureViewTransform_field = value;
+                TextureViewTransformChanged = true;
+            }
+            NotifyPendingGPUUpdate();
+        }
+    }
+    private readonly object TextureViewTransformSync = new();
+    private Matrix4x4 TextureViewTransform_field = Matrix4x4.Identity;
+    private bool TextureViewTransformChanged;
+    private DeviceBuffer TextureViewTransformBuffer;
+
+    /// <summary>
     /// Be careful when modifying this -- And know that most changes won't have any effect after <see cref="CreateResources(GraphicsDevice, ResourceFactory)"/> is called
     /// </summary>
     protected TexturedShapeRenderDescription TextureRendererDescription;
@@ -115,7 +136,6 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     protected override async ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
     {
         await base.CreateResourceSets(device, builder, factory);
-        var layout = builder.InsertFirst(out _);
 
         var texture = TextureFactory.Invoke(device, factory);
         if (texture is null)
@@ -134,7 +154,21 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
             Format = TextureRendererDescription.TexturePixelFormat ?? texture.Format,
             Target = texture
         });
+
+        TextureViewTransformBuffer = factory.CreateBuffer(new(MathUtils.FitToUniformBuffer<Matrix4x4>(), BufferUsage.UniformBuffer));
         
+        device.UpdateBuffer(TextureViewTransformBuffer, 0, ref TextureViewTransform_field);
+
+        builder.InsertFirst(Manager!.WindowAspectTransformLayout, Manager.WindowAspectTransformResources, out _);
+
+        var layout = builder.InsertFirst(out _);
+        layout.InsertFirst(new ResourceLayoutElementDescription(
+                "TextureViewTransformBuffer",
+                ResourceKind.UniformBuffer,
+                ShaderStages.Vertex
+            ),
+            TextureViewTransformBuffer
+        );
         layout.InsertFirst(new ResourceLayoutElementDescription(
                 "Tex",
                 ResourceKind.TextureReadOnly,
@@ -158,6 +192,18 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
         ShapeRendererDescription.FragmentShaderSpirv ??= fragmnDefault;
         ShapeRendererDescription.VertexLayout ??= DefaultVector2TexPosLayout;
         return base.CreateResources(device, factory, sets, layouts);
+    }
+
+    /// <inheritdoc/>
+    protected override ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList, DeviceBuffer screenSizeBuffer)
+    {
+        lock (TextureViewTransformSync)
+            if (TextureViewTransformChanged)
+            {
+                commandList.UpdateBuffer(TextureViewTransformBuffer, 0, ref TextureViewTransform_field);
+                TextureViewTransformChanged = false;
+            }
+        return base.UpdateGPUState(device, commandList, screenSizeBuffer);
     }
 
     ///// <inheritdoc/>
