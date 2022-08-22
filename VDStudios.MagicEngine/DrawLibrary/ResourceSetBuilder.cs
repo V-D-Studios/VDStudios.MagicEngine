@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Veldrid;
 using static VDStudios.MagicEngine.DrawLibrary.ResourceLayoutBuilder;
 using static VDStudios.MagicEngine.DrawLibrary.ResourceSetBuilder;
+using ResourceSet = Veldrid.ResourceSet;
 
 namespace VDStudios.MagicEngine.DrawLibrary;
 
@@ -54,6 +55,11 @@ public sealed class ResourceSetBuilder : IPoolableObject, IEnumerable<ResourceSe
         /// The actual layout, if exists. Overrides <see cref="LayoutBuilder"/>
         /// </summary>
         public (ResourceLayout layout, BindableResource[] resources)? Layout;
+
+        /// <summary>
+        /// The actual set, if exists. Overrides <see cref="Layout"/> and <see cref="LayoutBuilder"/>
+        /// </summary>
+        public global::Veldrid.ResourceSet? BuiltSet;
 
         /// <summary>
         /// The builder of the layout
@@ -160,6 +166,17 @@ public sealed class ResourceSetBuilder : IPoolableObject, IEnumerable<ResourceSe
     }
 
     /// <summary>
+    /// Adds the passed resources as the first set
+    /// </summary>
+    /// <param name="set">The already created <see cref="ResourceSet"/> to add</param>=
+    /// <param name="addedAt">The relative position the layout was added at</param>
+    public void InsertFirst(ResourceSet set, out int addedAt)
+    {
+        lock (sync)
+            ResourceList.Add(new ResourceSetEntry() { BuiltSet = set, Position = addedAt = --firstPos });
+    }
+
+    /// <summary>
     /// Adds the layout description under the given relative position, but performs no sorting. Further manipulation of the builder may result in the layout being otherwised sorted
     /// </summary>
     /// <remarks>
@@ -176,6 +193,20 @@ public sealed class ResourceSetBuilder : IPoolableObject, IEnumerable<ResourceSe
     }
 
     /// <summary>
+    /// Adds the layout description under the given relative position, but performs no sorting. Further manipulation of the builder may result in the layout being otherwised sorted
+    /// </summary>
+    /// <remarks>
+    /// If any other layouts are in the builder that share the same relative position, the order in which they'll appear is non-deterministic
+    /// </remarks>
+    /// <param name="set">The already created <see cref="ResourceSet"/> to add</param>
+    /// <param name="position">The position to add the set at</param>
+    public void Add(ResourceSet set, int position)
+    {
+        lock (sync)
+            ResourceList.Add(new ResourceSetEntry() { BuiltSet = set, Position = position });
+    }
+
+    /// <summary>
     /// Adds the passed resources under the given relative position, but performs no sorting. Further manipulation of the builder may result in the layout being otherwised sorted
     /// </summary>
     /// <remarks>
@@ -188,6 +219,33 @@ public sealed class ResourceSetBuilder : IPoolableObject, IEnumerable<ResourceSe
     {
         lock (sync)
             ResourceList.Add(new ResourceSetEntry() { Layout = (layout, resources), Position = position });
+    }
+
+    private void OpenUpSpace(int position, ref int moved)
+    {
+        var span = CollectionsMarshal.AsSpan(ResourceList);
+
+        var abpos = Math.Abs(position);
+        if (abpos + firstPos > abpos - lastPos) // firstPos should always be 0 or negative, while lastPos is always 0 or positive
+        {
+            // in this case, there are more layouts before than there are layouts after, so we'll move the layouts that are after
+            for (int i = 0; i < span.Length; i++)
+                if (span[i].Position >= position)
+                {
+                    moved++;
+                    span[i].Position++;
+                }
+        }
+        else
+        {
+            // in this case, there are more layouts after than there are layouts before, so we'll move the layouts that are before
+            for (int i = 0; i < span.Length; i++)
+                if (span[i].Position <= position)
+                {
+                    moved++;
+                    span[i].Position--;
+                }
+        }
     }
 
     /// <summary>
@@ -207,32 +265,9 @@ public sealed class ResourceSetBuilder : IPoolableObject, IEnumerable<ResourceSe
             if (position < firstPos)
                 return InsertFirst(out addedAt);
 
-            var span = CollectionsMarshal.AsSpan(ResourceList);
-            var layout = NewLayout();
+            OpenUpSpace(position, ref moved);
             addedAt = position;
-
-            var abpos = Math.Abs(position);
-            if (abpos + firstPos > abpos - lastPos) // firstPos should always be 0 or negative, while lastPos is always 0 or positive
-            {
-                // in this case, there are more layouts before than there are layouts after, so we'll move the layouts that are after
-                for (int i = 0; i < span.Length; i++)
-                    if (span[i].Position >= position)
-                    {
-                        moved++;
-                        span[i].Position++;
-                    }
-            }
-            else
-            {
-                // in this case, there are more layouts after than there are layouts before, so we'll move the layouts that are before
-                for (int i = 0; i < span.Length; i++)
-                    if (span[i].Position <= position)
-                    {
-                        moved++;
-                        span[i].Position--;
-                    }
-            }
-
+            var layout = NewLayout();
             ResourceList.Add(new ResourceSetEntry() { LayoutBuilder = layout, Position = position });
             return layout;
         }
@@ -256,32 +291,34 @@ public sealed class ResourceSetBuilder : IPoolableObject, IEnumerable<ResourceSe
             if (position < firstPos)
                 InsertFirst(layout, resources, out addedAt);
 
-            var span = CollectionsMarshal.AsSpan(ResourceList);
+            OpenUpSpace(position, ref moved);
             addedAt = position;
 
-            var abpos = Math.Abs(position);
-            if (abpos + firstPos > abpos - lastPos) // firstPos should always be 0 or negative, while lastPos is always 0 or positive
-            {
-                // in this case, there are more layouts before than there are layouts after, so we'll move the layouts that are after
-                for (int i = 0; i < span.Length; i++)
-                    if (span[i].Position >= position)
-                    {
-                        moved++;
-                        span[i].Position++;
-                    }
-            }
-            else
-            {
-                // in this case, there are more layouts after than there are layouts before, so we'll move the layouts that are before
-                for (int i = 0; i < span.Length; i++)
-                    if (span[i].Position <= position)
-                    {
-                        moved++;
-                        span[i].Position--;
-                    }
-            }
-
             ResourceList.Add(new ResourceSetEntry() { Layout = (layout, resources), Position = position });
+        }
+    }
+
+    /// <summary>
+    /// Adds the passed resources in the set, and moves layouts that come after
+    /// </summary>
+    /// <param name="set">The already created <see cref="ResourceSet"/> to add</param>
+    /// <param name="position">The position to add the set at</param>
+    /// <param name="moved">The amount of layouts that were moved in the layout after this operation</param>
+    /// <param name="addedAt">The relative position the layout was added at</param>
+    public void Insert(ResourceSet set, int position, out int addedAt, out int moved)
+    {
+        moved = 0;
+        lock (sync)
+        {
+            if (position >= lastPos)
+                InsertLast(set, out addedAt);
+            if (position < firstPos)
+                InsertFirst(set, out addedAt);
+
+            OpenUpSpace(position, ref moved);
+            addedAt = position;
+
+            ResourceList.Add(new ResourceSetEntry() { BuiltSet = set, Position = position });
         }
     }
 
@@ -308,6 +345,17 @@ public sealed class ResourceSetBuilder : IPoolableObject, IEnumerable<ResourceSe
     {
         lock (sync)
             ResourceList.Add(new ResourceSetEntry() { Layout = (layout, resources), Position = addedAt = lastPos++ });
+    }
+
+    /// <summary>
+    /// Adds the passed resources as the first set
+    /// </summary>
+    /// <param name="set">The already created <see cref="ResourceSet"/> to add</param>
+    /// <param name="addedAt">The relative position the layout was added at</param>
+    public void InsertLast(ResourceSet set, out int addedAt)
+    {
+        lock (sync)
+            ResourceList.Add(new ResourceSetEntry() { BuiltSet = set, Position = addedAt = lastPos++ });
     }
 
     /// <inheritdoc/>
