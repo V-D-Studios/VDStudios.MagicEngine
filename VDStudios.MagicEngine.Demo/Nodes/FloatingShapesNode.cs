@@ -92,6 +92,7 @@ public class FloatingShapesNode : Node, IDrawableNode
             new(.15f - .5f, .15f - .5f),
             new(.15f - .5f, -.15f - .5f)
         };
+        DrawOperationManager = new DrawOperationManager(this);
 
         var circ = PolygonDefinition.Circle(new(-.2f, .15f), .3f, 5);
         circ.Name = "Circle";
@@ -99,64 +100,9 @@ public class FloatingShapesNode : Node, IDrawableNode
         circle = new CircleDefinition(Vector2.Zero, .65f);
         var texturedRect = PolygonDefinition.Circle(new(.25f, .25f), .25f, 21844);
 
-        var watch = new Watch("Circle division watch", new()
-        {
-            new Watch.DelegateViewer(([NotNullWhen(true)] out string? x) =>
-            {
-                x = circle.Subdivisions.ToString();
-                return true;
-            })
-        },
-        new()
-        {
-            () =>
-            {
-                Log.Debug("Flagged for circle subdivided in {parts} parts", circle.Subdivisions);
-                return true;
-            },
-            () =>
-            {
-                texturedRect.ForceUpdate();
-                return true;
-            }
-        });
-        Game.MainGraphicsManager.AddElement(watch);
-
-        DrawOperationManager = new DrawOperationManagerDrawQueueDelegate(this, (q, o) =>
-        {
-            q.Enqueue(o, -1);
-        });
-        DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(
-            new ShapeDefinition[]
-            {
-                new PolygonDefinition(triangle, true) { Name = "Triangle" },
-                hexagon,
-                new PolygonDefinition(rectangle, true) { Name = "Rectangle" },
-                circ,
-                circle
-            }, 
-            new(
-                BlendStateDescription.SingleAlphaBlend,
-                DepthStencilStateDescription.DepthOnlyLessEqual,
-                FaceCullMode.Front,
-                FrontFace.Clockwise,
-                true,
-                false,
-                PolygonRenderMode.TriangulatedFill,
-                new VertexLayoutDescription(
-                    new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
-                    new VertexElementDescription("Color", VertexElementFormat.Float4, VertexElementSemantic.TextureCoordinate)
-                ),
-                new(ShaderStages.Vertex, FSNVertex.GetUTF8Bytes(), "main"),
-                new(ShaderStages.Fragment, FSNFragment.GetUTF8Bytes(), "main"),
-                GraphicsManager.AddWindowAspectTransform
-            ),
-            new ColorVertexGenerator())
-        );
-
         var robstrm = new MemoryStream(Assets.boundary_test);
         var img = new ImageSharpTexture(robstrm);
-        DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
+        var tsr = DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
             img,
             new ShapeDefinition[]
             {
@@ -192,7 +138,57 @@ public class FloatingShapesNode : Node, IDrawableNode
                     SamplerBorderColor.TransparentBlack
                 )
             ),
-            new TextureVertexGeneratorFill())
+            new TextureVertexGeneratorFill()) { PreferredPriority = -2 }
+        );
+        var watch = new Watch("Circle division watch", new()
+        {
+            new Watch.DelegateViewer(([NotNullWhen(true)] out string? x) =>
+            {
+                x = circle.Subdivisions.ToString();
+                return true;
+            })
+        },
+        new()
+        {
+            () =>
+            {
+                Log.Debug("Flagged for circle subdivided in {parts} parts", circle.Subdivisions);
+                return true;
+            },
+            () =>
+            {
+                tsr.TextureViewTransform = Matrix4x4.CreateTranslation(.5f, .5f, 0f);
+                return true;
+            }
+        });
+        Game.MainGraphicsManager.AddElement(watch);
+
+        DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(
+            new ShapeDefinition[]
+            {
+                new PolygonDefinition(triangle, true) { Name = "Triangle" },
+                hexagon,
+                new PolygonDefinition(rectangle, true) { Name = "Rectangle" },
+                circ,
+                circle
+            }, 
+            new(
+                BlendStateDescription.SingleAlphaBlend,
+                DepthStencilStateDescription.DepthOnlyLessEqual,
+                FaceCullMode.Front,
+                FrontFace.Clockwise,
+                true,
+                false,
+                PolygonRenderMode.TriangulatedFill,
+                new VertexLayoutDescription(
+                    new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
+                    new VertexElementDescription("Color", VertexElementFormat.Float4, VertexElementSemantic.TextureCoordinate)
+                ),
+                new(ShaderStages.Vertex, FSNVertex.GetUTF8Bytes(), "main"),
+                new(ShaderStages.Fragment, FSNFragment.GetUTF8Bytes(), "main"),
+                GraphicsManager.AddWindowAspectTransform
+            ),
+            new ColorVertexGenerator())
         );
     }
 
