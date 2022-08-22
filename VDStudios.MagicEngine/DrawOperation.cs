@@ -33,6 +33,11 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     }
 
     /// <summary>
+    /// Represents this <see cref="DrawOperation"/>'s preferred priority. May or may not be honored depending on the <see cref="DrawOperationManager"/>
+    /// </summary>
+    public float PreferredPriority { get; set; }
+
+    /// <summary>
     /// Represents the current reference to <see cref="DrawParameters"/> this <see cref="DrawOperation"/> has
     /// </summary>
     /// <remarks>

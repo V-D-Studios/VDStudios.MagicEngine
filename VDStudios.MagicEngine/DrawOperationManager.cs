@@ -103,7 +103,7 @@ public class DrawOperationManager
     /// <param name="operation">A specific registered <see cref="DrawOperation"/></param>
     public virtual void AddToDrawQueue(IDrawQueue<DrawOperation> queue, DrawOperation operation)
     {
-        queue.Enqueue(operation, 1);
+        queue.Enqueue(operation, operation.PreferredPriority);
     }
 
     #endregion
