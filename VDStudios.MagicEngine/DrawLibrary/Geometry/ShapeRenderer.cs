@@ -189,7 +189,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         }
     }
 
-    private void QueryForChange() // call every frame
+    // IMPORTANT // Should it be called every frame?
+    private void QueryForChange() // call every frame 
     {
         lock (_shapes)
             for (int i = 0; i < ShapeBufferList.Count; i++) 
@@ -199,6 +200,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                 {
                     NotifyPendingGPUUpdate();
                     IndicesToUpdate.Enqueue(new(i, true, sh.LastCount != sh.Shape.Count, 0));
+                    // If the counts don't match, update the indices
                 }
             }
     }
@@ -303,7 +305,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             device.SwapchainFramebuffer.OutputDescription
         ));
 
-        ResourceSets = resourcesSets;
+        ResourceSets = resourcesSets!;
 
         NotifyPendingGPUUpdate();
 
