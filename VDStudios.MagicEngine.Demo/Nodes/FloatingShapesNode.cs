@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SixLabors.ImageSharp;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -227,7 +228,7 @@ public class TexturedViews : TexturedShapeRenderer<Vector2>
     {
     }
 
-    public Matrix4x4[] Views { get; } = new Matrix4x4[4 * 3];
+    public Matrix4x4[] Views { get; } = new Matrix4x4[2 * 2];
     public int Index { get; private set; }
 
     public void Next()
@@ -241,20 +242,21 @@ public class TexturedViews : TexturedShapeRenderer<Vector2>
     {
         var x = base.CreateResources(device, factory, sets, layouts);
 
-        Texture.Target.DivideInto2DViews(Views, 4, 3);
+        //GeometryMath.DivideInto2DViews(Views, new(.2f, .2f), new(.55f, .55f), 2, 2);
+        TextureViewTransform = GeometryMath.Create2DView(new Vector2(.20f, .20f), new(.55f, .55f));
 
         return x;
     }
 
     TimeSpan waited = default;
-    readonly TimeSpan wait = TimeSpan.FromSeconds(1 / 2);
+    readonly TimeSpan wait = TimeSpan.FromSeconds(1);
     protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
     {
-        if ((waited += delta) >= wait)
-        {
-            waited = default;
-            Next();
-        }
+        //if ((waited += delta) >= wait)
+        //{
+        //    waited = default;
+        //    Next();
+        //}
         return base.Draw(delta, cl, device, mainBuffer, screenSizeBuffer);
     }
 }
