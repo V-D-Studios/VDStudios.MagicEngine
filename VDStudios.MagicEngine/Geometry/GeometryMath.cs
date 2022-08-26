@@ -1,10 +1,12 @@
-﻿using System;
+﻿using SDL2.NET;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Veldrid;
 
 namespace VDStudios.MagicEngine.Geometry;
 
@@ -33,4 +35,14 @@ public static class GeometryMath
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Cross(this Vector2 a, Vector2 b) => a.X * b.Y - a.Y * b.X;
+
+    /// <summary>
+    /// Creates a <see cref="Matrix4x4"/> that translates and scales the view of a texture to only display a portion of it
+    /// </summary>
+    /// <param name="area">The area to view in the texture</param>
+    /// <param name="texture">The texture to create the view for</param>
+    /// <returns>The transformation matrix for the texture coordinates</returns>
+    public static Matrix4x4 Create2DView(this FRectangle area, Texture texture)
+        => Matrix4x4.CreateScale(texture.Width / area.Width, texture.Height / area.Height, 1f) *
+            Matrix4x4.CreateTranslation(texture.Width / area.X, texture.Height / area.Y, 1f);
 }
