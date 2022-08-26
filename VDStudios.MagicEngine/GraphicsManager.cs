@@ -82,6 +82,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// Represents the <see cref="ResourceLayout"/> that describes the usage of a <see cref="DrawTransformation"/> buffer in <see cref="DrawParameters.TransformationBuffer"/>
     /// </summary>
     public ResourceLayout DrawTransformationLayout { get; private set; }
+#warning Is this necessary? /\
 
     private DeviceBuffer WindowAspectTransformBuffer;
     private BindableResource[] ManagerResourceBindings;
