@@ -45,8 +45,8 @@ public static class GeometryMath
     /// <returns>The transformation matrix for the texture coordinates</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Matrix4x4 Create2DView(this Texture texture, FRectangle area)
-        => Matrix4x4.CreateScale(texture.Width / area.Width, texture.Height / area.Height, 1f) *
-            Matrix4x4.CreateTranslation(texture.Width / area.X, texture.Height / area.Y, 1f);
+        => Matrix4x4.CreateScale(area.Width / texture.Width, area.Height / texture.Height, 1f) * 
+            Matrix4x4.CreateTranslation(area.X / texture.Width, area.Y / texture.Height, 1f);
 
     /// <summary>
     /// Creates a set of transformation matrices to fill <paramref name="transformationViews"/> with out of an evenly spaced grid graphed along the <see cref="Texture"/>'s dimensions
