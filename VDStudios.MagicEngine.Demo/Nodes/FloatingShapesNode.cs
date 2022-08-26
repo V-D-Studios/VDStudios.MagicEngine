@@ -102,7 +102,7 @@ public class FloatingShapesNode : Node, IDrawableNode
 
         var robstrm = new MemoryStream(Assets.boundary_test);
         var img = new ImageSharpTexture(robstrm);
-        var tsr = DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
+        var tsr = DrawOperationManager.AddDrawOperation(new TexturedViews(
             img,
             new ShapeDefinition[]
             {
@@ -140,40 +140,6 @@ public class FloatingShapesNode : Node, IDrawableNode
             ),
             new TextureVertexGeneratorFill()) { PreferredPriority = -2 }
         );
-        int x = 0;
-        Matrix4x4[] trans = new Matrix4x4[6] 
-        { 
-            Matrix4x4.CreateTranslation(.5f, .5f, 0f), 
-            Matrix4x4.CreateOrthographic(1, 1, .2f, .6f),
-            Matrix4x4.CreatePerspective(1f, .9f, .6f, 2f),
-            Matrix4x4.CreateRotationZ(.7f),
-            Matrix4x4.CreateRotationX(.4f) * Matrix4x4.CreateRotationZ(.4f),
-            Matrix4x4.CreateTranslation(.2f, .6f, .1f)
-        };
-        var watch = new Watch("Circle division watch", new()
-        {
-            new Watch.DelegateViewer(([NotNullWhen(true)] out string? x) =>
-            {
-                x = circle.Subdivisions.ToString();
-                return true;
-            })
-        },
-        new()
-        {
-            () =>
-            {
-                Log.Debug("Flagged for circle subdivided in {parts} parts", circle.Subdivisions);
-                return true;
-            },
-            () =>
-            {
-                if(x > 5)
-                    x = 0;
-                tsr.TextureViewTransform = trans[x++];
-                return true;
-            }
-        });
-        Game.MainGraphicsManager.AddElement(watch);
 
         DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(
             new ShapeDefinition[]
@@ -252,4 +218,43 @@ void main() {
     public DrawOperationManager DrawOperationManager { get; }
 
     public bool SkipDrawPropagation { get; }
+}
+
+public class TexturedViews : TexturedShapeRenderer<Vector2>
+{
+    public TexturedViews(ImageSharpTexture texture, IEnumerable<ShapeDefinition> shapes, TexturedShapeRenderDescription description, IShapeRendererVertexGenerator<TextureVertex<Vector2>> vertexGenerator) 
+        : base(texture, shapes, description, vertexGenerator)
+    {
+    }
+
+    public Matrix4x4[] Views { get; } = new Matrix4x4[4 * 3];
+    public int Index { get; private set; }
+
+    public void Next()
+    {
+        if (Index >= Views.Length)
+            Index = 0;
+        TextureViewTransform = Views[Index++];
+    }
+
+    protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? sets, ResourceLayout[]? layouts)
+    {
+        var x = base.CreateResources(device, factory, sets, layouts);
+
+        Texture.Target.DivideInto2DViews(Views, 4, 3);
+
+        return x;
+    }
+
+    TimeSpan waited = default;
+    readonly TimeSpan wait = TimeSpan.FromSeconds(1 / 2);
+    protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
+    {
+        if ((waited += delta) >= wait)
+        {
+            waited = default;
+            Next();
+        }
+        return base.Draw(delta, cl, device, mainBuffer, screenSizeBuffer);
+    }
 }
