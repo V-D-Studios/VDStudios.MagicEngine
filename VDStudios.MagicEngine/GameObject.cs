@@ -26,6 +26,11 @@ public abstract class GameObject
     }
 
     /// <summary>
+    /// An optional name for debugging purposes
+    /// </summary>
+    public string? Name { get; set; }
+
+    /// <summary>
     /// A Logger that belongs to this <see cref="GameObject"/> and is attached to <see cref="Game.Logger"/>
     /// </summary>
     public ILogger Log
