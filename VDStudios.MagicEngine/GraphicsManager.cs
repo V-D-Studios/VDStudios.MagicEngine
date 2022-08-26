@@ -83,30 +83,33 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     public ResourceLayout DrawTransformationLayout { get; private set; }
 
-    /// <summary>
-    /// A uniform <see cref="DeviceBuffer"/> containing the data from <see cref="WindowAspectTransform"/>
-    /// </summary>
-    /// <remarks>
-    /// Do not modify this at all -- This buffer belongs to <see cref="GraphicsManager"/>
-    /// </remarks>
-    public DeviceBuffer WindowAspectTransformBuffer { get; private set; }
+    private DeviceBuffer WindowAspectTransformBuffer;
+    private BindableResource[] ManagerResourceBindings;
+
+    private static ResourceLayout? ManagerResourceLayout;
 
     /// <summary>
-    /// Represents the <see cref="ResourceLayout"/> that describes <see cref="WindowAspectTransformBuffer"/>
+    /// Gets or instantiates the layout of the resources relevant to this <see cref="GraphicsManager"/>
     /// </summary>
     /// <remarks>
-    /// This layout binds <see cref="WindowAspectTransformBuffer"/> under the name of <c>WindowAspectTransform</c>
+    /// Corresponds to the <see cref="ManagerResourceSet"/> of each instance of <see cref="GraphicsManager"/>. 
     /// </remarks>
-    public ResourceLayout WindowAspectTransformLayout { get; private set; } 
+    public static ResourceLayout GetManagerResourceLayout(ResourceFactory factory)
+    {
+        if (ManagerResourceLayout is null)
+            lock (typeof(GraphicsManager)) 
+                ManagerResourceLayout ??= factory.CreateResourceLayout(new ResourceLayoutDescription(new ResourceLayoutElementDescription("WindowScale", ResourceKind.UniformBuffer, ShaderStages.Vertex)));
+        return ManagerResourceLayout;
+    }
 
     /// <summary>
-    /// Represents the <see cref="BindableResource"/> array that is to be associated with <see cref="WindowAspectTransformLayout"/>
+    /// Represents the set of the resources relevant to this <see cref="GraphicsManager"/>
     /// </summary>
     /// <remarks>
-    /// This array contains a single element: <see cref="WindowAspectTransformBuffer"/>
+    /// Corresponds to <see cref="ManagerResourceSet"/>
     /// </remarks>
-    public BindableResource[] WindowAspectTransformResources { get; private set; }
-
+    public ResourceSet ManagerResourceSet { get; private set; }
+    
     /// <summary>
     /// Adds the necessary resources to provide the Window aspect transformation buffer as a bound resource to a shader
     /// </summary>
@@ -115,7 +118,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <param name="factory"></param>
     /// <param name="builder"></param>
     public static void AddWindowAspectTransform(GraphicsManager manager, GraphicsDevice device, ResourceFactory factory, ResourceSetBuilder builder)
-        => builder.InsertFirst(manager.WindowAspectTransformLayout, manager.WindowAspectTransformResources, out _);
+        => builder.InsertFirst(manager.ManagerResourceSet, GetManagerResourceLayout(factory), out _);
 
     /// <summary>
     /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager"/> is running
@@ -844,19 +847,20 @@ public class GraphicsManager : GameObject, IDisposable
         CreateWindow(out var window, out var gd);
         Window = window;
         Device = gd;
+        var factory = gd.ResourceFactory;
 
         var (ww, wh) = window.Size;
         ImGuiController = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
-        ScreenSizeBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
+        ScreenSizeBuffer = factory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
 
         var bufferDesc = new BufferDescription(MathUtils.FitToUniformBuffer<WindowTransformation>(), BufferUsage.UniformBuffer);
-        var resourDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("WindowScale", ResourceKind.UniformBuffer, ShaderStages.Vertex));
         var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
 
-        WindowAspectTransformBuffer = gd.ResourceFactory.CreateBuffer(ref bufferDesc);
-        WindowAspectTransformLayout = gd.ResourceFactory.CreateResourceLayout(ref resourDesc);
-        DrawTransformationLayout = gd.ResourceFactory.CreateResourceLayout(ref dTransDesc);
-        WindowAspectTransformResources = new BindableResource[] { WindowAspectTransformBuffer };
+        WindowAspectTransformBuffer = factory.CreateBuffer(ref bufferDesc);
+        DrawTransformationLayout = factory.CreateResourceLayout(ref dTransDesc);
+        ManagerResourceBindings = new BindableResource[] { WindowAspectTransformBuffer };
+        ManagerResourceSet = factory.CreateResourceSet(new ResourceSetDescription(GetManagerResourceLayout(factory), WindowAspectTransformBuffer));
+        ManagerResourceSet.Name = $"{(Name is not null ? "->" : null)}GraphicsManagerResources";
 
         Window_SizeChanged(window, Game.TotalTime, window.Size);
 
