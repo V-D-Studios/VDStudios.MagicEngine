@@ -140,6 +140,16 @@ public class FloatingShapesNode : Node, IDrawableNode
             ),
             new TextureVertexGeneratorFill()) { PreferredPriority = -2 }
         );
+        int x = 0;
+        Matrix4x4[] trans = new Matrix4x4[6] 
+        { 
+            Matrix4x4.CreateTranslation(.5f, .5f, 0f), 
+            Matrix4x4.CreateOrthographic(1, 1, .2f, .6f),
+            Matrix4x4.CreatePerspective(1f, .9f, .6f, 2f),
+            Matrix4x4.CreateRotationZ(.7f),
+            Matrix4x4.CreateRotationX(.4f) * Matrix4x4.CreateRotationZ(.4f),
+            Matrix4x4.CreateTranslation(.2f, .6f, .1f)
+        };
         var watch = new Watch("Circle division watch", new()
         {
             new Watch.DelegateViewer(([NotNullWhen(true)] out string? x) =>
@@ -157,7 +167,9 @@ public class FloatingShapesNode : Node, IDrawableNode
             },
             () =>
             {
-                tsr.TextureViewTransform = Matrix4x4.CreateTranslation(.5f, .5f, 0f);
+                if(x > 5)
+                    x = 0;
+                tsr.TextureViewTransform = trans[x++];
                 return true;
             }
         });
