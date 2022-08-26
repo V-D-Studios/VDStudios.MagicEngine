@@ -854,7 +854,7 @@ public class GraphicsManager : GameObject, IDisposable
         ImGuiController = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
         ScreenSizeBuffer = factory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
 
-        var bufferDesc = new BufferDescription(MathUtils.FitToUniformBuffer<WindowTransformation>(), BufferUsage.UniformBuffer);
+        var bufferDesc = new BufferDescription(DataStructuring.FitToUniformBuffer<WindowTransformation>(), BufferUsage.UniformBuffer);
         var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
 
         WindowAspectTransformBuffer = factory.CreateBuffer(ref bufferDesc);

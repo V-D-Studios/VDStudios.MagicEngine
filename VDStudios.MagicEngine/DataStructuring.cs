@@ -9,10 +9,19 @@ using System.Threading.Tasks;
 namespace VDStudios.MagicEngine;
 
 /// <summary>
-/// Represents extra math utilities that can be used on <see cref="float"/> values and <see cref="Vector2"/> values
+/// Contains an assortment of helper and extension methods in relation to data size, unmanaged structure datatypes, and buffers
 /// </summary>
-public static class MathUtils
+public static class DataStructuring
 {
+    /// <summary>
+    /// Calculates the buffer size necessary to hold <paramref name="elementCount"/> elements of type <typeparamref name="TStruct"/>
+    /// </summary>
+    /// <typeparam name="TStruct">The type to calculate the size for</typeparam>
+    /// <param name="elementCount">The amount of elements that will fit in the buffer</param>
+    /// <returns>The appropriate buffer size necessary to fit the structures</returns>
+    public static uint GetSize<TStruct>(uint elementCount) where TStruct : unmanaged
+        => (uint)Unsafe.SizeOf<TStruct>() * elementCount;
+
     /// <summary>
     /// Gets the size of a blittable type <typeparamref name="TStruct"/> and fits it to the smallest possible size in bytes allowed by an uniform buffer
     /// </summary>
@@ -34,25 +43,4 @@ public static class MathUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint FitToSize<TStruct>(uint multipleOf) where TStruct : unmanaged
         => multipleOf * ((uint)Unsafe.SizeOf<TStruct>() / multipleOf + 1u);
-
-    /// <summary>
-    /// Calculates the angle in radians between a line that passes through <paramref name="a"/> and <paramref name="b"/> and a line that passes through <paramref name="a"/> and <paramref name="c"/>
-    /// </summary>
-    /// <param name="a">The point at which the line <paramref name="b"/><paramref name="a"/> and <paramref name="c"/><paramref name="a"/> intersect</param>
-    /// <param name="b">The second point <paramref name="b"/><paramref name="a"/> passes through</param>
-    /// <param name="c">The second point <paramref name="c"/><paramref name="a"/> passes through</param>
-    /// <returns>The angle in radians between <paramref name="b"/><paramref name="a"/> and <paramref name="c"/><paramref name="a"/></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Angle(Vector2 b, Vector2 a, Vector2 c)
-    {
-        var ba = b - a;
-        var ca = c - a;
-        return MathF.Abs(MathF.Atan2(Cross(ba, ca), Vector2.Dot(ba, ca)));
-    }
-
-    /// <summary>
-    /// Calculates the cross product between <see cref="Vector2"/>s <paramref name="a"/> and <paramref name="b"/>
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Cross(Vector2 a, Vector2 b) => a.X * b.Y - a.Y * b.X;
 }

@@ -155,7 +155,7 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
             Target = texture
         });
 
-        TextureViewTransformBuffer = factory.CreateBuffer(new(MathUtils.FitToUniformBuffer<Matrix4x4>(), BufferUsage.UniformBuffer));
+        TextureViewTransformBuffer = factory.CreateBuffer(new(DataStructuring.FitToUniformBuffer<Matrix4x4>(), BufferUsage.UniformBuffer));
         
         device.UpdateBuffer(TextureViewTransformBuffer, 0, ref TextureViewTransform_field);
 

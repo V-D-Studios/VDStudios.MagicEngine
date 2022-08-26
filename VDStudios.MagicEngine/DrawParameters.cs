@@ -24,7 +24,7 @@ public readonly record struct DrawTransformation(Matrix4x4 View, Matrix4x4 Proje
 /// <param name="ResourceSet"></param>
 public sealed class DrawParameters
 {
-    private static BufferDescription buffDesc = new(MathUtils.FitToUniformBuffer<DrawTransformation>(), BufferUsage.UniformBuffer);
+    private static BufferDescription buffDesc = new(DataStructuring.FitToUniformBuffer<DrawTransformation>(), BufferUsage.UniformBuffer);
 
     private readonly object sync = new();
     DrawTransformation trans;
