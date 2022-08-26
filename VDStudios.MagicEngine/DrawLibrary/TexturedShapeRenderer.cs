@@ -99,6 +99,7 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     }
     private readonly object TextureViewTransformSync = new();
     private Matrix4x4 TextureViewTransform_field = Matrix4x4.Identity;
+#warning Not flexible enough. Remove it from here, leave it up to the implementer. Or put it up somewhere else
     private bool TextureViewTransformChanged;
     private DeviceBuffer TextureViewTransformBuffer;
 
