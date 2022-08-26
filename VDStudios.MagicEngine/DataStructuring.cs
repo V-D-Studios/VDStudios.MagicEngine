@@ -19,7 +19,7 @@ public static class DataStructuring
     /// <typeparam name="TStruct">The type to calculate the size for</typeparam>
     /// <param name="elementCount">The amount of elements that will fit in the buffer</param>
     /// <returns>The appropriate buffer size necessary to fit the structures</returns>
-    public static uint GetSize<TStruct>(uint elementCount) where TStruct : unmanaged
+    public static uint GetSize<TStruct>(uint elementCount = 1) where TStruct : unmanaged
         => (uint)Unsafe.SizeOf<TStruct>() * elementCount;
 
     /// <summary>
