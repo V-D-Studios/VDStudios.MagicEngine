@@ -159,8 +159,6 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
         
         device.UpdateBuffer(TextureViewTransformBuffer, 0, ref TextureViewTransform_field);
 
-        builder.InsertFirst(Manager!.WindowAspectTransformLayout, Manager.WindowAspectTransformResources, out _);
-
         var layout = builder.InsertFirst(out _);
         layout.InsertFirst(new ResourceLayoutElementDescription(
                 "TextureViewTransformBuffer",
