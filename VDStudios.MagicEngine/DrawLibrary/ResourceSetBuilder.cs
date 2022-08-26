@@ -110,7 +110,7 @@ public sealed class ResourceSetBuilder : IPoolableObject, IEnumerable<ResourceSe
         sets = new ResourceSet[Count];
         layouts = new ResourceLayout[Count];
         int i = 0;
-        foreach (var entry in ResourceList.OrderByDescending(x => x.Position))
+        foreach (var entry in ResourceList.OrderBy(x => x.Position))
         {
             ResourceSet current;
             if (entry.BuiltSet is (ResourceSet set, ResourceLayout layout) bs)

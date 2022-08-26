@@ -59,7 +59,7 @@ public sealed class ResourceLayoutBuilder : IPoolableObject, IEnumerable<Resourc
             bindings = new BindableResource[Count];
             var elements = new ResourceLayoutElementDescription[Count];
             int i = 0;
-            foreach (var resc in this.OrderByDescending(x => x.Position)) 
+            foreach (var resc in this.OrderBy(x => x.Position)) 
             {
                 bindings[i] = resc.Resource;
                 elements[i++] = resc.Description;
