@@ -103,7 +103,7 @@ public class FloatingShapesNode : Node, IDrawableNode
 
         var robstrm = new MemoryStream(Assets.boundary_test);
         var img = new ImageSharpTexture(robstrm);
-        var tsr = DrawOperationManager.AddDrawOperation(new TexturedViews(
+        var tsr = DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
             img,
             new ShapeDefinition[]
             {
@@ -219,44 +219,4 @@ void main() {
     public DrawOperationManager DrawOperationManager { get; }
 
     public bool SkipDrawPropagation { get; }
-}
-
-public class TexturedViews : TexturedShapeRenderer<Vector2>
-{
-    public TexturedViews(ImageSharpTexture texture, IEnumerable<ShapeDefinition> shapes, TexturedShapeRenderDescription description, IShapeRendererVertexGenerator<TextureVertex<Vector2>> vertexGenerator) 
-        : base(texture, shapes, description, vertexGenerator)
-    {
-    }
-
-    public Matrix4x4[] Views { get; } = new Matrix4x4[2 * 2];
-    public int Index { get; private set; }
-
-    public void Next()
-    {
-        if (Index >= Views.Length)
-            Index = 0;
-        TextureViewTransform = Views[Index++];
-    }
-
-    protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? sets, ResourceLayout[]? layouts)
-    {
-        var x = base.CreateResources(device, factory, sets, layouts);
-
-        //GeometryMath.DivideInto2DViews(Views, new(.2f, .2f), new(.55f, .55f), 2, 2);
-        TextureViewTransform = GeometryMath.Create2DView(new Vector2(.20f, .20f), new(.55f, .55f));
-
-        return x;
-    }
-
-    TimeSpan waited = default;
-    readonly TimeSpan wait = TimeSpan.FromSeconds(1);
-    protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
-    {
-        //if ((waited += delta) >= wait)
-        //{
-        //    waited = default;
-        //    Next();
-        //}
-        return base.Draw(delta, cl, device, mainBuffer, screenSizeBuffer);
-    }
 }
