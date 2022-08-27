@@ -6,6 +6,26 @@
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<SignAssembly>False</SignAssembly>
+	<Title>Game Engine: Magic Engine</Title>
+	<Authors>Diego Garcia</Authors>
+	<Company>VDStudios</Company>
+	<Copyright>MIT</Copyright>
+	<RepositoryType>git</RepositoryType>
+	<RepositoryUrl>https://github.com/V-D-Studios/VDStudios.MagicEngine</RepositoryUrl>
+	<PackageTags>game-development; game; gaming; game-dev; gamedev; sdl2; sdl; veldrid; graphics; engine; graphics-engine; rendering; renderer</PackageTags>
+	<NeutralLanguage>en</NeutralLanguage>
+	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+	<ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
 	<!-- This copies all .dll files from the lib folder to the project output root folder -->
