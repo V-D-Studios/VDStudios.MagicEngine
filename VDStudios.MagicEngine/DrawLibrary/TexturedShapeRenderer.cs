@@ -1,11 +1,4 @@
-﻿using SDL2.NET;
-using SharpDX.DXGI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Numerics;
 using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
 using Veldrid;
@@ -86,7 +79,7 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// </summary>
     protected TexturedShapeRenderDescription TextureRendererDescription;
     private Sampler Sampler;
-    private TextureFactory TextureFactory;
+    private readonly TextureFactory TextureFactory;
 
     /// <summary>
     /// The texture that this <see cref="TexturedShapeRenderer{TVertex}"/> is in charge of rendering. Will become available after <see cref="CreateResources(GraphicsDevice, ResourceFactory)"/> is called

@@ -1,16 +1,7 @@
-﻿using SDL2.NET;
-using SharpDX.DXGI;
-using System;
-using System.Buffers;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections;
 using System.Numerics;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using VDStudios.MagicEngine.Geometry;
 using Veldrid;
 using Veldrid.SPIRV;

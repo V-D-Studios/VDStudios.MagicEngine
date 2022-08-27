@@ -1,8 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using SDL2.NET;
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using Veldrid;
 
 namespace VDStudios.MagicEngine;
 

@@ -1,22 +1,13 @@
 ﻿using SDL2.NET;
 using SDL2.NET.Input;
-using System;
-using System.Buffers;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Numerics;
-using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using VDStudios.MagicEngine.DrawLibrary;
 using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Internal;
 using Veldrid;
-using VeldridPixelFormat = Veldrid.PixelFormat;
 
 namespace VDStudios.MagicEngine;
 
@@ -183,7 +174,7 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region Input Management
 
-    private InputSnapshot snapshotBuffer;
+    private readonly InputSnapshot snapshotBuffer;
     private InputSnapshot CurrentSnapshot;
     private readonly Queue<InputSnapshot> SnapshotPool = new(3);
 
@@ -383,7 +374,7 @@ public class GraphicsManager : GameObject, IDisposable
 
     private sealed class idleWaiter : IDisposable
     {
-        private SemaphoreSlim @lock;
+        private readonly SemaphoreSlim @lock;
 
         public idleWaiter(SemaphoreSlim fl) => @lock = fl;
 

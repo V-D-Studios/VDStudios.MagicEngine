@@ -11,7 +11,7 @@ namespace VDStudios.MagicEngine;
 /// </remarks>
 public abstract class GameObject
 {
-    private readonly static object logSync = new();
+    private static readonly object logSync = new();
     private readonly string Facility;
     private readonly string Area;
 
@@ -39,8 +39,7 @@ public abstract class GameObject
         {
             if (_log is null)
                 lock (logSync)
-                    if (_log is null)
-                        _log = new GameLogger(Game.Logger, Area, Facility, GetType());
+                    _log ??= new GameLogger(Game.Logger, Area, Facility, GetType());
             return _log;
         }
     }

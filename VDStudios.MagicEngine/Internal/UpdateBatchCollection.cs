@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace VDStudios.MagicEngine.Internal;
+﻿namespace VDStudios.MagicEngine.Internal;
 internal sealed class UpdateBatchCollection
 {
     public const int BatchCount = (int)UpdateBatch.Last + 1;

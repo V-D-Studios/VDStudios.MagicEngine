@@ -1,11 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
@@ -26,7 +21,7 @@ public abstract class NodeBase : GameObject, IDisposable
     /// </summary>
     internal IDrawableNode? DrawableSelf;
 
-    private IServiceScope scope;
+    private readonly IServiceScope scope;
     internal IServiceProvider ServiceProvider => scope.ServiceProvider;
 
     #endregion
@@ -49,7 +44,7 @@ public abstract class NodeBase : GameObject, IDisposable
 
     #region IDisposable
 
-    private bool disposedValue;
+    private readonly bool disposedValue;
 
     /// <summary>
     /// Disposes of this <see cref="Node"/> and all of its currently attached children
@@ -91,7 +86,7 @@ public abstract class NodeBase : GameObject, IDisposable
     /// <param name="child">The node about to be attached</param>
     /// <param name="reasonForDenial">The optional reason for the denial of <paramref name="child"/></param>
     /// <returns><c>true</c> if the child node is allowed to be attached into this <see cref="Node"/>. <c>false</c> otherwise, along with an optional reason string in <paramref name="reasonForDenial"/></returns>
-    internal protected virtual bool FilterChildNode(Node child, [NotNullWhen(false)] out string? reasonForDenial)
+    protected internal virtual bool FilterChildNode(Node child, [NotNullWhen(false)] out string? reasonForDenial)
     {
         reasonForDenial = null;
         return true;
@@ -106,14 +101,14 @@ public abstract class NodeBase : GameObject, IDisposable
     /// </summary>
     /// <param name="node">The <see cref="Node"/> that is being attached, and should be assigned an Updater</param>
     /// <returns>The <see cref="NodeUpdater"/> specific to <paramref name="node"/>, or <c>null</c> to use <see cref="HandleChildUpdate(Node)"/> instead</returns>
-    internal protected virtual ValueTask<NodeUpdater?> AssignUpdater(Node node) => ValueTask.FromResult<NodeUpdater?>(null);
+    protected internal virtual ValueTask<NodeUpdater?> AssignUpdater(Node node) => ValueTask.FromResult<NodeUpdater?>(null);
 
     /// <summary>
     /// This method is automatically called when a Child node is being attached. It assigns a custom drawer to the child node, or <c>null</c> to use <see cref="HandleChildRegisterDrawOperations(IDrawableNode)"/> instead
     /// </summary>
     /// <param name="node">The <see cref="Node"/> that is being attached, and should be assigned a drawer</param>
     /// <returns>The <see cref="NodeDrawRegistrar"/> specific to <paramref name="node"/>, or <c>null</c> to use <see cref="HandleChildRegisterDrawOperations(IDrawableNode)"/> instead</returns>
-    internal protected virtual ValueTask<NodeDrawRegistrar?> AssignDrawer(IDrawableNode node) => ValueTask.FromResult<NodeDrawRegistrar?>(null);
+    protected internal virtual ValueTask<NodeDrawRegistrar?> AssignDrawer(IDrawableNode node) => ValueTask.FromResult<NodeDrawRegistrar?>(null);
 
     #endregion
 

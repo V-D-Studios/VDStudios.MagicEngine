@@ -1,5 +1,4 @@
-﻿using SharpDX.DXGI;
-using VDStudios.MagicEngine.DrawLibrary.Geometry;
+﻿using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.DrawLibrary;

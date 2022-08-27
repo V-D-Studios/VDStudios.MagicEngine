@@ -1,5 +1,4 @@
-﻿using SDL2.NET.Input;
-using System.Numerics;
+﻿using System.Numerics;
 using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
 using Veldrid;

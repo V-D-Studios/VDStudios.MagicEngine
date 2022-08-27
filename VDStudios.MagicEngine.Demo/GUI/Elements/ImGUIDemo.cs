@@ -1,10 +1,5 @@
 ﻿using ImGuiNET;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace VDStudios.MagicEngine.Demo.GUI.Elements;
 public class ImGUIDemo : GUIElement
@@ -16,9 +11,9 @@ public class ImGUIDemo : GUIElement
     private static bool _showAnotherWindow = false;
     private static bool _showMemoryEditor = false;
     private static uint s_tab_bar_flags = (uint)ImGuiTabBarFlags.Reorderable;
-    static bool[] s_opened = { true, true, true, true }; // Persistent user state
+    private static readonly bool[] s_opened = { true, true, true, true }; // Persistent user state
 
-    static void SetThing(out float i, float val) { i = val; }
+    private static void SetThing(out float i, float val) { i = val; }
 
     protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements)
     {

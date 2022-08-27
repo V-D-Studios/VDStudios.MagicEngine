@@ -1,14 +1,6 @@
 ﻿using SDL2.NET;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using VDStudios.MagicEngine.Properties;
-using VDStudios.MagicEngine.Utility;
 using Veldrid;
-using Veldrid.ImageSharp;
 using Veldrid.SPIRV;
 using PixelFormat = Veldrid.PixelFormat;
 using Texture = Veldrid.Texture;
@@ -33,7 +25,7 @@ public class GradientColorShow : DrawOperation
     private TextureView _computeTargetTextureView;
     private ResourceLayout _graphicsLayout;
     private float _ticks;
-    private uint _computeTexSize = 512;
+    private readonly uint _computeTexSize = 512;
 
     #endregion
 

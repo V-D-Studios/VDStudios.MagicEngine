@@ -1,14 +1,7 @@
-﻿using System;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Resources;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using Veldrid;
-using static VDStudios.MagicEngine.DrawLibrary.ResourceLayoutBuilder;
 using static VDStudios.MagicEngine.DrawLibrary.ResourceSetBuilder;
 using ResourceSet = Veldrid.ResourceSet;
 

@@ -1,17 +1,8 @@
-﻿using SixLabors.ImageSharp;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Numerics;
 using VDStudios.MagicEngine.Demo.Properties;
 using VDStudios.MagicEngine.DrawLibrary;
 using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
-using VDStudios.MagicEngine.GUILibrary.ImGUI;
-using VDStudios.MagicEngine.Properties;
 using Veldrid;
 using Veldrid.ImageSharp;
 
@@ -67,8 +58,8 @@ public class FloatingShapesNode : Node, IDrawableNode
         public void Stop(ShapeRenderer<ColorVertex> renderer, ref object? context) { }
     }
 
-    CircleDefinition circle;
-    PolygonDefinition hexagon;
+    private readonly CircleDefinition circle;
+    private readonly PolygonDefinition hexagon;
 
     public FloatingShapesNode()
     {
@@ -197,11 +188,10 @@ void main() {
     gl_Position = WindowScale * vec4(Position, 0.0, 1.0);
 }
 ";
-
-    TimeSpan tb;
-    static readonly TimeSpan tb_ceil = TimeSpan.FromSeconds(1.5);
-    int x = 0;
-    readonly int[] SubDivSeq = Enumerable.Range(3, 60).ToArray();
+    private TimeSpan tb;
+    private static readonly TimeSpan tb_ceil = TimeSpan.FromSeconds(1.5);
+    private int x = 0;
+    private readonly int[] SubDivSeq = Enumerable.Range(3, 60).ToArray();
     protected override ValueTask<bool> Updating(TimeSpan delta)
     {
         tb += delta;

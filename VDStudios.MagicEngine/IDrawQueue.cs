@@ -1,6 +1,4 @@
-﻿using System.Collections.Concurrent;
-
-namespace VDStudios.MagicEngine;
+﻿namespace VDStudios.MagicEngine;
 
 /// <summary>
 /// The engine's Draw Queue

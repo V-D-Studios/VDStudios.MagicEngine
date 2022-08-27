@@ -1,15 +1,10 @@
 ﻿using ImGuiNET;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace VDStudios.MagicEngine.Demo.GUI.Elements;
 public class TestElement : GUIElement
 {
-    int clicks = 0;
-    uint cid;
+    private int clicks = 0;
+    private uint cid;
 
     protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements)
     {

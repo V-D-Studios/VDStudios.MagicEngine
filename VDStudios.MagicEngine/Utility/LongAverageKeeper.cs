@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace VDStudios.MagicEngine.Utility;
+﻿namespace VDStudios.MagicEngine.Utility;
 
 /// <summary>
 /// Maintains a list of data and presents an arithmetic mean average of the stored data

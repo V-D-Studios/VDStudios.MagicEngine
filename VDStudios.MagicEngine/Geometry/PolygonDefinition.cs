@@ -1,5 +1,4 @@
 ﻿using SDL2.NET;
-using System;
 using System.Collections;
 using System.Numerics;
 

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Numerics;
 using Veldrid;
 
 namespace VDStudios.MagicEngine;
@@ -27,10 +22,9 @@ public sealed class DrawParameters
     private static BufferDescription buffDesc = new(DataStructuring.FitToUniformBuffer<DrawTransformation>(), BufferUsage.UniformBuffer);
 
     private readonly object sync = new();
-    DrawTransformation trans;
-    DeviceBuffer buff;
-
-    bool PendingBufferUpdate = true;
+    private DrawTransformation trans;
+    private readonly DeviceBuffer buff;
+    private bool PendingBufferUpdate = true;
 
     public DrawParameters(DrawTransformation transformation, GraphicsManager manager)
     {
