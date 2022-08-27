@@ -1,15 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Veldrid.OpenGL;
+﻿using SDL2.NET;
 using Veldrid;
-using SDL2.NET;
+using Veldrid.OpenGL;
 using static SDL2.Bindings.SDL;
-using SDL2.Bindings;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace VDStudios.MagicEngine.Veldrid;
 

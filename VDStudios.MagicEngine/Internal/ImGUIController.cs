@@ -1,17 +1,8 @@
-﻿using SDL2.NET;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using ImGuiNET;
+using SDL2.NET;
 using System.Numerics;
-using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using static SDL2.NET.Window;
 using Veldrid;
-using ImGuiNET;
-using VDStudios.MagicEngine.Properties;
-using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.Internal;
 /// <summary>
@@ -35,7 +26,7 @@ internal class ImGuiController : IDisposable
     private ResourceSet _mainResourceSet;
     private ResourceSet _fontTextureResourceSet;
 
-    private IntPtr _fontAtlasID = (IntPtr)1;
+    private readonly IntPtr _fontAtlasID = (IntPtr)1;
     private bool _controlDown;
     private bool _shiftDown;
     private bool _altDown;
@@ -45,7 +36,7 @@ internal class ImGuiController : IDisposable
     private int _windowHeight;
     private Vector2 _scaleFactor = Vector2.One;
 
-    internal readonly static object SyncImGUI = new();
+    internal static readonly object SyncImGUI = new();
 
     // Image trackers
     private readonly Dictionary<TextureView, ResourceSetInfo> _setsByView = new();
@@ -236,12 +227,9 @@ internal class ImGuiController : IDisposable
     /// </summary>
     public ResourceSet GetImageResourceSet(IntPtr imGuiBinding)
     {
-        if (!_viewsById.TryGetValue(imGuiBinding, out ResourceSetInfo tvi))
-        {
-            throw new InvalidOperationException("No registered ImGui binding with id " + imGuiBinding.ToString());
-        }
-
-        return tvi.ResourceSet;
+        return !_viewsById.TryGetValue(imGuiBinding, out ResourceSetInfo tvi)
+            ? throw new InvalidOperationException("No registered ImGui binding with id " + imGuiBinding.ToString())
+            : tvi.ResourceSet;
     }
 
     public void ClearCachedImageResources()
@@ -265,9 +253,7 @@ internal class ImGuiController : IDisposable
     {
         ImGuiIOPtr io = ImGui.GetIO();
         // Build
-        IntPtr pixels;
-        int width, height, bytesPerPixel;
-        io.Fonts.GetTexDataAsRGBA32(out pixels, out width, out height, out bytesPerPixel);
+        io.Fonts.GetTexDataAsRGBA32(out IntPtr pixels, out int width, out int height, out int bytesPerPixel);
         // Store our identifier
         io.Fonts.SetTexID(_fontAtlasID);
 

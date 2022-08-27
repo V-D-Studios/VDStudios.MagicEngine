@@ -1,9 +1,5 @@
 ﻿using SDL2.NET;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using VDStudios.MagicEngine.DrawLibrary;
 using VDStudios.MagicEngine.Templates;
 using Veldrid;
 
@@ -280,5 +276,14 @@ public delegate GraphicsManager DrawOperationGraphicsManagerSelector(GraphicsMan
 /// <param name="factory">The factory (belonging to <paramref name="device"/>) to create the <see cref="global::Veldrid.Texture"/> with</param>
 /// <returns></returns>
 public delegate Texture TextureFactory(GraphicsDevice device, ResourceFactory factory);
+
+/// <summary>
+/// Represents a method that is used to describe resources
+/// </summary>
+/// <param name="manager">The <see cref="GraphicsManager"/> that owns the draw operation the layout is being generated for</param>
+/// <param name="device">The <see cref="GraphicsDevice"/> owned by <paramref name="manager"/></param>
+/// <param name="builder">The collection of layouts and descriptions</param>
+/// <param name="factory">The <see cref="ResourceFactory"/> associated with <paramref name="device"/></param>
+public delegate void ResourceBuilder(GraphicsManager manager, GraphicsDevice device, ResourceFactory factory, ResourceSetBuilder builder);
 
 #endregion

@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
 

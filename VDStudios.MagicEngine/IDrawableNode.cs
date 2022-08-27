@@ -1,7 +1,4 @@
-﻿using System.Collections.Immutable;
-using Veldrid;
-
-namespace VDStudios.MagicEngine;
+﻿namespace VDStudios.MagicEngine;
 
 /// <summary>
 /// Represents a <see cref="Node"/> that can be drawn. 

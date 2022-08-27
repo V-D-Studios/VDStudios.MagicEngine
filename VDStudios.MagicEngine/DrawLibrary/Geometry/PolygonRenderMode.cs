@@ -1,9 +1,9 @@
 ﻿using VDStudios.MagicEngine.Geometry;
 
-namespace VDStudios.MagicEngine.DrawLibrary.Primitives;
+namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 
 /// <summary>
-/// Represents the way a given <see cref="ShapeBuffer"/> will render an arbitrary polygon
+/// Represents the way a given <see cref="ShapeRenderer"/> will render an arbitrary polygon
 /// </summary>
 public enum PolygonRenderMode : byte
 {

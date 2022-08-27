@@ -1,5 +1,4 @@
 ﻿using SDL2.NET;
-using System;
 using System.Collections;
 using System.Numerics;
 
@@ -18,6 +17,9 @@ public class PolygonDefinition : ShapeDefinition, IStructuralEquatable
     /// <summary>
     /// Creates a new <see cref="PolygonDefinition"/> object that describes a Circle
     /// </summary>
+    /// <remarks>
+    /// This method creates a Polygon whose vertices are all equally distant from <paramref name="center"/> by <paramref name="radius"/>. To define an actual circle, see <see cref="CircleDefinition"/>
+    /// </remarks>
     /// <param name="center">The center point of the circle</param>
     /// <param name="radius">The length of each point along the circle from its center, or half its diameter</param>
     /// <param name="subdivisions">The amount of vertices the circle will have. Must be larger than 3</param>
@@ -30,7 +32,7 @@ public class PolygonDefinition : ShapeDefinition, IStructuralEquatable
         var pbuf = center with { X = center.X + radius };
         var rot = Matrix3x2.CreateRotation(MathF.Tau / subdivisions, center);
 
-        Span<Vector2> vertices = stackalloc Vector2[subdivisions];
+        Span<Vector2> vertices = subdivisions > 5000 ? new Vector2[subdivisions] : stackalloc Vector2[subdivisions];
         for (int i = 0; i < subdivisions; i++)
         {
             vertices[i] = pbuf;

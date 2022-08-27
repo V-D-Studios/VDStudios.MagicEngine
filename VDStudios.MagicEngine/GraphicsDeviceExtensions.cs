@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.CompilerServices;
 using Veldrid;
 
 namespace VDStudios.MagicEngine;
@@ -27,7 +22,7 @@ public static class GraphicsDeviceExtensions
     /// <param name="buffer">The resource to update</param>
     /// <param name="data">A <see cref="ReadOnlySpan{T}"/> containing the data to upload</param>
     /// <param name="bufferOffsetInBytes">An offset, in bytes, from the beginning of <paramref name="buffer"/>'s storage, at which new data will be uploaded</param>
-    public unsafe static void UpdateBuffer<T>(this GraphicsDevice device, DeviceBuffer buffer, uint bufferOffsetInBytes, Span<T> data) where T : unmanaged 
+    public static unsafe void UpdateBuffer<T>(this GraphicsDevice device, DeviceBuffer buffer, uint bufferOffsetInBytes, Span<T> data) where T : unmanaged 
         => UpdateBuffer(device, buffer, bufferOffsetInBytes, (ReadOnlySpan<T>)data);
 
     /// <summary>
@@ -38,7 +33,7 @@ public static class GraphicsDeviceExtensions
     /// <param name="buffer">The resource to update</param>
     /// <param name="data">A <see cref="ReadOnlySpan{T}"/> containing the data to upload</param>
     /// <param name="bufferOffsetInBytes">An offset, in bytes, from the beginning of <paramref name="buffer"/>'s storage, at which new data will be uploaded</param>
-    public unsafe static void UpdateBuffer<T>(this CommandList commandList, DeviceBuffer buffer, uint bufferOffsetInBytes, Span<T> data) where T : unmanaged 
+    public static unsafe void UpdateBuffer<T>(this CommandList commandList, DeviceBuffer buffer, uint bufferOffsetInBytes, Span<T> data) where T : unmanaged 
         => UpdateBuffer(commandList, buffer, bufferOffsetInBytes, (ReadOnlySpan<T>)data);
 
     /// <summary>
@@ -49,7 +44,7 @@ public static class GraphicsDeviceExtensions
     /// <param name="buffer">The resource to update</param>
     /// <param name="data">A <see cref="ReadOnlySpan{T}"/> containing the data to upload</param>
     /// <param name="bufferOffsetInBytes">An offset, in bytes, from the beginning of <paramref name="buffer"/>'s storage, at which new data will be uploaded</param>
-    public unsafe static void UpdateBuffer<T>(this GraphicsDevice device, DeviceBuffer buffer, uint bufferOffsetInBytes, ReadOnlySpan<T> data) where T : unmanaged
+    public static unsafe void UpdateBuffer<T>(this GraphicsDevice device, DeviceBuffer buffer, uint bufferOffsetInBytes, ReadOnlySpan<T> data) where T : unmanaged
     {
         fixed (T* d = data)
             device.UpdateBuffer(buffer, bufferOffsetInBytes, (IntPtr)d, (uint)(Unsafe.SizeOf<T>() * data.Length));
@@ -63,7 +58,7 @@ public static class GraphicsDeviceExtensions
     /// <param name="buffer">The resource to update</param>
     /// <param name="data">A <see cref="ReadOnlySpan{T}"/> containing the data to upload</param>
     /// <param name="bufferOffsetInBytes">An offset, in bytes, from the beginning of <paramref name="buffer"/>'s storage, at which new data will be uploaded</param>
-    public unsafe static void UpdateBuffer<T>(this CommandList commandList, DeviceBuffer buffer, uint bufferOffsetInBytes, ReadOnlySpan<T> data) where T : unmanaged
+    public static unsafe void UpdateBuffer<T>(this CommandList commandList, DeviceBuffer buffer, uint bufferOffsetInBytes, ReadOnlySpan<T> data) where T : unmanaged
     {
         fixed (T* d = data)
             commandList.UpdateBuffer(buffer, bufferOffsetInBytes, (IntPtr)d, (uint)(Unsafe.SizeOf<T>() * data.Length));

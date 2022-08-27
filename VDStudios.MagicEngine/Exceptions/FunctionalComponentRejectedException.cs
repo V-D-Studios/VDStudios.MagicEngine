@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace VDStudios.MagicEngine.Exceptions;
+﻿namespace VDStudios.MagicEngine.Exceptions;
 
 /// <summary>
 /// An exception that is thrown when a <see cref="Node"/> rejects the installation of a given <see cref="FunctionalComponent"/>

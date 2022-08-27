@@ -1,11 +1,5 @@
 ﻿using SDL2.NET;
-using SDL2.NET.Input;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using VDStudios.MagicEngine.Demo.Collections;
 
 namespace VDStudios.MagicEngine.Demo.Services;

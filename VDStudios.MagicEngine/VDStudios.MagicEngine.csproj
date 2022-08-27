@@ -6,6 +6,26 @@
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<SignAssembly>False</SignAssembly>
+	<Title>Game Engine: Magic Engine</Title>
+	<Authors>Diego Garcia</Authors>
+	<Company>VDStudios</Company>
+	<Copyright>MIT</Copyright>
+	<RepositoryType>git</RepositoryType>
+	<RepositoryUrl>https://github.com/V-D-Studios/VDStudios.MagicEngine</RepositoryUrl>
+	<PackageTags>game-development; game; gaming; game-dev; gamedev; sdl2; sdl; veldrid; graphics; engine; graphics-engine; rendering; renderer</PackageTags>
+	<NeutralLanguage>en</NeutralLanguage>
+	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+	<ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
 	<!-- This copies all .dll files from the lib folder to the project output root folder -->
@@ -26,6 +46,9 @@
 		<None Include="lib\*.txt" />
 	</ItemGroup>
 	<ItemGroup>
+	  <None Remove="Properties\ImGuiResources.resx~RF3df0b850.TMP" />
+	</ItemGroup>
+	<ItemGroup>
 	  <PackageReference Include="ImGui.NET" Version="1.87.3" />
 	  <PackageReference Include="MessagePack" Version="2.4.35" />
 	  <PackageReference Include="MessagePackAnalyzer" Version="2.4.35">
@@ -43,25 +66,25 @@
 	  <PackageReference Include="Veldrid.SPIRV" Version="1.0.15" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Compile Update="Properties\ImGUIResources.Designer.cs">
-	    <DesignTime>True</DesignTime>
-	    <AutoGen>True</AutoGen>
-	    <DependentUpon>ImGuiResources.resx</DependentUpon>
-	  </Compile>
 	  <Compile Update="Properties\BuiltInResources.Designer.cs">
 	    <DesignTime>True</DesignTime>
 	    <AutoGen>True</AutoGen>
 	    <DependentUpon>BuiltInResources.resx</DependentUpon>
 	  </Compile>
+	  <Compile Update="Properties\ImGuiResources.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>ImGuiResources.resx</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 	<ItemGroup>
-	  <EmbeddedResource Update="Properties\ImGuiResources.resx">
-	    <Generator>ResXFileCodeGenerator</Generator>
-	    <LastGenOutput>ImGUIResources.Designer.cs</LastGenOutput>
-	  </EmbeddedResource>
 	  <EmbeddedResource Update="Properties\BuiltInResources.resx">
 	    <Generator>PublicResXFileCodeGenerator</Generator>
 	    <LastGenOutput>BuiltInResources.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	  <EmbeddedResource Update="Properties\ImGuiResources.resx">
+	    <Generator>PublicResXFileCodeGenerator</Generator>
+	    <LastGenOutput>ImGuiResources.Designer.cs</LastGenOutput>
 	  </EmbeddedResource>
 	</ItemGroup>
 

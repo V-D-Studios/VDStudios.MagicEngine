@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace VDStudios.MagicEngine.Templates;
+﻿namespace VDStudios.MagicEngine.Templates;
 
 /// <summary>
 /// Represents a <see cref="GUIElement"/> that has been templated with a given set of configurations and tree structure

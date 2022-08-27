@@ -8,12 +8,6 @@
   </PropertyGroup>
 
 	<!-- This makes sure that all the resources get copied to the project output resoruces folder -->
-	<ItemGroup>
-		<ContentWithTargetPath Include="Resources\Graphics\Animations\*.*">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<TargetPath>Resources\Graphics\Animations\%(Filename)%(Extension)</TargetPath>
-		</ContentWithTargetPath>
-	</ItemGroup>
 	
   <ItemGroup>
     <ProjectReference Include="..\VDStudios.MagicEngine\VDStudios.MagicEngine.csproj" />
@@ -21,6 +15,22 @@
 
   <ItemGroup>
     <Folder Include="Components\" />
+    <Folder Include="Properties\Assets\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Assets.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Assets.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Assets.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Assets.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

@@ -1,19 +1,9 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using SDL2.NET;
-using SDL2.NET.SDLMixer;
-using Serilog.Events;
 using Serilog;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Serilog.Events;
 using System.Collections.Concurrent;
-using System.Numerics;
-using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
-using Veldrid;
-using VeldridPixelFormat = Veldrid.PixelFormat;
 using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Logging;
 
@@ -36,7 +26,7 @@ public class Game : SDLApplication<Game>
     internal IServiceProvider services;
     private IGameLifetime? lifetime;
     private bool isStarted;
-    private bool isSDLStarted;
+    private readonly bool isSDLStarted;
     internal ConcurrentQueue<Scene> scenesAwaitingSetup = new();
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingSetup = new();
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingDestruction = new();
@@ -52,7 +42,7 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Fetches the singleton instance of this <see cref="Game"/>
     /// </summary>
-    new static public Game Instance => SDLApplication<Game>.Instance;
+    public static new Game Instance => SDLApplication<Game>.Instance;
 
     /// <summary>
     /// Instances a new <see cref="Game"/>
@@ -94,7 +84,7 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Gets the total amount of time that has elapsed from the time SDL2 was initialized
     /// </summary>
-    new static public TimeSpan TotalTime => TimeSpan.FromTicks(SDL2.Bindings.SDL.SDL_GetTicks());
+    public static new TimeSpan TotalTime => TimeSpan.FromTicks(SDL2.Bindings.SDL.SDL_GetTicks());
 
     /// <summary>
     /// Represents the Main <see cref="GraphicsManager"/> used by the game
@@ -545,6 +535,10 @@ public class Game : SDLApplication<Game>
             }
 
             scene = CurrentScene;
+
+            if (frameCount % 100 == 0)
+                foreach (var manager in ActiveGraphicsManagers)
+                    await manager.AwaitIfFaulted();
 
             await scene.Update(delta).ConfigureAwait(false);
             await scene.RegisterDrawOperations();

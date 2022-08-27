@@ -1,21 +1,13 @@
 ﻿using SDL2.NET;
 using SDL2.NET.Input;
-using System;
-using System.Buffers;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Numerics;
-using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+using VDStudios.MagicEngine.DrawLibrary;
 using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Internal;
 using Veldrid;
-using VeldridPixelFormat = Veldrid.PixelFormat;
 
 namespace VDStudios.MagicEngine;
 
@@ -35,7 +27,6 @@ public class GraphicsManager : GameObject, IDisposable
     public GraphicsManager() : base("Graphics & Input", "Rendering")
     {
         initLock.Wait();
-        graphics_thread = new(() => Run().Wait());
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
 
         CurrentSnapshot = new(this);
@@ -70,6 +61,56 @@ public class GraphicsManager : GameObject, IDisposable
     /// May not represent the actual size of <see cref="Window"/> at any given time, since <see cref="Window"/>s are managed on the VideoThread
     /// </remarks>
     public Size WindowSize { get; private set; }
+
+    /// <summary>
+    /// A transformation matrix to transform points in window space so that objects drawn in relative window coordinates (-1f to 1f) maintain their original aspect ratio
+    /// </summary>
+    public WindowTransformation WindowAspectTransform { get; private set; }
+
+    private bool WinSizeChanged = true;
+
+    /// <summary>
+    /// Represents the <see cref="ResourceLayout"/> that describes the usage of a <see cref="DrawTransformation"/> buffer in <see cref="DrawParameters.TransformationBuffer"/>
+    /// </summary>
+    public ResourceLayout DrawTransformationLayout { get; private set; }
+#warning Is this necessary? /\
+
+    private DeviceBuffer WindowAspectTransformBuffer;
+    private BindableResource[] ManagerResourceBindings;
+
+    private static ResourceLayout? ManagerResourceLayout;
+
+    /// <summary>
+    /// Gets or instantiates the layout of the resources relevant to this <see cref="GraphicsManager"/>
+    /// </summary>
+    /// <remarks>
+    /// Corresponds to the <see cref="ManagerResourceSet"/> of each instance of <see cref="GraphicsManager"/>. 
+    /// </remarks>
+    public static ResourceLayout GetManagerResourceLayout(ResourceFactory factory)
+    {
+        if (ManagerResourceLayout is null)
+            lock (typeof(GraphicsManager)) 
+                ManagerResourceLayout ??= factory.CreateResourceLayout(new ResourceLayoutDescription(new ResourceLayoutElementDescription("WindowScale", ResourceKind.UniformBuffer, ShaderStages.Vertex)));
+        return ManagerResourceLayout;
+    }
+
+    /// <summary>
+    /// Represents the set of the resources relevant to this <see cref="GraphicsManager"/>
+    /// </summary>
+    /// <remarks>
+    /// Corresponds to <see cref="ManagerResourceSet"/>
+    /// </remarks>
+    public ResourceSet ManagerResourceSet { get; private set; }
+    
+    /// <summary>
+    /// Adds the necessary resources to provide the Window aspect transformation buffer as a bound resource to a shader
+    /// </summary>
+    /// <param name="manager"></param>
+    /// <param name="device"></param>
+    /// <param name="factory"></param>
+    /// <param name="builder"></param>
+    public static void AddWindowAspectTransform(GraphicsManager manager, GraphicsDevice device, ResourceFactory factory, ResourceSetBuilder builder)
+        => builder.InsertFirst(manager.ManagerResourceSet, GetManagerResourceLayout(factory), out _);
 
     /// <summary>
     /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager"/> is running
@@ -133,7 +174,7 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region Input Management
 
-    private InputSnapshot snapshotBuffer;
+    private readonly InputSnapshot snapshotBuffer;
     private InputSnapshot CurrentSnapshot;
     private readonly Queue<InputSnapshot> SnapshotPool = new(3);
 
@@ -333,7 +374,7 @@ public class GraphicsManager : GameObject, IDisposable
 
     private sealed class idleWaiter : IDisposable
     {
-        private SemaphoreSlim @lock;
+        private readonly SemaphoreSlim @lock;
 
         public idleWaiter(SemaphoreSlim fl) => @lock = fl;
 
@@ -417,7 +458,13 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region Running
 
-    private readonly Thread graphics_thread;
+    private Task graphics_thread;
+
+    internal async ValueTask AwaitIfFaulted()
+    {
+        if (graphics_thread.IsFaulted)
+            await graphics_thread;
+    }
 
     #region Public Properties
 
@@ -525,6 +572,11 @@ public class GraphicsManager : GameObject, IDisposable
             Device.MainSwapchain.Resize((uint)ww, (uint)wh);
             ImGuiController.WindowResized(ww, wh);
             WindowSize = newSize;
+            WindowAspectTransform = new WindowTransformation()
+            {
+                WindowScale = Matrix4x4.CreateScale(wh / (float)ww, 1, 1)
+            };
+            WinSizeChanged = true;
             Vector4 size;
             LastReportedWinSize = size = new(ww, wh, 0, 0);
             SizeChanged = true;
@@ -544,7 +596,7 @@ public class GraphicsManager : GameObject, IDisposable
         Starting();
         SetupWindow();
         initLock.Release();
-        graphics_thread.Start();
+        graphics_thread = Run();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -562,12 +614,19 @@ public class GraphicsManager : GameObject, IDisposable
     }
 
     /// <summary>
-    /// The default <see cref="DataDependencySource{T}"/> containing <see cref="DrawParameters"/> for all <see cref="DrawOperation"/>s that don't already have one
+    /// The default <see cref="DataDependencySource{T}"/> containing <see cref="DrawTransformation"/> for all <see cref="DrawOperation"/>s that don't already have one
     /// </summary>
-    protected internal DataDependencySource<DrawParameters> DefaultManagerParameters { get; } = new(default);
+    protected internal DrawParameters DrawParameters { get; private set; }
+
+    private void UpdateWindowTransformationBuffer(CommandList cl)
+    {
+        Span<WindowTransformation> trans = stackalloc WindowTransformation[1] { WindowAspectTransform };
+        cl.UpdateBuffer(WindowAspectTransformBuffer, 0, trans);
+    }
 
     private async Task Run()
     {
+        await Task.Yield();
         var framelock = FrameLock;
         var drawlock = DrawLock;
         var glock = GUILock;
@@ -578,10 +637,12 @@ public class GraphicsManager : GameObject, IDisposable
         var removalQueue = new Queue<Guid>(10);
         TimeSpan delta = default;
 
+        DrawParameters = new(new(Matrix4x4.Identity, Matrix4x4.Identity), this);
+
         var drawBuffer = new ValueTask<CommandList>[10];
 
         var gd = Device!;
-
+        
         var managercl = CreateCommandList(gd, gd.ResourceFactory);
 
         ulong frameCount = 0;
@@ -594,10 +655,6 @@ public class GraphicsManager : GameObject, IDisposable
         });
 
         var (ww, wh) = WindowSize;
-        DefaultManagerParameters.DataRef = DefaultManagerParameters.DataRef with
-        {
-            Transform = Matrix4x4.CreateTranslation(new Vector3(ww / 2f, wh / 2f, 0))
-        };
 
         Log.Information("Entering main rendering loop");
         while (IsRunning) // Running Loop
@@ -626,6 +683,10 @@ public class GraphicsManager : GameObject, IDisposable
                         if (SizeChanged) // Handle Window Size Changes, this could potentially be refactored. Jump to the 'else' block
                         {
                             SizeChanged = false;
+                            managercl.Begin();
+                            UpdateWindowTransformationBuffer(managercl);
+                            managercl.End();
+                            Device.SubmitCommands(managercl);
                             foreach (var kv in ops)
                                 if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
                                 {
@@ -778,10 +839,20 @@ public class GraphicsManager : GameObject, IDisposable
         CreateWindow(out var window, out var gd);
         Window = window;
         Device = gd;
+        var factory = gd.ResourceFactory;
 
         var (ww, wh) = window.Size;
         ImGuiController = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
-        ScreenSizeBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
+        ScreenSizeBuffer = factory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
+
+        var bufferDesc = new BufferDescription(DataStructuring.FitToUniformBuffer<WindowTransformation>(), BufferUsage.UniformBuffer);
+        var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
+
+        WindowAspectTransformBuffer = factory.CreateBuffer(ref bufferDesc);
+        DrawTransformationLayout = factory.CreateResourceLayout(ref dTransDesc);
+        ManagerResourceBindings = new BindableResource[] { WindowAspectTransformBuffer };
+        ManagerResourceSet = factory.CreateResourceSet(new ResourceSetDescription(GetManagerResourceLayout(factory), WindowAspectTransformBuffer));
+        ManagerResourceSet.Name = $"{(Name is not null ? "->" : null)}GraphicsManagerResources";
 
         Window_SizeChanged(window, Game.TotalTime, window.Size);
 

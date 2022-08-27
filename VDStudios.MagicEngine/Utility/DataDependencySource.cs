@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace VDStudios.MagicEngine.Utility;
+﻿namespace VDStudios.MagicEngine.Utility;
 
 /// <summary>
 /// Represents a source of data for an <see cref="DataDependency{T}"/> object

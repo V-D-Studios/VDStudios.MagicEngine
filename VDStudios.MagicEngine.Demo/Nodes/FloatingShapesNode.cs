@@ -1,20 +1,65 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using VDStudios.MagicEngine.DrawLibrary.Primitives;
+﻿using System.Numerics;
+using VDStudios.MagicEngine.Demo.Properties;
+using VDStudios.MagicEngine.DrawLibrary;
+using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
-using VDStudios.MagicEngine.GUILibrary.ImGUI;
 using Veldrid;
+using Veldrid.ImageSharp;
 
 namespace VDStudios.MagicEngine.Demo.Nodes;
+
 public class FloatingShapesNode : Node, IDrawableNode
 {
-    CircleDefinition circle;
-    PolygonDefinition hexagon;
+    private struct ColorVertex
+    {
+        public Vector2 Position;
+        public RgbaFloat Color;
+    }
+
+    private class ColorVertexGenerator : IShapeRendererVertexGenerator<ColorVertex>
+    {
+        private static readonly RgbaFloat[] Colors = new RgbaFloat[]
+        {
+            new(1f, .2f, .2f, 1f),
+            new(.2f, 1f, .2f, 1f),
+            new(.2f, .2f, 1f, 1f),
+        };
+
+        private static ColorVertex Generate(int index, Vector2 shapeVertex, ShapeDefinition shape)
+        {
+            if (shape.Count is 3)
+                goto Preset;
+            if (shape.Count is 4)
+            {
+                if (index is >= 2)
+                    index--;
+                goto Preset;
+            }
+
+            var x = shape.Count / 3d;
+            return new() { Position = shapeVertex, Color = Colors[index < x ? 0 : index > x * 2 ? 2 : 1] };
+
+        Preset:
+            return new() { Position = shapeVertex, Color = Colors[index] };
+        }
+
+        /// <inheritdoc/>
+        public void Start(ShapeRenderer<ColorVertex> renderer, IEnumerable<ShapeDefinition> allShapes, int regenCount, ref object? context) { }
+
+        /// <inheritdoc/>
+        public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<ColorVertex> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, out bool useDeviceBuffer, ref object? context)
+        {
+            for (int i = 0; i < vertices.Length; i++)
+                vertices[i] = Generate(i, shape[i], shape);
+            useDeviceBuffer = false;
+        }
+
+        /// <inheritdoc/>
+        public void Stop(ShapeRenderer<ColorVertex> renderer, ref object? context) { }
+    }
+
+    private readonly CircleDefinition circle;
+    private readonly PolygonDefinition hexagon;
 
     public FloatingShapesNode()
     {
@@ -39,61 +84,116 @@ public class FloatingShapesNode : Node, IDrawableNode
             new(.15f - .5f, .15f - .5f),
             new(.15f - .5f, -.15f - .5f)
         };
+        DrawOperationManager = new DrawOperationManager(this);
 
         var circ = PolygonDefinition.Circle(new(-.2f, .15f), .3f, 5);
         circ.Name = "Circle";
 
         circle = new CircleDefinition(Vector2.Zero, .65f);
+        var texturedRect = PolygonDefinition.Circle(new(.25f, .25f), .25f, 21844);
 
-        var watch = new Watch("Circle division watch", new()
-        {
-            new Watch.DelegateViewer(([NotNullWhen(true)] out string? x) =>
+        var robstrm = new MemoryStream(Assets.boundary_test);
+        var img = new ImageSharpTexture(robstrm);
+        var tsr = DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
+            img,
+            new ShapeDefinition[]
             {
-                x = circle.Subdivisions.ToString();
-                return true;
-            })
-        },
-        new()
-        {
-            () =>
-            {
-                Log.Debug("Flagged for circle subdivided in {parts} parts", circle.Subdivisions);
-                return true;
-            }
-        });
-        Game.MainGraphicsManager.AddElement(watch);
+                texturedRect
+            },
+            new(
+                new(
+                    BlendStateDescription.SingleAlphaBlend,
+                    DepthStencilStateDescription.DepthOnlyLessEqual,
+                    FaceCullMode.Front,
+                    FrontFace.Clockwise,
+                    true,
+                    false,
+                    PolygonRenderMode.TriangulatedFill,
+                    new VertexLayoutDescription(
+                        new VertexElementDescription("TexturePosition", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
+                        new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate)
+                    ),
+                    null,
+                    null,
+                    GraphicsManager.AddWindowAspectTransform
+                ),
+                new(
+                    SamplerAddressMode.Clamp,
+                    SamplerAddressMode.Clamp,
+                    SamplerAddressMode.Clamp,
+                    SamplerFilter.MinPoint_MagPoint_MipPoint,
+                    null,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SamplerBorderColor.TransparentBlack
+                )
+            ),
+            new TextureVertexGeneratorFill()) { PreferredPriority = -2 }
+        );
 
-        DrawOperationManager = new DrawOperationManagerDrawQueueDelegate(this, (q, o) =>
-        {
-            q.Enqueue(o, -1);
-        });
-        DrawOperationManager.AddDrawOperation(new ShapeBuffer(new ShapeDefinition[]
-        {
-            new PolygonDefinition(triangle, true) { Name = "Triangle" },
-            hexagon,
-            new PolygonDefinition(rectangle, true) { Name = "Rectangle" },
-            circ,
-            circle
-        }, new() { RenderMode = PolygonRenderMode.TriangulatedFill }));
+        DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(
+            new ShapeDefinition[]
+            {
+                new PolygonDefinition(triangle, true) { Name = "Triangle" },
+                hexagon,
+                new PolygonDefinition(rectangle, true) { Name = "Rectangle" },
+                circ,
+                circle
+            }, 
+            new(
+                BlendStateDescription.SingleAlphaBlend,
+                DepthStencilStateDescription.DepthOnlyLessEqual,
+                FaceCullMode.Front,
+                FrontFace.Clockwise,
+                true,
+                false,
+                PolygonRenderMode.TriangulatedFill,
+                new VertexLayoutDescription(
+                    new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
+                    new VertexElementDescription("Color", VertexElementFormat.Float4, VertexElementSemantic.TextureCoordinate)
+                ),
+                new(ShaderStages.Vertex, FSNVertex.GetUTF8Bytes(), "main"),
+                new(ShaderStages.Fragment, FSNFragment.GetUTF8Bytes(), "main"),
+                GraphicsManager.AddWindowAspectTransform
+            ),
+            new ColorVertexGenerator())
+        );
     }
 
-    TimeSpan tb;
-    static readonly TimeSpan tb_ceil = TimeSpan.FromSeconds(1.5);
-    int x = 0;
-    readonly int[] SubDivSeq = Enumerable.Range(3, 60).ToArray();
-    Vector2 offset;
-    float xoff = .01f;
+    private static readonly string FSNFragment = @"
+#version 450
+
+layout(location = 0) out vec4 fsout_Color;
+layout(location = 0) in vec4 fsin_Color;
+
+void main() {
+    fsout_Color = fsin_Color;
+}
+";
+
+    private static readonly string FSNVertex = @"
+#version 450
+
+layout(location = 0) in vec2 Position;
+layout(location = 1) in vec4 Color;
+layout(location = 0) out vec4 fsin_Color;
+layout(binding = 0) uniform WindowAspectTransform {
+    layout(offset = 0) mat4 WindowScale;
+};
+
+void main() {
+    fsin_Color = Color;
+    gl_Position = WindowScale * vec4(Position, 0.0, 1.0);
+}
+";
+    private TimeSpan tb;
+    private static readonly TimeSpan tb_ceil = TimeSpan.FromSeconds(1.5);
+    private int x = 0;
+    private readonly int[] SubDivSeq = Enumerable.Range(3, 60).ToArray();
     protected override ValueTask<bool> Updating(TimeSpan delta)
     {
-        if (offset.X <= -1)
-            xoff = .01f;
-        else if (offset.X >= 1) 
-            xoff = -.01f;
-
-        offset.X += xoff * (float)delta.TotalSeconds;
-
-        hexagon.Transform(Matrix3x2.CreateTranslation(offset));
-
         tb += delta;
         if (tb > tb_ceil)
         {

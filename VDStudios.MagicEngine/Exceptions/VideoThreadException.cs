@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace VDStudios.MagicEngine.Exceptions;
+﻿namespace VDStudios.MagicEngine.Exceptions;
 
 /// <summary>
 /// An exception that is thrown when the <see cref="Game"/>'s video thread throws an exception

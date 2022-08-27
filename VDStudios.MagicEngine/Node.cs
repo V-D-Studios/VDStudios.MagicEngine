@@ -1,15 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Buffers;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using VDStudios.MagicEngine.Exceptions;
-using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
 
@@ -379,7 +371,7 @@ public abstract class Node : NodeBase
         lock (parent.sync)
             Id = parent.Children.Add(this);
 
-        if (DrawableSelf is IDrawableNode ds && parent is IDrawableNode dn && dn.DrawOperationManager.cascadedParameters is DataDependency<DrawParameters> p) 
+        if (DrawableSelf is IDrawableNode ds && parent is IDrawableNode dn && dn.DrawOperationManager.cascadedParameters is DrawParameters p) 
             ds.DrawOperationManager.CascadeThroughNode(p);
 
         if (parent.Root is Scene root)

@@ -1,6 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
-using SDL2.NET;
-using System.Numerics;
+﻿using System.Numerics;
+using VDStudios.MagicEngine.DrawLibrary;
 using Veldrid;
 
 namespace VDStudios.MagicEngine;
@@ -18,6 +17,12 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     internal CommandList? Commands;
     internal GraphicsDevice? Device;
 
+    private static ResourceLayoutBuilder ResourceLayoutFactory() => ResourceLayoutBuilderPool.Rent();
+    private static void ResourceLayoutCleaner(ResourceLayoutBuilder resource) => ResourceLayoutBuilderPool.Return(resource);
+
+    private static readonly ObjectPool<ResourceSetBuilder> ResourceSetBuilderPool = new(x => new ResourceSetBuilder(ResourceLayoutFactory, ResourceLayoutCleaner), 2, 5);
+    private static readonly ObjectPool<ResourceLayoutBuilder> ResourceLayoutBuilderPool = new(x => new ResourceLayoutBuilder(), 2, 5);
+
     /// <summary>
     /// Instances a new object of type <see cref="DrawOperation"/>
     /// </summary>
@@ -26,20 +31,22 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     }
 
     /// <summary>
+    /// Represents this <see cref="DrawOperation"/>'s preferred priority. May or may not be honored depending on the <see cref="DrawOperationManager"/>
+    /// </summary>
+    public float PreferredPriority { get; set; }
+
+    /// <summary>
     /// Represents the current reference to <see cref="DrawParameters"/> this <see cref="DrawOperation"/> has
     /// </summary>
     /// <remarks>
     /// Rather than change this manually, it's better to let the owner of this <see cref="DrawOperation"/> assign it in the next cascade assignment
     /// </remarks>
-    public DataDependency<DrawParameters>? ReferenceParameters { get; set; }
+    public DrawParameters? ReferenceParameters { get; set; }
 
     /// <summary>
-    /// The data held by <see cref="ReferenceParameters"/> if it's not null, or <see cref="GraphicsManager.DefaultManagerParameters"/> of the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered onto if it is
+    /// Returns either <see cref="ReferenceParameters"/> or <see cref="GraphicsManager.DrawParameters"/> if the former is <c>null</c>
     /// </summary>
-    /// <remarks>
-    /// It's often a good idea to query this property only once per method, and cache it in a local variable
-    /// </remarks>
-    public DrawParameters Parameters => ReferenceParameters?.ConcurrentData ?? Manager!.DefaultManagerParameters.ConcurrentData;
+    public DrawParameters Parameters => ReferenceParameters ?? Manager!.DrawParameters;
 
     /// <summary>
     /// The owner <see cref="DrawOperationManager"/> of this <see cref="DrawOperation"/>
@@ -70,10 +77,22 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         Registering(manager);
         
         var device = manager.Device;
+        var factory = device.ResourceFactory;
         Device = device;
         Manager = manager;
-        await CreateResources(device, device.ResourceFactory);
-        await InternalCreateWindowSizedResources(manager.ScreenSizeBuffer!);
+
+        var resb = ResourceSetBuilderPool.Rent();
+        try
+        {
+            await CreateResourceSets(device, resb, factory);
+            resb.Build(out var sets, out var layouts, factory);
+            await CreateResources(device, factory, sets, layouts);
+            await InternalCreateWindowSizedResources(manager.ScreenSizeBuffer!);
+        }
+        finally
+        {
+            ResourceSetBuilderPool.Return(resb);
+        }
 
         Commands = CreateCommandList(device, device.ResourceFactory);
         
@@ -137,17 +156,20 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
             var device = Device!;
             var ssb = Manager!.ScreenSizeBuffer!;
 
-            if (pendingGpuUpdate)
-            {
-                pendingGpuUpdate = false;
-                commands.Begin();
-                await UpdateGPUState(device, commands, ssb);
-                commands.End();
-                device.SubmitCommands(commands);
-            }
             commands.Begin();
-            await Draw(delta, commands, device, device.SwapchainFramebuffer, ssb).ConfigureAwait(false);
-            commands.End();
+            try
+            {
+                if (pendingGpuUpdate)
+                {
+                    pendingGpuUpdate = false;
+                    await UpdateGPUState(device, commands, ssb);
+                }
+                await Draw(delta, commands, device, device.SwapchainFramebuffer, ssb).ConfigureAwait(false);
+            }
+            finally
+            {
+                commands.End();
+            }
             return commands;
         }
         finally
@@ -185,11 +207,27 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         => factory.CreateCommandList();
 
     /// <summary>
+    /// Creates the necessary resource sets for this <see cref="DrawOperation"/>
+    /// </summary>
+    /// <remarks>
+    /// This method is called before <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[], ResourceLayout[])"/>
+    /// </remarks>
+    /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
+    /// <param name="builder">The collection of descriptions that will be used to build the resource sets for this <see cref="DrawOperation"/>. This object is borrowed from a pool and will be cleared and returned after this method returns</param>
+    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
+    protected virtual ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory) => ValueTask.CompletedTask;
+
+    /// <summary>
     /// Creates the necessary resources for this <see cref="DrawOperation"/>
     /// </summary>
+    /// <remarks>
+    /// This method is called after <see cref="CreateResourceSets(GraphicsDevice, ResourceSetBuilder, ResourceFactory)"/>
+    /// </remarks>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
-    protected abstract ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory);
+    /// <param name="resourceSets">The resource sets generated by <see cref="CreateResourceSets(GraphicsDevice, ResourceSetBuilder, ResourceFactory)"/></param>
+    /// <param name="resourceLayouts">The resource layouts generated by <see cref="CreateResourceSets(GraphicsDevice, ResourceSetBuilder, ResourceFactory)"/></param>
+    protected abstract ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? resourceSets, ResourceLayout[]? resourceLayouts);
 
     /// <summary>
     /// The method that will be used to draw the component
