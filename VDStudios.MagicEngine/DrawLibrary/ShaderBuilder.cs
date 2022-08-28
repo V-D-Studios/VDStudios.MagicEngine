@@ -38,6 +38,10 @@ public class ShaderBuilder
     private readonly List<(Match match, string name)> ResourceEntries = new();
     private readonly List<StringBuilder> Functions = new();
     private StringBuilder? Main;
+
+    /// <summary>
+    /// Clears this <see cref="ShaderBuilder"/> of all data
+    /// </summary>
     public void Clear()
     {
         ResourceEntries.Clear();
