@@ -48,6 +48,15 @@ public class ShaderBuilder
             SharedObjectPools.StringBuilderPool.Return(main);
         Main = null;
     }
+    private static void BuildBinding
+        (StringBuilder builder, int set, int binding, ReadOnlySpan<char> end, ReadOnlySpan<char> name, ReadOnlySpan<char> type, ReadOnlySpan<char> args)
+    {
+        builder.Append($"layout(set={set},binding={binding}");
+        if (args.Length > 0) 
+            builder.Append(',').Append(args);
+        builder.Append(") ").Append(type).Append(' ').Append(name).Append(end);
+    }
+
     /* 
      * First, document ShaderBuilder
      * The shader can be analyzed for bound resources first, then it can be analyzed for unbound resources. Or would it be better to just work with unbound resources?
