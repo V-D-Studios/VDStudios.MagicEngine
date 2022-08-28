@@ -6,19 +6,34 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace VDStudios.MagicEngine.DrawLibrary;
+
+/// <summary>
+/// Represents a set of shader functions and resource bindings that can be finalized into a complete GLSL Style SPIR-V shader string
+/// </summary>
 public class ShaderBuilder
 {
+    #region Regexes
+
     /// <summary>
     /// Analyzes the given shader in search of resource bindings that can then be used to re-organize a <see cref="ResourceBuilder"/>
     /// </summary>
+    /// <remarks>
+    /// The first group is 'set', which captures the set index of the binding; the second is 'binding' which captures the binding slot, and finally 'name' which captures the variable name
+    /// </remarks>
+#warning Use Regex Generator
     protected static readonly Regex ShaderBoundResourcesRegex 
-        = new(@"layout\s*\((?:\s*set\s*=\s*(\d+)\s*,)?\s*binding\s*=\s*(\d+)\s*,?\s*\w*\)\s*\w+\s*\w*\s+(\w+)\s*[;{]", RegexOptions.Compiled);
+        = new(@"layout\s*\((?:\s*set\s*=\s*(?<set>\d+)\s*,)?\s*binding\s*=\s*(?<binding>\d+)\s*,?\s*\w*\)\s*\w+\s*\w*\s+(?<name>\w+)\s*[;{]", RegexOptions.Compiled);
 
     /// <summary>
     /// Analyzes the given shader in search of unbound resource statements that can then be filled by this <see cref="ShaderBuilder"/>
     /// </summary>
+    /// <remarks>
+    /// The first group is 'arguments', which captures the arguments of the binding other than the <c>set</c> and <c>binding</c>; and finally 'name' which captures the variable name
+    /// </remarks>
     protected static readonly Regex ShaderUnboundResourcesRegex
-        = new(@"#binding\s*(?:\(((?:\s*\w+\s*,?)*)\))?\s*\w*\s*\w*\s*(\w+)\s*[;{]", RegexOptions.Compiled);
+        = new(@"#binding\s*(?:\((?<arguments>(?:\s*\w+\s*,?)*)\))?(?<type>\s*\w+\s*\w*\s+)(?<name>\w+)\s*(?<end>[;{])", RegexOptions.Compiled);
+
+    #endregion
 
     /* 
      * First, document ShaderBuilder
