@@ -20,8 +20,8 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     private static ResourceLayoutBuilder ResourceLayoutFactory() => ResourceLayoutBuilderPool.Rent();
     private static void ResourceLayoutCleaner(ResourceLayoutBuilder resource) => ResourceLayoutBuilderPool.Return(resource);
 
-    private static readonly ObjectPool<ResourceSetBuilder> ResourceSetBuilderPool = new(x => new ResourceSetBuilder(ResourceLayoutFactory, ResourceLayoutCleaner), 2, 5);
-    private static readonly ObjectPool<ResourceLayoutBuilder> ResourceLayoutBuilderPool = new(x => new ResourceLayoutBuilder(), 2, 5);
+    private static readonly ObjectPool<ResourceSetBuilder> ResourceSetBuilderPool = new(x => new ResourceSetBuilder(ResourceLayoutFactory, ResourceLayoutCleaner), x => x.Clear(), 2, 5);
+    private static readonly ObjectPool<ResourceLayoutBuilder> ResourceLayoutBuilderPool = new(x => new ResourceLayoutBuilder(), x => x.Clear(), 2, 5);
 
     /// <summary>
     /// Instances a new object of type <see cref="DrawOperation"/>

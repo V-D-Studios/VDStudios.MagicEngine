@@ -7,9 +7,10 @@ namespace VDStudios.MagicEngine.Utility;
 /// Represents a pool of reusable objects
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public class ObjectPool<T> : IDisposable where T : class, IPoolableObject
+public class ObjectPool<T> : IDisposable where T : class
 {
     private readonly ConcurrentStack<T> Pool = new();
+    private readonly Action<T> Cleaner;
     private readonly Func<ObjectPool<T>, T> Factory;
     private readonly int Growth;
 
@@ -18,15 +19,21 @@ public class ObjectPool<T> : IDisposable where T : class, IPoolableObject
     /// </summary>
     /// <param name="factory">Represents the method that will be used to construct new objects for the pool</param>
     /// <param name="preload">A number that signals how many objects should be constructed at the time of the pool's instancing</param>
+    /// <param name="cleaner">Represents the method that will be used to clear, or otherwise cleanup the pooled object after use</param>
     /// <param name="growthFactor">Represents how much will the pool grow when its emptied -- For example, if the pool has 3 objects, and 3 of them are requested, it will instance <paramref name="growthFactor"/> more objects. If this parameter is 0, the pool will not grow automatically</param>
-    public ObjectPool(Func<ObjectPool<T>, T> factory, int growthFactor = 1, int preload = 0)
+    public ObjectPool(Func<ObjectPool<T>, T> factory, Action<T> cleaner, int growthFactor = 1, int preload = 0)
     {
         if (growthFactor < 0)
             throw new ArgumentOutOfRangeException(nameof(growthFactor), growthFactor, "Argument cannot be less than 0");
         if (preload < 0)
             throw new ArgumentOutOfRangeException(nameof(preload), preload, "Argument cannot be less than 0");
+        ArgumentNullException.ThrowIfNull(factory);
+        ArgumentNullException.ThrowIfNull(cleaner);
+
+        Cleaner = cleaner;
         Factory = factory;
         Growth = growthFactor;
+
         while (preload-- > 0)
             Pool.Push(factory(this));
     }
@@ -59,11 +66,11 @@ public class ObjectPool<T> : IDisposable where T : class, IPoolableObject
     /// Returns a previously rented object into the pool
     /// </summary>
     /// <param name="obj">The object to return</param>
-    /// <param name="clear"><c>true</c> if <see cref="IPoolableObject.Clear"/> should be called prior to the object being added back into the pool</param>
+    /// <param name="clear"><c>true</c> if the cleaner method should be called prior to the object being added back into the pool</param>
     public void Return(T obj, bool clear = true)
     {
         if (clear)
-            obj.Clear();
+            Cleaner(obj);
         Pool.Push(obj);
     }
 
@@ -95,15 +102,4 @@ public class ObjectPool<T> : IDisposable where T : class, IPoolableObject
     {
         GC.SuppressFinalize(this);
     }
-}
-
-/// <summary>
-/// Provides a mechanism for an object to be returned after it's no longer needed and sent back to its <see cref="ObjectPool{T}"/>
-/// </summary>
-public interface IPoolableObject
-{
-    /// <summary>
-    /// Clears the object of all data pertaining the state of a specific dependant (i.e. the state of the class or method that last used it)
-    /// </summary>
-    public void Clear();
 }

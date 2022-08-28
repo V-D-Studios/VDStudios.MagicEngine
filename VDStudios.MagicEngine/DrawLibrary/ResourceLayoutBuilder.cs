@@ -11,7 +11,7 @@ namespace VDStudios.MagicEngine.DrawLibrary;
 /// <remarks>
 /// An object of this class is always thread-safe by the use of locking: If a thread accesses an object while another one is using it, that thread will be blocked until the object is available again
 /// </remarks>
-public sealed class ResourceLayoutBuilder : IPoolableObject, IEnumerable<ResourceLayoutEntry>
+public sealed class ResourceLayoutBuilder : IEnumerable<ResourceLayoutEntry>
 {
     private readonly object sync = new();
     /// <summary>
