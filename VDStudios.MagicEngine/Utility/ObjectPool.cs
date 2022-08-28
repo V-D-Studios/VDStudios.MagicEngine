@@ -4,6 +4,24 @@ using System.Diagnostics.CodeAnalysis;
 namespace VDStudios.MagicEngine.Utility;
 
 /// <summary>
+/// Represents a set of preconfigured shared object pools
+/// </summary>
+public static class SharedObjectPools
+{
+    private static readonly Lazy<ObjectPool<StringBuilder>> lazy_stringBuilderPool = new(
+        () => new ObjectPool<StringBuilder>(static x => new(50), static x => x.Clear(), 3, 5),
+        LazyThreadSafetyMode.ExecutionAndPublication);
+
+    /// <summary>
+    /// A shared pool of <see cref="StringBuilder"/> objects
+    /// </summary>
+    /// <remarks>
+    /// Each <see cref="StringBuilder"/> is instanced to a starting capacity of 50, they're always cleared on return, have a growth factor of 3 and a starting pool of 5
+    /// </remarks>
+    public static ObjectPool<StringBuilder> StringBuilderPool => lazy_stringBuilderPool.Value;
+}
+
+/// <summary>
 /// Represents a pool of reusable objects
 /// </summary>
 /// <typeparam name="T"></typeparam>
