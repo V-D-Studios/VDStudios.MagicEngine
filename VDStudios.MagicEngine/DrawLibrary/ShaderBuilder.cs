@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -39,6 +40,8 @@ public class ShaderBuilder
     private readonly List<StringBuilder> Functions = new();
     private StringBuilder? Main;
 
+    public ShaderBuilder() { }
+
     /// <summary>
     /// Clears this <see cref="ShaderBuilder"/> of all data
     /// </summary>
@@ -52,6 +55,48 @@ public class ShaderBuilder
             SharedObjectPools.StringBuilderPool.Return(main);
         Main = null;
     }
+
+    public void Build()
+    {
+        Match[] matches = null!;
+        string[] names = null!;
+        int nameAndMatchCount;
+        StringBuilder[] functions = null!;
+        int funcCount;
+
+        try
+        {
+            lock (ResourceEntries)
+            {
+                matches = ArrayPool<Match>.Shared.Rent(nameAndMatchCount = ResourceEntries.Count);
+                names = ArrayPool<string>.Shared.Rent(nameAndMatchCount);
+                for (int i = 0; i < nameAndMatchCount; i++)
+                {
+                    var (match, name) = ResourceEntries[i];
+                    matches[i] = match;
+                    names[i] = name;
+                }
+            }
+
+            lock (Functions)
+            {
+                functions = ArrayPool<StringBuilder>.Shared.Rent(funcCount = Functions.Count);
+                Functions.CopyTo(functions);
+            }
+
+
+        }
+        finally
+        {
+            if (matches != null)
+                ArrayPool<Match>.Shared.Return(matches);
+            if (names != null)
+                ArrayPool<string>.Shared.Return(names);
+            if (functions != null)
+                ArrayPool<StringBuilder>.Shared.Return(functions);
+        }
+    }
+
     private static void BuildBinding
         (StringBuilder builder, int set, int binding, ReadOnlySpan<char> end, ReadOnlySpan<char> name, ReadOnlySpan<char> type, ReadOnlySpan<char> args)
     {
