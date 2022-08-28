@@ -35,6 +35,19 @@ public class ShaderBuilder
 
     #endregion
 
+    private readonly List<(Match match, string name)> ResourceEntries = new();
+    private readonly List<StringBuilder> Functions = new();
+    private StringBuilder? Main;
+    public void Clear()
+    {
+        ResourceEntries.Clear();
+        foreach (var i in Functions)
+            SharedObjectPools.StringBuilderPool.Return(i);
+        Functions.Clear();
+        if (Main is StringBuilder main)
+            SharedObjectPools.StringBuilderPool.Return(main);
+        Main = null;
+    }
     /* 
      * First, document ShaderBuilder
      * The shader can be analyzed for bound resources first, then it can be analyzed for unbound resources. Or would it be better to just work with unbound resources?
