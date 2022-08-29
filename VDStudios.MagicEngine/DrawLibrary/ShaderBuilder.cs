@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Veldrid;
 
 namespace VDStudios.MagicEngine.DrawLibrary;
 
@@ -32,11 +33,23 @@ public class ShaderBuilder
     /// The first group is 'arguments', which captures the arguments of the binding other than the <c>set</c> and <c>binding</c>; and finally 'name' which captures the variable name
     /// </remarks>
     protected static readonly Regex ShaderUnboundResourcesRegex
-        = new(@"#binding\s*(?:\((?<arguments>(?:\s*\w+\s*,?)*)\))?(?<type>\s*\w+\s*\w*\s+)(?<name>\w+)\s*(?<end>[;{])", RegexOptions.Compiled);
+        = new(@"#binding\s*(?:\((?<arguments>(?:\s*\w+\s*,?)*)\))?(?<type>\s*\w+\s*\w*\s+)(?<name>\w+)\s*(?<body>;|(?:{(?:.|\n)*?};))", RegexOptions.Compiled);
 
     #endregion
 
-    private readonly List<(Match match, string name)> ResourceEntries = new();
+    #region Helper Classes
+
+    protected readonly struct ResourceEntry
+    {
+        public StringBuilder? Arguments { get; init; }
+        public StringBuilder? Body { get; init; }
+        public StringBuilder Typing { get; init; }
+        public string Name { get; init; }
+    }
+
+    #endregion
+
+    private readonly List<ResourceEntry> ResourceEntries = new();
     private readonly List<StringBuilder> Functions = new();
     private StringBuilder? Main;
 
@@ -58,52 +71,81 @@ public class ShaderBuilder
 
     public void Build()
     {
-        Match[] matches = null!;
-        string[] names = null!;
-        int nameAndMatchCount;
+        ResourceEntry[] entries = null!;
         StringBuilder[] functions = null!;
-        int funcCount;
+        int entryCount = 0;
+        int funcCount = 0;
+        bool hasResources = false;
+        bool hasFunctions = false;
+
+        var final = SharedObjectPools.StringBuilderPool.Rent().Clear();
 
         try
         {
-            lock (ResourceEntries)
+            if (Functions.Count > 0)
             {
-                matches = ArrayPool<Match>.Shared.Rent(nameAndMatchCount = ResourceEntries.Count);
-                names = ArrayPool<string>.Shared.Rent(nameAndMatchCount);
-                for (int i = 0; i < nameAndMatchCount; i++)
+                hasFunctions = true;
+                lock (Functions)
                 {
-                    var (match, name) = ResourceEntries[i];
-                    matches[i] = match;
-                    names[i] = name;
+                    functions = ArrayPool<StringBuilder>.Shared.Rent(funcCount = Functions.Count);
+                    Functions.CopyTo(functions);
                 }
             }
 
-            lock (Functions)
+            try
             {
-                functions = ArrayPool<StringBuilder>.Shared.Rent(funcCount = Functions.Count);
-                Functions.CopyTo(functions);
+                if (hasResources)
+                {
+
+                }
             }
-
-
+            finally
+            {
+                SharedObjectPools.StringBuilderPool.Return(final);
+            }
         }
         finally
         {
-            if (matches != null)
-                ArrayPool<Match>.Shared.Return(matches);
-            if (names != null)
-                ArrayPool<string>.Shared.Return(names);
+            if (entries != null)
+                ArrayPool<ResourceEntry>.Shared.Return(entries);
             if (functions != null)
                 ArrayPool<StringBuilder>.Shared.Return(functions);
         }
     }
 
-    private static void BuildBinding
-        (StringBuilder builder, int set, int binding, ReadOnlySpan<char> end, ReadOnlySpan<char> name, ReadOnlySpan<char> type, ReadOnlySpan<char> args)
+    private void BuildFunctionSet(StringBuilder builder)
+    {
+    }
+
+    private void BuildBindingSet(StringBuilder builder, ResourceSet[] sets, ResourceLayout[] layouts)
+    {
+        ResourceEntry[] entries;
+        int entryCount;
+
+        lock (ResourceEntries)
+        {
+            if (ResourceEntries.Count <= 0)
+                return;
+
+            entries = ArrayPool<ResourceEntry>.Shared.Rent(entryCount = ResourceEntries.Count);
+            ResourceEntries.CopyTo(entries);
+        }
+
+        for (int i = 0; i < entryCount; i++)
+        {
+            var entry = entries[i];
+            layouts.First(x => x.)
+            BuildBinding(builder, entry.)
+        }
+    }
+
+    private static StringBuilder BuildBinding
+        (StringBuilder builder, int set, int binding, string name, StringBuilder type, StringBuilder args, StringBuilder body)
     {
         builder.Append($"layout(set={set},binding={binding}");
         if (args.Length > 0) 
             builder.Append(',').Append(args);
-        builder.Append(") ").Append(type).Append(' ').Append(name).Append(end);
+        return builder.Append(") ").Append(type).Append(' ').Append(name).Append(body);
     }
 
     /* 
