@@ -14,6 +14,8 @@ namespace VDStudios.MagicEngine.DrawLibrary;
 /// </summary>
 public class ShaderBuilder
 {
+    private static readonly ObjectPool<Dictionary<int, ResourceEntry>> ResourceEntryDictionaryPool = new(x => new(10), x => x.Clear(), 3, 3);
+
     #region Regexes
 
     /// <summary>
@@ -39,20 +41,40 @@ public class ShaderBuilder
 
     #region Helper Classes
 
-    protected readonly struct ResourceEntry
+    /// <summary>
+    /// Represents a resource binding in the shader
+    /// </summary>
+    protected struct ResourceEntry
     {
-        public StringBuilder? Arguments { get; init; }
-        public StringBuilder? Body { get; init; }
-        public StringBuilder Typing { get; init; }
-        public string Name { get; init; }
+        /// <summary>
+        /// The arguments of the binding, for example, with <c>(set=0,binding=0,rgba34)</c>, <c>rgba34</c> would be the argument
+        /// </summary>
+        public string? Arguments;
+        
+        /// <summary>
+        /// The body or the ending of the binding. It can be either a ';', or the struct body
+        /// </summary>
+        public string Body;
+
+        /// <summary>
+        /// The types of the binding, such as <c>uniform image2d</c>
+        /// </summary>
+        public string Typing;
+
+        /// <summary>
+        /// The variable identifier of the binding. Does not include identifiers of the struct definition. Must match with an element description
+        /// </summary>
+        public string Name;
     }
+
 
     #endregion
 
     private readonly List<ResourceEntry> ResourceEntries = new();
-    private readonly List<StringBuilder> Functions = new();
-    private StringBuilder? Main;
 
+    /// <summary>
+    /// Instances a new object of type <see cref="ShaderBuilder"/>
+    /// </summary>
     public ShaderBuilder() { }
 
     /// <summary>
@@ -61,89 +83,81 @@ public class ShaderBuilder
     public void Clear()
     {
         ResourceEntries.Clear();
-        foreach (var i in Functions)
-            SharedObjectPools.StringBuilderPool.Return(i);
-        Functions.Clear();
-        if (Main is StringBuilder main)
-            SharedObjectPools.StringBuilderPool.Return(main);
-        Main = null;
     }
 
-    public void Build()
+    /// <summary>
+    /// Takes in a base shader, WITHOUT ANY RESOURCE BINDINGS, in which to inject the bindings analyzed from <see cref="ResourceSet"/> and described by this builder
+    /// </summary>
+    /// <param name="baseShader"></param>
+    /// <param name="sets"></param>
+    /// <returns></returns>
+    public string BuildAgainst(string baseShader, ResourceSet[] sets)
     {
-        ResourceEntry[] entries = null!;
-        StringBuilder[] functions = null!;
-        int entryCount = 0;
-        int funcCount = 0;
-        bool hasResources = false;
-        bool hasFunctions = false;
-
-        var final = SharedObjectPools.StringBuilderPool.Rent().Clear();
-
+        int start = baseShader.IndexOf('\n', baseShader.IndexOf(@"#version"));
+        var builder = SharedObjectPools.StringBuilderPool.Rent();
+        var bindings = SharedObjectPools.StringBuilderPool.Rent();
         try
         {
-            if (Functions.Count > 0)
-            {
-                hasFunctions = true;
-                lock (Functions)
-                {
-                    functions = ArrayPool<StringBuilder>.Shared.Rent(funcCount = Functions.Count);
-                    Functions.CopyTo(functions);
-                }
-            }
-
-            try
-            {
-                if (hasResources)
-                {
-
-                }
-            }
-            finally
-            {
-                SharedObjectPools.StringBuilderPool.Return(final);
-            }
+            builder.Clear();
+            bindings.Clear();
+            builder.Append(baseShader);
+            BuildBindingSet(bindings, sets);
+            builder.Append(bindings, start, bindings.Length);
+            return builder.ToString();
         }
         finally
         {
-            if (entries != null)
-                ArrayPool<ResourceEntry>.Shared.Return(entries);
-            if (functions != null)
-                ArrayPool<StringBuilder>.Shared.Return(functions);
+            SharedObjectPools.StringBuilderPool.Return(builder);
+            SharedObjectPools.StringBuilderPool.Return(bindings);
         }
     }
 
-    private void BuildFunctionSet(StringBuilder builder)
+    private void BuildBindingSet(StringBuilder builder, ResourceSet[] sets)
     {
-    }
-
-    private void BuildBindingSet(StringBuilder builder, ResourceSet[] sets, ResourceLayout[] layouts)
-    {
-        ResourceEntry[] entries;
-        int entryCount;
+        Dictionary<int, ResourceEntry> entries;
 
         lock (ResourceEntries)
         {
             if (ResourceEntries.Count <= 0)
                 return;
 
-            entries = ArrayPool<ResourceEntry>.Shared.Rent(entryCount = ResourceEntries.Count);
-            ResourceEntries.CopyTo(entries);
+            entries = ResourceEntryDictionaryPool.Rent();
+            for (int i = 0; i < ResourceEntries.Count; i++)
+                entries.Add(i, ResourceEntries[i]);
         }
 
-        for (int i = 0; i < entryCount; i++)
+        try
         {
-            var entry = entries[i];
-            layouts.First(x => x.)
-            BuildBinding(builder, entry.)
+            for (int set = 0; set < sets.Length; set++)
+            {
+                var layout = sets[set].Layout;
+                for (int binding = 0; binding < layout.ElementCount; binding++)
+                {
+                    var element = layout[binding].Name;
+                    var (index, entry) = entries.FirstOrDefault(x => x.Value.Name == element);
+                    entries.Remove(index);
+                    BuildBinding(builder, set, binding, entry.Name, entry.Typing, entry.Arguments, entry.Body);
+                }
+            }
+        }
+#if DEBUG
+        catch
+        {
+            ; // For breakpoint purposes
+            throw;
+        }
+#endif
+        finally
+        {
+            ResourceEntryDictionaryPool.Return(entries);
         }
     }
 
     private static StringBuilder BuildBinding
-        (StringBuilder builder, int set, int binding, string name, StringBuilder type, StringBuilder args, StringBuilder body)
+        (StringBuilder builder, int set, int binding, string name, string type, string? args, string body)
     {
         builder.Append($"layout(set={set},binding={binding}");
-        if (args.Length > 0) 
+        if (args?.Length is >0) 
             builder.Append(',').Append(args);
         return builder.Append(") ").Append(type).Append(' ').Append(name).Append(body);
     }
