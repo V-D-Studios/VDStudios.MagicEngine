@@ -44,7 +44,7 @@ public class ShaderBuilder
     /// <summary>
     /// Represents a resource binding in the shader
     /// </summary>
-    protected struct ResourceEntry
+    public struct ResourceEntry
     {
         /// <summary>
         /// The arguments of the binding, for example, with <c>(set=0,binding=0,rgba34)</c>, <c>rgba34</c> would be the argument
@@ -76,6 +76,37 @@ public class ShaderBuilder
     /// Instances a new object of type <see cref="ShaderBuilder"/>
     /// </summary>
     public ShaderBuilder() { }
+
+    /// <summary>
+    /// Adds a resource binding entry into the <see cref="ShaderBuilder"/>
+    /// </summary>
+    /// <param name="name">The variable identifier of the binding. Does not include identifiers of the struct definition. Must match with an element description</param>
+    /// <param name="typing">The types of the binding, such as <c>uniform image2d</c></param>
+    /// <param name="body">The body or the ending of the binding. It can be either a ';', or the struct body</param>
+    /// <param name="arguments">The arguments of the binding, for example, with <c>(set=0,binding=0,rgba34)</c>, <c>rgba34</c> would be the argument</param>
+    public void Add(string name, string typing, string body, string? arguments = null)
+        => Add(new()
+        {
+            Name = name,
+            Typing = typing,
+            Body = body,
+            Arguments = arguments
+        });
+
+    /// <summary>
+    /// Adds a resource binding entry into the <see cref="ShaderBuilder"/>
+    /// </summary>
+    /// <param name="entry">The entry describing essential data about the binding</param>
+    public void Add(ResourceEntry entry)
+    {
+        lock (ResourceEntries)
+            ResourceEntries.Add(entry);
+    }
+
+    /// <summary>
+    /// The amount of <see cref="ResourceEntry"/>s this Builder currently has
+    /// </summary>
+    public int Count => ResourceEntries.Count;
 
     /// <summary>
     /// Clears this <see cref="ShaderBuilder"/> of all data
