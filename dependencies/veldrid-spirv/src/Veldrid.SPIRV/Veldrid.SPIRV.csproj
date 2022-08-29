@@ -9,7 +9,6 @@
 
   <ItemGroup>
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
-    <PackageReference Include="Veldrid" Version="4.8.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,6 +28,25 @@
       <PackagePath>build/net40/Veldrid.SPIRV.targets</PackagePath>
       <Pack>true</Pack>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\veldrid\src\Veldrid\Veldrid.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="runtimes\linux-x64\native\libveldrid-spirv.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+	  <None Update="runtimes\osx\native\libveldrid-spirv.dylib">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="runtimes\win-x64\native\libveldrid-spirv.dll">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="runtimes\win-x64\native\libveldrid-spirv.dll">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
   </ItemGroup>
 
   <ItemGroup>
