@@ -10,9 +10,21 @@ namespace Veldrid
     public abstract class ResourceLayout : DeviceResource, IDisposable
     {
 #if VALIDATE_USAGE
-        public readonly ResourceLayoutDescription Description;
+        internal readonly ResourceLayoutDescription Description;
         internal readonly uint DynamicBufferCount;
 #endif
+
+        /// <summary>
+        /// Gets the <see cref="ResourceLayoutElementDescription"/> present at the given index in the <see cref="ResourceLayoutDescription.Elements"/> array of this <see cref="ResourceLayout"/>
+        /// </summary>
+        /// <param name="index">The index at which the element is</param>
+        /// <returns>A copy of the <see cref="ResourceLayoutElementDescription"/></returns>
+        public ResourceLayoutElementDescription this[int index] => Description.Elements[index];
+
+        /// <summary>
+        /// The amount of <see cref="ResourceLayoutElementDescription"/>s in the <see cref="ResourceLayoutDescription.Elements"/> array of this <see cref="ResourceLayout"/>
+        /// </summary>
+        public int ElementCount => Description.Elements.Length;
 
         internal ResourceLayout(ref ResourceLayoutDescription description)
         {
