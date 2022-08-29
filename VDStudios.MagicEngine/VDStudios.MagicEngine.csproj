@@ -63,6 +63,8 @@
 	  <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
 	</ItemGroup>
 	<ItemGroup>
+	  <ProjectReference Include="..\dependencies\veldrid-spirv\src\Veldrid.SPIRV\Veldrid.SPIRV.csproj" />
+	  <ProjectReference Include="..\dependencies\veldrid\src\Veldrid.ImageSharp\Veldrid.ImageSharp.csproj" />
 	  <ProjectReference Include="..\dependencies\veldrid\src\Veldrid\Veldrid.csproj" />
 	</ItemGroup>
 	<ItemGroup>
