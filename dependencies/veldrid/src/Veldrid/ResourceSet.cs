@@ -34,7 +34,7 @@ namespace Veldrid
         public abstract void Dispose();
 
 #if VALIDATE_USAGE
-        internal ResourceLayout Layout { get; }
+        public ResourceLayout Layout { get; }
         internal BindableResource[] Resources { get; }
 #endif
     }
