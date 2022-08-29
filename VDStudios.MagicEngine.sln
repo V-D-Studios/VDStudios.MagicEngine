@@ -9,6 +9,20 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.MagicEngine.Demo"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.MagicEngine.Benchmarks", "VDStudios.MagicEngine.Benchmarks\VDStudios.MagicEngine.Benchmarks.csproj", "{84EC3D01-2881-402F-BB7E-DA77745F58D7}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Veldrid", "dependencies\veldrid\src\Veldrid\Veldrid.csproj", "{17B474C4-2A6D-429A-841B-41B7B21E4CF6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependencies", "Dependencies", "{DB5DB420-84D9-4657-AEAB-8C4E161833DC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Veldrid", "Veldrid", "{156563DF-0E13-497A-B6DB-F38B0939C1F7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Veldrid.ImageSharp", "dependencies\veldrid\src\Veldrid.ImageSharp\Veldrid.ImageSharp.csproj", "{EF31FF8C-78C7-496E-85BD-1D677A0CEDA2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Veldrid.MetalBindings", "dependencies\veldrid\src\Veldrid.MetalBindings\Veldrid.MetalBindings.csproj", "{446F4A25-3C7F-4D91-9C5C-6DE9E479BBA5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Veldrid.OpenGLBindings", "dependencies\veldrid\src\Veldrid.OpenGLBindings\Veldrid.OpenGLBindings.csproj", "{EC8166CB-C10A-4639-8315-23627F9215DD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Veldrid.RenderDoc", "dependencies\veldrid\src\Veldrid.RenderDoc\Veldrid.RenderDoc.csproj", "{B202BA6D-B127-40CE-A033-A06B78B7511C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,9 +41,37 @@ Global
 		{84EC3D01-2881-402F-BB7E-DA77745F58D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{84EC3D01-2881-402F-BB7E-DA77745F58D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{84EC3D01-2881-402F-BB7E-DA77745F58D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{17B474C4-2A6D-429A-841B-41B7B21E4CF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17B474C4-2A6D-429A-841B-41B7B21E4CF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17B474C4-2A6D-429A-841B-41B7B21E4CF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17B474C4-2A6D-429A-841B-41B7B21E4CF6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF31FF8C-78C7-496E-85BD-1D677A0CEDA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF31FF8C-78C7-496E-85BD-1D677A0CEDA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF31FF8C-78C7-496E-85BD-1D677A0CEDA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF31FF8C-78C7-496E-85BD-1D677A0CEDA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{446F4A25-3C7F-4D91-9C5C-6DE9E479BBA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{446F4A25-3C7F-4D91-9C5C-6DE9E479BBA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{446F4A25-3C7F-4D91-9C5C-6DE9E479BBA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{446F4A25-3C7F-4D91-9C5C-6DE9E479BBA5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC8166CB-C10A-4639-8315-23627F9215DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC8166CB-C10A-4639-8315-23627F9215DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC8166CB-C10A-4639-8315-23627F9215DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC8166CB-C10A-4639-8315-23627F9215DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B202BA6D-B127-40CE-A033-A06B78B7511C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B202BA6D-B127-40CE-A033-A06B78B7511C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B202BA6D-B127-40CE-A033-A06B78B7511C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B202BA6D-B127-40CE-A033-A06B78B7511C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{17B474C4-2A6D-429A-841B-41B7B21E4CF6} = {156563DF-0E13-497A-B6DB-F38B0939C1F7}
+		{156563DF-0E13-497A-B6DB-F38B0939C1F7} = {DB5DB420-84D9-4657-AEAB-8C4E161833DC}
+		{EF31FF8C-78C7-496E-85BD-1D677A0CEDA2} = {156563DF-0E13-497A-B6DB-F38B0939C1F7}
+		{446F4A25-3C7F-4D91-9C5C-6DE9E479BBA5} = {156563DF-0E13-497A-B6DB-F38B0939C1F7}
+		{EC8166CB-C10A-4639-8315-23627F9215DD} = {156563DF-0E13-497A-B6DB-F38B0939C1F7}
+		{B202BA6D-B127-40CE-A033-A06B78B7511C} = {156563DF-0E13-497A-B6DB-F38B0939C1F7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6D4206DF-0B60-4CA8-978E-45BF879850A9}
