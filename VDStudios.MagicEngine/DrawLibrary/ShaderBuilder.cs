@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -44,7 +45,7 @@ public class ShaderBuilder
     /// <summary>
     /// Represents a resource binding in the shader
     /// </summary>
-    public struct ResourceEntry
+    public struct ResourceEntry : IEquatable<ResourceEntry>
     {
         /// <summary>
         /// The arguments of the binding, for example, with <c>(set=0,binding=0,rgba34)</c>, <c>rgba34</c> would be the argument
@@ -65,8 +66,22 @@ public class ShaderBuilder
         /// The variable identifier of the binding. Does not include identifiers of the struct definition. Must match with an element description
         /// </summary>
         public string Name;
-    }
 
+        /// <inheritdoc/>
+        public bool Equals(ResourceEntry other) => other.Name == Name;
+
+        /// <inheritdoc/>
+        public override bool Equals([NotNullWhen(true)] object? obj) => obj is ResourceEntry entry && Equals(entry);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => Name.GetHashCode();
+
+        /// <inheritdoc/>
+        public static bool operator ==(ResourceEntry left, ResourceEntry right) => left.Equals(right);
+
+        /// <inheritdoc/>
+        public static bool operator !=(ResourceEntry left, ResourceEntry right) => !(left == right);
+    }
 
     #endregion
 
