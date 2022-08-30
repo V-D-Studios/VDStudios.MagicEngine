@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -27,7 +28,7 @@ public class ShaderBuilder
     /// </remarks>
 #warning Use Regex Generator
     protected static readonly Regex ShaderBoundResourcesRegex 
-        = new(@"layout\s*\((?:\s*set\s*=\s*(?<set>\d+)\s*,)?\s*binding\s*=\s*(?<binding>\d+)\s*,?\s*\w*\)\s*\w+\s*\w*\s+(?<name>\w+)\s*[;{]", RegexOptions.Compiled);
+        = new(@"layout\s*\((?:\s*set\s*=\s*(?<set>\d+)\s*,)?\s*binding\s*=\s*(?<binding>\d+)\s*,?\s*\w*\)\s*\w+\s*\w*\s+(?<name>\w+)\s*[;{]", RegexOptions.Compiled, TimeSpan.FromSeconds(5));
 
     /// <summary>
     /// Analyzes the given shader in search of unbound resource statements that can then be filled by this <see cref="ShaderBuilder"/>
@@ -36,7 +37,7 @@ public class ShaderBuilder
     /// The first group is 'arguments', which captures the arguments of the binding other than the <c>set</c> and <c>binding</c>; and finally 'name' which captures the variable name
     /// </remarks>
     protected static readonly Regex ShaderUnboundResourcesRegex
-        = new(@"#binding\s*(?:\((?<arguments>(?:\s*\w+\s*,?)*)\))?(?<type>\s*\w+\s*\w*\s+)(?<name>\w+)\s*(?<body>;|(?:{(?:.|\n)*?};))", RegexOptions.Compiled);
+        = new(@"#binding\s*(?:\((?<arguments>(?:\s*\w+\s*,?)*)\))?(?<type>\s*\w+\s*\w*\s+)(?<name>\w+)\s*(?<body>;|(?:{(?:.|\n)*?};))", RegexOptions.Compiled, TimeSpan.FromSeconds(5));
 
     #endregion
 
@@ -88,9 +89,39 @@ public class ShaderBuilder
     private readonly List<ResourceEntry> ResourceEntries = new();
 
     /// <summary>
+    /// The base shader this <see cref="ShaderBuilder"/> will inject resource bindings into
+    /// </summary>
+    public string ShaderBase { get; }
+
+    /// <summary>
     /// Instances a new object of type <see cref="ShaderBuilder"/>
     /// </summary>
-    public ShaderBuilder() { }
+    public ShaderBuilder(string shaderbase, string bindings) 
+    {
+        ShaderBase = shaderbase;
+        Add(bindings);
+    }
+
+    /// <summary>
+    /// Matches the resource bindings described in the string and adds them into this <see cref="ShaderBuilder"/>
+    /// </summary>
+    /// <param name="resources">A string containing the resource bindings of the shader</param>
+    public void Add(string resources)
+    {
+        var matches = ShaderUnboundResourcesRegex.Matches(resources);
+        foreach (Match match in matches)
+        {
+            match.Groups.TryGetValue("arguments", out var argumentsGroup);
+            if (!match.Groups.TryGetValue("type", out var typeGroup) || !typeGroup.Success)
+                throw new ArgumentException("One of the matches does not have a valid type", nameof(resources));
+            if (!match.Groups.TryGetValue("body", out var bodyGroup) || !bodyGroup.Success)
+                throw new ArgumentException("One of the matches does not have a valid body or ending", nameof(resources));
+            if (!match.Groups.TryGetValue("name", out var nameGroup) || !nameGroup.Success)
+                throw new ArgumentException("One of the matches does not have a valid name", nameof(resources));
+
+            Add(nameGroup.Value, typeGroup.Value, bodyGroup.Value, argumentsGroup?.Value);
+        }
+    }
 
     /// <summary>
     /// Adds a resource binding entry into the <see cref="ShaderBuilder"/>
@@ -100,7 +131,7 @@ public class ShaderBuilder
     /// <param name="body">The body or the ending of the binding. It can be either a ';', or the struct body</param>
     /// <param name="arguments">The arguments of the binding, for example, with <c>(set=0,binding=0,rgba34)</c>, <c>rgba34</c> would be the argument</param>
     public void Add(string name, string typing, string body, string? arguments = null)
-        => Add(new()
+        => Add(new ResourceEntry()
         {
             Name = name,
             Typing = typing,
@@ -115,7 +146,11 @@ public class ShaderBuilder
     public void Add(ResourceEntry entry)
     {
         lock (ResourceEntries)
+        {
+            if (ResourceEntries.Contains(entry))
+                throw new InvalidOperationException($"This {nameof(ShaderBuilder)} already contains a {nameof(ResourceEntry)} with the name \"{entry.Name}\"");
             ResourceEntries.Add(entry);
+        }
     }
 
     /// <summary>
@@ -132,21 +167,20 @@ public class ShaderBuilder
     }
 
     /// <summary>
-    /// Takes in a base shader, WITHOUT ANY RESOURCE BINDINGS, in which to inject the bindings analyzed from <see cref="ResourceSet"/> and described by this builder
+    /// Sorts through and injects the bindings analyzed from <see cref="ResourceSet"/> and described by this builder
     /// </summary>
-    /// <param name="baseShader"></param>
     /// <param name="sets"></param>
     /// <returns></returns>
-    public string BuildAgainst(string baseShader, ResourceSet[] sets)
+    public string BuildAgainst(ResourceSet[] sets)
     {
-        int start = baseShader.IndexOf('\n', baseShader.IndexOf(@"#version"));
+        int start = ShaderBase.IndexOf('\n', ShaderBase.IndexOf(@"#version"));
         var builder = SharedObjectPools.StringBuilderPool.Rent();
         var bindings = SharedObjectPools.StringBuilderPool.Rent();
         try
         {
             builder.Clear();
             bindings.Clear();
-            builder.Append(baseShader);
+            builder.Append(ShaderBase);
             BuildBindingSet(bindings, sets);
             builder.Append(bindings, start, bindings.Length);
             return builder.ToString();
