@@ -89,37 +89,5 @@ namespace VDStudios.MagicEngine.Properties {
                 return ResourceManager.GetString("DefaultPolygonVertexShader", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to #version 450
-        ///
-        ///layout(location = 0) out vec4 outColor;
-        ///layout(set = 0, binding = 0) uniform sampler2D sampler;
-        ///layout(set = 0, binding = 1) uniform texture2D tex;
-        ///
-        ///void main() {
-        ///    outColor = texture(tex, sampler);
-        ///}.
-        /// </summary>
-        public static string DefaultTexturePolygonFragmentShader {
-            get {
-                return ResourceManager.GetString("DefaultTexturePolygonFragmentShader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to #version 450
-        ///
-        ///layout(location = 0) in vec2 Position;
-        ///
-        ///void main() {
-        ///    gl_Position = vec4(Position, 0.0, 1.0);
-        ///}.
-        /// </summary>
-        public static string DefaultTexturePolygonVertexShader {
-            get {
-                return ResourceManager.GetString("DefaultTexturePolygonVertexShader", resourceCulture);
-            }
-        }
     }
 }
