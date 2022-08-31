@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.DrawLibrary;
@@ -16,7 +17,7 @@ namespace VDStudios.MagicEngine.DrawLibrary;
 /// </summary>
 public class ShaderBuilder
 {
-    private static readonly ObjectPool<Dictionary<int, ResourceEntry>> ResourceEntryDictionaryPool = new(x => new(10), x => x.Clear(), 3, 3);
+    private static readonly ObjectPool<Dictionary<string, (int set, int binding)>> ResourceEntryDictionaryPool = new(x => new(10), x => x.Clear(), 3, 3);
 
     #region Regexes
 
@@ -173,6 +174,7 @@ public class ShaderBuilder
     /// <returns></returns>
     public string BuildAgainst(ResourceSet[] sets)
     {
+        ArgumentNullException.ThrowIfNull(sets);
         int start = ShaderBase.IndexOf('\n', ShaderBase.IndexOf(@"#version"));
         var builder = SharedObjectPools.StringBuilderPool.Rent();
         var bindings = SharedObjectPools.StringBuilderPool.Rent();
@@ -182,8 +184,13 @@ public class ShaderBuilder
             bindings.Clear();
             builder.Append(ShaderBase);
             BuildBindingSet(bindings, sets);
-            builder.Append(bindings, start, bindings.Length);
+            builder.Insert(start, bindings);
+#if DEBUG
+            var result = builder.ToString();
+            return result;
+#else
             return builder.ToString();
+#endif
         }
         finally
         {
@@ -194,30 +201,36 @@ public class ShaderBuilder
 
     private void BuildBindingSet(StringBuilder builder, ResourceSet[] sets)
     {
-        Dictionary<int, ResourceEntry> entries;
-
-        lock (ResourceEntries)
-        {
-            if (ResourceEntries.Count <= 0)
-                return;
-
-            entries = ResourceEntryDictionaryPool.Rent();
-            for (int i = 0; i < ResourceEntries.Count; i++)
-                entries.Add(i, ResourceEntries[i]);
-        }
+        Dictionary<string, (int set, int binding)>? resources = null;
+        ResourceEntry[]? entries = null;
+        int entrycount;
 
         try
         {
+            lock (ResourceEntries)
+            {
+                if (ResourceEntries.Count <= 0)
+                    return;
+                entries = ArrayPool<ResourceEntry>.Shared.Rent(entrycount = ResourceEntries.Count);
+                ResourceEntries.CopyTo(entries);
+            }
+
+            resources = ResourceEntryDictionaryPool.Rent();
             for (int set = 0; set < sets.Length; set++)
             {
                 var layout = sets[set].Layout;
                 for (int binding = 0; binding < layout.ElementCount; binding++)
-                {
-                    var element = layout[binding].Name;
-                    var (index, entry) = entries.FirstOrDefault(x => x.Value.Name == element);
-                    entries.Remove(index);
-                    BuildBinding(builder, set, binding, entry.Name, entry.Typing, entry.Arguments, entry.Body);
-                }
+                    resources[layout[binding].Name] = (set, binding);
+            }
+
+            for (int i = 0; i < entrycount; i++)
+            {
+                var entry = entries[i];
+                var name = entry.Name;
+                if (resources.Remove(name, out var location) is false)
+                    throw new InvalidOperationException($"Could not find a resource in the set by the name of {name}");
+
+                BuildBinding(builder, location.set, location.binding, name, entry.Typing, entry.Arguments, entry.Body);
             }
         }
 #if DEBUG
@@ -229,7 +242,10 @@ public class ShaderBuilder
 #endif
         finally
         {
-            ResourceEntryDictionaryPool.Return(entries);
+            if (resources is not null)
+                ResourceEntryDictionaryPool.Return(resources);
+            if (entries is not null)
+                ArrayPool<ResourceEntry>.Shared.Return(entries);
         }
     }
 
