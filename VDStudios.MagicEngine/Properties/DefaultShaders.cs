@@ -53,14 +53,14 @@ layout(location = 0) out vec4 fragTexCoord;
 
 void main() {
     fragTexCoord = vec4(inTexCoord, 0.0, 1.0);
-    gl_Position = WindowScale * vec4(Position, 0.0, 1.0);
+    gl_Position = WinTrans * vec4(Position, 0.0, 1.0);
 }
 
 ",
                 bindings:
 @"
-#binding uniform WindowAspectTransform {
-    layout(offset = 0) mat4 WindowScale;
+#binding uniform WindowTransform {
+    layout(offset = 0) mat4 WinTrans;
 };
 "
             );

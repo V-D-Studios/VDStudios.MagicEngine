@@ -96,8 +96,6 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
         return ValueTask.CompletedTask;
     }
 
-    private ShaderDescription vertexDefault = new(ShaderStages.Vertex, BuiltInResources.DefaultTexturePolygonVertexShader.GetUTF8Bytes(), "main");
-    private ShaderDescription fragmnDefault = new(ShaderStages.Fragment, BuiltInResources.DefaultTexturePolygonFragmentShader.GetUTF8Bytes(), "main");
     private static readonly VertexLayoutDescription DefaultVector2TexPosLayout
         = new(
               new VertexElementDescription("TexturePosition", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
@@ -147,8 +145,16 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? sets, ResourceLayout[]? layouts)
     {
-        ShapeRendererDescription.VertexShaderSpirv ??= vertexDefault;
-        ShapeRendererDescription.FragmentShaderSpirv ??= fragmnDefault;
+        ShapeRendererDescription.VertexShaderSpirv ??= new(
+            ShaderStages.Vertex, 
+            DefaultShaders.DefaultTexturedShapeRendererVertexShader.BuildAgainst(sets!).GetUTF8Bytes(), 
+            "main"
+        );
+        ShapeRendererDescription.FragmentShaderSpirv ??= new(
+            ShaderStages.Fragment, 
+            DefaultShaders.DefaultTexturedShapeRendererFragmentShader.BuildAgainst(sets!).GetUTF8Bytes(),
+            "main"
+        );  
         ShapeRendererDescription.VertexLayout ??= DefaultVector2TexPosLayout;
         return base.CreateResources(device, factory, sets, layouts);
     }
