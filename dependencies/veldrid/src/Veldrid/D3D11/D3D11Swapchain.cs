@@ -5,9 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using SharpGen.Runtime;
+using System.Runtime.Versioning;
 
 namespace Veldrid.D3D11
 {
+    [SupportedOSPlatform("Windows")]
     internal class D3D11Swapchain : Swapchain
     {
         private readonly D3D11GraphicsDevice _gd;

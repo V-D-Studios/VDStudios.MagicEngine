@@ -8,9 +8,11 @@ using Vortice.Direct3D11;
 using Vortice;
 using System.Drawing;
 using Vortice.Mathematics;
+using System.Runtime.Versioning;
 
 namespace Veldrid.D3D11
 {
+    [SupportedOSPlatform("Windows")]
     internal class D3D11CommandList : CommandList
     {
         private readonly D3D11GraphicsDevice _gd;

@@ -11,9 +11,11 @@ using Vortice.Direct3D11.Debug;
 using VorticeDXGI = Vortice.DXGI.DXGI;
 using VorticeD3D11 = Vortice.Direct3D11.D3D11;
 using Vortice.DXGI.Debug;
+using System.Runtime.Versioning;
 
 namespace Veldrid.D3D11
 {
+    [SupportedOSPlatform("Windows")]
     internal class D3D11GraphicsDevice : GraphicsDevice
     {
         private readonly IDXGIAdapter _dxgiAdapter;

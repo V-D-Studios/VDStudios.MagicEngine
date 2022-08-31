@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.Versioning;
 using Vortice.Direct3D11;
 
 namespace Veldrid.D3D11
 {
+    [SupportedOSPlatform("Windows")]
     internal class D3D11Texture : Texture
     {
         private readonly ID3D11Device _device;

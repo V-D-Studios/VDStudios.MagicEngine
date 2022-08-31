@@ -1,8 +1,10 @@
 ﻿using Vortice.Direct3D11;
 using System;
+using System.Runtime.Versioning;
 
 namespace Veldrid.D3D11
 {
+    [SupportedOSPlatform("Windows")]
     internal class D3D11TextureView : TextureView
     {
         private string _name;
