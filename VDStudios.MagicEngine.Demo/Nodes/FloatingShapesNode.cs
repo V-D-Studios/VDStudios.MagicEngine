@@ -3,6 +3,7 @@ using VDStudios.MagicEngine.Demo.Properties;
 using VDStudios.MagicEngine.DrawLibrary;
 using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
+using VDStudios.MagicEngine.GUILibrary.ImGUI;
 using Veldrid;
 using Veldrid.ImageSharp;
 
@@ -60,6 +61,7 @@ public class FloatingShapesNode : Node, IDrawableNode
 
     private readonly CircleDefinition circle;
     private readonly PolygonDefinition hexagon;
+    private readonly SegmentDefinition segment;
 
     public FloatingShapesNode()
     {
@@ -74,6 +76,11 @@ public class FloatingShapesNode : Node, IDrawableNode
             new(149.59669171830413f / 500f, 149.7064357876441f / 500f),
             new(157.05319901188642f / 500f, 365.87640633068054f / 500f)
         }, true) { Name = "Hexagon" };
+
+        segment = new(new(.2f, .3f), new(-.4f, -.1f), 10f);
+
+        var watch = new Watch(viewLoggers: new() { () => { segment.ForceUpdate(); return true; } });
+        Game.MainGraphicsManager.AddElement(watch);
 
         // Apparently, oddly numbered polygons have their last vertex skipped?
 
@@ -98,7 +105,8 @@ public class FloatingShapesNode : Node, IDrawableNode
             img,
             new ShapeDefinition[]
             {
-                texturedRect
+                texturedRect,
+                segment
             },
             new(
                 new(
