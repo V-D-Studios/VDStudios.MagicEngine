@@ -51,12 +51,32 @@ public class SegmentDefinition : ShapeDefinition
     /// <summary>
     /// The starting point of the segment
     /// </summary>
-    public Vector2 PointA { get; set; }
+    public Vector2 PointA
+    {
+        get => __pointA;
+        set
+        {
+            if (value == __pointA) return;
+            __pointA = value;
+            ___regenRequired = true;
+        }
+    }
+    private Vector2 __pointA;
 
     /// <summary>
     /// The ending point of the segment
     /// </summary>
-    public Vector2 PointB { get; set; }
+    public Vector2 PointB
+    {
+        get => __pointB;
+        set
+        {
+            if(value == __pointB) return;
+            __pointB = value;
+            ___regenRequired = true;
+        }
+    }
+    private Vector2 __pointB;
 
     /// <summary>
     /// The width of the segment
@@ -69,6 +89,7 @@ public class SegmentDefinition : ShapeDefinition
             if (value == __width) return;
             if (__width <= 0f) throw new ArgumentOutOfRangeException(nameof(value), value, "Width cannot be less than 0");
             __width = value;
+            ___regenRequired = true;
         }
     }
     private float __width;
