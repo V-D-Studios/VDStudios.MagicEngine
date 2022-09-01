@@ -61,9 +61,11 @@
 	  <PackageReference Include="SDL2.NET" Version="1.2.3" />
 	  <PackageReference Include="Serilog" Version="2.11.0" />
 	  <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
-	  <PackageReference Include="Veldrid" Version="4.8.0" />
-	  <PackageReference Include="Veldrid.ImageSharp" Version="4.8.0" />
-	  <PackageReference Include="Veldrid.SPIRV" Version="1.0.15" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\dependencies\veldrid-spirv\src\Veldrid.SPIRV\Veldrid.SPIRV.csproj" />
+	  <ProjectReference Include="..\dependencies\veldrid\src\Veldrid.ImageSharp\Veldrid.ImageSharp.csproj" />
+	  <ProjectReference Include="..\dependencies\veldrid\src\Veldrid\Veldrid.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Compile Update="Properties\BuiltInResources.Designer.cs">

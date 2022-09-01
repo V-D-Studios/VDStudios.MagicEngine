@@ -65,7 +65,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <summary>
     /// A transformation matrix to transform points in window space so that objects drawn in relative window coordinates (-1f to 1f) maintain their original aspect ratio
     /// </summary>
-    public WindowTransformation WindowAspectTransform { get; private set; }
+    public WindowTransformation WindowTransform { get; private set; }
 
     private bool WinSizeChanged = true;
 
@@ -75,7 +75,7 @@ public class GraphicsManager : GameObject, IDisposable
     public ResourceLayout DrawTransformationLayout { get; private set; }
 #warning Is this necessary? /\
 
-    private DeviceBuffer WindowAspectTransformBuffer;
+    private DeviceBuffer WindowTransformBuffer;
     private BindableResource[] ManagerResourceBindings;
 
     private static ResourceLayout? ManagerResourceLayout;
@@ -84,13 +84,13 @@ public class GraphicsManager : GameObject, IDisposable
     /// Gets or instantiates the layout of the resources relevant to this <see cref="GraphicsManager"/>
     /// </summary>
     /// <remarks>
-    /// Corresponds to the <see cref="ManagerResourceSet"/> of each instance of <see cref="GraphicsManager"/>. 
+    /// Corresponds to the <see cref="ManagerResourceSet"/> of each instance of <see cref="GraphicsManager"/>
     /// </remarks>
     public static ResourceLayout GetManagerResourceLayout(ResourceFactory factory)
     {
         if (ManagerResourceLayout is null)
             lock (typeof(GraphicsManager)) 
-                ManagerResourceLayout ??= factory.CreateResourceLayout(new ResourceLayoutDescription(new ResourceLayoutElementDescription("WindowScale", ResourceKind.UniformBuffer, ShaderStages.Vertex)));
+                ManagerResourceLayout ??= factory.CreateResourceLayout(new ResourceLayoutDescription(new ResourceLayoutElementDescription("WindowTransform", ResourceKind.UniformBuffer, ShaderStages.Vertex)));
         return ManagerResourceLayout;
     }
 
@@ -572,7 +572,7 @@ public class GraphicsManager : GameObject, IDisposable
             Device.MainSwapchain.Resize((uint)ww, (uint)wh);
             ImGuiController.WindowResized(ww, wh);
             WindowSize = newSize;
-            WindowAspectTransform = new WindowTransformation()
+            WindowTransform = new WindowTransformation()
             {
                 WindowScale = Matrix4x4.CreateScale(wh / (float)ww, 1, 1)
             };
@@ -620,8 +620,8 @@ public class GraphicsManager : GameObject, IDisposable
 
     private void UpdateWindowTransformationBuffer(CommandList cl)
     {
-        Span<WindowTransformation> trans = stackalloc WindowTransformation[1] { WindowAspectTransform };
-        cl.UpdateBuffer(WindowAspectTransformBuffer, 0, trans);
+        Span<WindowTransformation> trans = stackalloc WindowTransformation[1] { WindowTransform };
+        cl.UpdateBuffer(WindowTransformBuffer, 0, trans);
     }
 
     private async Task Run()
@@ -848,10 +848,10 @@ public class GraphicsManager : GameObject, IDisposable
         var bufferDesc = new BufferDescription(DataStructuring.FitToUniformBuffer<WindowTransformation>(), BufferUsage.UniformBuffer);
         var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
 
-        WindowAspectTransformBuffer = factory.CreateBuffer(ref bufferDesc);
+        WindowTransformBuffer = factory.CreateBuffer(ref bufferDesc);
         DrawTransformationLayout = factory.CreateResourceLayout(ref dTransDesc);
-        ManagerResourceBindings = new BindableResource[] { WindowAspectTransformBuffer };
-        ManagerResourceSet = factory.CreateResourceSet(new ResourceSetDescription(GetManagerResourceLayout(factory), WindowAspectTransformBuffer));
+        ManagerResourceBindings = new BindableResource[] { WindowTransformBuffer };
+        ManagerResourceSet = factory.CreateResourceSet(new ResourceSetDescription(GetManagerResourceLayout(factory), WindowTransformBuffer));
         ManagerResourceSet.Name = $"{(Name is not null ? "->" : null)}GraphicsManagerResources";
 
         Window_SizeChanged(window, Game.TotalTime, window.Size);
