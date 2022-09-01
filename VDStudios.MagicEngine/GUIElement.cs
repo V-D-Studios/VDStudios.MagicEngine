@@ -318,8 +318,8 @@ public abstract class GUIElement : GraphicsObject, IDisposable
         lock (disposedValueLock)
         {
             IDisposable? @lock = null;
-            if (root)
-                @lock = Manager!.LockManagerDrawing();
+            if (root && Manager is GraphicsManager manager)
+                @lock = manager.LockManagerDrawing();
 
             if (disposedValue)
             {
