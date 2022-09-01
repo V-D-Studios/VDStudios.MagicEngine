@@ -22,15 +22,23 @@ public class SegmentDefinition : ShapeDefinition
         {
             if (___regenRequired)
             {
-                ___vertices[0] = PointA * (1 + Width / 100);
-                ___vertices[1] = PointA * -(1 + Width / 100);
-                ___vertices[2] = PointB * (1 + Width / 100);
-                ___vertices[3] = PointB * -(1 + Width / 100);
+                var x = Width / 100f;
+                ___vertices[0] = PointA * (1 - x);
+                ___vertices[1] = PointA * (1 + x);
+                ___vertices[2] = PointB * (1 + x);
+                ___vertices[3] = PointB * (1 - x);
                 ___regenRequired = false;
             }
 
             return ___vertices;
         }
+    }
+
+    /// <inheritdoc/>
+    public override void ForceUpdate()
+    {
+        ___regenRequired = true;
+        base.ForceUpdate();
     }
 
     /// <summary>
@@ -87,7 +95,7 @@ public class SegmentDefinition : ShapeDefinition
         set
         {
             if (value == __width) return;
-            if (__width <= 0f) throw new ArgumentOutOfRangeException(nameof(value), value, "Width cannot be less than 0");
+            if (value <= 0f) throw new ArgumentOutOfRangeException(nameof(value), value, "Width cannot be less than 0");
             __width = value;
             ___regenRequired = true;
         }
