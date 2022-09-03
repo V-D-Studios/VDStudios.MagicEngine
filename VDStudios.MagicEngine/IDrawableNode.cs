@@ -14,4 +14,9 @@ public interface IDrawableNode
     /// <c>false</c> if the draw sequence should be propagated into this <see cref="Node"/>'s children, <c>true</c> otherwise. If this is <c>true</c>, Draw handlers for children will also be skipped
     /// </summary>
     public bool SkipDrawPropagation { get; }
+
+    /// <summary>
+    /// An optional name for debugging purposes
+    /// </summary>
+    public string? Name { get; }
 }
