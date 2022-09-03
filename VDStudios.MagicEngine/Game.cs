@@ -53,6 +53,9 @@ public class Game : SDLApplication<Game>
     public Game()
     {
         Logger = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
+#if FEATURE_INTERNAL_LOGGING
+        InternalLogger = ConfigureInternalLogger(new LoggerConfiguration()).CreateLogger();
+#endif
         Log = new GameLogger(Logger, "Game", "Global", GetType());
         var serv = CreateServiceCollection();
         ConfigureServices(serv);
@@ -124,6 +127,9 @@ public class Game : SDLApplication<Game>
     public ILogger Log { get; }
 
     internal ILogger Logger { get; }
+#if FEATURE_INTERNAL_LOGGING
+    internal ILogger InternalLogger { get; }
+#endif
 
     /// <summary>
     /// Represents the average time per update value calculated while the game is running
@@ -385,6 +391,29 @@ public class Game : SDLApplication<Game>
             .MinimumLevel.Information();
 #endif
     }
+
+#if FEATURE_INTERNAL_LOGGING
+    /// <summary>
+    /// Configures and initializes Serilog's log for internal library logging
+    /// </summary>
+    /// <remarks>
+    /// By default, this method should be left alone unless you have a good reason to override it. The engine was built with <c>FEATURE_INTERNAL_LOGGING</c> set.
+    /// </remarks>
+#else
+    /// <summary>
+    /// Configures and initializes Serilog's log for internal library logging
+    /// </summary>
+    /// <remarks>
+    /// By default, this method should be left alone unless you have a good reason to override it. The engine was not built with <c>FEATURE_INTERNAL_LOGGING</c> set and will not call this method during startup.
+    /// </remarks>
+#endif
+    protected virtual LoggerConfiguration ConfigureInternalLogger(LoggerConfiguration config)
+        => config.MinimumLevel.Verbose().WriteTo
+#if DEBUG
+        .Console(LogEventLevel.Verbose);
+#else
+        .Console(LogEventLevel.Warning);
+#endif
 
     /// <summary>
     /// Unloads any data that was previously loaded by <see cref="Load"/> when stopping the <see cref="Game"/>
