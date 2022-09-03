@@ -61,6 +61,7 @@ public class DrawOperationManager : GameObject
     public void CascadeThroughNode(DrawParameters parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
+        InternalLog?.Debug("Cascading {typeName} through the owning Node {objName}'s children", nameof(DrawParameters), Owner.Name);
         cascadedParameters = parameters;
         ProcessNewDrawData(parameters);
         foreach (var child in ((Node)Owner).Children)
@@ -132,8 +133,10 @@ public class DrawOperationManager : GameObject
     /// </remarks>
     internal async Task RegisterDrawOperations(GraphicsManager main, IReadOnlyList<GraphicsManager> allManagers)
     {
+        InternalLog?.Debug("Registering {count} DrawOperations", DrawOperations.RegistrationBuffer.Count);
         foreach (var dop in DrawOperations.RegistrationBuffer)
         {
+            InternalLog?.Verbose("Registering DrawOperation {objName}-{type}", dop.Name ?? "", dop.GetTypeName());
             GraphicsManager manager = GraphicsManagerSelector is DrawOperationGraphicsManagerSelector selector ? selector(main, allManagers, dop, Owner, this) : main;
             await manager.RegisterOperation(dop);
         }
@@ -142,6 +145,7 @@ public class DrawOperationManager : GameObject
 
     private void InternalAddDrawOperation(DrawOperation operation)
     {
+        InternalLog?.Debug("Adding a new DrawOperation {objName}-{type}", operation.Name ?? "", operation.GetTypeName());
         operation.SetOwner(this);
         try
         {
