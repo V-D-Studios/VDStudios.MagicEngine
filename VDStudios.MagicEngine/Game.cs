@@ -2,6 +2,7 @@
 using SDL2.NET;
 using Serilog;
 using Serilog.Events;
+using Serilog.Sinks.SystemConsole.Themes;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using VDStudios.MagicEngine.Exceptions;
@@ -56,7 +57,7 @@ public class Game : SDLApplication<Game>
 #if FEATURE_INTERNAL_LOGGING
         InternalLogger = ConfigureInternalLogger(new LoggerConfiguration()).CreateLogger();
 #endif
-        Log = new GameLogger(Logger, "Game", "Global", GetType());
+        Log = new GameLogger(Logger, "Game", "Global", "Game Object", GetType());
         var serv = CreateServiceCollection();
         ConfigureServices(serv);
         // Put here any default services
@@ -385,10 +386,11 @@ public class Game : SDLApplication<Game>
 #if DEBUG
         return config
             .MinimumLevel.Verbose()
-            .WriteTo.Console(LogEventLevel.Debug, GameLogger.Template);
+            .WriteTo.Console(LogEventLevel.Debug, GameLogger.Template, theme: AnsiConsoleTheme.Literate);
 #else
         return config
-            .MinimumLevel.Information();
+            .MinimumLevel.Information()
+            .WriteTo.Console(LogEventLevel.Information, GameLogger.Template, theme: AnsiConsoleTheme.Literate);
 #endif
     }
 
@@ -408,11 +410,12 @@ public class Game : SDLApplication<Game>
     /// </remarks>
 #endif
     protected virtual LoggerConfiguration ConfigureInternalLogger(LoggerConfiguration config)
-        => config.MinimumLevel.Verbose().WriteTo
 #if DEBUG
-        .Console(LogEventLevel.Verbose);
+        => config.MinimumLevel.Verbose().WriteTo
+        .Console(LogEventLevel.Debug, GameLogger.Template, theme: AnsiConsoleTheme.Code);
 #else
-        .Console(LogEventLevel.Warning);
+        => config.MinimumLevel.Information().WriteTo
+        .Console(LogEventLevel.Information, GameLogger.Template, theme: AnsiConsoleTheme.Code);
 #endif
 
     /// <summary>

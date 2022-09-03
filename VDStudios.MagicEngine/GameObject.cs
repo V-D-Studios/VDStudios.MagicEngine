@@ -18,6 +18,11 @@ public abstract class GameObject
     internal readonly string Area;
 
     /// <summary>
+    /// An optional name for debugging purposes
+    /// </summary>
+    public string? Name { get; init; }
+
+    /// <summary>
     /// Instances a new GameObject
     /// </summary>
     internal GameObject(string facility, string area)
@@ -27,11 +32,6 @@ public abstract class GameObject
         Facility = facility;
         Area = area;
     }
-
-    /// <summary>
-    /// An optional name for debugging purposes
-    /// </summary>
-    public string? Name { get; set; }
 
     /// <summary>
     /// A Logger that belongs to this <see cref="GameObject"/> and is attached to <see cref="Game.Logger"/>
@@ -45,7 +45,7 @@ public abstract class GameObject
         {
 #if FEATURE_INTERNAL_LOGGING
             lock (logSync)
-                return __inlog ??= new GameLogger(Game.Logger, Area, Facility, GetType());
+                return __inlog ??= new GameLogger(Game.Logger, Area, Facility, Name, GetType());
 #else
             return null;
 #endif
@@ -67,7 +67,7 @@ public abstract class GameObject
     /// <param name="facility"></param>
     /// <returns></returns>
     protected virtual ILogger CreateLogger(ILogger gameLogger, string area, string facility)
-        => new GameLogger(gameLogger, area, facility, GetType());
+        => new GameLogger(gameLogger, area, facility, Name, GetType());
 
     /// <summary>
     /// The <see cref="MagicEngine.Game"/> this <see cref="GameObject"/> belongs to. Same as<see cref="SDL2.NET.SDLApplication{TApp}.Instance"/>

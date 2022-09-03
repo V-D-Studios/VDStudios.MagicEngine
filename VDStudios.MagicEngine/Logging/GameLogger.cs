@@ -14,22 +14,24 @@ internal sealed class GameLogger : ILogger
     /// <summary>
     /// The default template
     /// </summary>
-    public const string Template = "{{{Area} -> {Facility}, {Author}}}[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}";
+    public const string Template = "{{{Area} -> {Facility}, {ObjName}-{Author}}}[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}";
 
     private readonly ILogger Logger;
     private readonly string Facility;
     private readonly string Area;
+    private readonly string? ObjName;
     private readonly Type OwningType;
 
-    internal GameLogger(ILogger logger, string area, string facility, Type owningType)
+    internal GameLogger(ILogger logger, string area, string facility, string? objName, Type owningType)
     {
         Logger = logger;
         Facility = facility;
         Area = area;
+        ObjName = objName;
         OwningType = owningType;
     }
 
-    public static void Write(ILogger Logger, LogEvent logEvent, string Facility, string Area, Type OwningType)
+    public static void Write(ILogger Logger, LogEvent logEvent, string Facility, string Area, Type OwningType, string? ObjName)
     {
         if (Logger.BindProperty("Facility", Facility, false, out var prop))
             logEvent.AddPropertyIfAbsent(prop);
@@ -47,6 +49,9 @@ internal sealed class GameLogger : ILogger
         if (Logger.BindProperty("AuthorFull", OwningType.AssemblyQualifiedName, false, out prop))
             logEvent.AddPropertyIfAbsent(prop);
 
+        if (ObjName is not null && Logger.BindProperty("ObjName", ObjName, false, out prop))
+            logEvent.AddPropertyIfAbsent(prop);
+
         Logger.Write(logEvent);
     }
 
@@ -56,5 +61,5 @@ internal sealed class GameLogger : ILogger
     /// <param name="logEvent">The event to write</param>
     /// <exception cref="NotImplementedException"></exception>
     public void Write(LogEvent logEvent)
-        => Write(Logger, logEvent, Facility, Area, OwningType);
+        => Write(Logger, logEvent, Facility, Area, OwningType, ObjName);
 }
