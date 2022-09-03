@@ -20,6 +20,7 @@ public abstract class NodeBase : GameObject, IDisposable
     /// Scene should ignore this, and let it remain null
     /// </summary>
     internal IDrawableNode? DrawableSelf;
+#warning DG: If Scene shouldn't use this, isn't that bloat?
 
     private readonly IServiceScope scope;
     internal IServiceProvider ServiceProvider => scope.ServiceProvider;
@@ -44,14 +45,19 @@ public abstract class NodeBase : GameObject, IDisposable
 
     #region IDisposable
 
-    private readonly bool disposedValue;
+    private bool disposedValue;
+
+    /// <summary>
+    /// Whether or not this object is disposed
+    /// </summary>
+    protected bool IsDisposed => disposedValue;
 
     /// <summary>
     /// Disposes of this <see cref="Node"/> and all of its currently attached children
     /// </summary>
     public void Dispose()
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(disposedValue, this);
         Dispose(disposing: true);
         InternalDispose(disposing: true);
         GC.SuppressFinalize(this);
@@ -63,6 +69,7 @@ public abstract class NodeBase : GameObject, IDisposable
     /// <param name="disposing"></param>
     internal virtual void InternalDispose(bool disposing)
     {
+        disposedValue = true;
         foreach (var child in Children)
             child.Dispose();
         Children = null!;
@@ -215,27 +222,6 @@ public abstract class NodeBase : GameObject, IDisposable
     #endregion
 
     #endregion
-
-    #endregion
-
-    #region Helpers
-
-    /// <summary>
-    /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of
-    /// </summary>
-    protected internal void ThrowIfDisposed()
-    {
-        if (disposedValue)
-            throw new ObjectDisposedException(GetType().FullName);
-    }
-    /// <summary>
-    /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of, otherwise, returns the passed value
-    /// </summary>
-    /// <remarks>
-    /// This method is useful to ensure disposed safety in an expression body
-    /// </remarks>
-    [return: NotNullIfNotNull("v")]
-    protected T? ThrowIfDisposed<T>(T? v) => disposedValue ? throw new ObjectDisposedException(GetType().FullName) : v;
 
     #endregion
 }
