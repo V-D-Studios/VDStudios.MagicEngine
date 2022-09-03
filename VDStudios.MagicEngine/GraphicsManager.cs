@@ -567,7 +567,7 @@ public class GraphicsManager : GameObject, IDisposable
         try
         {
             var (ww, wh) = newSize;
-            InternalLog?.Information("Window size changed to {newSize}", newSize);
+            InternalLog?.Information("Window size changed to {{w:{width}, h:{height}}}", newSize.Width, newSize.Height);
             InternalLog?.Verbose("Resizing MainSwapchain");
             Device.MainSwapchain.Resize((uint)ww, (uint)wh);
 

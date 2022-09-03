@@ -332,7 +332,7 @@ public abstract class Node : NodeBase
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfAttached();
 
-        InternalLog?.Information("Attaching to Scene {name}-{type}", parent.Name, parent.GetTypeName());
+        InternalLog?.Information("Attaching to Scene {name}-{type}", parent.Name ?? "", parent.GetTypeName());
         if (!parent.FilterChildNode(this, out var reason))
             throw new ChildNodeRejectedException(reason, parent, this);
 
@@ -361,7 +361,7 @@ public abstract class Node : NodeBase
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfAttached();
 
-        InternalLog?.Information("Attaching to Node {name}-{type}", parent.Name, parent.GetTypeName());
+        InternalLog?.Information("Attaching to Node {name}-{type}", parent.Name ?? "", parent.GetTypeName());
         if (!parent.FilterChildNode(this, out var reason))
             throw new ChildNodeRejectedException(reason, parent, this);
         

@@ -543,7 +543,7 @@ public class Game : SDLApplication<Game>
                 int scenes = 0;
                 while (scenesAwaitingSetup.TryDequeue(out var sc))
                 {
-                    sceneSetupList.Add(sc.ConfigureScene());
+                    sceneSetupList.Add(sc.InternalConfigure());
                     scenes++;
                 }
                 for (int i = 0; i < scenes; i++)
