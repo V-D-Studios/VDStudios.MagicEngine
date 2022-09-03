@@ -67,8 +67,6 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     public WindowTransformation WindowTransform { get; private set; }
 
-    private bool WinSizeChanged = true;
-
     /// <summary>
     /// Represents the <see cref="ResourceLayout"/> that describes the usage of a <see cref="DrawTransformation"/> buffer in <see cref="DrawParameters.TransformationBuffer"/>
     /// </summary>
@@ -569,17 +567,22 @@ public class GraphicsManager : GameObject, IDisposable
         try
         {
             var (ww, wh) = newSize;
+            InternalLog?.Information("Window size changed to {newSize}", newSize);
+            InternalLog?.Verbose("Resizing MainSwapchain");
             Device.MainSwapchain.Resize((uint)ww, (uint)wh);
+
+            InternalLog?.Verbose("Resizing ImGuiController");
             ImGuiController.WindowResized(ww, wh);
+
             WindowSize = newSize;
             WindowTransform = new WindowTransformation()
             {
                 WindowScale = Matrix4x4.CreateScale(wh / (float)ww, 1, 1)
             };
-            WinSizeChanged = true;
             Vector4 size;
             LastReportedWinSize = size = new(ww, wh, 0, 0);
             SizeChanged = true;
+
             Device!.UpdateBuffer(ScreenSizeBuffer, 0, size);
         }
         finally
@@ -593,14 +596,19 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     internal void InternalStart()
     {
+        InternalLog?.Information("Starting GraphicsManager");
         Starting();
+
+        InternalLog?.Information("Setting up Window");
         SetupWindow();
         initLock.Release();
+
+        InternalLog?.Information("Running GraphicsManager");
         graphics_thread = Run();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private async ValueTask<bool> WaitOn(SemaphoreSlim semaphore, bool condition, int syncWait = 200, int asyncWait = 500)
+    private static async ValueTask<bool> WaitOn(SemaphoreSlim semaphore, bool condition, int syncWait = 200, int asyncWait = 500)
     {
         if (!semaphore.Wait(syncWait))
         {
@@ -647,6 +655,7 @@ public class GraphicsManager : GameObject, IDisposable
 
         ulong frameCount = 0;
 
+        InternalLog?.Debug("Querying WindowFlags");
         await PerformOnWindowAndWaitAsync(w =>
         {
             var flags = w.Flags;
@@ -656,7 +665,7 @@ public class GraphicsManager : GameObject, IDisposable
 
         var (ww, wh) = WindowSize;
 
-        Log.Information("Entering main rendering loop");
+        InternalLog?.Information("Entering main rendering loop");
         while (IsRunning) // Running Loop
         {
             for (; ; )
@@ -783,7 +792,7 @@ public class GraphicsManager : GameObject, IDisposable
             fak.Push(1000 / (sw.ElapsedMilliseconds + 0.0000001f));
             sw.Restart();
         }
-        Log.Information("Exiting main rendering loop and disposing");
+        InternalLog?.Information("Exiting main rendering loop and disposing");
 
         Dispose();
     }
