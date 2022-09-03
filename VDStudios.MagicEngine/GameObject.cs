@@ -45,7 +45,7 @@ public abstract class GameObject
         {
 #if FEATURE_INTERNAL_LOGGING
             lock (logSync)
-                return __inlog ??= new GameLogger(Game.Logger, Area, Facility, Name, GetType());
+                return __inlog ??= new GameLogger(Game.InternalLogger, Area, Facility, Name, GetType());
 #else
             return null;
 #endif
