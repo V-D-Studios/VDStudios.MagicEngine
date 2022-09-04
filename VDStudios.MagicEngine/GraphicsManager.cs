@@ -77,6 +77,8 @@ public class GraphicsManager : GameObject, IDisposable
 
     private static ResourceLayout? ManagerResourceLayout;
 
+    internal ResourceLayout DrawOpTransLayout { get; private set; }
+
     /// <summary>
     /// Gets or instantiates the layout of the resources relevant to this <see cref="GraphicsManager"/>
     /// </summary>
@@ -855,9 +857,13 @@ public class GraphicsManager : GameObject, IDisposable
 
         var bufferDesc = new BufferDescription(DataStructuring.FitToUniformBuffer<WindowTransformation, uint>(), BufferUsage.UniformBuffer);
         var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
+        var dotransl = new ResourceLayoutDescription(
+            new ResourceLayoutElementDescription("Transformation", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment)
+        );
 
         WindowTransformBuffer = factory.CreateBuffer(ref bufferDesc);
         DrawTransformationLayout = factory.CreateResourceLayout(ref dTransDesc);
+        DrawOpTransLayout = factory.CreateResourceLayout(ref dotransl);
         ManagerResourceBindings = new BindableResource[] { WindowTransformBuffer };
         ManagerResourceSet = factory.CreateResourceSet(new ResourceSetDescription(GetManagerResourceLayout(factory), WindowTransformBuffer));
         ManagerResourceSet.Name = $"{(Name is not null ? "->" : null)}GraphicsManagerResources";
