@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using VDStudios.MagicEngine.Geometry;
 using Veldrid;
 using Veldrid.SPIRV;
+using Vulkan;
 
 namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 
@@ -252,11 +253,10 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         = new(new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate));
 
     /// <inheritdoc/>
-    protected override ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
+    protected override async ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
     {
-        if (ShapeRendererDescription.ResourceLayoutAndSetBuilder is not null)
-            ShapeRendererDescription.ResourceLayoutAndSetBuilder.Invoke(Manager!, device, factory, builder);
-        return ValueTask.CompletedTask;
+        await base.CreateResourceSets(device, builder, factory);
+        ShapeRendererDescription.ResourceLayoutAndSetBuilder?.Invoke(Manager!, device, factory, builder);
     }
 
     /// <inheritdoc/>
@@ -430,7 +430,14 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     }
 
     /// <inheritdoc/>
-    protected override ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList, DeviceBuffer screenSizeBuffer)
+    protected override async ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList, DeviceBuffer screenSizeBuffer)
+    {
+        var t = base.UpdateGPUState(device, commandList, screenSizeBuffer);
+        UpdateShapes(device, commandList, screenSizeBuffer);
+        await t;
+    }
+
+    private void UpdateShapes(GraphicsDevice device, CommandList commandList, DeviceBuffer screenSizeBuffer)
     {
         lock (_shapes)
         {
@@ -472,8 +479,6 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         for (int i = ShapeBufferList.Count - 1; i >= 0; i--)
             if (ShapeBufferList[i].remove)
                 ShapeBufferList.RemoveAt(i);
-
-        return ValueTask.CompletedTask;
     }
 
     #endregion

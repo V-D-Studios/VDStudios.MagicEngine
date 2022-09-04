@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 using System.Transactions;
 using VDStudios.MagicEngine.DrawLibrary;
 using Veldrid;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace VDStudios.MagicEngine;
 
@@ -78,14 +77,12 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
                 var (cpxx, cpxy, cpxz, rotx) = RotationX;
                 var (cpyx, cpyy, cpyz, roty) = RotationY;
                 var (cpzx, cpzy, cpzz, rotz) = RotationZ;
-                var rfl = Reflection;
                 trans = t =
                     Matrix4x4.CreateTranslation(translation) *
                     Matrix4x4.CreateScale(scl) *
                     Matrix4x4.CreateRotationX(rotx, new(cpxx, cpxy, cpxz)) *
                     Matrix4x4.CreateRotationY(roty, new(cpyx, cpyy, cpyz)) *
-                    Matrix4x4.CreateRotationZ(rotz, new(cpzx, cpzy, cpzz)) *
-                    Matrix4x4.CreateReflection(rfl);
+                    Matrix4x4.CreateRotationZ(rotz, new(cpzx, cpzy, cpzz));
             }
             return t;
         }
@@ -104,15 +101,13 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// <param name="rotX">The rotation along the x axis in worldspace for this operation</param>
     /// <param name="rotY">The rotation along the y axis in worldspace for this operation</param>
     /// <param name="rotZ">The rotation along the z axis in worldspace for this operation</param>
-    /// <param name="reflection">The reflection plane in worldspace for this operation</param>
-    public void Transform(Vector3? translation = null, Vector3? scale = null, Vector4? rotX = null, Vector4? rotY = null, Vector4? rotZ = null, Plane? reflection = null)
+    public void Transform(Vector3? translation = null, Vector3? scale = null, Vector4? rotX = null, Vector4? rotY = null, Vector4? rotZ = null)
     {
         Translation = translation ?? Translation;
         Scale = scale ?? Scale;
         RotationX = rotX ?? RotationX;
         RotationY = rotY ?? RotationY;
         RotationZ = rotZ ?? RotationZ;
-        Reflection = reflection ?? Reflection;
         PendingTransformationUpdate = true;
         NotifyPendingGPUUpdate();
         trans = null;
@@ -151,11 +146,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// Where <see cref="Vector4.X"/>, <see cref="Vector4.Y"/> and <see cref="Vector4.Z"/> are the center point, and <see cref="Vector4.W"/> is the actual rotation in <c>radians</c>
     /// </remarks>
     public Vector4 RotationZ { get; private set; }
-
-    /// <summary>
-    /// Describes the current reflection plane of this <see cref="DrawOperation"/>
-    /// </summary>
-    public Plane Reflection { get; private set; }
 
     #endregion
 

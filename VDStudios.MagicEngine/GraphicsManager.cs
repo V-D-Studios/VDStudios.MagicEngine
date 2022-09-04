@@ -858,7 +858,7 @@ public class GraphicsManager : GameObject, IDisposable
         var bufferDesc = new BufferDescription(DataStructuring.FitToUniformBuffer<WindowTransformation, uint>(), BufferUsage.UniformBuffer);
         var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
         var dotransl = new ResourceLayoutDescription(
-            new ResourceLayoutElementDescription("Transformation", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment)
+            new ResourceLayoutElementDescription("Transform", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment)
         );
 
         WindowTransformBuffer = factory.CreateBuffer(ref bufferDesc);
