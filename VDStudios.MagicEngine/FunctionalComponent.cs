@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Xml.Linq;
 
@@ -22,19 +21,7 @@ public abstract class FunctionalComponent : GameObject
     public FunctionalComponent(Node node) : base("Node Functionality", "Update")
     {
         Owner = node;
-        scope = node.ServiceProvider.CreateScope();
     }
-
-    #endregion
-
-    #region Services
-
-    private readonly IServiceScope scope;
-
-    /// <summary>
-    /// Represents a Service Provider scoped for this component's owner scoped for this component
-    /// </summary>
-    public IServiceProvider Services => scope.ServiceProvider;
 
     #endregion
 
@@ -218,7 +205,6 @@ public abstract class FunctionalComponent : GameObject
     {
         if (!disposedValue)
         {
-            scope.Dispose();
             stopwatch = null;
             disposedValue = true;
 

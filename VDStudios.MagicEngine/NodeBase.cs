@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using VDStudios.MagicEngine.Internal;
 
@@ -12,6 +11,14 @@ public abstract class NodeBase : GameObject, IDisposable
 {
     internal readonly object sync = new();
 
+    #region Dependency Injection
+
+    #region Fields
+
+    #endregion
+
+    #endregion
+
     #region Service Providers
 
     #region Fields
@@ -21,17 +28,12 @@ public abstract class NodeBase : GameObject, IDisposable
     /// </summary>
     internal IDrawableNode? DrawableSelf;
 #warning DG: If Scene shouldn't use this, isn't that bloat?
-
-    private readonly IServiceScope scope;
-    internal IServiceProvider ServiceProvider => scope.ServiceProvider;
-
     #endregion
 
     #endregion
 
     internal NodeBase(string facility) : base(facility, "Update")
     {
-        scope = Game.Instance.NewScope();
         Children = NodeList.Empty.Clone();
     }
 
@@ -73,7 +75,6 @@ public abstract class NodeBase : GameObject, IDisposable
         foreach (var child in Children)
             child.Dispose();
         Children = null!;
-        scope.Dispose();
     }
 
     /// <summary>

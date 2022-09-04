@@ -18,9 +18,6 @@ public abstract class Node : NodeBase
     /// <summary>
     /// Initializes basic properties and fields to give a <see cref="Node"/> its default functionality
     /// </summary>
-    /// <remarks>
-    /// Initializes: <see cref="NodeBase.ServiceProvider"/>, <see cref="NodeBase.Children"/>
-    /// </remarks>
     protected Node() : base("Game Node Tree")
     {
         DrawableSelf = this as IDrawableNode;

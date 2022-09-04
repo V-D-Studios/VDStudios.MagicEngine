@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using SDL2.NET;
+﻿using SDL2.NET;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -24,16 +23,12 @@ public class Game : SDLApplication<Game>
     
     internal readonly record struct WindowActionCache(Window Window, WindowAction Action);
 
-    internal IServiceProvider services;
     private IGameLifetime? lifetime;
     private bool isStarted;
     private readonly bool isSDLStarted;
     internal ConcurrentQueue<Scene> scenesAwaitingSetup = new();
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingSetup = new();
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingDestruction = new();
-
-    internal IServiceScope NewScope()
-        => services.CreateScope();
 
     static Game()
     {
@@ -48,9 +43,6 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Instances a new <see cref="Game"/>
     /// </summary>
-    /// <remarks>
-    /// This method calls <see cref="ConfigureServices(IServiceCollection)"/>, <see cref="SetupSDL"/>, <see cref="ConfigureLogger(LoggerConfiguration)"/> and <see cref="CreateServiceCollection"/>
-    /// </remarks>
     public Game()
     {
         Logger = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
@@ -58,10 +50,6 @@ public class Game : SDLApplication<Game>
         InternalLogger = ConfigureInternalLogger(new LoggerConfiguration()).CreateLogger();
 #endif
         Log = new GameLogger(Logger, "Game", "Global", "Game Object", GetType());
-        var serv = CreateServiceCollection();
-        ConfigureServices(serv);
-        // Put here any default services
-        services = serv.BuildServiceProvider(true);
         ActiveGraphicsManagers = new();
         VideoThread = new(VideoRun);
     }
@@ -136,7 +124,7 @@ public class Game : SDLApplication<Game>
     /// Represents the average time per update value calculated while the game is running
     /// </summary>
     /// <remarks>
-    /// This value does not represent the <see cref="Game"/>'s FPS, as that is the amount of frames the game outputs per second. This value is only updated while the game is running, also not during <see cref="Load(Progress{float}, IServiceProvider)"/> or any of the other methods
+    /// This value does not represent the <see cref="Game"/>'s FPS, as that is the amount of frames the game outputs per second. This value is only updated while the game is running, also not during <see cref="Load(Progress{float})"/> or any of the other methods
     /// </remarks>
     public TimeSpan AverageDelta => TimeSpan.FromTicks(_mspup.Average);
     private readonly LongAverageKeeper _mspup = new(10);
@@ -152,19 +140,8 @@ public class Game : SDLApplication<Game>
     public bool IsStarted => isStarted;
 
     /// <summary>
-    /// The current service provider for this <see cref="Game"/>
-    /// </summary>
-    /// <remarks>
-    /// Invalid until <see cref="ConfigureServices(IServiceCollection)"/> is called by <see cref="StartGame{TScene}"/>, invalid again after the game stops
-    /// </remarks>
-    public IServiceProvider Services => isStarted ? services : throw new InvalidOperationException("The game has not been started");
-
-    /// <summary>
     /// The current Scene of the <see cref="Game"/>
     /// </summary>
-    /// <remarks>
-    /// Invalid until <see cref="ConfigureServices(IServiceCollection)"/> is called by <see cref="StartGame{TScene}"/>, invalid again after the game stops
-    /// </remarks>
     public Scene CurrentScene => isStarted ? currentScene! : throw new InvalidOperationException("The game has not been started");
     private Scene? currentScene;
 
@@ -315,22 +292,6 @@ public class Game : SDLApplication<Game>
     protected virtual TimeSpan? UpdateFrameThrottleChanging(TimeSpan prevThrottle, TimeSpan newThrottle) => null;
 
     /// <summary>
-    /// Creates a new <see cref="IServiceCollection"/> object for the Game
-    /// </summary>
-    /// <remarks>
-    /// This method is only called once, right before <see cref="ConfigureServices(IServiceCollection)"/>. No service configuration should be done here, this method available to allow you to replace the default <see cref="IServiceCollection"/>: <see cref="ServiceCollection"/>
-    /// </remarks>
-    /// <returns>The newly instanced <see cref="IServiceCollection"/></returns>
-    protected virtual IServiceCollection CreateServiceCollection() => new ServiceCollection();
-
-    /// <summary>
-    /// Configures the services that are to be used by the <see cref="Game"/>
-    /// </summary>
-    /// <remarks>Use this method only to configure services, if any require further loading, consider forwarding that to <see cref="Load"/>. Services that the engine depends on are not set here by default, but instead are installed by the framework with their default implementations if not present already. You can freely override those services simply by adding them in this method! This method should only called once during the lifetime of the application, don't call it again</remarks>
-    /// <param name="services">The service collection in which to add the services</param>
-    protected virtual void ConfigureServices(IServiceCollection services) { }
-
-    /// <summary>
     /// Loads any data that is required before the actual loading of the game
     /// </summary>
     /// <remarks>
@@ -351,8 +312,7 @@ public class Game : SDLApplication<Game>
     /// Don't call this manually, place here code that should run when loading the game. Is called after <see cref="Preload"/>
     /// </remarks>
     /// <param name="progressTracker">An object that keeps track of progress during the <see cref="Load"/>. Subscribe to its event to use. 0 = 0% - 0.5 = 50% - 1 = 100%</param>
-    /// <param name="services">The services for this <see cref="Game"/> scoped for this call alone</param>
-    protected virtual void Load(Progress<float> progressTracker, IServiceProvider services) { }
+    protected virtual void Load(Progress<float> progressTracker) { }
 
     /// <summary>
     /// Configures the lifetime of a game
@@ -421,11 +381,10 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Unloads any data that was previously loaded by <see cref="Load"/> when stopping the <see cref="Game"/>
     /// </summary>
-    /// <param name="services">The services for this <see cref="Game"/> scoped for this call alone</param>
     /// <remarks>
     /// Don't call this manually, place here code that should run when unloading the game.
     /// </remarks>
-    protected virtual void Unload(IServiceProvider services) { }
+    protected virtual void Unload() { }
 
     /// <summary>
     /// Executes custom logic when stopping the game
@@ -455,7 +414,7 @@ public class Game : SDLApplication<Game>
 
         GameLoading?.Invoke(this, TotalTime);
 
-        Load(Preload(), Services);
+        Load(Preload());
         
         GameLoaded?.Invoke(this, TotalTime);
 
@@ -502,9 +461,7 @@ public class Game : SDLApplication<Game>
 
         GameUnloading?.Invoke(this, TotalTime);
 
-        IServiceScope unloadScope = services.CreateScope();
-        Unload(unloadScope.ServiceProvider);
-        unloadScope.Dispose();
+        Unload();
 
         GameUnloaded?.Invoke(this, TotalTime);
 
@@ -557,9 +514,7 @@ public class Game : SDLApplication<Game>
 
                 await prev.End(nextScene).ConfigureAwait(false);
 
-                var scope = services!.CreateScope();
                 await nextScene.Begin().ConfigureAwait(false);
-                scope.Dispose();
 
                 currentScene = nextScene;
                 nextScene = null;
