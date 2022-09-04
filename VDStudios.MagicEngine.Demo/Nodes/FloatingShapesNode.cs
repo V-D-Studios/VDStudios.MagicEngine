@@ -62,6 +62,7 @@ public class FloatingShapesNode : Node, IDrawableNode
     private readonly CircleDefinition circle;
     private readonly PolygonDefinition hexagon;
     private readonly SegmentDefinition segment;
+    private readonly TexturedShapeRenderer<Vector2> TexturedRenderer;
 
     public FloatingShapesNode()
     {
@@ -101,7 +102,7 @@ public class FloatingShapesNode : Node, IDrawableNode
 
         var robstrm = new MemoryStream(Assets.boundary_test);
         var img = new ImageSharpTexture(robstrm);
-        var tsr = DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
+        TexturedRenderer = DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
             img,
             new ShapeDefinition[]
             {
@@ -197,6 +198,8 @@ void main() {
 }
 ";
     private TimeSpan tb;
+    private float rot;
+    private float rotspeed = 1f / 1000;
     private static readonly TimeSpan tb_ceil = TimeSpan.FromSeconds(1.5);
     private int x = 0;
     private readonly int[] SubDivSeq = Enumerable.Range(3, 60).ToArray();
@@ -210,6 +213,8 @@ void main() {
                 x = 0;
             circle.Subdivisions = SubDivSeq[x++];
         }
+        var rotation = new Vector4(-.1f, -.1f, 0f, rot += rotspeed * (float)delta.TotalMilliseconds);
+        TexturedRenderer.Transform(rotZ: rotation);
 
         return ValueTask.FromResult(true);
     }
