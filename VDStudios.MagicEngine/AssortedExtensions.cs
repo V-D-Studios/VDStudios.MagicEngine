@@ -10,6 +10,17 @@ namespace VDStudios.MagicEngine;
 public static class AssortedExtensions
 {
     /// <summary>
+    /// Deconstructs <paramref name="vec"/> in the following order: <c>X</c>, <c>Y</c>, <c>Z</c>, <c>W</c>
+    /// </summary>
+    public static void Deconstruct(this Vector4 vec, out float x, out float y, out float z, out float w)
+    {
+        x = vec.X;
+        y = vec.Y;
+        z = vec.Z;
+        w = vec.W;
+    }
+
+    /// <summary>
     /// This method serves a shorthand for calling <see cref="object.GetType"/> on <paramref name="obj"/> and taking <see cref="MemberInfo.Name"/>
     /// </summary>
     /// <param name="obj">The object to get the type name from</param>
