@@ -68,10 +68,9 @@ public class GraphicsManager : GameObject, IDisposable
     public WindowTransformation WindowTransform { get; private set; }
 
     /// <summary>
-    /// Represents the <see cref="ResourceLayout"/> that describes the usage of a <see cref="DrawTransformation"/> buffer in <see cref="DrawParameters.TransformationBuffer"/>
+    /// Represents the <see cref="ResourceLayout"/> that describes the usage of a <see cref="DrawTransformation"/>
     /// </summary>
     public ResourceLayout DrawTransformationLayout { get; private set; }
-#warning Is this necessary? /\
 
     private DeviceBuffer WindowTransformBuffer;
     private BindableResource[] ManagerResourceBindings;
@@ -645,7 +644,7 @@ public class GraphicsManager : GameObject, IDisposable
         var removalQueue = new Queue<Guid>(10);
         TimeSpan delta = default;
 
-        DrawParameters = new(new(Matrix4x4.Identity, Matrix4x4.Identity), this);
+        DrawParameters = new(this);
 
         var drawBuffer = new ValueTask<CommandList>[10];
 
@@ -854,7 +853,7 @@ public class GraphicsManager : GameObject, IDisposable
         ImGuiController = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
         ScreenSizeBuffer = factory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
 
-        var bufferDesc = new BufferDescription(DataStructuring.FitToUniformBuffer<WindowTransformation>(), BufferUsage.UniformBuffer);
+        var bufferDesc = new BufferDescription(DataStructuring.FitToUniformBuffer<WindowTransformation, uint>(), BufferUsage.UniformBuffer);
         var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
 
         WindowTransformBuffer = factory.CreateBuffer(ref bufferDesc);

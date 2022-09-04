@@ -6,52 +6,44 @@ namespace VDStudios.MagicEngine;
 /// <summary>
 /// Provides parameters and other useful data to be used when drawing in a <see cref="DrawOperation"/>
 /// </summary>
-/// <param name="Projection">The projection matrix</param>
-/// <param name="View">The view matrix</param>
+/// <param name="View">The transformation Matrix that represents the object in the world from the viewpoint</param>
+/// <param name="Projection">The transformation Matrix that represents the object in the viewpoint from the screen</param>
 public readonly record struct DrawTransformation(Matrix4x4 View, Matrix4x4 Projection);
 
 /// <summary>
 /// Represents the parameters of a <see cref="DrawTransformation"/> and its accompanying data
 /// </summary>
-/// <param name="DrawTransformation">The actual <see cref="DrawTransformation"/> parameters</param>
-/// <param name="TransformationBuffer">The buffer containing the data represented by <paramref name="DrawTransformation"/></param>
-/// <param name="ResourceLayout"></param>
-/// <param name="ResourceSet"></param>
 public sealed class DrawParameters
 {
-    private static BufferDescription buffDesc = new(DataStructuring.FitToUniformBuffer<DrawTransformation>(), BufferUsage.UniformBuffer);
+    private static BufferDescription buffDesc = new(DataStructuring.FitToUniformBuffer<DrawTransformation, uint>(), BufferUsage.UniformBuffer);
 
     private readonly object sync = new();
     private DrawTransformation trans;
-    private readonly DeviceBuffer buff;
     private bool PendingBufferUpdate = true;
 
-    public DrawParameters(DrawTransformation transformation, GraphicsManager manager)
+    public DrawParameters(GraphicsManager manager)
     {
-        trans = transformation;
         Manager = manager;
         var factory = manager.Device.ResourceFactory;
-        buff = factory.CreateBuffer(ref buffDesc);
+        TransformationBuffer = factory.CreateBuffer(ref buffDesc);
 
-        var rescDesc = new ResourceSetDescription(ResourceLayout, buff);
+        var rescDesc = new ResourceSetDescription(ResourceLayout, TransformationBuffer);
         ResourceSet = factory.CreateResourceSet(ref rescDesc);
+
+        Transformation = new(Matrix4x4.Identity, Matrix4x4.Identity);
     }
 
     /// <summary>
     /// The parameters represented by this <see cref="DrawParameters"/>
     /// </summary>
-    public DrawTransformation Parameters
+    public DrawTransformation Transformation
     {
         get => trans;
         set
         {
-            if (trans == value)
-                return;
+            if (trans == value) return;
             lock (sync)
-            {
                 trans = value;
-                PendingBufferUpdate = true;
-            }
         }
     }
 
@@ -69,30 +61,28 @@ public sealed class DrawParameters
     public GraphicsManager Manager { get; }
 
     /// <summary>
-    /// The <see cref="ResourceSet"/> that represents the TransformationBuffer returned by <see cref="FetchTransformationBuffer(CommandList)"/>
+    /// The <see cref="ResourceSet"/> that represents the <see cref="TransformationBuffer"/>
     /// </summary>
     public ResourceSet ResourceSet { get; }
 
     /// <summary>
-    /// Fetches the transformation buffer in this object
+    /// The Transformation buffer
     /// </summary>
-    /// <returns>The TransformationBuffer</returns>
-    public DeviceBuffer FetchTransformationBuffer()
+    private DeviceBuffer TransformationBuffer { get; }
+
+    /// <summary>
+    /// Checks if there are pending updates to the transformation buffer and if so, updates it
+    /// </summary>
+    public void UpdateTransformationBuffer()
     {
         DrawTransformation dtr;
-        lock (sync)
-            if (PendingBufferUpdate) 
-            {
-                PendingBufferUpdate = false;
-                dtr = trans;
-                goto UpdateBuffer; // Step out of the lock as soon as possible
-            }
-
-        return buff;
-
-    UpdateBuffer:
-
-        Manager.Device.UpdateBuffer(buff, 0, ref dtr);
-        return buff;
+        if (PendingBufferUpdate) 
+            lock (sync)
+                if (PendingBufferUpdate)
+                {
+                    PendingBufferUpdate = false;
+                    dtr = trans;
+                    Manager.Device.UpdateBuffer(TransformationBuffer, 0, ref dtr);
+                }
     }
 }
