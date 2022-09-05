@@ -17,7 +17,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
 {
     private readonly SemaphoreSlim sync = new(1, 1);
 
-    internal CommandList? Commands;
     internal GraphicsDevice? Device;
 
     private static ResourceLayoutBuilder ResourceLayoutFactory() => ResourceLayoutBuilderPool.Rent();
@@ -213,8 +212,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
             ResourceSetBuilderPool.Return(resb);
         }
 
-        Commands = CreateCommandList(device, device.ResourceFactory);
-        
         Registered();
     }
 
@@ -265,31 +262,29 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// </remarks>
     protected void NotifyPendingGPUUpdate() => pendingGpuUpdate = true;
 
-    internal async ValueTask<CommandList> InternalDraw(TimeSpan delta)
+    internal async ValueTask InternalDraw(TimeSpan delta, CommandList cl)
     {
         ThrowIfDisposed();
         sync.Wait();
         try
         {
-            var commands = Commands!;
             var device = Device!;
             var ssb = Manager!.ScreenSizeBuffer!;
 
-            commands.Begin();
+            cl.Begin();
             try
             {
                 if (pendingGpuUpdate)
                 {
                     pendingGpuUpdate = false;
-                    await UpdateGPUState(device, commands, ssb);
+                    await UpdateGPUState(device, cl, ssb);
                 }
-                await Draw(delta, commands, device, device.SwapchainFramebuffer, ssb).ConfigureAwait(false);
+                await Draw(delta, cl, device, device.SwapchainFramebuffer, ssb).ConfigureAwait(false);
             }
             finally
             {
-                commands.End();
+                cl.End();
             }
-            return commands;
         }
         finally
         {
@@ -316,14 +311,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
     /// <param name="screenSizeBuffer">A <see cref="DeviceBuffer"/> filled with a <see cref="Vector4"/> containing <see cref="GraphicsManager.Window"/>'s size in the form of <c>Vector4(x: Width, y: Height, 0, 0)</c></param>
     protected abstract ValueTask CreateWindowSizedResources(GraphicsDevice device, ResourceFactory factory, DeviceBuffer screenSizeBuffer);
-
-    /// <summary>
-    /// Creates the <see cref="CommandList"/> to be set as this <see cref="DrawOperation"/>'s designated <see cref="CommandList"/>
-    /// </summary>
-    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
-    /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
-    protected virtual CommandList CreateCommandList(GraphicsDevice device, ResourceFactory factory)
-        => factory.CreateCommandList();
 
     /// <summary>
     /// Creates the necessary resource sets for this <see cref="DrawOperation"/>
@@ -441,9 +428,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
             }
             finally
             {
-                Commands?.Dispose();
                 Device = null;
-                Commands = null;
                 _owner = null!;
                 Manager = null;
                 @lock.Dispose();
