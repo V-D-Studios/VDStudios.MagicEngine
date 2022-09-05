@@ -24,8 +24,11 @@ public class GraphicsManager : GameObject, IDisposable
     /// <summary>
     /// Instances and constructs a new <see cref="GraphicsManager"/> objects
     /// </summary>
-    public GraphicsManager() : base("Graphics & Input", "Rendering")
+    public GraphicsManager(int parallelism) : base("Graphics & Input", "Rendering")
     {
+        if (parallelism <= 0)
+            throw new ArgumentOutOfRangeException(nameof(parallelism), parallelism, "The degree of parallelism must be larger than 0");
+
         initLock.Wait();
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
 
@@ -35,6 +38,8 @@ public class GraphicsManager : GameObject, IDisposable
         framelockWaiter = new(FrameLock);
         guilockWaiter = new(GUILock);
         drawlockWaiter = new(DrawLock);
+
+        Parallelism = parallelism;
     }
 
     private readonly SemaphoreSlim initLock = new(1, 1);
@@ -44,6 +49,17 @@ public class GraphicsManager : GameObject, IDisposable
         initLock.Wait();
         initLock.Release();
     }
+
+    #endregion
+
+    #region Parallel Rendering
+
+    /// <summary>
+    /// The maximum degree of parallel rendering to use for this <see cref="GraphicsManager"/>
+    /// </summary>
+    public int Parallelism { get; }
+
+    private CommandListDispatch[] CLDispatchs;
 
     #endregion
 
@@ -528,7 +544,7 @@ public class GraphicsManager : GameObject, IDisposable
     protected virtual void Running() { }
 
     /// <summary>
-    /// Creates the <see cref="CommandList"/> to be set as this <see cref="GraphicsManager"/>'s designated <see cref="CommandList"/>, for use with <see cref="PrepareForDraw(CommandList, Framebuffer)"/>
+    /// Creates a <see cref="CommandList"/> for internal use. This method may be used to create multiple <see cref="CommandList"/>s at discretion
     /// </summary>
     /// <param name="device">The device of the attached <see cref="GraphicsManager"/></param>
     /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
@@ -648,11 +664,13 @@ public class GraphicsManager : GameObject, IDisposable
 
         DrawParameters = new(this);
 
-        var drawBuffer = new ValueTask<CommandList>[10];
-
         var gd = Device!;
         
         var managercl = CreateCommandList(gd, gd.ResourceFactory);
+
+        CLDispatchs = new CommandListDispatch[Parallelism];
+        for (int i = 0; i < CLDispatchs.Length; i++)
+            CLDispatchs[i] = new(300 / Parallelism, CreateCommandList(gd, gd.ResourceFactory));
 
         ulong frameCount = 0;
 
@@ -723,17 +741,41 @@ public class GraphicsManager : GameObject, IDisposable
                         managercl.End();
                         gd.SubmitCommands(managercl);
 
-                        using (drawqueue._lock.Lock())
-                        {
-                            if (drawBuffer.Length < drawqueue.Count)
-                                drawBuffer = new ValueTask<CommandList>[Math.Max(drawBuffer.Length * 2, drawqueue.Count)];
-
-                            int i = 0;
-                            while (drawqueue.Count > 0) 
-                                drawBuffer[i++] = drawqueue.Dequeue().InternalDraw(delta); // Run operations in the DrawQueue
-                            while (i > 0)
-                                gd.SubmitCommands(await drawBuffer[--i]);
-                        }
+                        if (drawqueue.Count > 0) 
+                            using (drawqueue._lock.Lock())
+                            {
+                                int dqc = drawqueue.Count;
+                                var perCL = dqc / CLDispatchs.Length;
+                                if(perCL is 0 or 1)
+                                {
+                                    int i = 0;
+                                    for (; i < dqc; i++)
+                                    {
+                                        var cld = CLDispatchs[i];
+                                        cld.Add(drawqueue.Dequeue());
+                                        cld.Start(delta);
+                                    }
+                                    while (i-- > 0) 
+                                        gd.SubmitCommands(CLDispatchs[i].WaitForEnd());
+                                }
+                                else
+                                {
+                                    int i = 0;
+                                    for (; i < CLDispatchs.Length - 1; i++)
+                                    {
+                                        var cld = CLDispatchs[i];
+                                        for (int x = 0; x < perCL; x++)
+                                            cld.Add(drawqueue.Dequeue());
+                                        cld.Start(delta);
+                                    }
+                                    var lcld = CLDispatchs[i++];
+                                    while (drawqueue.Count > 0)
+                                        lcld.Add(drawqueue.Dequeue());
+                                    lcld.Start(delta);
+                                    while (i-- > 0)
+                                        gd.SubmitCommands(CLDispatchs[i].WaitForEnd());
+                                }
+                            }
                     }
                     finally
                     {
