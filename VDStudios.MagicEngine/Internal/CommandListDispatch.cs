@@ -14,34 +14,45 @@ namespace VDStudios.MagicEngine.Internal;
 /// </summary>
 internal class CommandListDispatch
 {
-    private readonly List<DrawOperation> dops;
+    private DrawOperation[] dops;
+    private int DopCount = 0;
+
     private readonly CommandList cl;
     private readonly SemaphoreSlim sem;
     private readonly WaitCallback WorkMethod_del;
 
+    private TimeSpan delta;
     private Exception? Fault;
     
     /// <param name="expectedDops">A hint to the amount of <see cref="DrawOperation"/> that is expected for this <see cref="CommandListDispatch"/> to handle per frame</param>
     /// <param name="cl">The <see cref="CommandList"/> belonging to this <see cref="CommandListDispatch"/></param>
     public CommandListDispatch(int expectedDops, CommandList cl)
     {
-        dops = new(expectedDops);
+        dops = new DrawOperation[expectedDops];
         this.cl = cl;
         WorkMethod_del = WorkMethod;
         sem = new(1, 1);
     }
 
-    public void Add(DrawOperation dop) => dops.Add(dop);
+    public void Add(DrawOperation dop)
+    {
+        if (DopCount >= dops.Length)
+            Array.Resize(ref dops, dops.Length * 2);
+        dops[DopCount++] = dop;
+    }
 
     private void WorkMethod(object? state)
     {
-        var tasks = ArrayPool<ValueTask>.Shared.Rent(dops.Count);
-        sem.Wait();
+        var l_dops = dops;
+        int taskCount = DopCount;
+        var tasks = ArrayPool<ValueTask>.Shared.Rent(taskCount);
         try
         {
-            var sp_dops = CollectionsMarshal.AsSpan(dops);
-            for (int i = 0; i < sp_dops.Length; i++) ;
-                #warning put 'em to work
+            int i = 0;
+            for (; i < l_dops.Length; i++)
+                tasks[i] = l_dops[i].InternalDraw(delta, cl).Preserve();
+            while (i-- > 0)
+                tasks[i].GetAwaiter().GetResult();
         }
         catch(Exception e)
         {
@@ -49,6 +60,7 @@ internal class CommandListDispatch
         }
         finally
         {
+            ArrayPool<ValueTask>.Shared.Return(tasks, true);
             sem.Release();
         }
     }
@@ -59,7 +71,10 @@ internal class CommandListDispatch
         try
         {
             if (Fault is Exception e)
+            {
+                Fault = null;
                 throw e;
+            }
         }
         finally
         {
@@ -69,6 +84,20 @@ internal class CommandListDispatch
 
     public void Run()
     {
-        ThreadPool.QueueUserWorkItem(WorkMethod_del);
+        sem.Wait();
+        try
+        {
+            if (!ThreadPool.QueueUserWorkItem(WorkMethod_del))
+                sem.Release();
+        }
+        catch (SemaphoreFullException)
+        {
+            throw;
+        }
+        catch
+        {
+            sem.Release();
+            throw;
+        }
     }
 }
