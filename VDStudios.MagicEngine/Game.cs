@@ -127,7 +127,7 @@ public class Game : SDLApplication<Game>
     /// This value does not represent the <see cref="Game"/>'s FPS, as that is the amount of frames the game outputs per second. This value is only updated while the game is running, also not during <see cref="Load(Progress{float})"/> or any of the other methods
     /// </remarks>
     public TimeSpan AverageDelta => TimeSpan.FromTicks(_mspup.Average);
-    private readonly LongAverageKeeper _mspup = new(10);
+    private readonly LongAverageKeeper _mspup = new(16);
     
     /// <summary>
     /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame{TScene}"/> is called
