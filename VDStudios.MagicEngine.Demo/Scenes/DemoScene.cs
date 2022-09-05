@@ -15,16 +15,6 @@ public sealed class DemoScene : Scene
 
         Log.Debug("Attaching ColorBackgroundNode");
         await Attach(new ColorBackgroundNode());
-        await Attach(new FloatingShapesNode());
-        await Attach(new FloatingShapesNode());
-        await Attach(new FloatingShapesNode());
-        await Attach(new FloatingShapesNode());
-        await Attach(new FloatingShapesNode());
-        await Attach(new FloatingShapesNode());
-        await Attach(new FloatingShapesNode());
-        await Attach(new FloatingShapesNode());
-        await Attach(new FloatingShapesNode());
-        await Attach(new FloatingShapesNode());
 
         Log.Information("Adding FPS metrics to MainGraphicsManager GUI");
         Game.MainGraphicsManager.AddElement(new FPSWatch());
