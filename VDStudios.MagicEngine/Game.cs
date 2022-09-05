@@ -303,7 +303,7 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Creates and returns the <see cref="GraphicsManager"/> to be used as the <see cref="MainGraphicsManager"/>
     /// </summary>
-    protected virtual GraphicsManager CreateGraphicsManager() => new GraphicsManager() { Name = "Main GM" };
+    protected virtual GraphicsManager CreateGraphicsManager() => new GraphicsManager(10) { Name = "Main GM" };
 
     /// <summary>
     /// Loads any required data for the <see cref="Game"/>, and report back the progress at any point in the method with <paramref name="progressTracker"/>
