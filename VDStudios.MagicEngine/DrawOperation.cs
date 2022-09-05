@@ -271,20 +271,12 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
             var device = Device!;
             var ssb = Manager!.ScreenSizeBuffer!;
 
-            cl.Begin();
-            try
+            if (pendingGpuUpdate)
             {
-                if (pendingGpuUpdate)
-                {
-                    pendingGpuUpdate = false;
-                    await UpdateGPUState(device, cl, ssb);
-                }
-                await Draw(delta, cl, device, device.SwapchainFramebuffer, ssb).ConfigureAwait(false);
+                pendingGpuUpdate = false;
+                await UpdateGPUState(device, cl, ssb);
             }
-            finally
-            {
-                cl.End();
-            }
+            await Draw(delta, cl, device, device.SwapchainFramebuffer, ssb).ConfigureAwait(false);
         }
         finally
         {
