@@ -48,8 +48,9 @@ internal class CommandListDispatch
         var tasks = ArrayPool<ValueTask>.Shared.Rent(taskCount);
         try
         {
+            cl.Begin();
             int i = 0;
-            for (; i < l_dops.Length; i++)
+            for (; i < DopCount && i < tasks.Length; i++)
                 tasks[i] = l_dops[i].InternalDraw(delta, cl).Preserve();
             while (i-- > 0)
                 tasks[i].GetAwaiter().GetResult();
@@ -61,11 +62,12 @@ internal class CommandListDispatch
         finally
         {
             ArrayPool<ValueTask>.Shared.Return(tasks, true);
+            cl.End();
             sem.Release();
         }
     }
 
-    public void Check()
+    public CommandList WaitForEnd()
     {
         sem.Wait();
         try
@@ -75,6 +77,9 @@ internal class CommandListDispatch
                 Fault = null;
                 throw e;
             }
+            Array.Clear(dops);
+            DopCount = 0;
+            return cl;
         }
         finally
         {
@@ -82,8 +87,11 @@ internal class CommandListDispatch
         }
     }
 
-    public void Run()
+    public void Start(TimeSpan delta)
     {
+        if (DopCount is 0)
+            return;
+        this.delta = delta;
         sem.Wait();
         try
         {
