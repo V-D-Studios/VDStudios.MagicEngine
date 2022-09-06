@@ -500,7 +500,7 @@ public class Game : SDLApplication<Game>
                 int scenes = 0;
                 while (scenesAwaitingSetup.TryDequeue(out var sc))
                 {
-                    sceneSetupList.Add(sc.InternalConfigure());
+                    sceneSetupList.Add(sc.InternalConfigure().Preserve());
                     scenes++;
                 }
                 for (int i = 0; i < scenes; i++)
@@ -513,7 +513,6 @@ public class Game : SDLApplication<Game>
                 var prev = currentScene!;
 
                 await prev.End(nextScene).ConfigureAwait(false);
-
                 await nextScene.Begin().ConfigureAwait(false);
 
                 currentScene = nextScene;
