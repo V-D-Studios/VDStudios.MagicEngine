@@ -2,11 +2,11 @@
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
 
 namespace VDStudios.MagicEngine.Demo.Scenes;
+
 public sealed class DemoScene : Scene
 {
     public DemoScene()
     {
-        
     }
 
     protected override async ValueTask ConfigureScene()
