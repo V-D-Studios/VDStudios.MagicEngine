@@ -67,7 +67,7 @@ public class Watch : GUIElement
     /// <param name="title">The title of the window</param>
     /// <param name="viewers">The viewers for this watch</param>
     /// <param name="viewLoggers">The view loggers for this watch</param>
-    public Watch(string title = "Watch", List<Viewer>? viewers = null, List<ViewLogger>? viewLoggers = null)
+    public Watch(string title = "Watch", List<Viewer>? viewers = null, List<(string title, ViewLogger logger)>? viewLoggers = null)
     {
         Title = title;
         Viewers = viewers ?? new();
@@ -82,7 +82,7 @@ public class Watch : GUIElement
     /// <summary>
     /// The list of data loggers
     /// </summary>
-    public List<ViewLogger> ViewLoggers { get; }
+    public List<(string title, ViewLogger logger)> ViewLoggers { get; }
 
     private readonly Queue<int> ViewerRemovals = new();
     private readonly Queue<int> LoggerRemovals = new();
@@ -102,12 +102,15 @@ public class Watch : GUIElement
             ImGui.Text(dat);
         }
 
-        if (ViewLoggers.Count > 0 && ImGui.Button("Log data"))
+        if(ViewLoggers.Count > 0)
         {
             var loggers = CollectionsMarshal.AsSpan(ViewLoggers);
             for (int i = 0; i < loggers.Length; i++)
-                if (!loggers[i].Invoke())
+            {
+                var (t, l) = loggers[i];
+                if (ImGui.Button(t) && !l.Invoke())
                     LoggerRemovals.Enqueue(i);
+            }
         }
 
         while (ViewerRemovals.Count > 0)
