@@ -69,9 +69,13 @@ public class Game : SDLApplication<Game>
             if (_uft == value)
                 return;
             _uft = UpdateFrameThrottleChanging(_uft, value) ?? value;
+            _warningTicks = value.Ticks / 2;
         }
     }
-    private TimeSpan _uft = TimeSpan.FromMilliseconds(5);
+    private TimeSpan _uft;
+    private long _warningTicks; // These amount of average elapsed ticks that would issue a warning
+    private long _lastWarningTicks;
+    private int _consecutiveWarnings;
 
     /// <summary>
     /// Gets the total amount of time that has elapsed from the time SDL2 was initialized
@@ -522,14 +526,31 @@ public class Game : SDLApplication<Game>
 
             scene = CurrentScene;
 
-            if (frameCount % 100 == 0)
+            if (frameCount++ % 100 == 0)
                 foreach (var manager in ActiveGraphicsManagers)
                     await manager.AwaitIfFaulted();
+#if FEATURE_INTERNAL_LOGGING
+            if (frameCount % 16 == 0)
+            {
+                if ((_lastWarningTicks = _mspup.Average) <= _warningTicks)
+                    switch (_consecutiveWarnings++)
+                    {
+                        case 2:
+                            Log.Debug("Average Updates per second has been lagging behind the target of {targetTicks} ticks per frame for more than 32 frames. Last 16 frames' average ticks: {lastTicks}", _uft.Ticks, _lastWarningTicks);
+                            break;
+                        default:
+                            if (_consecutiveWarnings % 10 == 0)
+                                Log.Warning("Average Updates per second has been lagging behind the target of {targetTicks} ticks per frame for more than 160 frames. Last 16 frames' average ticks: {lastTicks}", _uft.Ticks, _lastWarningTicks);
+                            break;
+                    }
+                else if (_consecutiveWarnings is 1)
+                    Log.Information("Average Updates per second briefly dropped to {lastTicks} ticks per frame; lagging behind the target of {targetTicks} ticks per frame", _lastWarningTicks, _uft.Ticks);
+            }
+#endif
 
             await scene.Update(delta).ConfigureAwait(false);
             await scene.RegisterDrawOperations();
 
-            frameCount++;
             {
                 var c = (UpdateFrameThrottle - sw.Elapsed).TotalMilliseconds;
                 remaining = c > 0.1 ? (uint)c : 0;
