@@ -75,7 +75,7 @@ public class Game : SDLApplication<Game>
         }
     }
     private TimeSpan _uft;
-    private long _warningTicks; // These amount of average elapsed ticks that would issue a warning
+    private long _warningTicks; // This is the amount of average elapsed ticks that would issue a warning
     private long _lastWarningTicks;
     private int _consecutiveWarnings;
 
