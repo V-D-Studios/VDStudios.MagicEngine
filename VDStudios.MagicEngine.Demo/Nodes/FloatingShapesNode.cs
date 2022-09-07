@@ -80,7 +80,7 @@ public class FloatingShapesNode : Node, IDrawableNode
 
         segment = new(new(.2f, .3f), new(-.4f, -.1f), 10f);
 
-        var watch = new Watch(viewLoggers: new() { () => { segment.ForceUpdate(); return true; } });
+        var watch = new Watch(viewLoggers: new() { ("Force segment update", () => { segment.ForceUpdate(); return true; }) });
         Game.MainGraphicsManager.AddElement(watch);
 
         // Apparently, oddly numbered polygons have their last vertex skipped?
