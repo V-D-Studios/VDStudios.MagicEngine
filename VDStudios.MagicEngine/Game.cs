@@ -536,15 +536,27 @@ public class Game : SDLApplication<Game>
                     switch (_consecutiveWarnings++)
                     {
                         case 2:
-                            Log.Debug("Average Updates per second has been lagging behind the target of {targetTicks} ticks per frame for more than 32 frames. Last 16 frames' average ticks: {lastTicks}", _uft.Ticks, _lastWarningTicks);
+                            InternalLogger.Debug(
+                                "Average Updates per second has been lagging behind the target of {targetTicks} ticks per frame for more than 32 frames. Last 16 frames' average ticks: {lastTicks}", 
+                                _uft.Ticks, 
+                                _lastWarningTicks
+                            );
                             break;
                         default:
                             if (_consecutiveWarnings % 10 == 0)
-                                Log.Warning("Average Updates per second has been lagging behind the target of {targetTicks} ticks per frame for more than 160 frames. Last 16 frames' average ticks: {lastTicks}", _uft.Ticks, _lastWarningTicks);
+                                InternalLogger.Warning(
+                                    "Average Updates per second has been lagging behind the target of {targetTicks} ticks per frame for more than 160 frames. Last 16 frames' average ticks: {lastTicks}", 
+                                    _uft.Ticks, 
+                                    _lastWarningTicks
+                                );
                             break;
                     }
                 else if (_consecutiveWarnings is 1)
-                    Log.Information("Average Updates per second briefly dropped to {lastTicks} ticks per frame; lagging behind the target of {targetTicks} ticks per frame", _lastWarningTicks, _uft.Ticks);
+                    InternalLogger.Information(
+                        "Average Updates per second briefly dropped to {lastTicks} ticks per frame; lagging behind the target of {targetTicks} ticks per frame", 
+                        _lastWarningTicks, 
+                        _uft.Ticks
+                    );
             }
 #endif
 
