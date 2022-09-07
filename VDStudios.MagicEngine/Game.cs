@@ -48,10 +48,12 @@ public class Game : SDLApplication<Game>
         Logger = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
 #if FEATURE_INTERNAL_LOGGING
         InternalLogger = ConfigureInternalLogger(new LoggerConfiguration()).CreateLogger();
+        InternalLog = new GameLogger(InternalLogger, "Game", "Global", "Game Object", GetType());
 #endif
         Log = new GameLogger(Logger, "Game", "Global", "Game Object", GetType());
         ActiveGraphicsManagers = new();
         VideoThread = new(VideoRun);
+        UpdateFrameThrottle = TimeSpan.FromMilliseconds(5);
     }
 
     #endregion
@@ -69,7 +71,7 @@ public class Game : SDLApplication<Game>
             if (_uft == value)
                 return;
             _uft = UpdateFrameThrottleChanging(_uft, value) ?? value;
-            _warningTicks = value.Ticks / 2;
+            _warningTicks = (value * 1.5).Ticks;
         }
     }
     private TimeSpan _uft;
@@ -119,9 +121,10 @@ public class Game : SDLApplication<Game>
     /// </summary>
     public ILogger Log { get; }
 
-    internal ILogger Logger { get; }
+    internal readonly ILogger Logger;
 #if FEATURE_INTERNAL_LOGGING
-    internal ILogger InternalLogger { get; }
+    internal readonly ILogger InternalLogger;
+    internal ILogger InternalLog { get; }
 #endif
 
     /// <summary>
@@ -532,31 +535,48 @@ public class Game : SDLApplication<Game>
 #if FEATURE_INTERNAL_LOGGING
             if (frameCount % 16 == 0)
             {
-                if ((_lastWarningTicks = _mspup.Average) <= _warningTicks)
+                if (_mspup.Average > _warningTicks)
+                {
+                    _lastWarningTicks = _mspup.Average;
                     switch (_consecutiveWarnings++)
                     {
-                        case 2:
-                            InternalLogger.Debug(
-                                "Average Updates per second has been lagging behind the target of {targetTicks} ticks per frame for more than 32 frames. Last 16 frames' average ticks: {lastTicks}", 
-                                _uft.Ticks, 
-                                _lastWarningTicks
+                        case 10:
+                            InternalLog.Debug(
+                                "Average Updates per second has been lagging behind the target of {targetMs} milliseconds per frame for more than 32 frames. Last 16 frames' average milliseconds: {lastMs}",
+                                _uft.TotalMilliseconds,
+                                TimeSpan.FromTicks(_lastWarningTicks).TotalMilliseconds
                             );
                             break;
                         default:
-                            if (_consecutiveWarnings % 10 == 0)
-                                InternalLogger.Warning(
-                                    "Average Updates per second has been lagging behind the target of {targetTicks} ticks per frame for more than 160 frames. Last 16 frames' average ticks: {lastTicks}", 
-                                    _uft.Ticks, 
-                                    _lastWarningTicks
+                            if (_consecutiveWarnings % 30 == 0)
+                                InternalLog.Warning(
+                                    "Average Updates per second has been lagging behind the target of {targetMs} milliseconds per frame for more than 480 frames. Last 16 frames' average milliseconds: {lastMs}",
+                                    _uft.TotalMilliseconds,
+                                    TimeSpan.FromTicks(_lastWarningTicks).TotalMilliseconds
                                 );
                             break;
                     }
-                else if (_consecutiveWarnings is 1)
-                    InternalLogger.Information(
-                        "Average Updates per second briefly dropped to {lastTicks} ticks per frame; lagging behind the target of {targetTicks} ticks per frame", 
-                        _lastWarningTicks, 
-                        _uft.Ticks
+                }
+                else if (_consecutiveWarnings > 1)
+                {
+                    InternalLog.Information(
+                        "Average Updates per second dropped to about {lastMs} milliseconds per frame for several dozen frames; lagging behind the target of {targetMs} milliseconds per frame",
+                        TimeSpan.FromTicks(_lastWarningTicks).TotalMilliseconds,
+                        _uft.TotalMilliseconds
                     );
+                    _consecutiveWarnings = 0;
+                }
+                else if (_consecutiveWarnings is 1)
+                {
+                    InternalLog.Information(
+                        "Average Updates per second briefly dropped to {lastMs} milliseconds per frame; lagging behind the target of {targetMs} milliseconds per frame",
+                        TimeSpan.FromTicks(_lastWarningTicks).TotalMilliseconds,
+                        _uft.TotalMilliseconds
+                    );
+                    _consecutiveWarnings = 0;
+                }
+                else
+                    _consecutiveWarnings = 0;
             }
 #endif
 
