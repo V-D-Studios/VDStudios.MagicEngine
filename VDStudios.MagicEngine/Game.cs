@@ -26,7 +26,7 @@ public class Game : SDLApplication<Game>
     private IGameLifetime? lifetime;
     private bool isStarted;
     private readonly bool isSDLStarted;
-    internal ConcurrentQueue<Scene> scenesAwaitingSetup = new();
+    internal PriorityQueue<Scene, int> scenesAwaitingSetup = new();
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingSetup = new();
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingDestruction = new();
 
@@ -494,7 +494,7 @@ public class Game : SDLApplication<Game>
         ulong frameCount = 0;
         Scene scene;
 
-        var sceneSetupList = new List<ValueTask>(10);
+        var sceneSetupList = new ValueTask[10];
 
         Log.Information("Entering Main Update Loop");
         while (lifetime.ShouldRun)
@@ -502,17 +502,20 @@ public class Game : SDLApplication<Game>
             if (VideoThreadFault is VideoThreadException vtfault)
                 throw vtfault;
 
-            if (!scenesAwaitingSetup.IsEmpty)
+            if (scenesAwaitingSetup.Count > 0)
             {
                 int scenes = 0;
-                while (scenesAwaitingSetup.TryDequeue(out var sc))
+                lock (scenesAwaitingSetup)
                 {
-                    sceneSetupList.Add(sc.InternalConfigure().Preserve());
-                    scenes++;
+                    if (scenesAwaitingSetup.Count > sceneSetupList.Length)
+                        Array.Resize(ref sceneSetupList, int.Max(scenesAwaitingSetup.Count, sceneSetupList.Length * 2));
+
+                    while (scenesAwaitingSetup.TryDequeue(out var sc, out var pr) && scenes < sceneSetupList.Length) 
+                        sceneSetupList[scenes++] = sc.InternalConfigure().Preserve();
                 }
                 for (int i = 0; i < scenes; i++)
                     await sceneSetupList[i].ConfigureAwait(false);
-                sceneSetupList.Clear();
+                Array.Clear(sceneSetupList);
             }
 
             if (nextScene is not null)
