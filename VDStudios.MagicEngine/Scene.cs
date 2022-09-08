@@ -21,8 +21,16 @@ public abstract class Scene : NodeBase
         Game.SetupScenes += OnGameSetupScenes;
         Game.StopScenes += OnGameStopScenes;
         lock (Game.scenesAwaitingSetup)
-            Game.scenesAwaitingSetup.Enqueue(this, 0);
+            Game.scenesAwaitingSetup.Enqueue(this, (int)QueryConfigurationAsynchronousTendency());
     }
+
+    /// <summary>
+    /// Queries this scene for <see cref="ConfigureScene"/>'s tendency to be asynchronous.
+    /// </summary>
+    /// <remarks>
+    /// This method is called exactly once INSIDE THE CONSTRUCTOR OF <see cref="Scene"/>, which is called BEFORE your derived type's constructor. Handle with care; best used by returning a single constant value
+    /// </remarks>
+    protected virtual AsynchronousTendency QueryConfigurationAsynchronousTendency() => AsynchronousTendency.SometimesAsynchronous;
 
     #endregion
 

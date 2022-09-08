@@ -23,10 +23,17 @@ public class Game : SDLApplication<Game>
     
     internal readonly record struct WindowActionCache(Window Window, WindowAction Action);
 
+    private class DescendingIntComparer : IComparer<int>
+    {
+        private DescendingIntComparer() { }
+        public int Compare(int x, int y) => x.CompareTo(y);
+        public static DescendingIntComparer Comparer { get; } = new();
+    }
+
     private IGameLifetime? lifetime;
     private bool isStarted;
     private readonly bool isSDLStarted;
-    internal PriorityQueue<Scene, int> scenesAwaitingSetup = new();
+    internal PriorityQueue<Scene, int> scenesAwaitingSetup = new(5, DescendingIntComparer.Comparer);
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingSetup = new();
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingDestruction = new();
 
