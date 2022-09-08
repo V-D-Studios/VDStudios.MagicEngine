@@ -51,12 +51,6 @@ public class GradientColorShow : DrawOperation
             "main"
         ));
 
-        _computeResourceSet = factory.CreateResourceSet(new ResourceSetDescription(
-            _computeLayout,
-            _computeTargetTextureView,
-            Manager!.WindowTransformBuffer,
-            _shiftBuffer));
-
         _computeLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Tex", ResourceKind.TextureReadWrite, ShaderStages.Compute),
             new ResourceLayoutElementDescription("ScreenSizeBuffer", ResourceKind.UniformBuffer, ShaderStages.Compute),
@@ -91,11 +85,34 @@ public class GradientColorShow : DrawOperation
             },
             shaders);
 
+        _computeTargetTexture = factory.CreateTexture(TextureDescription.Texture2D(
+            _computeTexSize,
+            _computeTexSize,
+            1,
+            1,
+            PixelFormat.R32_G32_B32_A32_Float,
+            TextureUsage.Sampled | TextureUsage.Storage));
+
+        _computeTargetTextureView = factory.CreateTextureView(_computeTargetTexture);
+
+        _computeResourceSet = factory.CreateResourceSet(new ResourceSetDescription(
+            _computeLayout,
+            _computeTargetTextureView,
+            Manager!.WindowTransformBuffer,
+            _shiftBuffer));
+
         _graphicsLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Tex", ResourceKind.TextureReadOnly, ShaderStages.Fragment),
             new ResourceLayoutElementDescription("Tex11", ResourceKind.TextureReadOnly, ShaderStages.Fragment),
             new ResourceLayoutElementDescription("Tex22", ResourceKind.TextureReadOnly, ShaderStages.Fragment),
             new ResourceLayoutElementDescription("SS", ResourceKind.Sampler, ShaderStages.Fragment)));
+
+        _graphicsResourceSet = factory.CreateResourceSet(new ResourceSetDescription(
+            _graphicsLayout,
+            _computeTargetTextureView,
+            _computeTargetTextureView,
+            _computeTargetTextureView,
+            device.PointSampler));
 
         GraphicsPipelineDescription fullScreenQuadDesc = new GraphicsPipelineDescription(
             BlendStateDescription.SingleOverrideBlend,

@@ -594,10 +594,12 @@ public class GraphicsManager : GameObject, IDisposable
             ImGuiController.WindowResized(ww, wh);
 
             WindowSize = newSize;
-            WindowTransform = new WindowTransformation()
+            WindowTransformation wintrans;
+            WindowTransform = wintrans = new WindowTransformation()
             {
                 WindowScale = Matrix4x4.CreateScale(wh / (float)ww, 1, 1)
             };
+            Device!.UpdateBuffer(WindowTransformBuffer, 0, ref wintrans);
         }
         finally
         {
