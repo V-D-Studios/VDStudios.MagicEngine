@@ -205,7 +205,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
             await CreateResourceSets(device, resb, factory);
             resb.Build(out var sets, out var layouts, factory);
             await CreateResources(device, factory, sets, layouts);
-            await InternalCreateWindowSizedResources(manager.ScreenSizeBuffer!);
         }
         finally
         {
@@ -213,19 +212,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         }
 
         Registered();
-    }
-
-    internal async ValueTask InternalCreateWindowSizedResources(DeviceBuffer screenSizeBuffer)
-    {
-        sync.Wait();
-        try
-        {
-            await CreateWindowSizedResources(Device!, Device!.ResourceFactory, screenSizeBuffer);
-        }
-        finally
-        {
-            sync.Release();
-        }
     }
 
     #endregion
@@ -255,10 +241,10 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     private bool pendingGpuUpdate = true;
 
     /// <summary>
-    /// Flags this <see cref="DrawOperation"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> call
+    /// Flags this <see cref="DrawOperation"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer)"/> call
     /// </summary>
     /// <remarks>
-    /// Multiple calls to this method will not result in <see cref="UpdateGPUState(GraphicsDevice, CommandList, DeviceBuffer)"/> being called multiple times
+    /// Multiple calls to this method will not result in <see cref="UpdateGPUState(GraphicsDevice, CommandList)"/> being called multiple times
     /// </remarks>
     protected void NotifyPendingGPUUpdate() => pendingGpuUpdate = true;
 
@@ -269,14 +255,13 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         try
         {
             var device = Device!;
-            var ssb = Manager!.ScreenSizeBuffer!;
 
             if (pendingGpuUpdate)
             {
                 pendingGpuUpdate = false;
-                await UpdateGPUState(device, cl, ssb);
+                await UpdateGPUState(device, cl);
             }
-            await Draw(delta, cl, device, device.SwapchainFramebuffer, ssb).ConfigureAwait(false);
+            await Draw(delta, cl, device, device.SwapchainFramebuffer).ConfigureAwait(false);
         }
         finally
         {
@@ -295,14 +280,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     ///// Defaults to <c>true</c>
     ///// </remarks>
     //protected internal bool ReplaceWindowSizeResourcesInmediately { get; init; } = true;
-
-    /// <summary>
-    /// Creates the necessary resources for this <see cref="DrawOperation"/> that are buffer (Window) size dependant
-    /// </summary>
-    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
-    /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
-    /// <param name="screenSizeBuffer">A <see cref="DeviceBuffer"/> filled with a <see cref="Vector4"/> containing <see cref="GraphicsManager.Window"/>'s size in the form of <c>Vector4(x: Width, y: Height, 0, 0)</c></param>
-    protected abstract ValueTask CreateWindowSizedResources(GraphicsDevice device, ResourceFactory factory, DeviceBuffer screenSizeBuffer);
 
     /// <summary>
     /// Creates the necessary resource sets for this <see cref="DrawOperation"/>
@@ -345,19 +322,17 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     /// <param name="commandList">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
     /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
-    /// <param name="screenSizeBuffer">A <see cref="DeviceBuffer"/> filled with a <see cref="Vector4"/> containing <see cref="GraphicsManager.Window"/>'s size in the form of <c>Vector4(x: Width, y: Height, 0, 0)</c></param>
-    protected abstract ValueTask Draw(TimeSpan delta, CommandList commandList, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer);
+    protected abstract ValueTask Draw(TimeSpan delta, CommandList commandList, GraphicsDevice device, Framebuffer mainBuffer);
 
     /// <summary>
-    /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/>
+    /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer)"/>
     /// </summary>
     /// <remarks>
     /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock!
     /// </remarks>
     /// <param name="commandList">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
-    /// <param name="screenSizeBuffer">A <see cref="DeviceBuffer"/> filled with a <see cref="Vector4"/> containing <see cref="GraphicsManager.Window"/>'s size in the form of <c>Vector4(x: Width, y: Height, 0, 0)</c></param>
-    protected virtual ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList, DeviceBuffer screenSizeBuffer)
+    protected virtual ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList)
     {
         UpdateTransformationBuffer(commandList);
         return ValueTask.CompletedTask;
@@ -374,7 +349,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// </summary>
     /// <exception cref="ObjectDisposedException"></exception>
     /// <remarks>
-    /// Calling this method from <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
+    /// Calling this method from <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
     /// </remarks>
     protected void ThrowIfDisposed()
     {
@@ -442,7 +417,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// Disposes of this <see cref="DrawOperation"/>'s resources
     /// </summary>
     /// <remarks>
-    /// Calling this method from <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
+    /// Calling this method from <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
     /// </remarks>
     public void Dispose()
     {

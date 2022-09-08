@@ -88,7 +88,11 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     public ResourceLayout DrawTransformationLayout { get; private set; }
 
-    private DeviceBuffer WindowTransformBuffer;
+    /// <summary>
+    /// Represents the buffer that will hold the information for window transformation
+    /// </summary>
+    public DeviceBuffer WindowTransformBuffer { get; private set; }
+
     private BindableResource[] ManagerResourceBindings;
 
     private static ResourceLayout? ManagerResourceLayout;
@@ -575,8 +579,6 @@ public class GraphicsManager : GameObject, IDisposable
     private readonly SemaphoreSlim GUILock = new(1, 1);
 
     internal Vector4 LastReportedWinSize = default;
-    internal DeviceBuffer? ScreenSizeBuffer;
-    private bool SizeChanged = false;
 
     private void Window_SizeChanged(Window window, TimeSpan timestamp, Size newSize)
     {
@@ -596,11 +598,6 @@ public class GraphicsManager : GameObject, IDisposable
             {
                 WindowScale = Matrix4x4.CreateScale(wh / (float)ww, 1, 1)
             };
-            Vector4 size;
-            LastReportedWinSize = size = new(ww, wh, 0, 0);
-            SizeChanged = true;
-
-            Device!.UpdateBuffer(ScreenSizeBuffer, 0, size);
         }
         finally
         {
@@ -708,30 +705,11 @@ public class GraphicsManager : GameObject, IDisposable
                     {
                         var ops = RegisteredOperations;
 
-                        if (SizeChanged) // Handle Window Size Changes, this could potentially be refactored. Jump to the 'else' block
-                        {
-                            SizeChanged = false;
-                            managercl.Begin();
-                            UpdateWindowTransformationBuffer(managercl);
-                            managercl.End();
-                            Device.SubmitCommands(managercl);
-                            foreach (var kv in ops)
-                                if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
-                                {
-                                    await op.InternalCreateWindowSizedResources(ScreenSizeBuffer);
-                                    op.Owner.AddToDrawQueue(drawqueue, op);
-                                }
-                                else
-                                    removalQueue.Enqueue(kv.Key);
-                        }
-                        else
-                        {
-                            foreach (var kv in ops) // Iterate through all registered operations
-                                if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)  // Filter out those that have been disposed or collected
-                                    op.Owner.AddToDrawQueue(drawqueue, op); // And query them
-                                else
-                                    removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
-                        }
+                        foreach (var kv in ops) // Iterate through all registered operations
+                            if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)  // Filter out those that have been disposed or collected
+                                op.Owner.AddToDrawQueue(drawqueue, op); // And query them
+                            else
+                                removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
 
                         while (removalQueue.Count > 0)
                             ops.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
@@ -895,7 +873,6 @@ public class GraphicsManager : GameObject, IDisposable
 
         var (ww, wh) = window.Size;
         ImGuiController = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
-        ScreenSizeBuffer = factory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
 
         var bufferDesc = new BufferDescription(DataStructuring.FitToUniformBuffer<WindowTransformation, uint>(), BufferUsage.UniformBuffer);
         var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));

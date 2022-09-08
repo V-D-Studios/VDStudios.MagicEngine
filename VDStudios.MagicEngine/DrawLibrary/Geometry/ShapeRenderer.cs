@@ -60,7 +60,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     private IShapeRendererVertexGenerator<TVertex> _gen;
 
     /// <summary>
-    /// Be careful when modifying this -- And know that most changes won't have any effect after <see cref="CreateResources(GraphicsDevice, ResourceFactory)"/> is called
+    /// Be careful when modifying this -- And know that most changes won't have any effect after <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[]?, ResourceLayout[]?)"/> is called
     /// </summary>
     protected ShapeRendererDescription ShapeRendererDescription;
     private ResourceSet[] ResourceSets;
@@ -241,12 +241,6 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
     #endregion
 
-    /// <inheritdoc/>
-    protected override ValueTask CreateWindowSizedResources(GraphicsDevice device, ResourceFactory factory, DeviceBuffer screenSizeBuffer)
-    {
-        return ValueTask.CompletedTask;
-    }
-
     private ShaderDescription vertexDefault = new(ShaderStages.Vertex, BuiltInResources.DefaultPolygonVertexShader.GetUTF8Bytes(), "main");
     private ShaderDescription fragmnDefault = new(ShaderStages.Fragment, BuiltInResources.DefaultPolygonFragmentShader.GetUTF8Bytes(), "main");
     private static readonly VertexLayoutDescription DefaultVector2Layout 
@@ -311,11 +305,10 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     /// <param name="cl">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
     /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
-    /// <param name="screenSizeBuffer">A <see cref="DeviceBuffer"/> filled with a <see cref="Vector4"/> containing <see cref="GraphicsManager.Window"/>'s size in the form of <c>Vector4(x: Width, y: Height, 0, 0)</c></param>
-    protected virtual void DrawShape(TimeSpan delta, ShapeDat shape, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
+    protected virtual void DrawShape(TimeSpan delta, ShapeDat shape, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer)
     {
         cl.SetVertexBuffer(0, shape.VertexBuffer);
-        cl.SetIndexBuffer(shape.IndexBuffer, IndexFormat.UInt16);
+        cl.SetIndexBuffer(shape.IndexBuffer!, IndexFormat.UInt16);
         cl.SetPipeline(Pipeline);
         for (uint index = 0; index < ResourceSets.Length; index++)
             cl.SetGraphicsResourceSet(index, ResourceSets[index]);
@@ -323,12 +316,12 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     }
 
     /// <inheritdoc/>
-    protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
+    protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer)
     {
         QueryForChange();
         cl.SetFramebuffer(mainBuffer);
         foreach (var pd in ShapeBufferList)
-            DrawShape(delta, pd, cl, device, mainBuffer, screenSizeBuffer);
+            DrawShape(delta, pd, cl, device, mainBuffer);
 
         return ValueTask.CompletedTask;
     }
@@ -430,14 +423,14 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     }
 
     /// <inheritdoc/>
-    protected override async ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList, DeviceBuffer screenSizeBuffer)
+    protected override async ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList)
     {
-        var t = base.UpdateGPUState(device, commandList, screenSizeBuffer);
-        UpdateShapes(device, commandList, screenSizeBuffer);
+        var t = base.UpdateGPUState(device, commandList);
+        UpdateShapes(device, commandList);
         await t;
     }
 
-    private void UpdateShapes(GraphicsDevice device, CommandList commandList, DeviceBuffer screenSizeBuffer)
+    private void UpdateShapes(GraphicsDevice device, CommandList commandList)
     {
         lock (_shapes)
         {

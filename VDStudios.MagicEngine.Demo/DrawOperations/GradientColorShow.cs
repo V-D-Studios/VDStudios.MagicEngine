@@ -39,41 +39,6 @@ public class GradientColorShow : DrawOperation
     #endregion
 
     /// <inheritdoc/>
-    protected override ValueTask CreateWindowSizedResources(GraphicsDevice device, ResourceFactory factory, DeviceBuffer screenSizeBuffer)
-    {
-        _computeTargetTexture?.Dispose();
-        _computeTargetTextureView?.Dispose();
-        _computeResourceSet?.Dispose();
-        _graphicsResourceSet?.Dispose();
-
-        _computeTargetTexture = factory.CreateTexture(TextureDescription.Texture2D(
-            _computeTexSize,
-            _computeTexSize,
-            1,
-            1,
-            PixelFormat.R32_G32_B32_A32_Float,
-            TextureUsage.Sampled | TextureUsage.Storage));
-
-        _computeTargetTextureView = factory.CreateTextureView(_computeTargetTexture);
-
-        _computeResourceSet = factory.CreateResourceSet(new ResourceSetDescription(
-            _computeLayout,
-            _computeTargetTextureView,
-            screenSizeBuffer,
-            _shiftBuffer));
-
-        _graphicsResourceSet = factory.CreateResourceSet(new ResourceSetDescription(
-            _graphicsLayout,
-            _computeTargetTextureView,
-            _computeTargetTextureView,
-            _computeTargetTextureView,
-            device.PointSampler));
-
-        WinSize = Manager!.WindowSize;
-        return ValueTask.CompletedTask;
-    }
-
-    /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? sets, ResourceLayout[]? layouts)
     {
         _shiftBuffer = factory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
@@ -85,6 +50,12 @@ public class GradientColorShow : DrawOperation
             Compute.GetUTF8Bytes(),
             "main"
         ));
+
+        _computeResourceSet = factory.CreateResourceSet(new ResourceSetDescription(
+            _computeLayout,
+            _computeTargetTextureView,
+            Manager!.WindowTransformBuffer,
+            _shiftBuffer));
 
         _computeLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Tex", ResourceKind.TextureReadWrite, ShaderStages.Compute),
@@ -145,7 +116,7 @@ public class GradientColorShow : DrawOperation
     private Size WinSize;
 
     /// <inheritdoc/>
-    protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer)
+    protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer)
     {
         _ticks += (float)delta.TotalMilliseconds;
         Vector4 shifts = new(
@@ -173,10 +144,8 @@ public class GradientColorShow : DrawOperation
     }
 
     /// <inheritdoc/>
-    protected override ValueTask UpdateGPUState(GraphicsDevice device, CommandList cl, DeviceBuffer screenSizeBuffer)
+    protected override ValueTask UpdateGPUState(GraphicsDevice device, CommandList cl)
     {
-        cl.UpdateBuffer(screenSizeBuffer, 0, new Vector4(_computeTexSize, _computeTexSize, 0, 0));
-
         Span<Vector4> quadVerts = stackalloc Vector4[]
         {
             new Vector4(-1, 1, 0, 0),
@@ -195,11 +164,9 @@ public class GradientColorShow : DrawOperation
 
     private const string Compute = @"#version 450
 
-layout(set = 0, binding = 1) uniform ScreenSizeBuffer
+layout(set = 0, binding = 1) uniform WindowTransform
 {
-    float ScreenWidth;
-    float ScreenHeight;
-    vec2 Padding_;
+    mat4 WinTrans;
 };
 
 layout(set = 0, binding = 2) uniform ShiftBuffer
@@ -219,7 +186,7 @@ void main()
     float x = (gl_GlobalInvocationID.x + RShift);
     float y = (gl_GlobalInvocationID.y + GShift);
 
-    imageStore(Tex, ivec2(gl_GlobalInvocationID.xy), vec4(x / ScreenWidth, y / ScreenHeight, BShift, 1));
+    imageStore(Tex, ivec2(gl_GlobalInvocationID.xy), WinTrans * vec4(x, y, BShift, 1));
 }";
 
     private const string Vertex = @"#version 450
