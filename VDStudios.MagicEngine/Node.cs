@@ -18,9 +18,6 @@ public abstract class Node : NodeBase
     /// <summary>
     /// Initializes basic properties and fields to give a <see cref="Node"/> its default functionality
     /// </summary>
-    /// <remarks>
-    /// Initializes: <see cref="NodeBase.ServiceProvider"/>, <see cref="NodeBase.Children"/>
-    /// </remarks>
     protected Node() : base("Game Node Tree")
     {
         DrawableSelf = this as IDrawableNode;
@@ -169,7 +166,7 @@ public abstract class Node : NodeBase
 
     private void InternalInstall(FunctionalComponent comp)
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
         comp.ThrowIfDisposed();
         if (!FilterComponent(comp, out var reason))
             throw new FunctionalComponentRejectedException(reason, this, comp);
@@ -268,7 +265,7 @@ public abstract class Node : NodeBase
         get => parent;
         private set
         {
-            ThrowIfDisposed();
+            ObjectDisposedException.ThrowIf(IsDisposed, this);
             if (ReferenceEquals(parent, value))
                 return;
             parent = value;
@@ -310,7 +307,7 @@ public abstract class Node : NodeBase
         get => root;
         set
         {
-            ThrowIfDisposed();
+            ObjectDisposedException.ThrowIf(IsDisposed, this);
             if (ReferenceEquals(root, value))
                 return;
             root = value;
@@ -329,9 +326,10 @@ public abstract class Node : NodeBase
     /// <param name="parent">The <see cref="Scene"/> to attach into</param>
     public async ValueTask AttachTo(Scene parent)
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfAttached();
 
+        InternalLog?.Information("Attaching to Scene {name}-{type}", parent.Name ?? "", parent.GetTypeName());
         if (!parent.FilterChildNode(this, out var reason))
             throw new ChildNodeRejectedException(reason, parent, this);
 
@@ -357,9 +355,10 @@ public abstract class Node : NodeBase
     /// <param name="parent">The parent <see cref="Node"/> to attach this into</param>
     public async ValueTask AttachTo(Node parent)
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfAttached();
 
+        InternalLog?.Information("Attaching to Node {name}-{type}", parent.Name ?? "", parent.GetTypeName());
         if (!parent.FilterChildNode(this, out var reason))
             throw new ChildNodeRejectedException(reason, parent, this);
         
@@ -403,8 +402,10 @@ public abstract class Node : NodeBase
     /// </remarks>
     public async ValueTask Detach()
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfNotAttached();
+        InternalLog?.Information("Detaching from {name}-{type}", Parent!.Name, Parent.GetTypeName());
+
         await Detaching();
         drawer = null;
         updater = null;

@@ -24,8 +24,11 @@ public class GraphicsManager : GameObject, IDisposable
     /// <summary>
     /// Instances and constructs a new <see cref="GraphicsManager"/> objects
     /// </summary>
-    public GraphicsManager() : base("Graphics & Input", "Rendering")
+    public GraphicsManager(int parallelism) : base("Graphics & Input", "Rendering")
     {
+        if (parallelism <= 0)
+            throw new ArgumentOutOfRangeException(nameof(parallelism), parallelism, "The degree of parallelism must be larger than 0");
+
         initLock.Wait();
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
 
@@ -35,6 +38,8 @@ public class GraphicsManager : GameObject, IDisposable
         framelockWaiter = new(FrameLock);
         guilockWaiter = new(GUILock);
         drawlockWaiter = new(DrawLock);
+
+        Parallelism = parallelism;
     }
 
     private readonly SemaphoreSlim initLock = new(1, 1);
@@ -44,6 +49,17 @@ public class GraphicsManager : GameObject, IDisposable
         initLock.Wait();
         initLock.Release();
     }
+
+    #endregion
+
+    #region Parallel Rendering
+
+    /// <summary>
+    /// The maximum degree of parallel rendering to use for this <see cref="GraphicsManager"/>
+    /// </summary>
+    public int Parallelism { get; }
+
+    private CommandListDispatch[] CLDispatchs;
 
     #endregion
 
@@ -67,18 +83,21 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     public WindowTransformation WindowTransform { get; private set; }
 
-    private bool WinSizeChanged = true;
-
     /// <summary>
-    /// Represents the <see cref="ResourceLayout"/> that describes the usage of a <see cref="DrawTransformation"/> buffer in <see cref="DrawParameters.TransformationBuffer"/>
+    /// Represents the <see cref="ResourceLayout"/> that describes the usage of a <see cref="DrawTransformation"/>
     /// </summary>
     public ResourceLayout DrawTransformationLayout { get; private set; }
-#warning Is this necessary? /\
 
-    private DeviceBuffer WindowTransformBuffer;
+    /// <summary>
+    /// Represents the buffer that will hold the information for window transformation
+    /// </summary>
+    public DeviceBuffer WindowTransformBuffer { get; private set; }
+
     private BindableResource[] ManagerResourceBindings;
 
     private static ResourceLayout? ManagerResourceLayout;
+
+    internal ResourceLayout DrawOpTransLayout { get; private set; }
 
     /// <summary>
     /// Gets or instantiates the layout of the resources relevant to this <see cref="GraphicsManager"/>
@@ -529,7 +548,7 @@ public class GraphicsManager : GameObject, IDisposable
     protected virtual void Running() { }
 
     /// <summary>
-    /// Creates the <see cref="CommandList"/> to be set as this <see cref="GraphicsManager"/>'s designated <see cref="CommandList"/>, for use with <see cref="PrepareForDraw(CommandList, Framebuffer)"/>
+    /// Creates a <see cref="CommandList"/> for internal use. This method may be used to create multiple <see cref="CommandList"/>s at discretion
     /// </summary>
     /// <param name="device">The device of the attached <see cref="GraphicsManager"/></param>
     /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
@@ -560,8 +579,6 @@ public class GraphicsManager : GameObject, IDisposable
     private readonly SemaphoreSlim GUILock = new(1, 1);
 
     internal Vector4 LastReportedWinSize = default;
-    internal DeviceBuffer? ScreenSizeBuffer;
-    private bool SizeChanged = false;
 
     private void Window_SizeChanged(Window window, TimeSpan timestamp, Size newSize)
     {
@@ -569,18 +586,20 @@ public class GraphicsManager : GameObject, IDisposable
         try
         {
             var (ww, wh) = newSize;
+            InternalLog?.Information("Window size changed to {{w:{width}, h:{height}}}", newSize.Width, newSize.Height);
+            InternalLog?.Verbose("Resizing MainSwapchain");
             Device.MainSwapchain.Resize((uint)ww, (uint)wh);
+
+            InternalLog?.Verbose("Resizing ImGuiController");
             ImGuiController.WindowResized(ww, wh);
+
             WindowSize = newSize;
-            WindowTransform = new WindowTransformation()
+            WindowTransformation wintrans;
+            WindowTransform = wintrans = new WindowTransformation()
             {
                 WindowScale = Matrix4x4.CreateScale(wh / (float)ww, 1, 1)
             };
-            WinSizeChanged = true;
-            Vector4 size;
-            LastReportedWinSize = size = new(ww, wh, 0, 0);
-            SizeChanged = true;
-            Device!.UpdateBuffer(ScreenSizeBuffer, 0, size);
+            Device!.UpdateBuffer(WindowTransformBuffer, 0, ref wintrans);
         }
         finally
         {
@@ -593,14 +612,19 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     internal void InternalStart()
     {
+        InternalLog?.Information("Starting GraphicsManager");
         Starting();
+
+        InternalLog?.Information("Setting up Window");
         SetupWindow();
         initLock.Release();
+
+        InternalLog?.Information("Running GraphicsManager");
         graphics_thread = Run();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private async ValueTask<bool> WaitOn(SemaphoreSlim semaphore, bool condition, int syncWait = 200, int asyncWait = 500)
+    private static async ValueTask<bool> WaitOn(SemaphoreSlim semaphore, bool condition, int syncWait = 200, int asyncWait = 500)
     {
         if (!semaphore.Wait(syncWait))
         {
@@ -637,16 +661,19 @@ public class GraphicsManager : GameObject, IDisposable
         var removalQueue = new Queue<Guid>(10);
         TimeSpan delta = default;
 
-        DrawParameters = new(new(Matrix4x4.Identity, Matrix4x4.Identity), this);
-
-        var drawBuffer = new ValueTask<CommandList>[10];
+        DrawParameters = new(this);
 
         var gd = Device!;
         
         var managercl = CreateCommandList(gd, gd.ResourceFactory);
 
+        CLDispatchs = new CommandListDispatch[Parallelism];
+        for (int i = 0; i < CLDispatchs.Length; i++)
+            CLDispatchs[i] = new(300 / Parallelism, CreateCommandList(gd, gd.ResourceFactory));
+
         ulong frameCount = 0;
 
+        InternalLog?.Debug("Querying WindowFlags");
         await PerformOnWindowAndWaitAsync(w =>
         {
             var flags = w.Flags;
@@ -656,7 +683,7 @@ public class GraphicsManager : GameObject, IDisposable
 
         var (ww, wh) = WindowSize;
 
-        Log.Information("Entering main rendering loop");
+        InternalLog?.Information("Entering main rendering loop");
         while (IsRunning) // Running Loop
         {
             for (; ; )
@@ -680,30 +707,11 @@ public class GraphicsManager : GameObject, IDisposable
                     {
                         var ops = RegisteredOperations;
 
-                        if (SizeChanged) // Handle Window Size Changes, this could potentially be refactored. Jump to the 'else' block
-                        {
-                            SizeChanged = false;
-                            managercl.Begin();
-                            UpdateWindowTransformationBuffer(managercl);
-                            managercl.End();
-                            Device.SubmitCommands(managercl);
-                            foreach (var kv in ops)
-                                if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)
-                                {
-                                    await op.InternalCreateWindowSizedResources(ScreenSizeBuffer);
-                                    op.Owner.AddToDrawQueue(drawqueue, op);
-                                }
-                                else
-                                    removalQueue.Enqueue(kv.Key);
-                        }
-                        else
-                        {
-                            foreach (var kv in ops) // Iterate through all registered operations
-                                if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)  // Filter out those that have been disposed or collected
-                                    op.Owner.AddToDrawQueue(drawqueue, op); // And query them
-                                else
-                                    removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
-                        }
+                        foreach (var kv in ops) // Iterate through all registered operations
+                            if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)  // Filter out those that have been disposed or collected
+                                op.Owner.AddToDrawQueue(drawqueue, op); // And query them
+                            else
+                                removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
 
                         while (removalQueue.Count > 0)
                             ops.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
@@ -713,17 +721,41 @@ public class GraphicsManager : GameObject, IDisposable
                         managercl.End();
                         gd.SubmitCommands(managercl);
 
-                        using (drawqueue._lock.Lock())
-                        {
-                            if (drawBuffer.Length < drawqueue.Count)
-                                drawBuffer = new ValueTask<CommandList>[Math.Max(drawBuffer.Length * 2, drawqueue.Count)];
-
-                            int i = 0;
-                            while (drawqueue.Count > 0) 
-                                drawBuffer[i++] = drawqueue.Dequeue().InternalDraw(delta); // Run operations in the DrawQueue
-                            while (i > 0)
-                                gd.SubmitCommands(await drawBuffer[--i]);
-                        }
+                        if (drawqueue.Count > 0) 
+                            using (drawqueue._lock.Lock())
+                            {
+                                int dqc = drawqueue.Count;
+                                var perCL = dqc / CLDispatchs.Length;
+                                if(perCL is 0 or 1)
+                                {
+                                    int i = 0;
+                                    for (; i < dqc; i++)
+                                    {
+                                        var cld = CLDispatchs[i];
+                                        cld.Add(drawqueue.Dequeue());
+                                        cld.Start(delta);
+                                    }
+                                    while (i-- > 0) 
+                                        gd.SubmitCommands(CLDispatchs[i].WaitForEnd());
+                                }
+                                else
+                                {
+                                    int i = 0;
+                                    for (; i < CLDispatchs.Length - 1; i++)
+                                    {
+                                        var cld = CLDispatchs[i];
+                                        for (int x = 0; x < perCL; x++)
+                                            cld.Add(drawqueue.Dequeue());
+                                        cld.Start(delta);
+                                    }
+                                    var lcld = CLDispatchs[i++];
+                                    while (drawqueue.Count > 0)
+                                        lcld.Add(drawqueue.Dequeue());
+                                    lcld.Start(delta);
+                                    while (i-- > 0)
+                                        gd.SubmitCommands(CLDispatchs[i].WaitForEnd());
+                                }
+                            }
                     }
                     finally
                     {
@@ -783,7 +815,7 @@ public class GraphicsManager : GameObject, IDisposable
             fak.Push(1000 / (sw.ElapsedMilliseconds + 0.0000001f));
             sw.Restart();
         }
-        Log.Information("Exiting main rendering loop and disposing");
+        InternalLog?.Information("Exiting main rendering loop and disposing");
 
         Dispose();
     }
@@ -843,13 +875,16 @@ public class GraphicsManager : GameObject, IDisposable
 
         var (ww, wh) = window.Size;
         ImGuiController = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
-        ScreenSizeBuffer = factory.CreateBuffer(new BufferDescription(16, BufferUsage.UniformBuffer));
 
-        var bufferDesc = new BufferDescription(DataStructuring.FitToUniformBuffer<WindowTransformation>(), BufferUsage.UniformBuffer);
+        var bufferDesc = new BufferDescription(DataStructuring.FitToUniformBuffer<WindowTransformation, uint>(), BufferUsage.UniformBuffer);
         var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
+        var dotransl = new ResourceLayoutDescription(
+            new ResourceLayoutElementDescription("Transform", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment)
+        );
 
         WindowTransformBuffer = factory.CreateBuffer(ref bufferDesc);
         DrawTransformationLayout = factory.CreateResourceLayout(ref dTransDesc);
+        DrawOpTransLayout = factory.CreateResourceLayout(ref dotransl);
         ManagerResourceBindings = new BindableResource[] { WindowTransformBuffer };
         ManagerResourceSet = factory.CreateResourceSet(new ResourceSetDescription(GetManagerResourceLayout(factory), WindowTransformBuffer));
         ManagerResourceSet.Name = $"{(Name is not null ? "->" : null)}GraphicsManagerResources";

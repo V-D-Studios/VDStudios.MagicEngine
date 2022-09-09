@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using SDL2.NET;
+﻿using SDL2.NET;
 using Serilog;
 using Serilog.Events;
+using Serilog.Sinks.SystemConsole.Themes;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using VDStudios.MagicEngine.Exceptions;
@@ -23,16 +23,19 @@ public class Game : SDLApplication<Game>
     
     internal readonly record struct WindowActionCache(Window Window, WindowAction Action);
 
-    internal IServiceProvider services;
+    private class DescendingIntComparer : IComparer<int>
+    {
+        private DescendingIntComparer() { }
+        public int Compare(int x, int y) => x.CompareTo(y);
+        public static DescendingIntComparer Comparer { get; } = new();
+    }
+
     private IGameLifetime? lifetime;
     private bool isStarted;
     private readonly bool isSDLStarted;
-    internal ConcurrentQueue<Scene> scenesAwaitingSetup = new();
+    internal PriorityQueue<Scene, int> scenesAwaitingSetup = new(5, DescendingIntComparer.Comparer);
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingSetup = new();
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingDestruction = new();
-
-    internal IServiceScope NewScope()
-        => services.CreateScope();
 
     static Game()
     {
@@ -47,19 +50,17 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Instances a new <see cref="Game"/>
     /// </summary>
-    /// <remarks>
-    /// This method calls <see cref="ConfigureServices(IServiceCollection)"/>, <see cref="SetupSDL"/>, <see cref="ConfigureLogger(LoggerConfiguration)"/> and <see cref="CreateServiceCollection"/>
-    /// </remarks>
     public Game()
     {
         Logger = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
-        Log = new GameLogger(Logger, "Game", "Global", GetType());
-        var serv = CreateServiceCollection();
-        ConfigureServices(serv);
-        // Put here any default services
-        services = serv.BuildServiceProvider(true);
+#if FEATURE_INTERNAL_LOGGING
+        InternalLogger = ConfigureInternalLogger(new LoggerConfiguration()).CreateLogger();
+        InternalLog = new GameLogger(InternalLogger, "Game", "Global", "Game Object", GetType());
+#endif
+        Log = new GameLogger(Logger, "Game", "Global", "Game Object", GetType());
         ActiveGraphicsManagers = new();
         VideoThread = new(VideoRun);
+        UpdateFrameThrottle = TimeSpan.FromMilliseconds(5);
     }
 
     #endregion
@@ -77,9 +78,13 @@ public class Game : SDLApplication<Game>
             if (_uft == value)
                 return;
             _uft = UpdateFrameThrottleChanging(_uft, value) ?? value;
+            _warningTicks = (value * 1.5).Ticks;
         }
     }
-    private TimeSpan _uft = TimeSpan.FromMilliseconds(5);
+    private TimeSpan _uft;
+    private long _warningTicks; // This is the amount of average elapsed ticks that would issue a warning
+    private long _lastWarningTicks;
+    private int _consecutiveWarnings;
 
     /// <summary>
     /// Gets the total amount of time that has elapsed from the time SDL2 was initialized
@@ -123,16 +128,20 @@ public class Game : SDLApplication<Game>
     /// </summary>
     public ILogger Log { get; }
 
-    internal ILogger Logger { get; }
+    internal readonly ILogger Logger;
+#if FEATURE_INTERNAL_LOGGING
+    internal readonly ILogger InternalLogger;
+    internal ILogger InternalLog { get; }
+#endif
 
     /// <summary>
     /// Represents the average time per update value calculated while the game is running
     /// </summary>
     /// <remarks>
-    /// This value does not represent the <see cref="Game"/>'s FPS, as that is the amount of frames the game outputs per second. This value is only updated while the game is running, also not during <see cref="Load(Progress{float}, IServiceProvider)"/> or any of the other methods
+    /// This value does not represent the <see cref="Game"/>'s FPS, as that is the amount of frames the game outputs per second. This value is only updated while the game is running, also not during <see cref="Load(Progress{float})"/> or any of the other methods
     /// </remarks>
     public TimeSpan AverageDelta => TimeSpan.FromTicks(_mspup.Average);
-    private readonly LongAverageKeeper _mspup = new(10);
+    private readonly LongAverageKeeper _mspup = new(16);
     
     /// <summary>
     /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame{TScene}"/> is called
@@ -145,19 +154,8 @@ public class Game : SDLApplication<Game>
     public bool IsStarted => isStarted;
 
     /// <summary>
-    /// The current service provider for this <see cref="Game"/>
-    /// </summary>
-    /// <remarks>
-    /// Invalid until <see cref="ConfigureServices(IServiceCollection)"/> is called by <see cref="StartGame{TScene}"/>, invalid again after the game stops
-    /// </remarks>
-    public IServiceProvider Services => isStarted ? services : throw new InvalidOperationException("The game has not been started");
-
-    /// <summary>
     /// The current Scene of the <see cref="Game"/>
     /// </summary>
-    /// <remarks>
-    /// Invalid until <see cref="ConfigureServices(IServiceCollection)"/> is called by <see cref="StartGame{TScene}"/>, invalid again after the game stops
-    /// </remarks>
     public Scene CurrentScene => isStarted ? currentScene! : throw new InvalidOperationException("The game has not been started");
     private Scene? currentScene;
 
@@ -308,22 +306,6 @@ public class Game : SDLApplication<Game>
     protected virtual TimeSpan? UpdateFrameThrottleChanging(TimeSpan prevThrottle, TimeSpan newThrottle) => null;
 
     /// <summary>
-    /// Creates a new <see cref="IServiceCollection"/> object for the Game
-    /// </summary>
-    /// <remarks>
-    /// This method is only called once, right before <see cref="ConfigureServices(IServiceCollection)"/>. No service configuration should be done here, this method available to allow you to replace the default <see cref="IServiceCollection"/>: <see cref="ServiceCollection"/>
-    /// </remarks>
-    /// <returns>The newly instanced <see cref="IServiceCollection"/></returns>
-    protected virtual IServiceCollection CreateServiceCollection() => new ServiceCollection();
-
-    /// <summary>
-    /// Configures the services that are to be used by the <see cref="Game"/>
-    /// </summary>
-    /// <remarks>Use this method only to configure services, if any require further loading, consider forwarding that to <see cref="Load"/>. Services that the engine depends on are not set here by default, but instead are installed by the framework with their default implementations if not present already. You can freely override those services simply by adding them in this method! This method should only called once during the lifetime of the application, don't call it again</remarks>
-    /// <param name="services">The service collection in which to add the services</param>
-    protected virtual void ConfigureServices(IServiceCollection services) { }
-
-    /// <summary>
     /// Loads any data that is required before the actual loading of the game
     /// </summary>
     /// <remarks>
@@ -335,7 +317,7 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Creates and returns the <see cref="GraphicsManager"/> to be used as the <see cref="MainGraphicsManager"/>
     /// </summary>
-    protected virtual GraphicsManager CreateGraphicsManager() => new GraphicsManager();
+    protected virtual GraphicsManager CreateGraphicsManager() => new GraphicsManager(10) { Name = "Main GM" };
 
     /// <summary>
     /// Loads any required data for the <see cref="Game"/>, and report back the progress at any point in the method with <paramref name="progressTracker"/>
@@ -344,8 +326,7 @@ public class Game : SDLApplication<Game>
     /// Don't call this manually, place here code that should run when loading the game. Is called after <see cref="Preload"/>
     /// </remarks>
     /// <param name="progressTracker">An object that keeps track of progress during the <see cref="Load"/>. Subscribe to its event to use. 0 = 0% - 0.5 = 50% - 1 = 100%</param>
-    /// <param name="services">The services for this <see cref="Game"/> scoped for this call alone</param>
-    protected virtual void Load(Progress<float> progressTracker, IServiceProvider services) { }
+    protected virtual void Load(Progress<float> progressTracker) { }
 
     /// <summary>
     /// Configures the lifetime of a game
@@ -379,21 +360,45 @@ public class Game : SDLApplication<Game>
 #if DEBUG
         return config
             .MinimumLevel.Verbose()
-            .WriteTo.Console(LogEventLevel.Debug, GameLogger.Template);
+            .WriteTo.Console(LogEventLevel.Debug, GameLogger.Template, theme: AnsiConsoleTheme.Literate);
 #else
         return config
-            .MinimumLevel.Information();
+            .MinimumLevel.Information()
+            .WriteTo.Console(LogEventLevel.Information, GameLogger.Template, theme: AnsiConsoleTheme.Literate);
 #endif
     }
+
+#if FEATURE_INTERNAL_LOGGING
+    /// <summary>
+    /// Configures and initializes Serilog's log for internal library logging
+    /// </summary>
+    /// <remarks>
+    /// By default, this method should be left alone unless you have a good reason to override it. The engine was built with <c>FEATURE_INTERNAL_LOGGING</c> set.
+    /// </remarks>
+#else
+    /// <summary>
+    /// Configures and initializes Serilog's log for internal library logging
+    /// </summary>
+    /// <remarks>
+    /// By default, this method should be left alone unless you have a good reason to override it. The engine was not built with <c>FEATURE_INTERNAL_LOGGING</c> set and will not call this method during startup.
+    /// </remarks>
+#endif
+    protected virtual LoggerConfiguration ConfigureInternalLogger(LoggerConfiguration config)
+#if DEBUG
+        => config.MinimumLevel.Verbose().WriteTo
+        .Console(LogEventLevel.Debug, GameLogger.Template, theme: AnsiConsoleTheme.Code);
+#else
+        => config.MinimumLevel.Information().WriteTo
+        .Console(LogEventLevel.Information, GameLogger.Template, theme: AnsiConsoleTheme.Code);
+#endif
 
     /// <summary>
     /// Unloads any data that was previously loaded by <see cref="Load"/> when stopping the <see cref="Game"/>
     /// </summary>
-    /// <param name="services">The services for this <see cref="Game"/> scoped for this call alone</param>
     /// <remarks>
     /// Don't call this manually, place here code that should run when unloading the game.
     /// </remarks>
-    protected virtual void Unload(IServiceProvider services) { }
+    protected virtual void Unload() { }
 
     /// <summary>
     /// Executes custom logic when stopping the game
@@ -423,7 +428,7 @@ public class Game : SDLApplication<Game>
 
         GameLoading?.Invoke(this, TotalTime);
 
-        Load(Preload(), Services);
+        Load(Preload());
         
         GameLoaded?.Invoke(this, TotalTime);
 
@@ -470,9 +475,7 @@ public class Game : SDLApplication<Game>
 
         GameUnloading?.Invoke(this, TotalTime);
 
-        IServiceScope unloadScope = services.CreateScope();
-        Unload(unloadScope.ServiceProvider);
-        unloadScope.Dispose();
+        Unload();
 
         GameUnloaded?.Invoke(this, TotalTime);
 
@@ -498,7 +501,7 @@ public class Game : SDLApplication<Game>
         ulong frameCount = 0;
         Scene scene;
 
-        var sceneSetupList = new List<ValueTask>(10);
+        var sceneSetupList = new ValueTask[10];
 
         Log.Information("Entering Main Update Loop");
         while (lifetime.ShouldRun)
@@ -506,17 +509,20 @@ public class Game : SDLApplication<Game>
             if (VideoThreadFault is VideoThreadException vtfault)
                 throw vtfault;
 
-            if (!scenesAwaitingSetup.IsEmpty)
+            if (scenesAwaitingSetup.Count > 0)
             {
                 int scenes = 0;
-                while (scenesAwaitingSetup.TryDequeue(out var sc))
+                lock (scenesAwaitingSetup)
                 {
-                    sceneSetupList.Add(sc.ConfigureScene());
-                    scenes++;
+                    if (scenesAwaitingSetup.Count > sceneSetupList.Length)
+                        Array.Resize(ref sceneSetupList, int.Max(scenesAwaitingSetup.Count, sceneSetupList.Length * 2));
+
+                    while (scenesAwaitingSetup.TryDequeue(out var sc, out var pr) && scenes < sceneSetupList.Length) 
+                        sceneSetupList[scenes++] = sc.InternalConfigure().Preserve();
                 }
                 for (int i = 0; i < scenes; i++)
                     await sceneSetupList[i].ConfigureAwait(false);
-                sceneSetupList.Clear();
+                Array.Clear(sceneSetupList);
             }
 
             if (nextScene is not null)
@@ -524,10 +530,7 @@ public class Game : SDLApplication<Game>
                 var prev = currentScene!;
 
                 await prev.End(nextScene).ConfigureAwait(false);
-
-                var scope = services!.CreateScope();
                 await nextScene.Begin().ConfigureAwait(false);
-                scope.Dispose();
 
                 currentScene = nextScene;
                 nextScene = null;
@@ -536,14 +539,60 @@ public class Game : SDLApplication<Game>
 
             scene = CurrentScene;
 
-            if (frameCount % 100 == 0)
+            if (frameCount++ % 100 == 0)
                 foreach (var manager in ActiveGraphicsManagers)
                     await manager.AwaitIfFaulted();
+#if FEATURE_INTERNAL_LOGGING
+            if (frameCount % 16 == 0)
+            {
+                if (_mspup.Average > _warningTicks)
+                {
+                    _lastWarningTicks = _mspup.Average;
+                    switch (_consecutiveWarnings++)
+                    {
+                        case 10:
+                            InternalLog.Debug(
+                                "Average Updates per second has been lagging behind the target of {targetMs} milliseconds per frame for more than 32 frames. Last 16 frames' average milliseconds: {lastMs}",
+                                _uft.TotalMilliseconds,
+                                TimeSpan.FromTicks(_lastWarningTicks).TotalMilliseconds
+                            );
+                            break;
+                        default:
+                            if (_consecutiveWarnings % 30 == 0)
+                                InternalLog.Warning(
+                                    "Average Updates per second has been lagging behind the target of {targetMs} milliseconds per frame for more than 480 frames. Last 16 frames' average milliseconds: {lastMs}",
+                                    _uft.TotalMilliseconds,
+                                    TimeSpan.FromTicks(_lastWarningTicks).TotalMilliseconds
+                                );
+                            break;
+                    }
+                }
+                else if (_consecutiveWarnings > 1)
+                {
+                    InternalLog.Information(
+                        "Average Updates per second dropped to about {lastMs} milliseconds per frame for several dozen frames; lagging behind the target of {targetMs} milliseconds per frame",
+                        TimeSpan.FromTicks(_lastWarningTicks).TotalMilliseconds,
+                        _uft.TotalMilliseconds
+                    );
+                    _consecutiveWarnings = 0;
+                }
+                else if (_consecutiveWarnings is 1)
+                {
+                    InternalLog.Information(
+                        "Average Updates per second briefly dropped to {lastMs} milliseconds per frame; lagging behind the target of {targetMs} milliseconds per frame",
+                        TimeSpan.FromTicks(_lastWarningTicks).TotalMilliseconds,
+                        _uft.TotalMilliseconds
+                    );
+                    _consecutiveWarnings = 0;
+                }
+                else
+                    _consecutiveWarnings = 0;
+            }
+#endif
 
             await scene.Update(delta).ConfigureAwait(false);
             await scene.RegisterDrawOperations();
 
-            frameCount++;
             {
                 var c = (UpdateFrameThrottle - sw.Elapsed).TotalMilliseconds;
                 remaining = c > 0.1 ? (uint)c : 0;

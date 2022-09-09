@@ -90,12 +90,6 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
 
     #region DrawOperation
 
-    /// <inheritdoc/>
-    protected override ValueTask CreateWindowSizedResources(GraphicsDevice device, ResourceFactory factory, DeviceBuffer screenSizeBuffer)
-    {
-        return ValueTask.CompletedTask;
-    }
-
     private static readonly VertexLayoutDescription DefaultVector2TexPosLayout
         = new(
               new VertexElementDescription("TexturePosition", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),

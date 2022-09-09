@@ -53,7 +53,7 @@ layout(location = 0) out vec4 fragTexCoord;
 
 void main() {
     fragTexCoord = vec4(inTexCoord, 0.0, 1.0);
-    gl_Position = WinTrans * vec4(Position, 0.0, 1.0);
+    gl_Position = WinTrans * opTrans * vec4(Position, 0.0, 1.0);
 }
 
 ",
@@ -61,6 +61,9 @@ void main() {
 @"
 #binding uniform WindowTransform {
     layout(offset = 0) mat4 WinTrans;
+};
+#binding uniform Transform {
+    layout(offset = 0) mat4 opTrans;
 };
 "
             );

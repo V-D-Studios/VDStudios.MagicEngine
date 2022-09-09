@@ -3,7 +3,7 @@
 /// <summary>
 /// Represents a list of <see cref="DrawOperation"/> objects belonging to a <see cref="IDrawableNode"/> and their general behaviour
 /// </summary>
-public class DrawOperationManager
+public class DrawOperationManager : GameObject
 {
     /// <summary>
     /// Instantiates a new object of type <see cref="DrawOperationManager"/>
@@ -11,6 +11,14 @@ public class DrawOperationManager
     /// <param name="owner">The <see cref="IDrawableNode"/> that owns this <see cref="DrawOperationManager"/></param>
     /// <param name="graphicsManagerSelector">The method that this <see cref="DrawOperationManager"/> will use to select an appropriate <see cref="GraphicsManager"/> to register a new <see cref="DrawOperation"/> onto</param>
     public DrawOperationManager(IDrawableNode owner, DrawOperationGraphicsManagerSelector? graphicsManagerSelector = null)
+        : this(owner, graphicsManagerSelector, "Draw Operations") { }
+
+    /// <summary>
+    /// Instantiates a new object of type <see cref="DrawOperationManager"/>
+    /// </summary>
+    /// <param name="owner">The <see cref="IDrawableNode"/> that owns this <see cref="DrawOperationManager"/></param>
+    /// <param name="graphicsManagerSelector">The method that this <see cref="DrawOperationManager"/> will use to select an appropriate <see cref="GraphicsManager"/> to register a new <see cref="DrawOperation"/> onto</param>
+    protected DrawOperationManager(IDrawableNode owner, DrawOperationGraphicsManagerSelector? graphicsManagerSelector, string area) : base("Rendering & Game Scene", area)
     {
         if (owner is not Node)
             throw new InvalidOperationException($"The owner of a DrawOperationManager must be a node");
@@ -53,6 +61,7 @@ public class DrawOperationManager
     public void CascadeThroughNode(DrawParameters parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
+        InternalLog?.Debug("Cascading {typeName} through the owning Node {objName}'s children", nameof(DrawParameters), Owner.Name);
         cascadedParameters = parameters;
         ProcessNewDrawData(parameters);
         foreach (var child in ((Node)Owner).Children)
@@ -124,8 +133,10 @@ public class DrawOperationManager
     /// </remarks>
     internal async Task RegisterDrawOperations(GraphicsManager main, IReadOnlyList<GraphicsManager> allManagers)
     {
+        InternalLog?.Debug("Registering {count} DrawOperations", DrawOperations.RegistrationBuffer.Count);
         foreach (var dop in DrawOperations.RegistrationBuffer)
         {
+            InternalLog?.Verbose("Registering DrawOperation {objName}-{type}", dop.Name ?? "", dop.GetTypeName());
             GraphicsManager manager = GraphicsManagerSelector is DrawOperationGraphicsManagerSelector selector ? selector(main, allManagers, dop, Owner, this) : main;
             await manager.RegisterOperation(dop);
         }
@@ -134,6 +145,7 @@ public class DrawOperationManager
 
     private void InternalAddDrawOperation(DrawOperation operation)
     {
+        InternalLog?.Debug("Adding a new DrawOperation {objName}-{type}", operation.Name ?? "", operation.GetTypeName());
         operation.SetOwner(this);
         try
         {

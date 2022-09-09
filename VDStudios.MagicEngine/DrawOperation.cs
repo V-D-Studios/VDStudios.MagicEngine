@@ -1,4 +1,7 @@
-﻿using System.Numerics;
+﻿using SDL2.Bindings;
+using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Transactions;
 using VDStudios.MagicEngine.DrawLibrary;
 using Veldrid;
 
@@ -14,7 +17,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
 {
     private readonly SemaphoreSlim sync = new(1, 1);
 
-    internal CommandList? Commands;
     internal GraphicsDevice? Device;
 
     private static ResourceLayoutBuilder ResourceLayoutFactory() => ResourceLayoutBuilderPool.Rent();
@@ -29,6 +31,122 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     public DrawOperation() : base("Drawing")
     {
     }
+
+    #region Transformation
+
+    /// <summary>
+    /// The <see cref="ResourceLayout"/> used to describe the laoyut for <see cref="DrawOperation"/> transformations
+    /// </summary>
+    /// <remarks>
+    /// This layout is static across <see cref="GraphicsManager"/>s
+    /// </remarks>
+    public ResourceLayout TransformationLayout => Manager!.DrawOpTransLayout;
+
+    /// <summary>
+    /// The <see cref="ResourceSet"/> used to bind the internal buffer 
+    /// </summary>
+    protected ResourceSet TransformationSet { get; private set; }
+
+    private DeviceBuffer TransformationBuffer { get; set; }
+
+    /// <summary>
+    /// Updates the TransformationBuffer with data from <see cref="Transformation"/> if necessary
+    /// </summary>
+    protected void UpdateTransformationBuffer(CommandList commandList)
+    {
+        if (PendingTransformationUpdate)
+        {
+            var tr = Transformation;
+            PendingTransformationUpdate = false;
+            commandList.UpdateBuffer(TransformationBuffer, 0, ref tr);
+        } 
+    }
+
+    /// <summary>
+    /// The transformation matrix that represents the current transformation properties in this <see cref="DrawOperation"/>
+    /// </summary>
+    protected Matrix4x4 Transformation
+    {
+        get
+        {
+            if (trans is not Matrix4x4 t)
+            {
+                var translation = Translation;
+                var scl = Scale;
+                var (cpxx, cpxy, cpxz, rotx) = RotationX;
+                var (cpyx, cpyy, cpyz, roty) = RotationY;
+                var (cpzx, cpzy, cpzz, rotz) = RotationZ;
+                trans = t =
+                    Matrix4x4.CreateTranslation(translation) *
+                    Matrix4x4.CreateScale(scl) *
+                    Matrix4x4.CreateRotationX(rotx, new(cpxx, cpxy, cpxz)) *
+                    Matrix4x4.CreateRotationY(roty, new(cpyx, cpyy, cpyz)) *
+                    Matrix4x4.CreateRotationZ(rotz, new(cpzx, cpzy, cpzz));
+            }
+            return t;
+        }
+    }
+    private Matrix4x4? trans = Matrix4x4.Identity;
+    private bool PendingTransformationUpdate = false;
+
+    /// <summary>
+    /// Adjusts the transformation parameters and calculates the appropriate transformation matrix for this <see cref="DrawOperation"/>
+    /// </summary>
+    /// <remarks>
+    /// Parameters that are not specified (i.e. left as <c>null</c>) will default to the current transformation setting in this <see cref="DrawOperation"/>
+    /// </remarks>
+    /// <param name="translation">The translation in worldspace for this operation</param>
+    /// <param name="scale">The scale in worldspace for this operation</param>
+    /// <param name="rotX">The rotation along the x axis in worldspace for this operation</param>
+    /// <param name="rotY">The rotation along the y axis in worldspace for this operation</param>
+    /// <param name="rotZ">The rotation along the z axis in worldspace for this operation</param>
+    public void Transform(Vector3? translation = null, Vector3? scale = null, Vector4? rotX = null, Vector4? rotY = null, Vector4? rotZ = null)
+    {
+        Translation = translation ?? Translation;
+        Scale = scale ?? Scale;
+        RotationX = rotX ?? RotationX;
+        RotationY = rotY ?? RotationY;
+        RotationZ = rotZ ?? RotationZ;
+        PendingTransformationUpdate = true;
+        NotifyPendingGPUUpdate();
+        trans = null;
+    }
+
+    /// <summary>
+    /// Describes the current translation setting of this <see cref="DrawOperation"/>
+    /// </summary>
+    public Vector3 Translation { get; private set; }
+
+    /// <summary>
+    /// Describes the current scale setting of this <see cref="DrawOperation"/>
+    /// </summary>
+    public Vector3 Scale { get; private set; } = Vector3.One;
+
+    /// <summary>
+    /// Describes the current rotation setting along the x axis of this <see cref="DrawOperation"/>
+    /// </summary>
+    /// <remarks>
+    /// Where <see cref="Vector4.X"/>, <see cref="Vector4.Y"/> and <see cref="Vector4.Z"/> are the center point, and <see cref="Vector4.W"/> is the actual rotation in <c>radians</c>
+    /// </remarks>
+    public Vector4 RotationX { get; private set; }
+
+    /// <summary>
+    /// Describes the current rotation setting along the y axis of this <see cref="DrawOperation"/>
+    /// </summary>
+    /// <remarks>
+    /// Where <see cref="Vector4.X"/>, <see cref="Vector4.Y"/> and <see cref="Vector4.Z"/> are the center point, and <see cref="Vector4.W"/> is the actual rotation in <c>radians</c>
+    /// </remarks>
+    public Vector4 RotationY { get; private set; }
+
+    /// <summary>
+    /// Describes the current rotation setting along the z axis of this <see cref="DrawOperation"/>
+    /// </summary>
+    /// <remarks>
+    /// Where <see cref="Vector4.X"/>, <see cref="Vector4.Y"/> and <see cref="Vector4.Z"/> are the center point, and <see cref="Vector4.W"/> is the actual rotation in <c>radians</c>
+    /// </remarks>
+    public Vector4 RotationZ { get; private set; }
+
+    #endregion
 
     /// <summary>
     /// Represents this <see cref="DrawOperation"/>'s preferred priority. May or may not be honored depending on the <see cref="DrawOperationManager"/>
@@ -87,29 +205,13 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
             await CreateResourceSets(device, resb, factory);
             resb.Build(out var sets, out var layouts, factory);
             await CreateResources(device, factory, sets, layouts);
-            await InternalCreateWindowSizedResources(manager.ScreenSizeBuffer!);
         }
         finally
         {
             ResourceSetBuilderPool.Return(resb);
         }
 
-        Commands = CreateCommandList(device, device.ResourceFactory);
-        
         Registered();
-    }
-
-    internal async ValueTask InternalCreateWindowSizedResources(DeviceBuffer screenSizeBuffer)
-    {
-        sync.Wait();
-        try
-        {
-            await CreateWindowSizedResources(Device!, Device!.ResourceFactory, screenSizeBuffer);
-        }
-        finally
-        {
-            sync.Release();
-        }
     }
 
     #endregion
@@ -139,38 +241,27 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     private bool pendingGpuUpdate = true;
 
     /// <summary>
-    /// Flags this <see cref="DrawOperation"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> call
+    /// Flags this <see cref="DrawOperation"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer)"/> call
     /// </summary>
     /// <remarks>
-    /// Multiple calls to this method will not result in <see cref="UpdateGPUState(GraphicsDevice, CommandList, DeviceBuffer)"/> being called multiple times
+    /// Multiple calls to this method will not result in <see cref="UpdateGPUState(GraphicsDevice, CommandList)"/> being called multiple times
     /// </remarks>
     protected void NotifyPendingGPUUpdate() => pendingGpuUpdate = true;
 
-    internal async ValueTask<CommandList> InternalDraw(TimeSpan delta)
+    internal async ValueTask InternalDraw(TimeSpan delta, CommandList cl)
     {
         ThrowIfDisposed();
         sync.Wait();
         try
         {
-            var commands = Commands!;
             var device = Device!;
-            var ssb = Manager!.ScreenSizeBuffer!;
 
-            commands.Begin();
-            try
+            if (pendingGpuUpdate)
             {
-                if (pendingGpuUpdate)
-                {
-                    pendingGpuUpdate = false;
-                    await UpdateGPUState(device, commands, ssb);
-                }
-                await Draw(delta, commands, device, device.SwapchainFramebuffer, ssb).ConfigureAwait(false);
+                pendingGpuUpdate = false;
+                await UpdateGPUState(device, cl);
             }
-            finally
-            {
-                commands.End();
-            }
-            return commands;
+            await Draw(delta, cl, device, device.SwapchainFramebuffer).ConfigureAwait(false);
         }
         finally
         {
@@ -191,31 +282,23 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     //protected internal bool ReplaceWindowSizeResourcesInmediately { get; init; } = true;
 
     /// <summary>
-    /// Creates the necessary resources for this <see cref="DrawOperation"/> that are buffer (Window) size dependant
-    /// </summary>
-    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
-    /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
-    /// <param name="screenSizeBuffer">A <see cref="DeviceBuffer"/> filled with a <see cref="Vector4"/> containing <see cref="GraphicsManager.Window"/>'s size in the form of <c>Vector4(x: Width, y: Height, 0, 0)</c></param>
-    protected abstract ValueTask CreateWindowSizedResources(GraphicsDevice device, ResourceFactory factory, DeviceBuffer screenSizeBuffer);
-
-    /// <summary>
-    /// Creates the <see cref="CommandList"/> to be set as this <see cref="DrawOperation"/>'s designated <see cref="CommandList"/>
-    /// </summary>
-    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
-    /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
-    protected virtual CommandList CreateCommandList(GraphicsDevice device, ResourceFactory factory)
-        => factory.CreateCommandList();
-
-    /// <summary>
     /// Creates the necessary resource sets for this <see cref="DrawOperation"/>
     /// </summary>
     /// <remarks>
-    /// This method is called before <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[], ResourceLayout[])"/>
+    /// This method is called before <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[], ResourceLayout[])"/>. The base method at <see cref="DrawOperation"/> creates <see cref="TransformationSet"/> and the appropriate buffer
     /// </remarks>
     /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
     /// <param name="builder">The collection of descriptions that will be used to build the resource sets for this <see cref="DrawOperation"/>. This object is borrowed from a pool and will be cleared and returned after this method returns</param>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
-    protected virtual ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory) => ValueTask.CompletedTask;
+    protected virtual ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
+    {
+        TransformationBuffer = factory.CreateBuffer(new BufferDescription(DataStructuring.FitToUniformBuffer<Matrix4x4, uint>(), BufferUsage.UniformBuffer));
+        TransformationSet = factory.CreateResourceSet(new ResourceSetDescription(TransformationLayout, TransformationBuffer));
+        var trans = Transformation;
+        device.UpdateBuffer(TransformationBuffer, 0, ref trans);
+        builder.InsertLast(TransformationSet, TransformationLayout, out int _, "DrawOperation Base Transformation");
+        return ValueTask.CompletedTask;
+    }
 
     /// <summary>
     /// Creates the necessary resources for this <see cref="DrawOperation"/>
@@ -239,19 +322,21 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     /// <param name="commandList">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
     /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
-    /// <param name="screenSizeBuffer">A <see cref="DeviceBuffer"/> filled with a <see cref="Vector4"/> containing <see cref="GraphicsManager.Window"/>'s size in the form of <c>Vector4(x: Width, y: Height, 0, 0)</c></param>
-    protected abstract ValueTask Draw(TimeSpan delta, CommandList commandList, GraphicsDevice device, Framebuffer mainBuffer, DeviceBuffer screenSizeBuffer);
+    protected abstract ValueTask Draw(TimeSpan delta, CommandList commandList, GraphicsDevice device, Framebuffer mainBuffer);
 
     /// <summary>
-    /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/>
+    /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer)"/>
     /// </summary>
     /// <remarks>
     /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock!
     /// </remarks>
     /// <param name="commandList">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
-    /// <param name="screenSizeBuffer">A <see cref="DeviceBuffer"/> filled with a <see cref="Vector4"/> containing <see cref="GraphicsManager.Window"/>'s size in the form of <c>Vector4(x: Width, y: Height, 0, 0)</c></param>
-    protected abstract ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList, DeviceBuffer screenSizeBuffer);
+    protected virtual ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList)
+    {
+        UpdateTransformationBuffer(commandList);
+        return ValueTask.CompletedTask;
+    }
 
     #endregion
 
@@ -264,7 +349,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// </summary>
     /// <exception cref="ObjectDisposedException"></exception>
     /// <remarks>
-    /// Calling this method from <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
+    /// Calling this method from <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
     /// </remarks>
     protected void ThrowIfDisposed()
     {
@@ -310,9 +395,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
             }
             finally
             {
-                Commands?.Dispose();
                 Device = null;
-                Commands = null;
                 _owner = null!;
                 Manager = null;
                 @lock.Dispose();
@@ -334,7 +417,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// Disposes of this <see cref="DrawOperation"/>'s resources
     /// </summary>
     /// <remarks>
-    /// Calling this method from <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
+    /// Calling this method from <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
     /// </remarks>
     public void Dispose()
     {

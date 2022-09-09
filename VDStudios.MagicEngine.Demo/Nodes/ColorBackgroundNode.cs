@@ -117,7 +117,7 @@ void main()
             return ValueTask.CompletedTask;
         }
 
-        protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice gd, Framebuffer mainBuffer, DeviceBuffer screenSizedBuffer)
+        protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice gd, Framebuffer mainBuffer)
         {
             cl.SetFramebuffer(mainBuffer);
             cl.SetVertexBuffer(0, VertexBuffer);
@@ -128,7 +128,7 @@ void main()
             return ValueTask.CompletedTask;
         }
 
-        protected override ValueTask UpdateGPUState(GraphicsDevice device, CommandList cl, DeviceBuffer screenSizedBuffer)
+        protected override ValueTask UpdateGPUState(GraphicsDevice device, CommandList cl)
         {
             return ValueTask.CompletedTask;
         }
@@ -146,9 +146,6 @@ void main()
             Pipeline?.Dispose();
             base.Dispose(disposing);
         }
-
-        protected override ValueTask CreateWindowSizedResources(GraphicsDevice device, ResourceFactory factory, DeviceBuffer screenSizeBuffer)
-            => ValueTask.CompletedTask;
     }
 
     public DrawOperationManager DrawOperationManager { get; } 

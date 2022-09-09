@@ -87,7 +87,7 @@ public delegate void GameLifetimeChangedEvent(Game game, TimeSpan timestamp, IGa
 /// <param name="oldTitle">The previously set title of the game</param>
 public delegate void GameTitleChangedEvent(Game game, TimeSpan timestamp, string newTitle, string oldTitle);
 
-internal delegate void GameSetupScenesEvent(Game game, IServiceProvider gamescope);
+internal delegate void GameSetupScenesEvent(Game game);
 
 #endregion
 

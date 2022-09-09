@@ -1,4 +1,6 @@
-﻿namespace VDStudios.MagicEngine.Utility;
+﻿using Newtonsoft.Json.Linq;
+
+namespace VDStudios.MagicEngine.Utility;
 
 /// <summary>
 /// Maintains a list of data and presents an arithmetic mean average of the stored data
@@ -38,6 +40,14 @@ public sealed class LongAverageKeeper
             {
                 long dat = 0;
                 int i = 0;
+                for (; i < fill - 3; i += 4)
+                {
+                    long x = data[i];
+                    long y = data[i + 1];
+                    long z = data[i + 2];
+                    long w = data[i + 3];
+                    dat += x + y + z + w;
+                }
                 for (; i < fill - 2; i += 3)
                 {
                     long x = data[i];
@@ -48,11 +58,11 @@ public sealed class LongAverageKeeper
                 for (; i < fill - 1; i += 2)
                 {
                     long x = data[i];
-                    long y = data[i];
+                    long y = data[i + 1];
                     dat += x + y;
                 }
-                while (i < fill)
-                    dat += data[i++];
+                for (; i < fill; i++)
+                    dat += data[i];
                 cacheValid = true;
                 cache = dat / fill;
             }

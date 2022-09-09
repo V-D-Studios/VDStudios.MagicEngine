@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using VDStudios.MagicEngine.Internal;
 
@@ -12,6 +11,14 @@ public abstract class NodeBase : GameObject, IDisposable
 {
     internal readonly object sync = new();
 
+    #region Dependency Injection
+
+    #region Fields
+
+    #endregion
+
+    #endregion
+
     #region Service Providers
 
     #region Fields
@@ -20,17 +27,13 @@ public abstract class NodeBase : GameObject, IDisposable
     /// Scene should ignore this, and let it remain null
     /// </summary>
     internal IDrawableNode? DrawableSelf;
-
-    private readonly IServiceScope scope;
-    internal IServiceProvider ServiceProvider => scope.ServiceProvider;
-
+#warning DG: If Scene shouldn't use this, isn't that bloat?
     #endregion
 
     #endregion
 
     internal NodeBase(string facility) : base(facility, "Update")
     {
-        scope = Game.Instance.NewScope();
         Children = NodeList.Empty.Clone();
     }
 
@@ -44,14 +47,19 @@ public abstract class NodeBase : GameObject, IDisposable
 
     #region IDisposable
 
-    private readonly bool disposedValue;
+    private bool disposedValue;
+
+    /// <summary>
+    /// Whether or not this object is disposed
+    /// </summary>
+    protected bool IsDisposed => disposedValue;
 
     /// <summary>
     /// Disposes of this <see cref="Node"/> and all of its currently attached children
     /// </summary>
     public void Dispose()
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(disposedValue, this);
         Dispose(disposing: true);
         InternalDispose(disposing: true);
         GC.SuppressFinalize(this);
@@ -63,10 +71,10 @@ public abstract class NodeBase : GameObject, IDisposable
     /// <param name="disposing"></param>
     internal virtual void InternalDispose(bool disposing)
     {
+        disposedValue = true;
         foreach (var child in Children)
             child.Dispose();
         Children = null!;
-        scope.Dispose();
     }
 
     /// <summary>
@@ -215,27 +223,6 @@ public abstract class NodeBase : GameObject, IDisposable
     #endregion
 
     #endregion
-
-    #endregion
-
-    #region Helpers
-
-    /// <summary>
-    /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of
-    /// </summary>
-    protected internal void ThrowIfDisposed()
-    {
-        if (disposedValue)
-            throw new ObjectDisposedException(GetType().FullName);
-    }
-    /// <summary>
-    /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of, otherwise, returns the passed value
-    /// </summary>
-    /// <remarks>
-    /// This method is useful to ensure disposed safety in an expression body
-    /// </remarks>
-    [return: NotNullIfNotNull("v")]
-    protected T? ThrowIfDisposed<T>(T? v) => disposedValue ? throw new ObjectDisposedException(GetType().FullName) : v;
 
     #endregion
 }

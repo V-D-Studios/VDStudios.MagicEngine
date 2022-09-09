@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace VDStudios.MagicEngine;
 
@@ -19,8 +20,17 @@ public abstract class Scene : NodeBase
     {
         Game.SetupScenes += OnGameSetupScenes;
         Game.StopScenes += OnGameStopScenes;
-        Game.scenesAwaitingSetup.Enqueue(this);
+        lock (Game.scenesAwaitingSetup)
+            Game.scenesAwaitingSetup.Enqueue(this, (int)QueryConfigurationAsynchronousTendency());
     }
+
+    /// <summary>
+    /// Queries this scene for <see cref="ConfigureScene"/>'s tendency to be asynchronous.
+    /// </summary>
+    /// <remarks>
+    /// This method is called exactly once INSIDE THE CONSTRUCTOR OF <see cref="Scene"/>, which is called BEFORE your derived type's constructor. Handle with care; best used by returning a single constant value
+    /// </remarks>
+    protected virtual AsynchronousTendency QueryConfigurationAsynchronousTendency() => AsynchronousTendency.SometimesAsynchronous;
 
     #endregion
 
@@ -34,7 +44,13 @@ public abstract class Scene : NodeBase
     /// <remarks>
     /// Consider this method an asynchronous constructor for the <see cref="Scene"/>. You may attach nodes and request async services here. Exclusively synchronous work can and should be done in the type's constructor
     /// </remarks>
-    protected internal virtual ValueTask ConfigureScene() => ValueTask.CompletedTask;
+    protected virtual ValueTask ConfigureScene() => ValueTask.CompletedTask;
+
+    internal ValueTask InternalConfigure()
+    {
+        InternalLog?.Information("Configuring");
+        return ConfigureScene();
+    }
 
     #endregion
 
@@ -92,12 +108,14 @@ public abstract class Scene : NodeBase
 
     internal async ValueTask Begin()
     {
+        InternalLog?.Information("Beginning Scene");
         await Beginning();
         SceneBegan?.Invoke(this, Game.TotalTime);
     }
 
     internal async ValueTask End(Scene next)
     {
+        InternalLog?.Information("Ending scene, to make way for {name}-{type}", next.Name, next.GetTypeName());
         await Ending(next);
         SceneEnded?.Invoke(this, Game.TotalTime);
         await next.Transitioning(this);
@@ -105,6 +123,7 @@ public abstract class Scene : NodeBase
 
     internal async ValueTask End()
     {
+        InternalLog?.Information("Ending scene");
         await Ending();
         SceneEnded?.Invoke(this, Game.TotalTime);
     }

@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace VDStudios.MagicEngine;
 
@@ -11,17 +10,6 @@ namespace VDStudios.MagicEngine;
 /// </remarks>
 public abstract class GUIElement : GraphicsObject, IDisposable
 {
-    #region Services
-
-    private IServiceScope scope;
-
-    /// <summary>
-    /// Represents the <see cref="IServiceProvider"/> scoped for this <see cref="GUIElement"/>
-    /// </summary>
-    protected IServiceProvider Services => scope.ServiceProvider;
-
-    #endregion
-
     #region Construction
 
     /// <summary>
@@ -29,7 +17,6 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     /// </summary>
     public GUIElement() : base("ImGUI")
     {
-        scope = Game.services.CreateScope();
     }
 
     #endregion
@@ -348,8 +335,6 @@ public abstract class GUIElement : GraphicsObject, IDisposable
                 DataContextChanged = null;
                 Parent = null;
                 Manager = null;
-                scope.Dispose();
-                scope = null;
                 if (root)
                     @lock!.Dispose();
             }
