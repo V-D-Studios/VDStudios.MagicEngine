@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Immutable;
 
 namespace Veldrid
 {
@@ -15,19 +16,13 @@ namespace Veldrid
 #endif
 
         /// <summary>
-        /// Gets the <see cref="ResourceLayoutElementDescription"/> present at the given index in the <see cref="ResourceLayoutDescription.Elements"/> array of this <see cref="ResourceLayout"/>
+        /// Represents the elements in this layout
         /// </summary>
-        /// <param name="index">The index at which the element is</param>
-        /// <returns>A copy of the <see cref="ResourceLayoutElementDescription"/></returns>
-        public ResourceLayoutElementDescription this[int index] => Description.Elements[index];
-
-        /// <summary>
-        /// The amount of <see cref="ResourceLayoutElementDescription"/>s in the <see cref="ResourceLayoutDescription.Elements"/> array of this <see cref="ResourceLayout"/>
-        /// </summary>
-        public int ElementCount => Description.Elements.Length;
+        public ImmutableArray<ResourceLayoutElementDescription> Elements { get; }
 
         internal ResourceLayout(ref ResourceLayoutDescription description)
         {
+            Elements = ImmutableArray.Create(description.Elements);
 #if VALIDATE_USAGE
             Description = description;
             foreach (ResourceLayoutElementDescription element in description.Elements)

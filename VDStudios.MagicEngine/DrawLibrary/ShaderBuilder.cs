@@ -218,9 +218,9 @@ public class ShaderBuilder
             resources = ResourceEntryDictionaryPool.Rent();
             for (int set = 0; set < sets.Length; set++)
             {
-                var layout = sets[set].Layout;
-                for (int binding = 0; binding < layout.ElementCount; binding++)
-                    resources[layout[binding].Name] = (set, binding);
+                var elements = sets[set].Layout.Elements;
+                for (int binding = 0; binding < elements.Length; binding++)
+                    resources[elements[binding].Name] = (set, binding);
             }
 
             for (int i = 0; i < entrycount; i++)

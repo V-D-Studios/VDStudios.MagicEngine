@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Immutable;
 
 namespace Veldrid
 {
@@ -19,14 +20,18 @@ namespace Veldrid
 
         internal Pipeline(ref ComputePipelineDescription computeDescription)
             : this(computeDescription.ResourceLayouts)
-        { }
+        {
+        }
 
         internal Pipeline(ResourceLayout[] resourceLayouts)
         {
-#if VALIDATE_USAGE
-            ResourceLayouts = Util.ShallowClone(resourceLayouts);
-#endif
+            ResourceLayouts = ImmutableArray.Create(resourceLayouts);
         }
+
+        /// <summary>
+        /// The resource layouts currently registered to this pipeline
+        /// </summary>
+        public ImmutableArray<ResourceLayout> ResourceLayouts { get; }
 
         /// <summary>
         /// Gets a value indicating whether this instance represents a compute Pipeline.
@@ -52,7 +57,6 @@ namespace Veldrid
 
 #if VALIDATE_USAGE
         internal OutputDescription GraphicsOutputDescription { get; }
-        internal ResourceLayout[] ResourceLayouts { get; }
 #endif
     }
 }

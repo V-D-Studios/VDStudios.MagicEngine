@@ -222,7 +222,7 @@ namespace Veldrid
                     $"Failed to bind ResourceSet to slot {slot}. The active graphics Pipeline only contains {layoutsCount} ResourceLayouts.");
             }
 
-            ResourceLayout layout = _graphicsPipeline.ResourceLayouts[slot]
+            ResourceLayout layout = _graphicsPipeline.ResourceLayouts[(int)slot]
                 ?? throw new VeldridException($"There is no ResourceLayout at slot {slot} in the active graphics Pipeline");
 
             int pipelineLength = layout.Description.Elements.Length;
@@ -338,7 +338,7 @@ namespace Veldrid
                     $"Failed to bind ResourceSet to slot {slot}. The active compute Pipeline only contains {layoutsCount} ResourceLayouts.");
             }
 
-            ResourceLayout layout = _computePipeline.ResourceLayouts[slot];
+            ResourceLayout layout = _computePipeline.ResourceLayouts[(int)slot];
             int pipelineLength = layout.Description.Elements.Length;
             int setLength = rs.Layout.Description.Elements.Length;
             if (pipelineLength != setLength)
