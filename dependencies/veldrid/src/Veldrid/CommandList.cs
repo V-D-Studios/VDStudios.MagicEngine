@@ -306,7 +306,7 @@ namespace Veldrid
         /// <see cref="ResourceSet"/>. The number of elements in this array must be equal to the number of dynamic buffers
         /// (<see cref="ResourceLayoutElementOptions.DynamicBinding"/>) contained in the <see cref="ResourceSet"/>. These offsets
         /// are applied in the order that dynamic buffer elements appear in the <see cref="ResourceSet"/>.</param>
-        public void SetComputeResourceSet(uint slot, ResourceSet rs, uint[] dynamicOffsets)
+        public void SetComputeResourceSet(uint slot, ResourceSet rs, Span<uint> dynamicOffsets)
             => SetComputeResourceSet(slot, rs, (uint)dynamicOffsets.Length, ref dynamicOffsets[0]);
 
         /// <summary>

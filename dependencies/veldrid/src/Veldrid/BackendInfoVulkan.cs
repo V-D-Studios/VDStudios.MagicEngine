@@ -1,5 +1,6 @@
 ﻿#if !EXCLUDE_VULKAN_BACKEND
 using System;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using Veldrid.Vk;
 using Vulkan;
@@ -14,16 +15,16 @@ namespace Veldrid
     public class BackendInfoVulkan
     {
         private readonly VkGraphicsDevice _gd;
-        private readonly Lazy<ReadOnlyCollection<string>> _instanceLayers;
-        private readonly ReadOnlyCollection<string> _instanceExtensions;
-        private readonly Lazy<ReadOnlyCollection<ExtensionProperties>> _deviceExtensions;
+        private readonly Lazy<ImmutableArray<string>> _instanceLayers;
+        private readonly ImmutableArray<string> _instanceExtensions;
+        private readonly Lazy<ImmutableArray<ExtensionProperties>> _deviceExtensions;
 
         internal BackendInfoVulkan(VkGraphicsDevice gd)
         {
             _gd = gd;
-            _instanceLayers = new Lazy<ReadOnlyCollection<string>>(() => new ReadOnlyCollection<string>(VulkanUtil.EnumerateInstanceLayers()));
-            _instanceExtensions = new ReadOnlyCollection<string>(VulkanUtil.GetInstanceExtensions());
-            _deviceExtensions = new Lazy<ReadOnlyCollection<ExtensionProperties>>(EnumerateDeviceExtensions);
+            _instanceLayers = new Lazy<ImmutableArray<string>>(() => ImmutableArray.Create(VulkanUtil.EnumerateInstanceLayers()));
+            _instanceExtensions = ImmutableArray.Create(VulkanUtil.GetInstanceExtensions());
+            _deviceExtensions = new Lazy<ImmutableArray<ExtensionProperties>>(EnumerateDeviceExtensions);
         }
 
         /// <summary>
@@ -61,11 +62,11 @@ namespace Veldrid
         /// </summary>
         public string DriverInfo => _gd.DriverInfo;
 
-        public ReadOnlyCollection<string> AvailableInstanceLayers => _instanceLayers.Value;
+        public ImmutableArray<string> AvailableInstanceLayers => _instanceLayers.Value;
 
-        public ReadOnlyCollection<string> AvailableInstanceExtensions => _instanceExtensions;
+        public ImmutableArray<string> AvailableInstanceExtensions => _instanceExtensions;
 
-        public ReadOnlyCollection<ExtensionProperties> AvailableDeviceExtensions => _deviceExtensions.Value;
+        public ImmutableArray<ExtensionProperties> AvailableDeviceExtensions => _deviceExtensions.Value;
 
         /// <summary>
         /// Overrides the current VkImageLayout tracked by the given Texture. This should be used when a VkImage is created by
@@ -114,7 +115,7 @@ namespace Veldrid
             _gd.TransitionImageLayout(Util.AssertSubtype<Texture, VkTexture>(texture), (VkImageLayout)layout);
         }
 
-        private unsafe ReadOnlyCollection<ExtensionProperties> EnumerateDeviceExtensions()
+        private unsafe ImmutableArray<ExtensionProperties> EnumerateDeviceExtensions()
         {
             VkExtensionProperties[] vkProps = _gd.GetDeviceExtensionProperties();
             ExtensionProperties[] veldridProps = new ExtensionProperties[vkProps.Length];
@@ -125,7 +126,7 @@ namespace Veldrid
                 veldridProps[i] = new ExtensionProperties(Util.GetString(prop.extensionName), prop.specVersion);
             }
 
-            return new ReadOnlyCollection<ExtensionProperties>(veldridProps);
+            return ImmutableArray.Create(veldridProps);
         }
 
         public readonly struct ExtensionProperties
