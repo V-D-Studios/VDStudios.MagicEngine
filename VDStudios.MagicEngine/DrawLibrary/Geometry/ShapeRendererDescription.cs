@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Veldrid;
+using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 
@@ -49,6 +50,11 @@ public struct ShapeRendererDescription
     public VertexLayoutDescription? VertexLayout;
 
     /// <summary>
+    /// Represents the *Graphics* pipeline that will be used by the <see cref="ShapeRenderer{TVertex}"/>
+    /// </summary>
+    public Pipeline? Pipeline;
+
+    /// <summary>
     /// Describes the Vertex shader for the <see cref="ShapeRenderer{TVertex}"/> in Vulkan style GLSL or SPIR-V bytecode
     /// </summary>
     public ShaderDescription? VertexShaderSpirv;
@@ -59,9 +65,17 @@ public struct ShapeRendererDescription
     public ShaderDescription? FragmentShaderSpirv;
 
     /// <summary>
+    /// Represents the Shader array for the <see cref="ShapeRenderer{TVertex}"/>
+    /// </summary>
+    /// <remarks>
+    /// Generally, this contains a single pair of Vertex and Fragment shaders, and is created with <see cref="ResourceFactoryExtensions.CreateFromSpirv(ResourceFactory, ShaderDescription, ShaderDescription)"/>
+    /// </remarks>
+    public Shader[]? Shaders;
+
+    /// <summary>
     /// Represents the method that will be used to build an array of <see cref="ResourceSet"/>s and <see cref="ResourceLayout"/>s for the <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
-    public MagicEngine.ResourceBuilder? ResourceLayoutAndSetBuilder;
+    public ResourceBuilder? ResourceLayoutAndSetBuilder;
 
     /// <summary>
     /// Creates a new <see cref="ShapeRendererDescription"/>

@@ -224,12 +224,12 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <summary>
     /// The shaders that will be used to render the shapes
     /// </summary>
-    protected Shader[] Shaders;
+    public Shader[] Shaders;
 
     /// <summary>
     /// The Pipeline that will be used to render the shapes
     /// </summary>
-    protected Pipeline Pipeline;
+    public Pipeline Pipeline;
 
     /// <summary>
     /// The temporary buffer into which the shapes held in this object will be copied for drawing.
@@ -256,12 +256,12 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? resourcesSets, ResourceLayout[]? resourceLayouts)
     {
-        Shaders = factory.CreateFromSpirv(
+        Shaders = ShapeRendererDescription.Shaders ?? factory.CreateFromSpirv(
             ShapeRendererDescription.VertexShaderSpirv ?? vertexDefault,
             ShapeRendererDescription.FragmentShaderSpirv ?? fragmnDefault
         );
 
-        Pipeline = factory.CreateGraphicsPipeline(new(
+        Pipeline = ShapeRendererDescription.Pipeline ?? factory.CreateGraphicsPipeline(new(
             ShapeRendererDescription.BlendState,
             ShapeRendererDescription.DepthStencilState,
             new(
