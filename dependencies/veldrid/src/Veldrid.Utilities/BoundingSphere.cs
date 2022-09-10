@@ -45,7 +45,7 @@ namespace Veldrid.Utilities
                 }
             }
 
-            return new BoundingSphere(center, (float)Math.Sqrt(maxDistanceSquared));
+            return new BoundingSphere(center, float.Sqrt(maxDistanceSquared));
         }
 
         public static unsafe BoundingSphere CreateFromPoints(Span<Vector3> points, int stride)
@@ -68,7 +68,7 @@ namespace Veldrid.Utilities
                     }
                 }
 
-                return new BoundingSphere(center, (float)Math.Sqrt(maxDistanceSquared));
+                return new BoundingSphere(center, float.Sqrt(maxDistanceSquared));
             }
         }
     }
