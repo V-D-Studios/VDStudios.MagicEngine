@@ -105,7 +105,7 @@ public delegate void GameLifetimeEvent(IGameLifetime lifetime, bool shouldRun);
 #region Node Delegates
 
 /// <summary>
-/// Represents an event in the game regarding a <see cref="Node"/>'s readiness, represented by <see cref="Node.IsReady"/>
+/// Represents an event in the game regarding a <see cref="Node"/>'s readiness, represented by <see cref="Node.IsActive"/>
 /// </summary>
 /// <param name="node">The node that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>

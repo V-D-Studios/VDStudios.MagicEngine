@@ -207,7 +207,7 @@ public abstract class NodeBase : GameObject, IDisposable
                         var batch = UpdateBatches[(UpdateBatch)bi, (AsynchronousTendency)ti];
                         if (batch is not null and { Count: > 0 })
                             foreach (var child in batch)
-                                if (child.IsReady)
+                                if (child.IsActive)
                                     tasks[ind++] = InternalHandleChildUpdate(child, delta);
                     }
             }

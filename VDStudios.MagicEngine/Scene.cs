@@ -210,7 +210,7 @@ public abstract class Scene : NodeBase
                 for (int i = 0; i < toUpdate; i++)
                 {
                     var child = Children.Get(i);
-                    if (child.IsReady)
+                    if (child.IsActive)
                         tasks[ind++] = InternalHandleChildDrawRegistration(child);
                 }
             }

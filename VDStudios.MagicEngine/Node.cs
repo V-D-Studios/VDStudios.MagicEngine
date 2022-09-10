@@ -55,23 +55,23 @@ public abstract class Node : NodeBase
     #region Public Properties
 
     /// <summary>
-    /// <c>true</c> if this <see cref="Node"/> is ready and should be updated and, if it implements <see cref="IDrawableNode"/>, added to the draw queue. <c>false</c> otherwise
+    /// <c>true</c> if this <see cref="Node"/> is active and should be updated and, if it implements <see cref="IDrawableNode"/>, added to the draw queue. <c>false</c> otherwise
     /// </summary>
     /// <remarks>
     /// If this property is <c>false</c>, this <see cref="Node"/> and its children will be skipped, along with any handlers it may have. Defaults to <c>true</c> and must be set to <c>false</c> manually if desired
     /// </remarks>
-    public bool IsReady
+    public bool IsActive
     {
-        get => isReady;
+        get => isActive;
         protected set
         {
-            if (isReady == value)
+            if (isActive == value)
                 return;
-            isReady = value;
-            ReadinessChanged?.Invoke(this, Game.TotalTime, value);
+            isActive = value;
+            ActiveChanged?.Invoke(this, Game.TotalTime, value);
         }
     }
-    private bool isReady = true;
+    private bool isActive = true;
 
     #endregion
 
@@ -81,9 +81,9 @@ public abstract class Node : NodeBase
     /// Fired when this <see cref="Node"/>'s readiness to be updated or drawn changes
     /// </summary>
     /// <remarks>
-    /// Specifically, when this <see cref="Node.IsReady"/> changes
+    /// Specifically, when this <see cref="Node.IsActive"/> changes
     /// </remarks>
-    public NodeReadinessChangedEvent? ReadinessChanged;
+    public NodeReadinessChangedEvent? ActiveChanged;
 
     #endregion
 
@@ -668,7 +668,7 @@ public abstract class Node : NodeBase
                 for (int i = 0; i < toUpdate; i++)
                 {
                     var child = Children.Get(i);
-                    if (child.IsReady)
+                    if (child.IsActive)
                         tasks[ind++] = InternalHandleChildDrawRegistration(child);
                 }
             }
