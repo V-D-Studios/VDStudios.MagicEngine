@@ -45,67 +45,62 @@ namespace Veldrid.Utilities
             return Max - Min;
         }
 
-        public static unsafe BoundingBox Transform(BoundingBox box, Matrix4x4 mat)
+        public static BoundingBox Transform(BoundingBox box, Matrix4x4 mat)
         {
-            AlignedBoxCorners corners = box.GetCorners();
-            Vector3* cornersPtr = (Vector3*)&corners;
+            Span<Vector3> corners = stackalloc Vector3[8];
+            box.GetCorners(corners);
 
-            Vector3 min = Vector3.Transform(cornersPtr[0], mat);
-            Vector3 max = Vector3.Transform(cornersPtr[0], mat);
+            Vector3 min = Vector3.Transform(corners[0], mat);
+            Vector3 max = Vector3.Transform(corners[0], mat);
 
             for (int i = 1; i < 8; i++)
             {
-                min = Vector3.Min(min, Vector3.Transform(cornersPtr[i], mat));
-                max = Vector3.Max(max, Vector3.Transform(cornersPtr[i], mat));
+                min = Vector3.Min(min, Vector3.Transform(corners[i], mat));
+                max = Vector3.Max(max, Vector3.Transform(corners[i], mat));
             }
 
             return new BoundingBox(min, max);
         }
 
-        public static unsafe BoundingBox CreateFromVertices(
-            Vector3* vertices,
-            int numVertices,
-            Quaternion rotation,
-            Vector3 offset,
-            Vector3 scale)
-            => CreateFromPoints(vertices, Unsafe.SizeOf<Vector3>(), numVertices, rotation, offset, scale);
         public static unsafe BoundingBox CreateFromPoints(
-            Vector3* vertexPtr,
-            int numVertices,
+            Span<Vector3> vertices,
             int vertexStride,
             Quaternion rotation,
             Vector3 offset,
             Vector3 scale)
         {
-            byte* bytePtr = (byte*)vertexPtr;
-            Vector3 min = Vector3.Transform(*vertexPtr, rotation);
-            Vector3 max = Vector3.Transform(*vertexPtr, rotation);
-
-            for (int i = 1; i < numVertices; i++)
+            fixed(Vector3* vertexPtr_0 = vertices)
             {
-                bytePtr = bytePtr + vertexStride;
-                vertexPtr = (Vector3*)bytePtr;
-                Vector3 pos = Vector3.Transform(*vertexPtr, rotation);
+                Vector3* vertexPtr = vertexPtr_0;
+                byte* bytePtr = (byte*)vertexPtr;
+                Vector3 min = Vector3.Transform(*vertexPtr, rotation);
+                Vector3 max = Vector3.Transform(*vertexPtr, rotation);
 
-                if (min.X > pos.X) min.X = pos.X;
-                if (max.X < pos.X) max.X = pos.X;
+                for (int i = 1; i < vertices.Length; i++)
+                {
+                    bytePtr += vertexStride;
+                    vertexPtr = (Vector3*)bytePtr;
+                    Vector3 pos = Vector3.Transform(*vertexPtr, rotation);
 
-                if (min.Y > pos.Y) min.Y = pos.Y;
-                if (max.Y < pos.Y) max.Y = pos.Y;
+                    if (min.X > pos.X) min.X = pos.X;
+                    if (max.X < pos.X) max.X = pos.X;
 
-                if (min.Z > pos.Z) min.Z = pos.Z;
-                if (max.Z < pos.Z) max.Z = pos.Z;
+                    if (min.Y > pos.Y) min.Y = pos.Y;
+                    if (max.Y < pos.Y) max.Y = pos.Y;
+
+                    if (min.Z > pos.Z) min.Z = pos.Z;
+                    if (max.Z < pos.Z) max.Z = pos.Z;
+                }
+                return new BoundingBox((min * scale) + offset, (max * scale) + offset);
             }
-
-            return new BoundingBox((min * scale) + offset, (max * scale) + offset);
         }
 
-        public static unsafe BoundingBox CreateFromVertices(Vector3[] vertices)
+        public static BoundingBox CreateFromVertices(Span<Vector3> vertices)
         {
             return CreateFromVertices(vertices, Quaternion.Identity, Vector3.Zero, Vector3.One);
         }
 
-        public static unsafe BoundingBox CreateFromVertices(Vector3[] vertices, Quaternion rotation, Vector3 offset, Vector3 scale)
+        public static BoundingBox CreateFromVertices(Span<Vector3> vertices, Quaternion rotation, Vector3 offset, Vector3 scale)
         {
             Vector3 min = Vector3.Transform(vertices[0], rotation);
             Vector3 max = Vector3.Transform(vertices[0], rotation);
@@ -154,9 +149,9 @@ namespace Veldrid.Utilities
             return string.Format("Min:{0}, Max:{1}", Min, Max);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            return obj is BoundingBox && ((BoundingBox)obj).Equals(this);
+            return obj is BoundingBox box && box.Equals(this);
         }
 
         public override int GetHashCode()
@@ -167,18 +162,33 @@ namespace Veldrid.Utilities
             return ((int)shift5 + h1) ^ h2;
         }
 
+        public void GetCorners(Span<Vector3> alignedCorners)
+        {
+            if (alignedCorners.Length < 8)
+                throw new ArgumentException("Input buffer must have a length of at least 8 elements", nameof(alignedCorners));
+            alignedCorners[0] = new Vector3(Min.X, Max.Y, Max.Z);
+            alignedCorners[1] = new Vector3(Max.X, Max.Y, Max.Z);
+            alignedCorners[2] = new Vector3(Min.X, Min.Y, Max.Z);
+            alignedCorners[3] = new Vector3(Max.X, Min.Y, Max.Z);
+
+            alignedCorners[4] = new Vector3(Min.X, Max.Y, Min.Z);
+            alignedCorners[5] = new Vector3(Max.X, Max.Y, Min.Z);
+            alignedCorners[6] = new Vector3(Min.X, Min.Y, Min.Z);
+            alignedCorners[7] = new Vector3(Max.X, Min.Y, Min.Z);
+        }
+
         public AlignedBoxCorners GetCorners()
         {
             AlignedBoxCorners corners;
-            corners.NearBottomLeft = new Vector3(Min.X, Min.Y, Max.Z);
-            corners.NearBottomRight = new Vector3(Max.X, Min.Y, Max.Z);
             corners.NearTopLeft = new Vector3(Min.X, Max.Y, Max.Z);
             corners.NearTopRight = new Vector3(Max.X, Max.Y, Max.Z);
+            corners.NearBottomLeft = new Vector3(Min.X, Min.Y, Max.Z);
+            corners.NearBottomRight = new Vector3(Max.X, Min.Y, Max.Z);
 
-            corners.FarBottomLeft = new Vector3(Min.X, Min.Y, Min.Z);
-            corners.FarBottomRight = new Vector3(Max.X, Min.Y, Min.Z);
             corners.FarTopLeft = new Vector3(Min.X, Max.Y, Min.Z);
             corners.FarTopRight = new Vector3(Max.X, Max.Y, Min.Z);
+            corners.FarBottomLeft = new Vector3(Min.X, Min.Y, Min.Z);
+            corners.FarBottomRight = new Vector3(Max.X, Min.Y, Min.Z);
 
             return corners;
         }
@@ -188,6 +198,5 @@ namespace Veldrid.Utilities
             return float.IsNaN(Min.X) || float.IsNaN(Min.Y) || float.IsNaN(Min.Z)
                 || float.IsNaN(Max.X) || float.IsNaN(Max.Y) || float.IsNaN(Max.Z);
         }
-
     }
 }

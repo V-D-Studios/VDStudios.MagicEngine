@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
@@ -46,15 +47,14 @@ namespace Veldrid.Utilities
         {
             fixed (void* ptr = Vertices)
             {
+                Span<Vector3> span = new(ptr, Vertices.Length);
                 return BoundingBox.CreateFromPoints(
-                    (Vector3*)ptr,
-                    Vertices.Length,
+                    span,
                     VertexPositionNormalTexture.SizeInBytes,
                     Quaternion.Identity,
                     Vector3.Zero,
                     Vector3.One);
             }
-
         }
 
         public bool RayCast(Ray ray, out float distance)
@@ -102,14 +102,20 @@ namespace Veldrid.Utilities
             return hits;
         }
 
-        public Vector3[] GetVertexPositions()
+        public void GetVertexPositions(Span<Vector3> buffer)
         {
-            return Vertices.Select(vpnt => vpnt.Position).ToArray();
+            var vert = Vertices;
+            if (buffer.Length < vert.Length)
+                throw new ArgumentException("The length of the buffer must be equal or larger than the length of the Vertices array", nameof(buffer));
+            for (int i = 0; i < vert.Length; i++) buffer[i] = vert[i].Position;
         }
 
-        public ushort[] GetIndices()
+        public void GetIndices(Span<ushort> buffer)
         {
-            return Indices;
+            var indices = Indices;
+            if (buffer.Length < indices.Length)
+                throw new ArgumentException("The length of the buffer must be equal or larger than the length of the Indices array", nameof(buffer));
+            for (int i = 0; i < indices.Length; i++) buffer[i] = indices[i];
         }
     }
 }
