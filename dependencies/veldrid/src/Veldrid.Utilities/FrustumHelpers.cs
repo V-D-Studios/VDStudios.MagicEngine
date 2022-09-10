@@ -37,7 +37,7 @@ namespace Veldrid.Utilities
             corners.FarBottomRight = farCenter + ((farWidth / 2f) * right) - ((farHeight / 2) * up);
         }
 
-        public static unsafe void ComputeOrthographicBoundsForPerpectiveFrustum(
+        public static void ComputeOrthographicBoundsForPerpectiveFrustum(
             ref FrustumCorners corners,
             ref Vector3 lightDir,
             float cameraFarDistance,
@@ -52,8 +52,7 @@ namespace Veldrid.Utilities
             Vector3 lightOrigin = centroid - (lightDir * (cameraFarDistance + nearClipOffset));
             lightView = Matrix4x4.CreateLookAt(lightOrigin, centroid, Vector3.UnitY);
 
-            float* lightSpaceCornerFloats = stackalloc float[3 * 8];
-            Vector3* lightSpaceCorners = (Vector3*)lightSpaceCornerFloats;
+            Span<Vector3> lightSpaceCorners = stackalloc Vector3[8];
 
             // Light-view-space
             lightSpaceCorners[0] = Vector3.Transform(corners.NearTopLeft, lightView);

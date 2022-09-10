@@ -38,9 +38,7 @@ namespace Veldrid.Utilities
         public unsafe BoundingSphere GetBoundingSphere()
         {
             fixed (void* ptr = Vertices)
-            {
-                return BoundingSphere.CreateFromPoints((Vector3*)ptr, Vertices.Length, VertexPositionNormalTexture.SizeInBytes);
-            }
+                return BoundingSphere.CreateFromPoints(new((Vector3*)ptr, Vertices.Length), VertexPositionNormalTexture.SizeInBytes);
         }
 
         public unsafe BoundingBox GetBoundingBox()

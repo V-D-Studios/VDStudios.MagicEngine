@@ -15,7 +15,6 @@ namespace Veldrid.Utilities
             return Matrix4x4.Transpose(inverted);
         }
 
-
         public static unsafe string GetString(byte* stringStart)
         {
             int characters = 0;
