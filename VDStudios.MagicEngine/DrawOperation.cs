@@ -30,6 +30,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// </summary>
     public DrawOperation() : base("Drawing")
     {
+        ReadySemaphore = new(1, 1);
     }
 
     #region Transformation
@@ -149,6 +150,97 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     #endregion
 
     /// <summary>
+    /// <c>true</c> when the node has been added to the scene tree and initialized
+    /// </summary>
+    public bool IsReady
+    {
+        get => _isReady;
+        private set
+        {
+            if (value == _isReady) return;
+            if (value)
+                ReadySemaphore.Release();
+            else
+                ReadySemaphore.Wait();
+            _isReady = value;
+        }
+    }
+    private bool _isReady;
+    private readonly SemaphoreSlim ReadySemaphore;
+
+    /// <summary>
+    /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public async ValueTask WaitUntilReadyAsync()
+    {
+        if (IsReady)
+            return;
+        if (ReadySemaphore.Wait(15))
+        {
+            ReadySemaphore.Release();
+            return;
+        }
+
+        await ReadySemaphore.WaitAsync();
+        ReadySemaphore.Release();
+    }
+
+    /// <summary>
+    /// Waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public void WaitUntilReady()
+    {
+        if (IsReady)
+            return;
+        ReadySemaphore.Wait();
+        ReadySemaphore.Release();
+    }
+
+    /// <summary>
+    /// Waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public bool WaitUntilReady(int timeoutMilliseconds)
+    {
+        if (IsReady)
+            return true;
+        if (ReadySemaphore.Wait(timeoutMilliseconds))
+        {
+            ReadySemaphore.Release();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public async ValueTask<bool> WaitUntilReadyAsync(int timeoutMilliseconds)
+    {
+        if (IsReady)
+            return true;
+        if (timeoutMilliseconds > 15)
+        {
+            if (ReadySemaphore.Wait(15))
+            {
+                ReadySemaphore.Release();
+                return true;
+            }
+
+            if (await ReadySemaphore.WaitAsync(timeoutMilliseconds - 15))
+            {
+                ReadySemaphore.Release();
+                return true;
+            }
+        }
+        if (await ReadySemaphore.WaitAsync(timeoutMilliseconds))
+        {
+            ReadySemaphore.Release();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Represents this <see cref="DrawOperation"/>'s preferred priority. May or may not be honored depending on the <see cref="DrawOperationManager"/>
     /// </summary>
     public float PreferredPriority { get; set; }
@@ -212,6 +304,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         }
 
         Registered();
+        IsReady = true;
     }
 
     #endregion

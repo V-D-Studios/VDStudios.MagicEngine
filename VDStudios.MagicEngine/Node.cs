@@ -21,6 +21,8 @@ public abstract class Node : NodeBase
     protected Node() : base("Game Node Tree")
     {
         DrawableSelf = this as IDrawableNode;
+        ReadySemaphore = new(1, 1);
+        ReadySemaphore.Wait();
     }
 
     #endregion
@@ -72,6 +74,97 @@ public abstract class Node : NodeBase
         }
     }
     private bool isActive = true;
+
+    /// <summary>
+    /// <c>true</c> when the node has been added to the scene tree and initialized
+    /// </summary>
+    public bool IsReady 
+    {
+        get => _isReady; 
+        private set
+        {
+            if (value == _isReady) return;
+            if (value)
+                ReadySemaphore.Release();
+            else
+                ReadySemaphore.Wait();
+            _isReady = value;
+        }
+    }
+    private bool _isReady;
+    private readonly SemaphoreSlim ReadySemaphore;
+
+    /// <summary>
+    /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public async ValueTask WaitUntilReadyAsync()
+    {
+        if (IsReady)
+            return;
+        if (ReadySemaphore.Wait(15))
+        {
+            ReadySemaphore.Release();
+            return;
+        }
+
+        await ReadySemaphore.WaitAsync();
+        ReadySemaphore.Release();
+    }
+
+    /// <summary>
+    /// Waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public void WaitUntilReady()
+    {
+        if (IsReady)
+            return;
+        ReadySemaphore.Wait();
+        ReadySemaphore.Release();
+    }
+
+    /// <summary>
+    /// Waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public bool WaitUntilReady(int timeoutMilliseconds)
+    {
+        if (IsReady)
+            return true;
+        if (ReadySemaphore.Wait(timeoutMilliseconds))
+        {
+            ReadySemaphore.Release();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public async ValueTask<bool> WaitUntilReadyAsync(int timeoutMilliseconds)
+    {
+        if (IsReady)
+            return true;
+        if (timeoutMilliseconds > 15)
+        {
+            if (ReadySemaphore.Wait(15))
+            {
+                ReadySemaphore.Release();
+                return true;
+            }
+
+            if (await ReadySemaphore.WaitAsync(timeoutMilliseconds - 15))
+            {
+                ReadySemaphore.Release();
+                return true;
+            }
+        }
+        if (await ReadySemaphore.WaitAsync(timeoutMilliseconds))
+        {
+            ReadySemaphore.Release();
+            return true;
+        }
+        return false;
+    }
 
     #endregion
 
@@ -347,6 +440,7 @@ public abstract class Node : NodeBase
 
         Root = parent;
         Parent = parent;
+        IsReady = true;
     }
 
     /// <summary>
@@ -385,6 +479,7 @@ public abstract class Node : NodeBase
         parent.DetachedFromSceneEvent += WhenDetachedFromScene;
         parent.AttachedToSceneEvent += WhenAttachedToScene;
         Parent = parent;
+        IsReady = true;
     }
 
     /// <summary>
@@ -404,6 +499,7 @@ public abstract class Node : NodeBase
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfNotAttached();
+        IsReady = false;
         InternalLog?.Information("Detaching from {name}-{type}", Parent!.Name, Parent.GetTypeName());
 
         await Detaching();
@@ -583,6 +679,7 @@ public abstract class Node : NodeBase
     /// This belongs to this <see cref="Node"/>'s parent
     /// </summary>
     internal NodeDrawRegistrar? drawer;
+    private object readySemaphore;
 
     #endregion
 
