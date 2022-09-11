@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System.Buffers;
+using System.Collections;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -353,19 +354,31 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     protected virtual void UpdateVertices(ref ShapeDat pol, CommandList commandList, int index, IShapeRendererVertexGenerator<TVertex> gen, ref object? generatorContext)
     {
         var vc = pol.Shape.Count;
-        Span<TVertex> vertexBuffer = 
-            gen.QueryAllocCPUBuffer(pol.Shape, Shapes, ref generatorContext) ?
-            vc > 5000 ? new TVertex[vc] : stackalloc TVertex[vc] : default;
-
         var vc_bytes = (uint)Unsafe.SizeOf<TVertex>() * (uint)vc;
 
-        if (pol.VertexBuffer is null || vc_bytes > pol.VertexBuffer.SizeInBytes)  
-            ShapeDat.SetVertexBufferSize(ref pol, Device!.ResourceFactory);
+        TVertex[]? rented = null;
+        Span<TVertex> vertexBuffer = gen.QueryAllocCPUBuffer(pol.Shape, Shapes, ref generatorContext)
+            ? vc_bytes > 2048 // 2KB 
+                ? (rented = ArrayPool<TVertex>.Shared.Rent(vc)).AsSpan(0, vc) 
+                : (stackalloc TVertex[vc])
+            : default;
+        vertexBuffer.Clear();
 
-        gen.Generate(pol.Shape, Shapes, vertexBuffer, commandList, pol.VertexBuffer, index, out bool vertexBufferAlreadyUpdated, ref generatorContext);
+        try
+        {
+            if (pol.VertexBuffer is null || vc_bytes > pol.VertexBuffer.SizeInBytes)  
+                ShapeDat.SetVertexBufferSize(ref pol, Device!.ResourceFactory);
 
-        if (!vertexBufferAlreadyUpdated)
-            commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer);
+            gen.Generate(pol.Shape, Shapes, vertexBuffer, commandList, pol.VertexBuffer, index, out bool vertexBufferAlreadyUpdated, ref generatorContext);
+
+            if (!vertexBufferAlreadyUpdated)
+                commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer);
+        }
+        finally
+        {
+            if (rented is not null)
+                ArrayPool<TVertex>.Shared.Return(rented, true);
+        }
     }
 
     /// <summary>
