@@ -4,6 +4,7 @@ using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.Intrinsics;
 using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Logging;
 
@@ -60,6 +61,7 @@ public class Game : SDLApplication<Game>
         ActiveGraphicsManagers = new();
         VideoThread = new(VideoRun);
         UpdateFrameThrottle = TimeSpan.FromMilliseconds(5);
+        Random = CreateRNG();
     }
 
     #endregion
@@ -102,6 +104,23 @@ public class Game : SDLApplication<Game>
     /// <see cref="MainGraphicsManager"/> can also be found here
     /// </remarks>
     public GraphicsManagerList ActiveGraphicsManagers { get; }
+
+    /// <summary>
+    /// A RandomNumberGenerator for this Game
+    /// </summary>
+    public Random Random { get; }
+
+    /// <summary>
+    /// This method is called automatically when the <see cref="Game"/> is going to instantiate an object for <see cref="Random"/>
+    /// </summary>
+    /// <remarks>
+    /// This method is called from the Game's constructor, do not assume anything else has been initialized.
+    /// </remarks>
+    protected unsafe virtual Random CreateRNG()
+    {
+        var guid = Guid.NewGuid(); // Generates a known cryptographic random number
+        return new Random(((int*)&guid)[1]); // Takes the address of the guid, turns it into an int pointer (As Guids are 128 bits long, they can be used as a 4 element int span), and takes the second element (The second quarter of the Guid) as the seed
+    }
 
     /// <summary>
     /// The current title of the game
