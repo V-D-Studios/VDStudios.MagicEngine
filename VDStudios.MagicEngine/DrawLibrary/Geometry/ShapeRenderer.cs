@@ -237,7 +237,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 #if VALIDATE_USAGE
             if (ReferenceEquals(_pipeline, value))
                 return;
-            if (_pipeline.IsComputePipeline)
+            if (value.IsComputePipeline)
                 throw new ArgumentException("A ShapeRenderer cannot have a Compute Pipeline as its Pipeline. It must be a Graphics Pipeline.", nameof(value));
 #endif
             _pipeline = value;
