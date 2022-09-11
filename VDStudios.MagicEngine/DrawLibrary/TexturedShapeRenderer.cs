@@ -90,13 +90,23 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// Be careful when modifying this -- And know that most changes won't have any effect after <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[], ResourceLayout[])"/> is called
     /// </summary>
     protected TexturedShapeRenderDescription TextureRendererDescription;
-    private Sampler Sampler;
-    private TextureFactory? TextureFactory;
 
     /// <summary>
-    /// The texture that this <see cref="TexturedShapeRenderer{TVertex}"/> is in charge of rendering. Will become available after <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[], ResourceLayout[])"/> is called
+    /// The Sampler used by this <see cref="TexturedShapeRenderer{TVertex}"/>
     /// </summary>
-    protected TextureView Texture;
+    /// <remarks>
+    /// Will be <c>null</c> until <see cref="DrawOperation.IsReady"/> is <c>true</c>
+    /// </remarks>
+    public Sampler Sampler { get; private set; }
+
+    /// <summary>
+    /// The texture that this <see cref="TexturedShapeRenderer{TVertex}"/> is in charge of rendering.
+    /// </summary>
+    /// <remarks>
+    /// Will be <c>null</c> until <see cref="DrawOperation.IsReady"/> is <c>true</c>
+    /// </remarks>
+    public TextureView Texture { get; private set; }
+    private TextureFactory? TextureFactory;
 
     #endregion
 
@@ -137,6 +147,7 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
             ),
             Sampler
         );
+        TextureFactory = null;
     }
 
     /// <inheritdoc/>

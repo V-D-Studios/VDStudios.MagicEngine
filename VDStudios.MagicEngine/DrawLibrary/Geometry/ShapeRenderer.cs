@@ -60,7 +60,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     private IShapeRendererVertexGenerator<TVertex> _gen;
 
     /// <summary>
-    /// Be careful when modifying this -- And know that most changes won't have any effect after <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[]?, ResourceLayout[]?)"/> is called
+    /// Be careful when modifying this -- And know that most changes won't have any effect after <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[], ResourceLayout[])"/> is called
     /// </summary>
     protected ShapeRendererDescription ShapeRendererDescription;
     private ResourceSet[] ResourceSets;
@@ -222,14 +222,27 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     #region Resources
 
     /// <summary>
-    /// The shaders that will be used to render the shapes
-    /// </summary>
-    public Shader[] Shaders;
-
-    /// <summary>
     /// The Pipeline that will be used to render the shapes
     /// </summary>
-    public Pipeline Pipeline;
+    /// <remarks>
+    /// Will become available after <see cref="DrawOperation.IsReady"/> is <c>true</c>. If, for any reason, this property is set before that, it will be overwritten
+    /// </remarks>
+    public Pipeline Pipeline
+    {
+        get => _pipeline;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+#if VALIDATE_USAGE
+            if (ReferenceEquals(_pipeline, value))
+                return;
+            if (_pipeline.IsComputePipeline)
+                throw new ArgumentException("A ShapeRenderer cannot have a Compute Pipeline as its Pipeline. It must be a Graphics Pipeline.", nameof(value));
+#endif
+            _pipeline = value;
+        }
+    }
+    private Pipeline _pipeline;
 
     /// <summary>
     /// The temporary buffer into which the shapes held in this object will be copied for drawing.
@@ -239,7 +252,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// </remarks>
     protected List<ShapeDat> ShapeBufferList = new();
 
-    #endregion
+#endregion
 
     private ShaderDescription vertexDefault = new(ShaderStages.Vertex, BuiltInResources.DefaultPolygonVertexShader.GetUTF8Bytes(), "main");
     private ShaderDescription fragmnDefault = new(ShaderStages.Fragment, BuiltInResources.DefaultPolygonFragmentShader.GetUTF8Bytes(), "main");
@@ -256,7 +269,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? resourcesSets, ResourceLayout[]? resourceLayouts)
     {
-        Shaders = ShapeRendererDescription.Shaders ?? factory.CreateFromSpirv(
+        var shaders = ShapeRendererDescription.Shaders ?? factory.CreateFromSpirv(
             ShapeRendererDescription.VertexShaderSpirv ?? vertexDefault,
             ShapeRendererDescription.FragmentShaderSpirv ?? fragmnDefault
         );
@@ -285,7 +298,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             new ShaderSetDescription(new VertexLayoutDescription[]
             {
                 ShapeRendererDescription.VertexLayout ?? DefaultVector2Layout
-            }, Shaders),
+            }, shaders),
             resourceLayouts,
             device.SwapchainFramebuffer.OutputDescription
         ));
@@ -474,9 +487,9 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                 ShapeBufferList.RemoveAt(i);
     }
 
-    #endregion
+#endregion
 
-    #region Helper Classes
+#region Helper Classes
 
     private readonly record struct UpdateDat(int Index, bool UpdateVertices, bool UpdateIndices, sbyte Added);
 
@@ -568,5 +581,5 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         }
     }
 
-    #endregion
+#endregion
 }
