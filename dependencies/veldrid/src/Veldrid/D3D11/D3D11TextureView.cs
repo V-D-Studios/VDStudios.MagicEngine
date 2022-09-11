@@ -18,13 +18,14 @@ namespace Veldrid.D3D11
         {
             ID3D11Device device = gd.Device;
             D3D11Texture d3dTex = Util.AssertSubtype<Texture, D3D11Texture>(description.Target);
+            description.GetData(out var format, out var al, out var bal, out var ml, out var bml);
             ShaderResourceViewDescription srvDesc = D3D11Util.GetSrvDesc(
                 d3dTex,
-                description.BaseMipLevel,
-                description.MipLevels,
-                description.BaseArrayLayer,
-                description.ArrayLayers,
-                Format);
+                bml,
+                ml,
+                bal,
+                al,
+                format);
             ShaderResourceView = device.CreateShaderResourceView(d3dTex.DeviceTexture, srvDesc);
 
             if ((d3dTex.Usage & TextureUsage.Storage) == TextureUsage.Storage)
