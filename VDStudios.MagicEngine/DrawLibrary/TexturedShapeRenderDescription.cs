@@ -24,9 +24,9 @@ public struct TexturedShapeRenderDescription
     public Sampler? Sampler;
 
     /// <summary>
-    /// The description for the TextureView, or null, to create based on the Texture when available
+    /// The description for the TextureView
     /// </summary>
-    public TextureViewDescription? TextureViewDescription;
+    public TextureViewDescription TextureViewDescription;
 
     /// <summary>
     /// A pre-created <see cref="TextureView"/> to use instead of creating a new one
@@ -70,7 +70,7 @@ public struct TexturedShapeRenderDescription
     /// <param name="shapeRenderer"></param>
     /// <param name="sampler"></param>
     /// <param name="textureView"></param>
-    public TexturedShapeRenderDescription(ShapeRendererDescription shapeRenderer, Sampler sampler, TextureViewDescription? textureView)
+    public TexturedShapeRenderDescription(ShapeRendererDescription shapeRenderer, Sampler sampler, TextureViewDescription textureView)
     {
         ShapeRendererDescription = shapeRenderer;
 
@@ -86,7 +86,7 @@ public struct TexturedShapeRenderDescription
     /// <param name="shapeRenderer"></param>
     /// <param name="sampler"></param>
     /// <param name="textureView"></param>
-    public TexturedShapeRenderDescription(ShapeRendererDescription shapeRenderer, SamplerDescription sampler, TextureViewDescription? textureView)
+    public TexturedShapeRenderDescription(ShapeRendererDescription shapeRenderer, SamplerDescription sampler, TextureViewDescription textureView)
     {
         ShapeRendererDescription = shapeRenderer;
         SamplerDescription = sampler;
