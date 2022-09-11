@@ -52,20 +52,60 @@ public static class AssortedExtensions
         => Encoding.UTF8.GetBytes(str);
 
     /// <summary>
-    /// Takes the <see cref="Vector2"/> pointer and converts it into a span of two <see cref="float"/>s
+    /// Takes the <see cref="Vector2"/> pointer and converts it into a span of 2 <see cref="float"/>s
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe Span<float> AsSpan(Vector2* vector)
         => new(vector, 2);
 
     /// <summary>
-    /// Takes the <see cref="Vector2"/> pointer and converts it into a span of two <see cref="float"/>s
+    /// Takes the <see cref="Vector2"/> pointer and converts it into a span of 2 <see cref="float"/>s
     /// </summary>
     /// <remarks>
     /// This method must not be used when <paramref name="vector"/> is a <c>ref</c> to a <c>field</c>, as it's not pinned by the GC and may be moved; leading to potential problems such as no changes being presented in the Vector, or corrupting memory elsewhere in the program. For such cases, pin the vector using the <c>fixed</c> keyword taking its reference with the <c>&amp;</c> operator, and pass it to <see cref="AsSpan(Vector2*)"/>. <c>ref</c>s to local variables are acceptable, and intended.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe Span<float> AsSpan(this ref Vector2 vector)
+    {
+        fixed (void* ptr = &vector)
+            return new((float*)ptr, 2);
+    }
+
+    /// <summary>
+    /// Takes the <see cref="Vector3"/> pointer and converts it into a span of 3 <see cref="float"/>s
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe Span<float> AsSpan(Vector3* vector)
+        => new(vector, 2);
+
+    /// <summary>
+    /// Takes the <see cref="Vector3"/> pointer and converts it into a span of 3 <see cref="float"/>s
+    /// </summary>
+    /// <remarks>
+    /// This method must not be used when <paramref name="vector"/> is a <c>ref</c> to a <c>field</c>, as it's not pinned by the GC and may be moved; leading to potential problems such as no changes being presented in the Vector, or corrupting memory elsewhere in the program. For such cases, pin the vector using the <c>fixed</c> keyword taking its reference with the <c>&amp;</c> operator, and pass it to <see cref="AsSpan(Vector3*)"/>. <c>ref</c>s to local variables are acceptable, and intended.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe Span<float> AsSpan(this ref Vector3 vector)
+    {
+        fixed (void* ptr = &vector)
+            return new((float*)ptr, 2);
+    }
+
+    /// <summary>
+    /// Takes the <see cref="Vector4"/> pointer and converts it into a span of 4 <see cref="float"/>s
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe Span<float> AsSpan(Vector4* vector)
+        => new(vector, 2);
+
+    /// <summary>
+    /// Takes the <see cref="Vector4"/> pointer and converts it into a span of 4 <see cref="float"/>s
+    /// </summary>
+    /// <remarks>
+    /// This method must not be used when <paramref name="vector"/> is a <c>ref</c> to a <c>field</c>, as it's not pinned by the GC and may be moved; leading to potential problems such as no changes being presented in the Vector, or corrupting memory elsewhere in the program. For such cases, pin the vector using the <c>fixed</c> keyword taking its reference with the <c>&amp;</c> operator, and pass it to <see cref="AsSpan(Vector4*)"/>. <c>ref</c>s to local variables are acceptable, and intended.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe Span<float> AsSpan(this ref Vector4 vector)
     {
         fixed (void* ptr = &vector)
             return new((float*)ptr, 2);
