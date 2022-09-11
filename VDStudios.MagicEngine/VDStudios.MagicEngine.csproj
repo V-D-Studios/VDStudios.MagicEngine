@@ -48,9 +48,6 @@
 		<None Include="lib\*.txt" />
 	</ItemGroup>
 	<ItemGroup>
-	  <None Remove="Properties\ImGuiResources.resx~RF3df0b850.TMP" />
-	</ItemGroup>
-	<ItemGroup>
 	  <PackageReference Include="ImGui.NET" Version="1.87.3" />
 	  <PackageReference Include="MessagePack" Version="2.4.35" />
 	  <PackageReference Include="MessagePackAnalyzer" Version="2.4.35">
