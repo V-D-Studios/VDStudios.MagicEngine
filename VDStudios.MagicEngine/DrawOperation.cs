@@ -30,7 +30,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// </summary>
     public DrawOperation() : base("Drawing")
     {
-        ReadySemaphore = new(1, 1);
+        ReadySemaphore = new(0, 1);
     }
 
     #region Transformation

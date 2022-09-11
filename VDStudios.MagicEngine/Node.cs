@@ -21,8 +21,7 @@ public abstract class Node : NodeBase
     protected Node() : base("Game Node Tree")
     {
         DrawableSelf = this as IDrawableNode;
-        ReadySemaphore = new(1, 1);
-        ReadySemaphore.Wait();
+        ReadySemaphore = new(0, 1);
     }
 
     #endregion
