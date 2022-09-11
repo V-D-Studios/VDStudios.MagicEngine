@@ -126,7 +126,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                     null,
                     GraphicsManager.AddWindowAspectTransform
                 ),
-                new(
+                new SamplerDescription(
                     SamplerAddressMode.Clamp,
                     SamplerAddressMode.Clamp,
                     SamplerAddressMode.Clamp,
@@ -137,7 +137,8 @@ public class FloatingShapesNode : Node, IDrawableNode
                     0,
                     0,
                     SamplerBorderColor.TransparentBlack
-                )
+                ),
+                default(TextureViewDescription)
             ),
             new TextureVertexGeneratorFill()) { PreferredPriority = -2 }
         );

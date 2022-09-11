@@ -43,6 +43,36 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// <summary>
     /// Creates a new <see cref="TexturedShapeRenderer{TVertex}"/> object
     /// </summary>
+    /// <param name="imgSharpTexture">Represents an ImageSharpTexture that will create a DeviceTexture for use with this <see cref="TexturedShapeRenderer{TVertex}"/>, taking precedence for the one set in the description, if any</param>
+    /// <param name="shapes">The shapes to fill this list with</param>
+    /// <param name="description">Provides data for the configuration of this <see cref="TexturedShapeRenderer{TVertex}"/></param>
+    /// <param name="vertexGenerator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
+    public TexturedShapeRenderer(ImageSharpTexture imgSharpTexture, IEnumerable<ShapeDefinition> shapes, TexturedShapeRenderDescription description, IShapeRendererVertexGenerator<TextureVertex<TVertex>> vertexGenerator)
+        : base(shapes, description.ShapeRendererDescription, vertexGenerator)
+    {
+        TextureRendererDescription = description;
+        ArgumentNullException.ThrowIfNull(imgSharpTexture);
+        TextureFactory = imgSharpTexture.CreateDeviceTexture;
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="TexturedShapeRenderer{TVertex}"/> object
+    /// </summary>
+    /// <param name="textureFactory">Represents a method that will create a DeviceTexture for use with this <see cref="TexturedShapeRenderer{TVertex}"/>, taking precedence for the one set in the description, if any</param>
+    /// <param name="shapes">The shapes to fill this list with</param>
+    /// <param name="description">Provides data for the configuration of this <see cref="TexturedShapeRenderer{TVertex}"/></param>
+    /// <param name="vertexGenerator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
+    public TexturedShapeRenderer(TextureFactory textureFactory, IEnumerable<ShapeDefinition> shapes, TexturedShapeRenderDescription description, IShapeRendererVertexGenerator<TextureVertex<TVertex>> vertexGenerator)
+        : base(shapes, description.ShapeRendererDescription, vertexGenerator)
+    {
+        TextureRendererDescription = description;
+        ArgumentNullException.ThrowIfNull(textureFactory);
+        TextureFactory = textureFactory;
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="TexturedShapeRenderer{TVertex}"/> object
+    /// </summary>
     /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="TexturedShapeRenderer{TVertex}"/></param>
     /// <param name="vertexGenerator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
@@ -61,6 +91,7 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// </summary>
     protected TexturedShapeRenderDescription TextureRendererDescription;
     private Sampler Sampler;
+    private TextureFactory? TextureFactory;
 
     /// <summary>
     /// The texture that this <see cref="TexturedShapeRenderer{TVertex}"/> is in charge of rendering. Will become available after <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[], ResourceLayout[])"/> is called
@@ -83,7 +114,13 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
         await base.CreateResourceSets(device, builder, factory);
 
         Sampler = TextureRendererDescription.Sampler ?? factory.CreateSampler(TextureRendererDescription.SamplerDescription);
-        Texture = TextureRendererDescription.TextureView ?? factory.CreateTextureView(TextureRendererDescription.TextureViewDescription);
+        Texture = TextureRendererDescription.TextureView ??
+            (TextureFactory is TextureFactory txtf ?
+                factory.CreateTextureView(TextureRendererDescription.TextureViewDescription with
+                {
+                    Target = txtf.Invoke(device, factory)
+                }) :
+                factory.CreateTextureView(TextureRendererDescription.TextureViewDescription));
 
         var layout = builder.InsertFirst(out _);
         layout.InsertFirst(new ResourceLayoutElementDescription(
