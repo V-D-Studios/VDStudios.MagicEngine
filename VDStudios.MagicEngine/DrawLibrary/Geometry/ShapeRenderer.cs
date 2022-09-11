@@ -354,7 +354,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     protected virtual void UpdateVertices(ref ShapeDat pol, CommandList commandList, int index, IShapeRendererVertexGenerator<TVertex> gen, ref object? generatorContext)
     {
         var vc = pol.Shape.Count;
-        var vc_bytes = (uint)Unsafe.SizeOf<TVertex>() * (uint)vc;
+        var vc_bytes = DataStructuring.GetSize<TVertex, uint>((uint)vc);
 
         TVertex[]? rented = null;
         Span<TVertex> vertexBuffer = gen.QueryAllocCPUBuffer(pol.Shape, Shapes, ref generatorContext)
