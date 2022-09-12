@@ -117,7 +117,7 @@ public abstract class Node : NodeBase
     {
         if (IsReady)
             return true;
-        if (timeoutMilliseconds > 15)
+        if (timeoutMilliseconds > 25)
         {
             if (ReadySemaphore.Wait(15))
             {
@@ -130,7 +130,9 @@ public abstract class Node : NodeBase
                 ReadySemaphore.Release();
                 return true;
             }
+            return false;
         }
+
         if (await ReadySemaphore.WaitAsync(timeoutMilliseconds))
         {
             ReadySemaphore.Release();
