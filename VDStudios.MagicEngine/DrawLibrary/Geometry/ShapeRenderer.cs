@@ -516,11 +516,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         /// <summary>
         /// The buffer holding the vertex data for this shape
         /// </summary>
-        /// <summary>
-        /// The buffer holding the index data for this shape
-        /// </summary>
         /// <remarks>
-        /// This buffer will be null until <see cref="SetTriangulatedIndicesBufferSize"/> or <see cref="SetLineStripIndicesBufferSize"/> is called. This is guaranteed, by the methods of <see cref="ShapeRenderer{TVertex}"/>, to be the case before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> is called
+        /// The vertices are set first, and the indices are set right after the vertices as follows, where I: index space, V: vertex space: [VVVIIIIII]. This is because vertices actually change less often than indices
         /// </remarks>
         public DeviceBuffer Buffer = null;
 
@@ -529,8 +526,14 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         /// </summary>
         public ushort CurrentIndexCount;
 
+        /// <summary>
+        /// The offset at which vertex data starts
+        /// </summary>
         public uint VertexStart;
 
+        /// <summary>
+        /// The offset at which index data starts
+        /// </summary>
         public uint IndexStart;
 
         /// <summary>
@@ -538,10 +541,22 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         /// </summary>
         public readonly ushort LineStripIndexCount;
 
+        /// <summary>
+        /// This property is used to keep track of changes to the shape, so that it can be re-processed if needed
+        /// </summary>
         public int LastVersion { get; private set; }
 
+        /// <summary>
+        /// This property is used to keep track of changes to the shape, so that it can be re-processed if needed
+        /// </summary>
         public int LastCount { get; private set; }
 
+        /// <summary>
+        /// Sets the size of the buffer, taking into account that the indices are triangulated. Adjusts the offsets, and creates or resizes the buffer as needed.
+        /// </summary>
+        /// <remarks>
+        /// If the buffer is created and large enough, only the offsets are updated. If it's <c>null</c> or too small, it's recreated (and disposed of, if necessary)
+        /// </remarks>
         public static void SetTriangulatedIndexAndVertexBufferSize(ref ShapeDat dat, int indexCount, ResourceFactory factory)
         {
             var indexSize = DataStructuring.GetSize<ushort, uint>((uint)indexCount);
@@ -563,6 +578,12 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             dat.CurrentIndexCount = (ushort)indexCount;
         }
 
+        /// <summary>
+        /// Sets the size of the buffer, taking into account that the indices are sequential. Adjusts the offsets, and creates or resizes the buffer as needed.
+        /// </summary>
+        /// <remarks>
+        /// If the buffer is created and large enough, only the offsets are updated. If it's <c>null</c> or too small, it's recreated (and disposed of, if necessary)
+        /// </remarks>
         public static void SetLineStripIndexAndVertexBufferSize(ref ShapeDat dat, ResourceFactory factory)
         {
             var indexSize = DataStructuring.GetSize<ushort, uint>(dat.LineStripIndexCount);
@@ -584,12 +605,20 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             dat.CurrentIndexCount = dat.LineStripIndexCount;
         }
 
+        /// <summary>
+        /// Updates the shape version data cache so that it may be re-processed if needed
+        /// </summary>
         public static void UpdateLastVer(ref ShapeDat dat)
         {
             dat.LastVersion = dat.Shape.Version;
             dat.LastCount = dat.Shape.Count;
         }
 
+        /// <summary>
+        /// Instances a new ShapeDat object for <paramref name="def"/>
+        /// </summary>
+        /// <param name="def"></param>
+        /// <param name="factory"></param>
         public ShapeDat(ShapeDefinition def, ResourceFactory factory)
         {
             ArgumentNullException.ThrowIfNull(def);
@@ -601,6 +630,9 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             LastCount = 0;
         }
 
+        /// <summary>
+        /// Disposes of the resources held by this <see cref="ShapeDat"/> and marks it for removal
+        /// </summary>
         public void Dispose()
         {
             ((IDisposable)Buffer).Dispose();
