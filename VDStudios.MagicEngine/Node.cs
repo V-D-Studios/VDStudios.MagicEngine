@@ -111,32 +111,6 @@ public abstract class Node : NodeBase
     }
 
     /// <summary>
-    /// Waits until the Node has been added to the scene tree and is ready to be used
-    /// </summary>
-    public void WaitUntilReady()
-    {
-        if (IsReady)
-            return;
-        ReadySemaphore.Wait();
-        ReadySemaphore.Release();
-    }
-
-    /// <summary>
-    /// Waits until the Node has been added to the scene tree and is ready to be used
-    /// </summary>
-    public bool WaitUntilReady(int timeoutMilliseconds)
-    {
-        if (IsReady)
-            return true;
-        if (ReadySemaphore.Wait(timeoutMilliseconds))
-        {
-            ReadySemaphore.Release();
-            return true;
-        }
-        return false;
-    }
-
-    /// <summary>
     /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
     /// </summary>
     public async ValueTask<bool> WaitUntilReadyAsync(int timeoutMilliseconds)
