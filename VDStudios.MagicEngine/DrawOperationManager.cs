@@ -46,11 +46,6 @@ public class DrawOperationManager : GameObject
     /// </remarks>
     public DrawOperationList DrawOperations { get; } = new();
 
-    /// <summary>
-    /// Tells the engine whether there are <see cref="DrawOperation"/>s waiting to be registered. This will be set to <c>true</c> when a new <see cref="DrawOperation"/> is added to <see cref="DrawOperations"/>
-    /// </summary>
-    public bool HasPendingRegistrations { get; private set; }
-
     #endregion
 
     #region Public Methods
@@ -125,24 +120,6 @@ public class DrawOperationManager : GameObject
             UpdateOperationDrawParameters(parameters, dop);
     }
 
-    /// <summary>
-    /// This method will make no attempts at maintaining concurrency. The caller is responsible for waiting on <see cref="DrawOperationList.RegistrationSync"/> and releasing
-    /// </summary>
-    /// <remarks>
-    /// <see cref="HasPendingRegistrations"/> is set to false before this method returns
-    /// </remarks>
-    internal async Task RegisterDrawOperations(GraphicsManager main, IReadOnlyList<GraphicsManager> allManagers)
-    {
-        InternalLog?.Debug("Registering {count} DrawOperations", DrawOperations.RegistrationBuffer.Count);
-        foreach (var dop in DrawOperations.RegistrationBuffer)
-        {
-            InternalLog?.Verbose("Registering DrawOperation {objName}-{type}", dop.Name ?? "", dop.GetTypeName());
-            GraphicsManager manager = GraphicsManagerSelector is DrawOperationGraphicsManagerSelector selector ? selector(main, allManagers, dop, Owner, this) : main;
-            await manager.RegisterOperation(dop);
-        }
-        HasPendingRegistrations = false;
-    }
-
     private void InternalAddDrawOperation(DrawOperation operation)
     {
         InternalLog?.Debug("Adding a new DrawOperation {objName}-{type}", operation.Name ?? "", operation.GetTypeName());
@@ -156,8 +133,9 @@ public class DrawOperationManager : GameObject
             DrawOperations.RegistrationSync.Wait();
             try
             {
-                DrawOperations.RegistrationBuffer.Add(operation);
-                HasPendingRegistrations = true;
+                var manager = GraphicsManagerSelector?.Invoke(Game.MainGraphicsManager, Game.ActiveGraphicsManagers, operation, Owner, this) 
+                    ?? Game.MainGraphicsManager;
+                manager.QueueOperationRegistration(operation);
             }
             finally
             {

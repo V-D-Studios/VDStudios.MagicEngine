@@ -208,7 +208,7 @@ public abstract class NodeBase : GameObject, IDisposable
                         if (batch is not null and { Count: > 0 })
                             foreach (var child in batch)
                                 if (child.IsActive)
-                                    tasks[ind++] = InternalHandleChildUpdate(child, delta);
+                                    tasks[ind++] = InternalHandleChildUpdate(child, delta).Preserve();
                     }
             }
             for (int i = 0; i < ind; i++)

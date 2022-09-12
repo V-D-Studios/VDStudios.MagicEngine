@@ -76,7 +76,7 @@ public sealed class TemplatedNode
         {
             int i = 0;
             foreach (var child in Children)
-                buffer[i++] = child.Instance(thread, node);
+                buffer[i++] = child.Instance(thread, node).Preserve();
             while (i > 0) await buffer[--i];
         }
         finally

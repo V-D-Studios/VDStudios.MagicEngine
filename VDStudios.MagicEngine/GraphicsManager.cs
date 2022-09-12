@@ -1,5 +1,6 @@
 ﻿using SDL2.NET;
 using SDL2.NET.Input;
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
@@ -141,6 +142,8 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region DrawOperation Registration
 
+    private readonly List<DrawOperation> RegistrationBuffer = new();
+
     #region Public
 
     /// <summary>
@@ -150,19 +153,10 @@ public class GraphicsManager : GameObject, IDisposable
     /// Remember than any single <see cref="DrawOperation"/> can only be assigned to one <see cref="GraphicsManager"/>, and can only be deregistered after disposing. <see cref="DrawOperation"/>s should not be dropped, as <see cref="GraphicsManager"/>s only keep <see cref="WeakReference"/>s to them
     /// </remarks>
     /// <param name="operation">The <see cref="DrawOperation"/> that will be drawn in this <see cref="GraphicsManager"/></param>
-    internal async Task RegisterOperation(DrawOperation operation)
+    internal void QueueOperationRegistration(DrawOperation operation)
     {
-        using (await LockManagerDrawingAsync())
-        {
-            await operation.Register(this);
-            if (!DrawOperationRegistering(operation, out var reason))
-            {
-                var excp = new DrawOperationRejectedException(reason, this, operation);
-                operation.Dispose();
-                throw excp;
-            }
-            RegisteredOperations.Add(operation.Identifier, new(operation));
-        }
+        lock (RegistrationBuffer)
+            RegistrationBuffer.Add(operation);
     }
 
     #endregion
@@ -648,6 +642,40 @@ public class GraphicsManager : GameObject, IDisposable
         cl.UpdateBuffer(WindowTransformBuffer, 0, trans);
     }
 
+    private async ValueTask ProcessDrawOpRegistrationBuffer()
+    {
+        int count = RegistrationBuffer.Count;
+        DrawOperation[] regbuf;
+        lock (RegistrationBuffer)
+        {
+            if (RegistrationBuffer.Count <= 0) return;
+            regbuf = ArrayPool<DrawOperation>.Shared.Rent(count);
+            RegistrationBuffer.CopyTo(regbuf);
+            RegistrationBuffer.Clear();
+        }
+
+        try
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var operation = regbuf[i];
+                InternalLog?.Verbose("Registering DrawOperation {objName}-{type}", operation.Name ?? "", operation.GetTypeName());
+                await operation.Register(this);
+                if (!DrawOperationRegistering(operation, out var reason))
+                {
+                    var excp = new DrawOperationRejectedException(reason, this, operation);
+                    operation.Dispose();
+                    throw excp;
+                }
+                RegisteredOperations.Add(operation.Identifier, new(operation));
+            }
+        }
+        finally
+        {
+            ArrayPool<DrawOperation>.Shared.Return(regbuf);
+        }
+    }
+
     private async Task Run()
     {
         await Task.Yield();
@@ -692,6 +720,9 @@ public class GraphicsManager : GameObject, IDisposable
                     await Task.Delay(1000);
                 if (await WaitOn(winlock, condition: !IsRendering, syncWait: 500, asyncWait: 1000)) break;
             }
+
+            if (RegistrationBuffer.Count > 0)
+                await ProcessDrawOpRegistrationBuffer();
 
             try
             {

@@ -12,7 +12,6 @@ namespace VDStudios.MagicEngine;
 public sealed class DrawOperationList : IReadOnlyCollection<DrawOperation>
 {
     private readonly Dictionary<Guid, DrawOperation> Ops = new();
-    internal readonly List<DrawOperation> RegistrationBuffer = new();
     internal readonly SemaphoreSlim RegistrationSync = new(1, 1);
 
     #region Public

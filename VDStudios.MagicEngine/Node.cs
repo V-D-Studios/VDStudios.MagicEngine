@@ -678,7 +678,6 @@ public abstract class Node : NodeBase
     /// This belongs to this <see cref="Node"/>'s parent
     /// </summary>
     internal NodeDrawRegistrar? drawer;
-    private object readySemaphore;
 
     #endregion
 
@@ -727,31 +726,8 @@ public abstract class Node : NodeBase
     {
         if (DrawableSelf is not IDrawableNode ds) 
             return;
-
-        {
-            var manager = ds.DrawOperationManager;
-
-            if (manager.HasPendingRegistrations)
-            {
-                var regSync = manager.DrawOperations.RegistrationSync;
-                if (!regSync.Wait(50))
-                    await regSync.WaitAsync();
-                try
-                {
-                    if (manager.HasPendingRegistrations)
-                        await manager.RegisterDrawOperations(Game.MainGraphicsManager, Game.ActiveGraphicsManagers);
-                }
-                finally
-                {
-                    regSync.Release();
-                }
-            }
-        }
-
         if (ds.SkipDrawPropagation)
             return;
-
-#pragma warning disable CA2012 // Just like Roslyn is so kind to warn us about, this code right here has the potential to offer some nasty asynchrony bugs. Be careful here, remember ValueTasks must only ever be consumed once
 
         var pool = ArrayPool<ValueTask>.Shared;
         int toUpdate = Children.Count;
@@ -765,7 +741,7 @@ public abstract class Node : NodeBase
                 {
                     var child = Children.Get(i);
                     if (child.IsActive)
-                        tasks[ind++] = InternalHandleChildDrawRegistration(child);
+                        tasks[ind++] = InternalHandleChildDrawRegistration(child).Preserve();
                 }
             }
             for (int i = 0; i < ind; i++)
@@ -775,7 +751,6 @@ public abstract class Node : NodeBase
         {
             pool.Return(tasks, true);
         }
-#pragma warning restore CA2012
     }
 
     #endregion
