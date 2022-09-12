@@ -67,6 +67,22 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     private ResourceSet[] ResourceSets;
 
     /// <summary>
+    /// A number, between 0.0 and 1.0, defining the percentage of vertices that will be skipped for a shape
+    /// </summary>
+    public float VertexSkipFactor
+    {
+        get => __vertexSkipFactor;
+        set
+        {
+            if (__vertexSkipFactor is < .0f or > 1.01f)
+                throw new ArgumentOutOfRangeException(nameof(value), "value must be between 0.0 and 1.0");
+            __vertexSkipFactor = value; // Don't bother checking equality for floating points; and there's no need for fancy tolerance calc
+            NotifyPendingGPUUpdate();
+        }
+    }
+    private float __vertexSkipFactor = 0.0f;
+
+    /// <summary>
     /// Instantiates a new <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
     /// <param name="shapes">The shapes to fill this list with</param>
@@ -389,20 +405,34 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     protected virtual void UpdateIndices(ref ShapeDat pol, CommandList commandList)
     {
         const int MaxVertices = 21845;
+        const int MaxSize = 2048 / sizeof(ushort);
         var count = pol.Shape.Count;
         if (count >= MaxVertices)
             throw new NotSupportedException($"Triangulating indices for shapes with {MaxVertices} or more vertices is not supported! The shape in question has {count}. The ints used for indices are 16 bits wide, and switching to 32 or 64 bits is not yet supported");
 
         int indexCount = pol.LineStripIndexCount;
+        ushort[]? rented = null;
         if (count <= 3 || ShapeRendererDescription.RenderMode is PolygonRenderMode.LineStripWireframe)
         {
-            Span<ushort> indexBuffer = indexCount > 5000 ? new ushort[indexCount] : stackalloc ushort[indexCount];
-            for (int ind = 0; ind < count; ind++)
-                indexBuffer[ind] = (ushort)ind;
-            indexBuffer[count] = 0;
-            ShapeDat.SetLineStripIndexAndVertexBufferSize(ref pol, Device!.ResourceFactory);
-            commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, indexBuffer);
-            return;
+            Span<ushort> indexBuffer = indexCount > MaxSize 
+                ? (rented = ArrayPool<ushort>.Shared.Rent(indexCount)).AsSpan(0, indexCount)
+                : stackalloc ushort[indexCount];
+            indexBuffer.Clear();
+
+            try
+            {
+                for (int ind = 0; ind < count; ind++)
+                    indexBuffer[ind] = (ushort)ind;
+                indexBuffer[count] = 0;
+                ShapeDat.SetLineStripIndexAndVertexBufferSize(ref pol, Device!.ResourceFactory);
+                commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, indexBuffer);
+                return;
+            }
+            finally
+            {
+                if (rented is not null)
+                    ArrayPool<ushort>.Shared.Return(rented, true);
+            }
         }
 
         // Triangulation
@@ -424,24 +454,33 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         ushort i = count % 2 == 0 ? (ushort)0u : (ushort)1u;
         indexCount = (count - i) * 3;
 
-        Span<ushort> buffer = indexCount > 5000 ? new ushort[indexCount] : stackalloc ushort[indexCount];
+        Span<ushort> buffer = indexCount > MaxSize 
+            ? (rented = ArrayPool<ushort>.Shared.Rent(indexCount)).AsSpan(0, indexCount)
+            : stackalloc ushort[indexCount];
         int bufind = 0;
 
         ushort p0 = 0;
         ushort pHelper = 1;
         ushort pTemp;
-
-        for (; i < count; i++)
+        try
         {
-            pTemp = i;
-            buffer[bufind++] = p0;
-            buffer[bufind++] = pHelper;
-            buffer[bufind++] = pTemp;
-            pHelper = pTemp;
-        }
+            for (; i < count; i++)
+            {
+                pTemp = i;
+                buffer[bufind++] = p0;
+                buffer[bufind++] = pHelper;
+                buffer[bufind++] = pTemp;
+                pHelper = pTemp;
+            }
 
-        ShapeDat.SetTriangulatedIndexAndVertexBufferSize(ref pol, indexCount, Device!.ResourceFactory);
-        commandList.UpdateBuffer(pol.Buffer, 0, buffer);
+            ShapeDat.SetTriangulatedIndexAndVertexBufferSize(ref pol, indexCount, Device!.ResourceFactory);
+            commandList.UpdateBuffer(pol.Buffer, 0, buffer);
+        }
+        finally
+        {
+            if (rented is not null)
+                ArrayPool<ushort>.Shared.Return(rented, true);
+        }
     }
 
     /// <inheritdoc/>
