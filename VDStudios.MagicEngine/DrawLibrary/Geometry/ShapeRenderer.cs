@@ -321,8 +321,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
     protected virtual void DrawShape(TimeSpan delta, ShapeDat shape, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer)
     {
-        cl.SetVertexBuffer(0, shape.VertexBuffer);
-        cl.SetIndexBuffer(shape.IndexBuffer!, IndexFormat.UInt16);
+        cl.SetVertexBuffer(0, shape.Buffer, shape.VertexStart);
+        cl.SetIndexBuffer(shape.Buffer!, IndexFormat.UInt16, shape.IndexStart);
         cl.SetPipeline(Pipeline);
         for (uint index = 0; index < ResourceSets.Length; index++)
             cl.SetGraphicsResourceSet(index, ResourceSets[index]);
@@ -344,7 +344,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// Updates the vertices of a given shape in the renderer
     /// </summary>
     /// <remarks>
-    /// CAUTION: Only override this method if you know what you're doing! By default, this method creates a stack-allocated span of <typeparamref name="TVertex"/> instances, generates the vertices using <see cref="TVertexGenerator"/>, and submits it to <see cref="ShapeDat.VertexBuffer"/>, adjusting its size as appropriate
+    /// CAUTION: Only override this method if you know what you're doing! By default, this method creates a stack-allocated span of <typeparamref name="TVertex"/> instances, generates the vertices using <see cref="TVertexGenerator"/>, and submits it to <see cref="ShapeDat.Buffer"/>, adjusting its size as appropriate
     /// </remarks>
     /// <param name="pol">A reference to the shape's internal data context</param>
     /// <param name="commandList"></param>
@@ -366,13 +366,9 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
         try
         {
-            if (pol.VertexBuffer is null || vc_bytes > pol.VertexBuffer.SizeInBytes)  
-                ShapeDat.SetVertexBufferSize(ref pol, Device!.ResourceFactory);
-
-            gen.Generate(pol.Shape, Shapes, vertexBuffer, commandList, pol.VertexBuffer, index, out bool vertexBufferAlreadyUpdated, ref generatorContext);
-
+            gen.Generate(pol.Shape, Shapes, vertexBuffer, commandList, pol.Buffer, index, out bool vertexBufferAlreadyUpdated, ref generatorContext);
             if (!vertexBufferAlreadyUpdated)
-                commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer);
+                commandList.UpdateBuffer(pol.Buffer, pol.VertexStart, vertexBuffer);
         }
         finally
         {
@@ -404,8 +400,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             for (int ind = 0; ind < count; ind++)
                 indexBuffer[ind] = (ushort)ind;
             indexBuffer[count] = 0;
-            ShapeDat.SetLineStripIndicesBufferSize(ref pol, Device!.ResourceFactory);
-            commandList.UpdateBuffer(pol.IndexBuffer!, 0, indexBuffer);
+            ShapeDat.SetLineStripIndexAndVertexBufferSize(ref pol, Device!.ResourceFactory);
+            commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, indexBuffer);
             return;
         }
 
@@ -420,8 +416,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
         if (count is 4) // And is Convex
         {
-            ShapeDat.SetTriangulatedIndicesBufferSize(ref pol, 6, Device!.ResourceFactory);
-            commandList.UpdateBuffer(pol.IndexBuffer!, 0, stackalloc ushort[6] { 1, 0, 3, 1, 2, 3 });
+            ShapeDat.SetTriangulatedIndexAndVertexBufferSize(ref pol, 6, Device!.ResourceFactory);
+            commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, stackalloc ushort[6] { 1, 0, 3, 1, 2, 3 });
             return;
         }
 
@@ -444,8 +440,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             pHelper = pTemp;
         }
 
-        ShapeDat.SetTriangulatedIndicesBufferSize(ref pol, indexCount, Device!.ResourceFactory);
-        commandList.UpdateBuffer(pol.IndexBuffer!, 0, buffer);
+        ShapeDat.SetTriangulatedIndexAndVertexBufferSize(ref pol, indexCount, Device!.ResourceFactory);
+        commandList.UpdateBuffer(pol.Buffer, 0, buffer);
     }
 
     /// <inheritdoc/>
@@ -476,16 +472,16 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                             continue;
                         case 0:
                             var polybuffer = CollectionsMarshal.AsSpan(ShapeBufferList);
-                            if (dat.UpdateVertices)
-                                UpdateVertices(ref polybuffer[dat.Index], commandList, ind++, gen, ref genContext);
                             if (dat.UpdateIndices)
                                 UpdateIndices(ref polybuffer[dat.Index], commandList);
+                            if (dat.UpdateVertices)
+                                UpdateVertices(ref polybuffer[dat.Index], commandList, ind++, gen, ref genContext);
                             ShapeDat.UpdateLastVer(ref polybuffer[dat.Index]);
                             continue;
                         case > 0:
                             var np = new ShapeDat(_shapes[dat.Index], device.ResourceFactory);
-                            UpdateVertices(ref np, commandList, ind++, gen, ref genContext);
                             UpdateIndices(ref np, commandList);
+                            UpdateVertices(ref np, commandList, ind++, gen, ref genContext);
                             ShapeBufferList.Insert(dat.Index, np);
                             ShapeDat.UpdateLastVer(ref np);
                             continue;
@@ -520,53 +516,72 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         /// <summary>
         /// The buffer holding the vertex data for this shape
         /// </summary>
-        public DeviceBuffer VertexBuffer = null;
-
         /// <summary>
         /// The buffer holding the index data for this shape
         /// </summary>
         /// <remarks>
         /// This buffer will be null until <see cref="SetTriangulatedIndicesBufferSize"/> or <see cref="SetLineStripIndicesBufferSize"/> is called. This is guaranteed, by the methods of <see cref="ShapeRenderer{TVertex}"/>, to be the case before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> is called
         /// </remarks>
-        public DeviceBuffer? IndexBuffer = null;
+        public DeviceBuffer Buffer = null;
 
         /// <summary>
         /// The actual current count of indices for this shape
         /// </summary>
         public ushort CurrentIndexCount;
 
+        public uint VertexStart;
+
+        public uint IndexStart;
+
         /// <summary>
         /// The count of indices in this Polygon
         /// </summary>
         public readonly ushort LineStripIndexCount;
 
-        public int LastVersion;
-        public int LastCount;
+        public int LastVersion { get; private set; }
 
-        public static void SetVertexBufferSize(ref ShapeDat dat, ResourceFactory factory)
-        {
-            dat.VertexBuffer = factory.CreateBuffer(new(
-                (uint)(Unsafe.SizeOf<TVertex>() * dat.Shape.Count),
-                BufferUsage.VertexBuffer
-            ));
-        }
+        public int LastCount { get; private set; }
 
-        public static void SetTriangulatedIndicesBufferSize(ref ShapeDat dat, int indexCount, ResourceFactory factory)
+        public static void SetTriangulatedIndexAndVertexBufferSize(ref ShapeDat dat, int indexCount, ResourceFactory factory)
         {
-            dat.IndexBuffer = factory.CreateBuffer(new(
-                sizeof(ushort) * (uint)indexCount,
-                BufferUsage.IndexBuffer
-            ));
+            var indexSize = DataStructuring.GetSize<ushort, uint>((uint)indexCount);
+            var vertexSize = DataStructuring.GetSize<TVertex, uint>((uint)dat.Shape.Count);
+            var size = vertexSize + indexSize;
+            
+            dat.VertexStart = indexSize;
+            dat.IndexStart = 0;
+
+            if (dat.Buffer is null || size > dat.Buffer.SizeInBytes)
+            {
+                dat.Buffer?.Dispose();
+                dat.Buffer = factory.CreateBuffer(new(
+                    size,
+                    BufferUsage.VertexBuffer | BufferUsage.IndexBuffer
+                ));
+            }
+
             dat.CurrentIndexCount = (ushort)indexCount;
         }
 
-        public static void SetLineStripIndicesBufferSize(ref ShapeDat dat, ResourceFactory factory)
+        public static void SetLineStripIndexAndVertexBufferSize(ref ShapeDat dat, ResourceFactory factory)
         {
-            dat.IndexBuffer = factory.CreateBuffer(new(
-                sizeof(ushort) * (uint)dat.LineStripIndexCount,
-                BufferUsage.IndexBuffer
-            ));
-            dat.CurrentIndexCount = (ushort)dat.LineStripIndexCount;
+            var indexSize = DataStructuring.GetSize<ushort, uint>(dat.LineStripIndexCount);
+            var vertexSize = DataStructuring.GetSize<TVertex, uint>((uint)dat.Shape.Count);
+            var size = vertexSize + indexSize;
+
+            dat.VertexStart = indexSize;
+            dat.IndexStart = 0;
+
+            if (dat.Buffer is null || size > dat.Buffer.SizeInBytes)
+            {
+                dat.Buffer?.Dispose();
+                dat.Buffer = factory.CreateBuffer(new(
+                    size,
+                    BufferUsage.VertexBuffer | BufferUsage.IndexBuffer
+                ));
+            }
+
+            dat.CurrentIndexCount = dat.LineStripIndexCount;
         }
 
         public static void UpdateLastVer(ref ShapeDat dat)
@@ -588,8 +603,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
         public void Dispose()
         {
-            ((IDisposable)VertexBuffer).Dispose();
-            ((IDisposable)IndexBuffer).Dispose();
+            ((IDisposable)Buffer).Dispose();
             remove = true;
         }
     }
