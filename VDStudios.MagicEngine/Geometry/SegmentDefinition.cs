@@ -11,7 +11,7 @@ namespace VDStudios.MagicEngine.Geometry;
 /// <summary>
 /// Represents the definition for a segment that has a point A, a point B and a width
 /// </summary>
-public class SegmentDefinition : ShapeDefinition
+public class SegmentDefinition : ShapeDefinition2D
 {
     private readonly Vector2[] ___vertices = new Vector2[4];
     private bool ___regenRequired;

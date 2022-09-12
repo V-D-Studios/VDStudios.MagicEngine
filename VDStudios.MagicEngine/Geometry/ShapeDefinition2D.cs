@@ -7,7 +7,7 @@ namespace VDStudios.MagicEngine.Geometry;
 /// <summary>
 /// Represents a the definition of an arbitrary shape
 /// </summary>
-public abstract class ShapeDefinition : IReadOnlyList<Vector2>
+public abstract class ShapeDefinition2D : IReadOnlyList<Vector2>
 {
     /// <summary>
     /// Used for concurrency purposes, and to query for changes
@@ -23,7 +23,7 @@ public abstract class ShapeDefinition : IReadOnlyList<Vector2>
     /// Instances a new object of type ShapeDefinition
     /// </summary>
     /// <param name="isConvex"></param>
-    public ShapeDefinition(bool isConvex)
+    public ShapeDefinition2D(bool isConvex)
     {
         IsConvex = isConvex;
     }

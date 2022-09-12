@@ -11,10 +11,10 @@ namespace VDStudios.MagicEngine.DrawLibrary;
 public class TextureVertexGeneratorFill : IShapeRendererVertexGenerator<TextureVertex<Vector2>> 
 {
     /// <inheritdoc/>
-    public void Start(ShapeRenderer<TextureVertex<Vector2>> renderer, IEnumerable<ShapeDefinition> allShapes, int regenCount, ref object? context) { }
+    public void Start(ShapeRenderer<TextureVertex<Vector2>> renderer, IEnumerable<ShapeDefinition2D> allShapes, int regenCount, ref object? context) { }
 
     /// <inheritdoc/>
-    public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<TextureVertex<Vector2>> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, out bool useDeviceBuffer, ref object? context)
+    public void Generate(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<TextureVertex<Vector2>> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, out bool useDeviceBuffer, ref object? context)
     {
         Vector2 distant = default;
         for (int i = 0; i < vertices.Length; i++)

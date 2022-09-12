@@ -26,7 +26,7 @@ public class FloatingShapesNode : Node, IDrawableNode
             new(.2f, .2f, 1f, 1f),
         };
 
-        private static ColorVertex Generate(int index, Vector2 shapeVertex, ShapeDefinition shape)
+        private static ColorVertex Generate(int index, Vector2 shapeVertex, ShapeDefinition2D shape)
         {
             if (shape.Count is 3)
                 goto Preset;
@@ -45,10 +45,10 @@ public class FloatingShapesNode : Node, IDrawableNode
         }
 
         /// <inheritdoc/>
-        public void Start(ShapeRenderer<ColorVertex> renderer, IEnumerable<ShapeDefinition> allShapes, int regenCount, ref object? context) { }
+        public void Start(ShapeRenderer<ColorVertex> renderer, IEnumerable<ShapeDefinition2D> allShapes, int regenCount, ref object? context) { }
 
         /// <inheritdoc/>
-        public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<ColorVertex> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, out bool useDeviceBuffer, ref object? context)
+        public void Generate(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<ColorVertex> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, out bool useDeviceBuffer, ref object? context)
         {
             for (int i = 0; i < vertices.Length; i++)
                 vertices[i] = Generate(i, shape[i], shape);
@@ -102,9 +102,10 @@ public class FloatingShapesNode : Node, IDrawableNode
 
         var robstrm = new MemoryStream(Assets.boundary_test);
         var img = new ImageSharpTexture(robstrm);
+        robstrm.Dispose();
         TexturedRenderer = DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
             img,
-            new ShapeDefinition[]
+            new ShapeDefinition2D[]
             {
                 texturedRect,
                 segment
@@ -144,7 +145,7 @@ public class FloatingShapesNode : Node, IDrawableNode
         );
 
         DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(
-            new ShapeDefinition[]
+            new ShapeDefinition2D[]
             {
                 new PolygonDefinition(triangle, true) { Name = "Triangle" },
                 hexagon,

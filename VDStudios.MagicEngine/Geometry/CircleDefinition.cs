@@ -5,7 +5,7 @@ namespace VDStudios.MagicEngine.Geometry;
 /// <summary>
 /// Represents the definition of a single circle
 /// </summary>
-public class CircleDefinition : ShapeDefinition
+public class CircleDefinition : ShapeDefinition2D
 {
     private Vector2[] ___vertexBuffer = Array.Empty<Vector2>();
     private bool ___regenRequired = true;

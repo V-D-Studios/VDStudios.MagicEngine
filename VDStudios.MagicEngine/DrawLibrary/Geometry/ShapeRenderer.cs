@@ -20,7 +20,7 @@ public class ShapeRenderer : ShapeRenderer<Vector2>
     /// </summary>
     /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="ShapeRenderer"/></param>
-    public ShapeRenderer(IEnumerable<ShapeDefinition> shapes, ShapeRendererDescription description)
+    public ShapeRenderer(IEnumerable<ShapeDefinition2D> shapes, ShapeRendererDescription description)
         : base(shapes, description, ShapeVertexGenerator.Default)
     { }
 }
@@ -28,12 +28,12 @@ public class ShapeRenderer : ShapeRenderer<Vector2>
 /// <summary>
 /// Represents an operation to draw a list of 2D shapes
 /// </summary>
-public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition> where TVertex : unmanaged
+public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition2D> where TVertex : unmanaged
 {
     /// <summary>
     /// This list is always updated instantaneously, and represents the real-time state of the renderer before it's properly updated for the next draw sequence
     /// </summary>
-    private readonly List<ShapeDefinition> _shapes;
+    private readonly List<ShapeDefinition2D> _shapes;
 
     /// <summary>
     /// This enumerable is always updated instantaneously, and represents the real-time state of the renderer before it's properly updated for the next draw sequence
@@ -41,7 +41,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <remarks>
     /// Don't mutate this property -- Use <see cref="ShapeRenderer{TVertex}"/>'s methods instead. This property is meant exclusively to be passed to a <see cref="IShapeRendererVertexGenerator{TVertex}"/>
     /// </remarks>
-    protected IEnumerable<ShapeDefinition> Shapes => _shapes;
+    protected IEnumerable<ShapeDefinition2D> Shapes => _shapes;
     
     /// <summary>
     /// The Vertex Generator for this <see cref="ShapeRenderer{TVertex}"/>
@@ -88,7 +88,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="ShapeRenderer{TVertex}"/></param>
     /// <param name="generator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
-    public ShapeRenderer(IEnumerable<ShapeDefinition> shapes, ShapeRendererDescription description, IShapeRendererVertexGenerator<TVertex> generator)
+    public ShapeRenderer(IEnumerable<ShapeDefinition2D> shapes, ShapeRendererDescription description, IShapeRendererVertexGenerator<TVertex> generator)
     {
         ShapeRendererDescription = description;
         _shapes = new(shapes);
@@ -105,20 +105,20 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     private readonly Queue<UpdateDat> IndicesToUpdate = new();
 
     /// <inheritdoc/>
-    public int IndexOf(ShapeDefinition item)
+    public int IndexOf(ShapeDefinition2D item)
     {
         lock (_shapes)
         {
-            return ((IList<ShapeDefinition>)_shapes).IndexOf(item);
+            return ((IList<ShapeDefinition2D>)_shapes).IndexOf(item);
         }
     }
 
     /// <inheritdoc/>
-    public void Insert(int index, ShapeDefinition item)
+    public void Insert(int index, ShapeDefinition2D item)
     {
         lock (_shapes)
         {
-            ((IList<ShapeDefinition>)_shapes).Insert(index, item);
+            ((IList<ShapeDefinition2D>)_shapes).Insert(index, item);
             IndicesToUpdate.Enqueue(new(index, true, true, 1));
             NotifyPendingGPUUpdate();
         }
@@ -129,20 +129,20 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     {
         lock (_shapes)
         {
-            ((IList<ShapeDefinition>)_shapes).RemoveAt(index);
+            ((IList<ShapeDefinition2D>)_shapes).RemoveAt(index);
             IndicesToUpdate.Enqueue(new(index, false, false, -1));
             NotifyPendingGPUUpdate();
         }
     }
 
     /// <inheritdoc/>
-    public ShapeDefinition this[int index]
+    public ShapeDefinition2D this[int index]
     {
         get
         {
             lock (_shapes)
             {
-                return ((IList<ShapeDefinition>)_shapes)[index];
+                return ((IList<ShapeDefinition2D>)_shapes)[index];
             }
         }
 
@@ -150,7 +150,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         {
             lock (_shapes)
             {
-                ((IList<ShapeDefinition>)_shapes)[index] = value;
+                ((IList<ShapeDefinition2D>)_shapes)[index] = value;
                 IndicesToUpdate.Enqueue(new(index, true, true, 1));
                 NotifyPendingGPUUpdate();
             }
@@ -158,12 +158,12 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     }
 
     /// <inheritdoc/>
-    public void Add(ShapeDefinition item)
+    public void Add(ShapeDefinition2D item)
     {
         lock (_shapes)
         {
             IndicesToUpdate.Enqueue(new(_shapes.Count - 1, true, true, 1));
-            ((ICollection<ShapeDefinition>)_shapes).Add(item);
+            ((ICollection<ShapeDefinition2D>)_shapes).Add(item);
             NotifyPendingGPUUpdate();
         }
     }
@@ -176,25 +176,25 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             NotifyPendingGPUUpdate();
             for (int i = 0; i < _shapes.Count; i++)
                 IndicesToUpdate.Enqueue(new(i, false, false, -1));
-            ((ICollection<ShapeDefinition>)_shapes).Clear();
+            ((ICollection<ShapeDefinition2D>)_shapes).Clear();
         }
     }
 
     /// <inheritdoc/>
-    public bool Contains(ShapeDefinition item)
+    public bool Contains(ShapeDefinition2D item)
     {
         lock (_shapes)
         {
-            return ((ICollection<ShapeDefinition>)_shapes).Contains(item);
+            return ((ICollection<ShapeDefinition2D>)_shapes).Contains(item);
         }
     }
 
     /// <inheritdoc/>
-    public void CopyTo(ShapeDefinition[] array, int arrayIndex)
+    public void CopyTo(ShapeDefinition2D[] array, int arrayIndex)
     {
         lock (_shapes)
         {
-            ((ICollection<ShapeDefinition>)_shapes).CopyTo(array, arrayIndex);
+            ((ICollection<ShapeDefinition2D>)_shapes).CopyTo(array, arrayIndex);
         }
     }
 
@@ -215,12 +215,12 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     }
 
     /// <inheritdoc/>
-    public int Count => ((ICollection<ShapeDefinition>)_shapes).Count;
+    public int Count => ((ICollection<ShapeDefinition2D>)_shapes).Count;
 
     /// <inheritdoc/>
-    public IEnumerator<ShapeDefinition> GetEnumerator()
+    public IEnumerator<ShapeDefinition2D> GetEnumerator()
     {
-        return ((IEnumerable<ShapeDefinition>)_shapes).GetEnumerator();
+        return ((IEnumerable<ShapeDefinition2D>)_shapes).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -550,7 +550,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         /// <summary>
         /// The shape in question
         /// </summary>
-        public readonly ShapeDefinition Shape;
+        public readonly ShapeDefinition2D Shape;
 
         /// <summary>
         /// The buffer holding the vertex data for this shape
@@ -658,7 +658,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         /// </summary>
         /// <param name="def"></param>
         /// <param name="factory"></param>
-        public ShapeDat(ShapeDefinition def, ResourceFactory factory)
+        public ShapeDat(ShapeDefinition2D def, ResourceFactory factory)
         {
             ArgumentNullException.ThrowIfNull(def);
             
