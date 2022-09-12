@@ -335,7 +335,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     /// <param name="cl">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
     /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
-    protected virtual void DrawShape(TimeSpan delta, ShapeDat shape, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer)
+    protected virtual void DrawShape(TimeSpan delta, in ShapeDat shape, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer)
     {
         cl.SetVertexBuffer(0, shape.Buffer, shape.VertexStart);
         cl.SetIndexBuffer(shape.Buffer!, IndexFormat.UInt16, shape.IndexStart);
@@ -350,9 +350,9 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     {
         QueryForChange();
         cl.SetFramebuffer(mainBuffer);
-        foreach (var pd in ShapeBufferList)
-            DrawShape(delta, pd, cl, device, mainBuffer);
-
+        var sbl = CollectionsMarshal.AsSpan(ShapeBufferList);
+        for (int i = 0; i < sbl.Length; i++)
+            DrawShape(delta, in sbl[i], cl, device, mainBuffer);
         return ValueTask.CompletedTask;
     }
 
