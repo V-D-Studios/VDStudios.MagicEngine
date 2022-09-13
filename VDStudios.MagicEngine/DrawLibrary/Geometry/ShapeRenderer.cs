@@ -596,11 +596,12 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         /// <remarks>
         /// If the buffer is created and large enough, only the offsets are updated. If it's <c>null</c> or too small, it's recreated (and disposed of, if necessary)
         /// </remarks>
-        public static void SetTriangulatedIndexAndVertexBufferSize(ref ShapeDat dat, int indexCount, ResourceFactory factory)
+        public static bool SetTriangulatedIndexAndVertexBufferSize(ref ShapeDat dat, int indexCount, ResourceFactory factory)
         {
             var indexSize = DataStructuring.GetSize<ushort, uint>((uint)indexCount);
             var vertexSize = DataStructuring.GetSize<TVertex, uint>((uint)dat.Shape.Count);
             var size = vertexSize + indexSize;
+            var resize = false;
             
             dat.VertexStart = indexSize;
             dat.IndexStart = 0;
@@ -612,9 +613,11 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                     size,
                     BufferUsage.VertexBuffer | BufferUsage.IndexBuffer
                 ));
+                resize = true;
             }
 
             dat.CurrentIndexCount = (ushort)indexCount;
+            return resize;
         }
 
         /// <summary>
@@ -623,11 +626,12 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         /// <remarks>
         /// If the buffer is created and large enough, only the offsets are updated. If it's <c>null</c> or too small, it's recreated (and disposed of, if necessary)
         /// </remarks>
-        public static void SetLineStripIndexAndVertexBufferSize(ref ShapeDat dat, ResourceFactory factory)
+        public static bool SetLineStripIndexAndVertexBufferSize(ref ShapeDat dat, ResourceFactory factory)
         {
             var indexSize = DataStructuring.GetSize<ushort, uint>(dat.LineStripIndexCount);
             var vertexSize = DataStructuring.GetSize<TVertex, uint>((uint)dat.Shape.Count);
             var size = vertexSize + indexSize;
+            var resized = false;
 
             dat.VertexStart = indexSize;
             dat.IndexStart = 0;
@@ -639,9 +643,11 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                     size,
                     BufferUsage.VertexBuffer | BufferUsage.IndexBuffer
                 ));
+                resized = true;
             }
 
             dat.CurrentIndexCount = dat.LineStripIndexCount;
+            return resized;
         }
 
         /// <summary>

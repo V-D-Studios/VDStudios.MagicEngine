@@ -80,6 +80,8 @@ public class FloatingShapesNode : Node, IDrawableNode
 
         segment = new(new(.2f, .3f), new(-.4f, -.1f), 10f);
 
+        var elipse = new ElipseDefinition(new(-.3f, 0f), .2f, .5f, 30);
+
         var watch = new Watch(viewLoggers: new() { ("Force segment update", () => { segment.ForceUpdate(); return true; }) });
         Game.MainGraphicsManager.AddElement(watch);
 
@@ -93,7 +95,7 @@ public class FloatingShapesNode : Node, IDrawableNode
             new(.15f - .5f, -.15f - .5f)
         };
         DrawOperationManager = new DrawOperationManager(this);
-
+        
         var circ = PolygonDefinition.Circle(new(-.2f, .15f), .3f, 5);
         circ.Name = "Circle";
 
@@ -107,8 +109,7 @@ public class FloatingShapesNode : Node, IDrawableNode
             img,
             new ShapeDefinition2D[]
             {
-                texturedRect,
-                segment
+                texturedRect
             },
             new(
                 new(
@@ -147,11 +148,12 @@ public class FloatingShapesNode : Node, IDrawableNode
         DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(
             new ShapeDefinition2D[]
             {
-                new PolygonDefinition(triangle, true) { Name = "Triangle" },
                 hexagon,
                 new PolygonDefinition(rectangle, true) { Name = "Rectangle" },
                 circ,
-                circle
+                new PolygonDefinition(triangle, true) { Name = "Triangle" },
+                circle,
+                elipse
             }, 
             new(
                 BlendStateDescription.SingleAlphaBlend,
@@ -160,7 +162,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                 FrontFace.Clockwise,
                 true,
                 false,
-                PolygonRenderMode.TriangulatedFill,
+                PolygonRenderMode.TriangulatedWireframe,
                 new VertexLayoutDescription(
                     new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
                     new VertexElementDescription("Color", VertexElementFormat.Float4, VertexElementSemantic.TextureCoordinate)
