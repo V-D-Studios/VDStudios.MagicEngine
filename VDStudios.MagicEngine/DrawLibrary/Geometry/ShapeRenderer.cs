@@ -408,7 +408,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         const int MaxSize = 2048 / sizeof(ushort);
         var count = pol.Shape.Count;
         if (count >= MaxVertices)
-            throw new NotSupportedException($"Triangulating indices for shapes with {MaxVertices} or more vertices is not supported! The shape in question has {count}. The ints used for indices are 16 bits wide, and switching to 32 or 64 bits is not yet supported");
+            throw new NotSupportedException($"Triangulating indices for shapes with {MaxVertices} or more vertices is not supported! The shape in question has {count}. The ints used for indices are 16 bits wide, and switching to 32 bits is not supported yet");
 
         int indexCount = pol.LineStripIndexCount;
         ushort[]? rented = null;
