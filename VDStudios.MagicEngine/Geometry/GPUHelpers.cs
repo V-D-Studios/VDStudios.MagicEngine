@@ -77,7 +77,7 @@ public static class GPUHelpers
     {
         for (TInt ind = TInt.Zero; ind < count; ind++)
             indexBuffer[int.CreateSaturating(ind)] = TInt.Clamp(ind, TInt.Zero, count);
-        indexBuffer[int.CreateSaturating(count - TInt.One)] = TInt.Zero;
+        indexBuffer[int.CreateSaturating(count)] = TInt.Zero;
         return;
     }
 }
