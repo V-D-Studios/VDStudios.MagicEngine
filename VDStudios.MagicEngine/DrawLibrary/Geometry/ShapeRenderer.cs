@@ -343,7 +343,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         cl.SetPipeline(Pipeline);
         for (uint index = 0; index < ResourceSets.Length; index++)
             cl.SetGraphicsResourceSet(index, ResourceSets[index]);
-        cl.DrawIndexed(shape.CurrentIndexCount, 1, 0, 0, 0);
+        cl.DrawIndexed(shape.IndexCount, 1, 0, 0, 0);
     }
 
     /// <inheritdoc/>
@@ -402,6 +402,9 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
     #region Index Data
 
+    /// <summary>
+    /// Generates and writes triangulated indices for a convex polygon into the buffer
+    /// </summary>
     protected virtual void WriteConvexTriangulatedIndices(ref ShapeDat pol, CommandList commandList)
     {
         // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single variable (count).
@@ -411,7 +414,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
         if (count is 4) // And is Convex
         {
-            ShapeDat.SetTriangulatedIndexAndVertexBufferSize(ref pol, 6, 6, Device!.ResourceFactory);
+            if (ShapeDat.ResizeBuffer(ref pol, 6, 6, Device!.ResourceFactory))
+                IndicesToUpdate.Enqueue(new(pol.ShapeIndex, true, false, 0));
             commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, stackalloc ushort[6]
             {
                 1,
@@ -434,7 +438,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         try
         {
             GPUHelpers.GenerateConvexTriangulatedIndices((ushort)count, buffer, i);
-            ShapeDat.SetTriangulatedIndexAndVertexBufferSize(ref pol, indexCount, indexCount, Device!.ResourceFactory);
+            if (ShapeDat.ResizeBuffer(ref pol, indexCount, indexCount, Device!.ResourceFactory))
+                IndicesToUpdate.Enqueue(new(pol.ShapeIndex, true, false, 0));
             commandList.UpdateBuffer(pol.Buffer, pol.IndexStart, buffer);
         }
         finally
@@ -444,6 +449,9 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         }
     }
 
+    /// <summary>
+    /// Generates and writes line strip indices for a polygon into the buffer
+    /// </summary>
     protected virtual void WriteLineStripIndices(ref ShapeDat pol, CommandList commandList)
     {
         int count = pol.Shape.Count;
@@ -457,7 +465,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         try
         {
             GPUHelpers.GenerateLineStripIndices((ushort)count, indexBuffer);
-            ShapeDat.SetLineStripIndexAndVertexBufferSize(ref pol, indexCount, Device!.ResourceFactory);
+            if (ShapeDat.ResizeBuffer(ref pol, indexCount, indexCount, Device!.ResourceFactory))
+                IndicesToUpdate.Enqueue(new(pol.ShapeIndex, true, false, 0));
             commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, indexBuffer);
         }
         finally
@@ -526,7 +535,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                             ShapeDat.UpdateLastVer(ref polybuffer[dat.Index]);
                             continue;
                         case > 0:
-                            var np = new ShapeDat(_shapes[dat.Index], device.ResourceFactory);
+                            var np = new ShapeDat(_shapes[dat.Index], dat.Index, device.ResourceFactory);
                             UpdateIndices(ref np, commandList);
                             UpdateVertices(ref np, commandList, ind++, gen, ref genContext);
                             ShapeBufferList.Insert(dat.Index, np);
@@ -569,11 +578,6 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         public DeviceBuffer Buffer = null;
 
         /// <summary>
-        /// The actual current count of indices for this shape
-        /// </summary>
-        public ushort CurrentIndexCount;
-
-        /// <summary>
         /// The offset at which vertex data starts
         /// </summary>
         public uint VertexStart;
@@ -584,9 +588,9 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         public uint IndexStart;
 
         /// <summary>
-        /// The count of indices in this Polygon
+        /// The amount of indices in the buffer
         /// </summary>
-        public readonly ushort LineStripIndexCount;
+        public uint IndexCount;
 
         /// <summary>
         /// This property is used to keep track of changes to the shape, so that it can be re-processed if needed
@@ -599,12 +603,17 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         public int LastCount { get; private set; }
 
         /// <summary>
+        /// The index of the shape represented by this <see cref="ShapeDat"/> in the renderer that owns it
+        /// </summary>
+        public readonly int ShapeIndex;
+
+        /// <summary>
         /// Sets the size of the buffer, taking into account that the indices are triangulated. Adjusts the offsets, and creates or resizes the buffer as needed.
         /// </summary>
         /// <remarks>
         /// If the buffer is created and large enough, only the offsets are updated. If it's <c>null</c> or too small, it's recreated (and disposed of, if necessary)
         /// </remarks>
-        public static bool SetTriangulatedIndexAndVertexBufferSize(ref ShapeDat dat, int indexCount, int indexSpace, ResourceFactory factory)
+        public static bool ResizeBuffer(ref ShapeDat dat, int indexCount, int indexSpace, ResourceFactory factory)
         {
             var indexSize = DataStructuring.GetSize<ushort, uint>((uint)indexSpace);
             var vertexSize = DataStructuring.GetSize<TVertex, uint>((uint)dat.Shape.Count);
@@ -624,38 +633,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                 resize = true;
             }
 
-            dat.CurrentIndexCount = (ushort)indexCount;
+            dat.IndexCount = (ushort)indexCount;
             return resize;
-        }
-
-        /// <summary>
-        /// Sets the size of the buffer, taking into account that the indices are sequential. Adjusts the offsets, and creates or resizes the buffer as needed.
-        /// </summary>
-        /// <remarks>
-        /// If the buffer is created and large enough, only the offsets are updated. If it's <c>null</c> or too small, it's recreated (and disposed of, if necessary)
-        /// </remarks>
-        public static bool SetLineStripIndexAndVertexBufferSize(ref ShapeDat dat, int indexCount, ResourceFactory factory)
-        {
-            var indexSize = DataStructuring.GetSize<ushort, uint>(dat.LineStripIndexCount);
-            var vertexSize = DataStructuring.GetSize<TVertex, uint>((uint)dat.Shape.Count);
-            var size = vertexSize + indexSize;
-            var resized = false;
-
-            dat.VertexStart = indexSize;
-            dat.IndexStart = 0;
-
-            if (dat.Buffer is null || size > dat.Buffer.SizeInBytes)
-            {
-                dat.Buffer?.Dispose();
-                dat.Buffer = factory.CreateBuffer(new(
-                    size,
-                    BufferUsage.VertexBuffer | BufferUsage.IndexBuffer
-                ));
-                resized = true;
-            }
-
-            dat.CurrentIndexCount = (ushort)indexCount;
-            return resized;
         }
 
         /// <summary>
@@ -672,12 +651,13 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         /// </summary>
         /// <param name="def"></param>
         /// <param name="factory"></param>
-        public ShapeDat(ShapeDefinition2D def, ResourceFactory factory)
+        /// <param name="shapeIndex"></param>
+        public ShapeDat(ShapeDefinition2D def, int shapeIndex, ResourceFactory factory)
         {
             ArgumentNullException.ThrowIfNull(def);
             
-            LineStripIndexCount = (ushort)(def.Count + 1);
-            CurrentIndexCount = 0;
+            IndexCount = 0;
+            ShapeIndex = shapeIndex;
             Shape = def;
             LastVersion = 0;
             LastCount = 0;
