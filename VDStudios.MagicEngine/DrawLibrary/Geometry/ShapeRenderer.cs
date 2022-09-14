@@ -76,7 +76,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         {
             if (__vertexSkipFactor is < .0f or > 1.01f)
                 throw new ArgumentOutOfRangeException(nameof(value), "value must be between 0.0 and 1.0");
-            __vertexSkipFactor = value; // Don't bother checking equality for floating points; and there's no need for fancy tolerance calc
+            __vertexSkipFactor = float.Clamp(value, 0, 1); // Don't bother checking equality for floating points; and there's no need for fancy tolerance calc
             NotifyPendingGPUUpdate();
         }
     }
@@ -410,8 +410,11 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         if (count >= MaxVertices)
             throw new NotSupportedException($"Triangulating indices for shapes with {MaxVertices} or more vertices is not supported! The shape in question has {count}. The ints used for indices are 16 bits wide, and switching to 32 bits is not supported yet");
 
-        int indexCount = pol.LineStripIndexCount;
+        int indexSpace = pol.LineStripIndexCount;
+        int indexCount = (int)(indexSpace * (1f - __vertexSkipFactor));
+        int indexSkip = count /  indexCount;
         ushort[]? rented = null;
+
         if (count <= 3 || ShapeRendererDescription.RenderMode is PolygonRenderMode.LineStripWireframe)
         {
             Span<ushort> indexBuffer = indexCount > MaxSize 
@@ -421,10 +424,10 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
             try
             {
-                for (int ind = 0; ind < count; ind++)
-                    indexBuffer[ind] = (ushort)ind;
-                indexBuffer[count] = 0;
-                ShapeDat.SetLineStripIndexAndVertexBufferSize(ref pol, Device!.ResourceFactory);
+                for (int ind = 0; ind < indexCount; ind++)
+                    indexBuffer[ind] = ushort.Clamp((ushort)ind, 0, (ushort)count);
+                indexBuffer[indexCount] = 0;
+                ShapeDat.SetLineStripIndexAndVertexBufferSize(ref pol, indexCount, Device!.ResourceFactory);
                 commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, indexBuffer);
                 return;
             }
@@ -444,15 +447,26 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         if (pol.Shape.IsConvex is false)
             throw new InvalidOperationException($"Triangulation of Concave Polygons is not supported yet");
 
-        if (count is 4) // And is Convex
+        if (indexCount is 4) // And is Convex
         {
-            ShapeDat.SetTriangulatedIndexAndVertexBufferSize(ref pol, 6, Device!.ResourceFactory);
-            commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, stackalloc ushort[6] { 1, 0, 3, 1, 2, 3 });
+            indexSkip = count / 6;
+            ShapeDat.SetTriangulatedIndexAndVertexBufferSize(ref pol, 6, 6, Device!.ResourceFactory);
+            commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, stackalloc ushort[6] 
+            { 
+                (ushort)(1 * indexSkip), 
+                0,
+                ushort.Min((ushort)(3 * indexSkip), (ushort)(count - 1)), 
+                (ushort)indexSkip,
+                (ushort)(2 * indexSkip), 
+                (ushort)(3 * indexSkip)
+            });
             return;
         }
 
         ushort i = count % 2 == 0 ? (ushort)0u : (ushort)1u;
-        indexCount = (count - i) * 3;
+        indexSpace = (count - i) * 3;
+        indexCount = (int)(indexSpace * (1f - __vertexSkipFactor));
+        indexSkip = count / indexCount;
 
         Span<ushort> buffer = indexCount > MaxSize 
             ? (rented = ArrayPool<ushort>.Shared.Rent(indexCount)).AsSpan(0, indexCount)
@@ -596,9 +610,9 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         /// <remarks>
         /// If the buffer is created and large enough, only the offsets are updated. If it's <c>null</c> or too small, it's recreated (and disposed of, if necessary)
         /// </remarks>
-        public static bool SetTriangulatedIndexAndVertexBufferSize(ref ShapeDat dat, int indexCount, ResourceFactory factory)
+        public static bool SetTriangulatedIndexAndVertexBufferSize(ref ShapeDat dat, int indexCount, int indexSpace, ResourceFactory factory)
         {
-            var indexSize = DataStructuring.GetSize<ushort, uint>((uint)indexCount);
+            var indexSize = DataStructuring.GetSize<ushort, uint>((uint)indexSpace);
             var vertexSize = DataStructuring.GetSize<TVertex, uint>((uint)dat.Shape.Count);
             var size = vertexSize + indexSize;
             var resize = false;
@@ -626,7 +640,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         /// <remarks>
         /// If the buffer is created and large enough, only the offsets are updated. If it's <c>null</c> or too small, it's recreated (and disposed of, if necessary)
         /// </remarks>
-        public static bool SetLineStripIndexAndVertexBufferSize(ref ShapeDat dat, ResourceFactory factory)
+        public static bool SetLineStripIndexAndVertexBufferSize(ref ShapeDat dat, int indexCount, ResourceFactory factory)
         {
             var indexSize = DataStructuring.GetSize<ushort, uint>(dat.LineStripIndexCount);
             var vertexSize = DataStructuring.GetSize<TVertex, uint>((uint)dat.Shape.Count);
@@ -646,7 +660,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                 resized = true;
             }
 
-            dat.CurrentIndexCount = dat.LineStripIndexCount;
+            dat.CurrentIndexCount = (ushort)indexCount;
             return resized;
         }
 
