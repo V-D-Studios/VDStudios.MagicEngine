@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using VDStudios.MagicEngine.Geometry;
 using Veldrid;
+using Veldrid.MetalBindings;
 using Veldrid.SPIRV;
 using Vulkan;
 
@@ -356,6 +357,10 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         return ValueTask.CompletedTask;
     }
 
+    #region Buffer Updates
+
+    #region Vertex Data
+
     /// <summary>
     /// Updates the vertices of a given shape in the renderer
     /// </summary>
@@ -393,6 +398,75 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         }
     }
 
+    #endregion
+
+    #region Index Data
+
+    protected virtual void WriteConvexTriangulatedIndices(ref ShapeDat pol, CommandList commandList)
+    {
+        // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single variable (count).
+        // There's probably an easier way to compute this
+
+        int count = pol.Shape.Count;
+
+        if (count is 4) // And is Convex
+        {
+            ShapeDat.SetTriangulatedIndexAndVertexBufferSize(ref pol, 6, 6, Device!.ResourceFactory);
+            commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, stackalloc ushort[6]
+            {
+                1,
+                0,
+                3,
+                1,
+                2,
+                3
+            });
+            return;
+        }
+
+        int indexCount = GPUHelpers.ComputeConvexTriangulatedIndexBufferSize(count, out var i);
+        ushort[]? rented = null;
+        Span<ushort> buffer = indexCount > 2048 / sizeof(ushort)
+            ? (rented = ArrayPool<ushort>.Shared.Rent(indexCount)).AsSpan(0, indexCount)
+            : stackalloc ushort[indexCount];
+        buffer.Clear();
+
+        try
+        {
+            GPUHelpers.GenerateConvexTriangulatedIndices((ushort)count, buffer, i);
+            ShapeDat.SetTriangulatedIndexAndVertexBufferSize(ref pol, indexCount, indexCount, Device!.ResourceFactory);
+            commandList.UpdateBuffer(pol.Buffer, pol.IndexStart, buffer);
+        }
+        finally
+        {
+            if (rented is not null)
+                ArrayPool<ushort>.Shared.Return(rented, true);
+        }
+    }
+
+    protected virtual void WriteLineStripIndices(ref ShapeDat pol, CommandList commandList)
+    {
+        int count = pol.Shape.Count;
+        int indexCount = GPUHelpers.ComputeLineStripIndexBufferSize(count);
+        ushort[]? rented = null;
+        Span<ushort> indexBuffer = indexCount > 2048 / sizeof(ushort)
+                ? (rented = ArrayPool<ushort>.Shared.Rent(indexCount)).AsSpan(0, indexCount)
+                : stackalloc ushort[indexCount];
+        indexBuffer.Clear();
+
+        try
+        {
+            GPUHelpers.GenerateLineStripIndices((ushort)count, indexBuffer);
+            ShapeDat.SetLineStripIndexAndVertexBufferSize(ref pol, indexCount, Device!.ResourceFactory);
+            commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, indexBuffer);
+        }
+        finally
+        {
+            if (rented is not null)
+                ArrayPool<ushort>.Shared.Return(rented);
+        }
+    }
+
     /// <summary>
     /// Updates the indices of a given shape in the renderer
     /// </summary>
@@ -404,98 +478,18 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void UpdateIndices(ref ShapeDat pol, CommandList commandList)
     {
-        const int MaxVertices = 21845;
-        const int MaxSize = 2048 / sizeof(ushort);
-        var count = pol.Shape.Count;
-        if (count >= MaxVertices)
-            throw new NotSupportedException($"Triangulating indices for shapes with {MaxVertices} or more vertices is not supported! The shape in question has {count}. The ints used for indices are 16 bits wide, and switching to 32 bits is not supported yet");
-
-        int indexSpace = pol.LineStripIndexCount;
-        int indexCount = (int)(indexSpace * (1f - __vertexSkipFactor));
-        int indexSkip = count /  indexCount;
-        ushort[]? rented = null;
-
+        int count = pol.Shape.Count;
         if (count <= 3 || ShapeRendererDescription.RenderMode is PolygonRenderMode.LineStripWireframe)
-        {
-            Span<ushort> indexBuffer = indexCount > MaxSize 
-                ? (rented = ArrayPool<ushort>.Shared.Rent(indexCount)).AsSpan(0, indexCount)
-                : stackalloc ushort[indexCount];
-            indexBuffer.Clear();
-
-            try
-            {
-                for (int ind = 0; ind < indexCount; ind++)
-                    indexBuffer[ind] = ushort.Clamp((ushort)ind, 0, (ushort)count);
-                indexBuffer[indexCount] = 0;
-                ShapeDat.SetLineStripIndexAndVertexBufferSize(ref pol, indexCount, Device!.ResourceFactory);
-                commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, indexBuffer);
-                return;
-            }
-            finally
-            {
-                if (rented is not null)
-                    ArrayPool<ushort>.Shared.Return(rented, true);
-            }
-        }
-
-        // Triangulation
-
-        // For Convex shapes
-        // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single variable (count).
-        // There's probably an easier way to compute this
-
-        if (pol.Shape.IsConvex is false)
+            WriteLineStripIndices(ref pol, commandList);
+        else if (pol.Shape.IsConvex is false)
             throw new InvalidOperationException($"Triangulation of Concave Polygons is not supported yet");
-
-        if (indexCount is 4) // And is Convex
-        {
-            indexSkip = count / 6;
-            ShapeDat.SetTriangulatedIndexAndVertexBufferSize(ref pol, 6, 6, Device!.ResourceFactory);
-            commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, stackalloc ushort[6] 
-            { 
-                (ushort)(1 * indexSkip), 
-                0,
-                ushort.Min((ushort)(3 * indexSkip), (ushort)(count - 1)), 
-                (ushort)indexSkip,
-                (ushort)(2 * indexSkip), 
-                (ushort)(3 * indexSkip)
-            });
-            return;
-        }
-
-        ushort i = count % 2 == 0 ? (ushort)0u : (ushort)1u;
-        indexSpace = (count - i) * 3;
-        indexCount = (int)(indexSpace * (1f - __vertexSkipFactor));
-        indexSkip = count / indexCount;
-
-        Span<ushort> buffer = indexCount > MaxSize 
-            ? (rented = ArrayPool<ushort>.Shared.Rent(indexCount)).AsSpan(0, indexCount)
-            : stackalloc ushort[indexCount];
-        int bufind = 0;
-
-        ushort p0 = 0;
-        ushort pHelper = 1;
-        ushort pTemp;
-        try
-        {
-            for (; i < count; i++)
-            {
-                pTemp = i;
-                buffer[bufind++] = p0;
-                buffer[bufind++] = pHelper;
-                buffer[bufind++] = pTemp;
-                pHelper = pTemp;
-            }
-
-            ShapeDat.SetTriangulatedIndexAndVertexBufferSize(ref pol, indexCount, Device!.ResourceFactory);
-            commandList.UpdateBuffer(pol.Buffer, 0, buffer);
-        }
-        finally
-        {
-            if (rented is not null)
-                ArrayPool<ushort>.Shared.Return(rented, true);
-        }
+        else
+            WriteConvexTriangulatedIndices(ref pol, commandList);
     }
+
+    #endregion
+
+    #endregion
 
     /// <inheritdoc/>
     protected override async ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList)
