@@ -39,7 +39,7 @@ public readonly struct ElementSkip : IEquatable<ElementSkip>
     /// <param name="percentage">A value between 0.0 (0%) to 1.0 (100%)</param>
     /// <returns></returns>
     public static ElementSkip PercentToSkip(float percentage)
-        => new(percentage, 0, ElementSkipMode.PercentageToSkip);
+        => new(CheckAndThrowIfOutOfRange(percentage), 0, ElementSkipMode.PercentageToSkip);
 
     /// <summary>
     /// Creates an <see cref="ElementSkip"/> that will skip all but <paramref name="percentage"/>% of the elements in a given collection, spread throughout it
@@ -47,21 +47,21 @@ public readonly struct ElementSkip : IEquatable<ElementSkip>
     /// <param name="percentage">A value between 0.0 (0%) to 1.0 (100%)</param>
     /// <returns></returns>
     public static ElementSkip PercentToMaintain(float percentage)
-        => new(percentage, 0, ElementSkipMode.PercentageToMaintain);
+        => new(CheckAndThrowIfOutOfRange(percentage), 0, ElementSkipMode.PercentageToMaintain);
 
     /// <summary>
     /// Creates an <see cref="ElementSkip"/> that will skip <paramref name="skip"/> elements throughout a given collection
     /// </summary>
     /// <param name="skip">The amount of elements to skip in a given collection</param>
     public static ElementSkip ElementsToSkip(int skip)
-        => new(0, skip, ElementSkipMode.AmountToSkip);
+        => new(0, CheckAndThrowIfOutOfRange(skip), ElementSkipMode.AmountToSkip);
 
     /// <summary>
     /// Creates an <see cref="ElementSkip"/> that will skip all but <paramref name="maintain"/> elements throughout a given collection
     /// </summary>
     /// <param name="maintain">The amount of elements to maintain in a given collection</param>
     public static ElementSkip ElementsToMaintain(int maintain)
-        => new(0, maintain, ElementSkipMode.AmountToMaintain);
+        => new(0, CheckAndThrowIfOutOfRange(maintain), ElementSkipMode.AmountToMaintain);
 
     /// <summary>
     /// Computes the value to multiply with an index to only access the amount of elements represented by this object throughout the collection
@@ -96,6 +96,10 @@ public readonly struct ElementSkip : IEquatable<ElementSkip>
         };
 
     private int ThrowForUnknownMode() => throw new InvalidOperationException($"Unknown ElementSkipMode {Mode}; likely a library bug");
+    private static float CheckAndThrowIfOutOfRange(float value)
+        => value is < float.Epsilon or > (1f - float.Epsilon) ? throw new ArgumentOutOfRangeException(nameof(value), "value must be between 0.0 and 1.0") : value;
+    private static int CheckAndThrowIfOutOfRange(int value)
+        => value is < 0 ? throw new ArgumentOutOfRangeException(nameof(value), "value must be larger than 0") : value;
 
     /// <inheritdoc/>
     public bool Equals(ElementSkip other)
