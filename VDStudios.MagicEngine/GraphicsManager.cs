@@ -695,7 +695,11 @@ public class GraphicsManager : GameObject, IDisposable
         
         var managercl = CreateCommandList(gd, gd.ResourceFactory);
 
+#if FORCE_GM_NOPARALLEL
+        CLDispatchs = new CommandListDispatch[1];
+#else
         CLDispatchs = new CommandListDispatch[Parallelism];
+#endif
         for (int i = 0; i < CLDispatchs.Length; i++)
             CLDispatchs[i] = new(300 / Parallelism, CreateCommandList(gd, gd.ResourceFactory));
 
