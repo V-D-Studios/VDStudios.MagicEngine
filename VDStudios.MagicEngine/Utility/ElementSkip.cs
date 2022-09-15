@@ -11,7 +11,7 @@ namespace VDStudios.MagicEngine.Utility;
 /// <summary>
 /// Represents a relative or absolute amount of elements to skip in an indexed collection
 /// </summary>
-public readonly struct ElementSkip
+public readonly struct ElementSkip : IEquatable<ElementSkip>
 {
     private enum ElementSkipMode : byte
     {
@@ -96,4 +96,26 @@ public readonly struct ElementSkip
         };
 
     private int ThrowForUnknownMode() => throw new InvalidOperationException($"Unknown ElementSkipMode {Mode}; likely a library bug");
+
+    /// <inheritdoc/>
+    public bool Equals(ElementSkip other)
+        => MathUtils.NearlyEqual(Percentage, other.Percentage)
+            && Amount == other.Amount
+            && Mode == other.Mode;
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) 
+        => obj is ElementSkip skip && Equals(skip);
+
+    /// <inheritdoc/>
+    public static bool operator ==(ElementSkip left, ElementSkip right) 
+        => left.Equals(right);
+
+    /// <inheritdoc/>
+    public static bool operator !=(ElementSkip left, ElementSkip right) 
+        => !(left == right);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+        => HashCode.Combine(Percentage, Amount, Mode);
 }
