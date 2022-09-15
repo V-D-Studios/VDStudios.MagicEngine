@@ -77,11 +77,15 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         {
             if (__vertexSkipFactor is < .0f or > 1.01f)
                 throw new ArgumentOutOfRangeException(nameof(value), "value must be between 0.0 and 1.0");
-            __vertexSkipFactor = float.Clamp(value, 0, 1); // Don't bother checking equality for floating points; and there's no need for fancy tolerance calc
+            if (MathUtils.NearlyEqual(__vertexSkipFactor, value))
+                return;
+            __vertexSkipFactor = float.Clamp(value, 0, 1);
+            __vertexSkipChanged = true;
             NotifyPendingGPUUpdate();
         }
     }
     private float __vertexSkipFactor = 0.0f;
+    private bool __vertexSkipChanged = false;
 
     /// <summary>
     /// Instantiates a new <see cref="ShapeRenderer{TVertex}"/>
@@ -405,30 +409,31 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <summary>
     /// Generates and writes triangulated indices for a convex polygon into the buffer
     /// </summary>
-    protected virtual void WriteConvexTriangulatedIndices(ref ShapeDat pol, CommandList commandList)
+    protected virtual void WriteConvexTriangulatedIndices(ref ShapeDat pol, CommandList commandList, int indCount, out bool forceUpdateVertices)
     {
         // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single variable (count).
         // There's probably an easier way to compute this
 
         int count = pol.Shape.Count;
+        int step = count / indCount;
 
-        if (count is 4) // And is Convex
+        if (indCount is 4) // And is Convex
         {
-            if (ShapeDat.ResizeBuffer(ref pol, 6, 6, Device!.ResourceFactory))
-                IndicesToUpdate.Enqueue(new(pol.ShapeIndex, true, false, 0));
+            forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, 6, 6, Device!.ResourceFactory);
             commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, stackalloc ushort[6]
             {
-                1,
-                0,
-                3,
-                1,
-                2,
-                3
+                (ushort)(1 * step), // 1
+                (ushort)(0 * step), // 0
+                (ushort)(3 * step), // 3
+                (ushort)(1 * step), // 1
+                (ushort)(2 * step), // 2
+                (ushort)(3 * step)  // 3
             });
             return;
         }
 
-        int indexCount = GPUHelpers.ComputeConvexTriangulatedIndexBufferSize(count, out var i);
+        int indexSpace = GPUHelpers.ComputeConvexTriangulatedIndexBufferSize(count, out _);
+        int indexCount = GPUHelpers.ComputeConvexTriangulatedIndexBufferSize(indCount, out var i);
         ushort[]? rented = null;
         Span<ushort> buffer = indexCount > 2048 / sizeof(ushort)
             ? (rented = ArrayPool<ushort>.Shared.Rent(indexCount)).AsSpan(0, indexCount)
@@ -437,9 +442,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
         try
         {
-            GPUHelpers.GenerateConvexTriangulatedIndices((ushort)count, buffer, i);
-            if (ShapeDat.ResizeBuffer(ref pol, indexCount, indexCount, Device!.ResourceFactory))
-                IndicesToUpdate.Enqueue(new(pol.ShapeIndex, true, false, 0));
+            GPUHelpers.GenerateConvexTriangulatedIndices((ushort)indCount, buffer, (ushort)step, i);
+            forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, indexCount, indexSpace, Device!.ResourceFactory);
             commandList.UpdateBuffer(pol.Buffer, pol.IndexStart, buffer);
         }
         finally
@@ -452,10 +456,12 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <summary>
     /// Generates and writes line strip indices for a polygon into the buffer
     /// </summary>
-    protected virtual void WriteLineStripIndices(ref ShapeDat pol, CommandList commandList)
+    protected virtual void WriteLineStripIndices(ref ShapeDat pol, CommandList commandList, int indCount, out bool forceUpdateVertices)
     {
         int count = pol.Shape.Count;
-        int indexCount = GPUHelpers.ComputeLineStripIndexBufferSize(count);
+        int step = count / indCount;
+        int indexSpace = GPUHelpers.ComputeLineStripIndexBufferSize(count);
+        int indexCount = GPUHelpers.ComputeLineStripIndexBufferSize(indCount);
         ushort[]? rented = null;
         Span<ushort> indexBuffer = indexCount > 2048 / sizeof(ushort)
                 ? (rented = ArrayPool<ushort>.Shared.Rent(indexCount)).AsSpan(0, indexCount)
@@ -464,9 +470,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
         try
         {
-            GPUHelpers.GenerateLineStripIndices((ushort)count, indexBuffer);
-            if (ShapeDat.ResizeBuffer(ref pol, indexCount, indexCount, Device!.ResourceFactory))
-                IndicesToUpdate.Enqueue(new(pol.ShapeIndex, true, false, 0));
+            GPUHelpers.GenerateLineStripIndices((ushort)indCount, indexBuffer, (ushort)step);
+            forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, indexCount, indexSpace, Device!.ResourceFactory);
             commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, indexBuffer);
         }
         finally
@@ -485,15 +490,21 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <param name="pol"></param>
     /// <param name="commandList"></param>
     /// <exception cref="InvalidOperationException"></exception>
-    protected virtual void UpdateIndices(ref ShapeDat pol, CommandList commandList)
+    protected virtual void UpdateIndices(ref ShapeDat pol, CommandList commandList, out bool forceUpdateVertices)
     {
-        int count = pol.Shape.Count;
-        if (count <= 3 || ShapeRendererDescription.RenderMode is PolygonRenderMode.LineStripWireframe)
-            WriteLineStripIndices(ref pol, commandList);
+        int count = (int)(pol.Shape.Count * (1f - VertexSkipFactor));
+        if (count < 3)
+        {
+            forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, 0, 0, Device!.ResourceFactory);
+            return;
+        }
+
+        if (count == 3 || ShapeRendererDescription.RenderMode is PolygonRenderMode.LineStripWireframe)
+            WriteLineStripIndices(ref pol, commandList, count, out forceUpdateVertices);
         else if (pol.Shape.IsConvex is false)
             throw new InvalidOperationException($"Triangulation of Concave Polygons is not supported yet");
         else
-            WriteConvexTriangulatedIndices(ref pol, commandList);
+            WriteConvexTriangulatedIndices(ref pol, commandList, count, out forceUpdateVertices);
     }
 
     #endregion
@@ -512,11 +523,25 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     {
         lock (_shapes)
         {
+            var polybuffer = CollectionsMarshal.AsSpan(ShapeBufferList);
+
+            if (__vertexSkipChanged)
+            {
+                __vertexSkipChanged = false;
+                for (int i = 0; i < polybuffer.Length; i++)
+                {
+                    UpdateIndices(ref polybuffer[i], commandList, out bool updatevertices);
+                    if (updatevertices)
+                        IndicesToUpdate.Enqueue(new(i, true, false, 0));
+                }
+            }
+
             if (IndicesToUpdate.TryDequeue(out var dat))
             {
                 var gen = TVertexGenerator;
                 object? genContext = null;
                 int ind = 0;
+                bool forceUpdateVertices = false;
                 gen.Start(this, Shapes, IndicesToUpdate.Count, ref genContext);
                 do
                 {
@@ -527,16 +552,15 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                             pd.Dispose();
                             continue;
                         case 0:
-                            var polybuffer = CollectionsMarshal.AsSpan(ShapeBufferList);
                             if (dat.UpdateIndices)
-                                UpdateIndices(ref polybuffer[dat.Index], commandList);
-                            if (dat.UpdateVertices)
+                                UpdateIndices(ref polybuffer[dat.Index], commandList, out forceUpdateVertices);
+                            if (forceUpdateVertices || dat.UpdateVertices)
                                 UpdateVertices(ref polybuffer[dat.Index], commandList, ind++, gen, ref genContext);
                             ShapeDat.UpdateLastVer(ref polybuffer[dat.Index]);
                             continue;
                         case > 0:
                             var np = new ShapeDat(_shapes[dat.Index], dat.Index, device.ResourceFactory);
-                            UpdateIndices(ref np, commandList);
+                            UpdateIndices(ref np, commandList, out _);
                             UpdateVertices(ref np, commandList, ind++, gen, ref genContext);
                             ShapeBufferList.Insert(dat.Index, np);
                             ShapeDat.UpdateLastVer(ref np);
@@ -547,9 +571,20 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             }
         }
 
+        bool changed = false;
         for (int i = ShapeBufferList.Count - 1; i >= 0; i--)
-            if (ShapeBufferList[i].remove)
+            if (ShapeBufferList[i].remove) 
+            {
+                changed = true;
                 ShapeBufferList.RemoveAt(i);
+            }
+
+        if (changed)
+        {
+            var polybuffer = CollectionsMarshal.AsSpan(ShapeBufferList);
+            for (int i = 0; i < polybuffer.Length; i++)
+                polybuffer[i].ShapeIndex = i;
+        }
     }
 
 #endregion
@@ -605,7 +640,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         /// <summary>
         /// The index of the shape represented by this <see cref="ShapeDat"/> in the renderer that owns it
         /// </summary>
-        public readonly int ShapeIndex;
+        public int ShapeIndex { get; internal set; }
 
         /// <summary>
         /// Sets the size of the buffer, taking into account that the indices are triangulated. Adjusts the offsets, and creates or resizes the buffer as needed.
@@ -618,7 +653,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             var indexSize = DataStructuring.GetSize<ushort, uint>((uint)indexSpace);
             var vertexSize = DataStructuring.GetSize<TVertex, uint>((uint)dat.Shape.Count);
             var size = vertexSize + indexSize;
-            var resize = false;
+            var resize = indexSize > dat.VertexStart;
             
             dat.VertexStart = indexSize;
             dat.IndexStart = 0;
@@ -634,6 +669,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             }
 
             dat.IndexCount = (ushort)indexCount;
+
             return resize;
         }
 

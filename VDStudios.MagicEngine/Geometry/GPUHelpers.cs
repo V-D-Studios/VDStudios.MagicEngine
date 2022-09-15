@@ -49,7 +49,7 @@ public static class GPUHelpers
     /// <param name="count">The amount of vertices in the shape</param>
     /// <param name="indexBuffer">The buffer to store the indices in</param>
     /// <param name="start">The starting point of the triangulation. Synonym to <c>added</c> in <see cref="ComputeConvexTriangulatedIndexBufferSize(int, out byte)"/></param>
-    public static void GenerateConvexTriangulatedIndices<TInt>(TInt count, Span<TInt> indexBuffer, byte start = 0) where TInt : unmanaged, IBinaryInteger<TInt>
+    public static void GenerateConvexTriangulatedIndices<TInt>(TInt count, Span<TInt> indexBuffer, TInt step, byte start = 0) where TInt : unmanaged, IBinaryInteger<TInt>
     {
         int bufind = 0;
         TInt i = TInt.CreateSaturating(start);
@@ -60,9 +60,9 @@ public static class GPUHelpers
         for (; i < count; i++)
         {
             pTemp = i;
-            indexBuffer[bufind++] = p0;
-            indexBuffer[bufind++] = pHelper;
-            indexBuffer[bufind++] = pTemp;
+            indexBuffer[bufind++] = step * p0;
+            indexBuffer[bufind++] = step * pHelper;
+            indexBuffer[bufind++] = step * pTemp;
             pHelper = pTemp;
         }
     }
@@ -73,10 +73,10 @@ public static class GPUHelpers
     /// <typeparam name="TInt">The type of integer to fill the buffer with</typeparam>
     /// <param name="count">The amount of vertices in the shape</param>
     /// <param name="indexBuffer">The buffer to store the indices in</param>
-    public static void GenerateLineStripIndices<TInt>(TInt count, Span<TInt> indexBuffer) where TInt : unmanaged, IBinaryInteger<TInt>
+    public static void GenerateLineStripIndices<TInt>(TInt count, Span<TInt> indexBuffer, TInt step) where TInt : unmanaged, IBinaryInteger<TInt>
     {
         for (TInt ind = TInt.Zero; ind < count; ind++)
-            indexBuffer[int.CreateSaturating(ind)] = TInt.Clamp(ind, TInt.Zero, count);
+            indexBuffer[int.CreateSaturating(ind)] = TInt.Clamp(step * ind, TInt.Zero, count);
         indexBuffer[int.CreateSaturating(count)] = TInt.Zero;
         return;
     }
