@@ -4,6 +4,7 @@ using VDStudios.MagicEngine.DrawLibrary;
 using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
+using VDStudios.MagicEngine.Utility;
 using Veldrid;
 using Veldrid.ImageSharp;
 
@@ -154,7 +155,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                 new PolygonDefinition(triangle, true) { Name = "Triangle" },
                 circle,
                 elipse
-            }, 
+            },
             new(
                 BlendStateDescription.SingleAlphaBlend,
                 DepthStencilStateDescription.DepthOnlyLessEqual,
@@ -172,6 +173,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                 GraphicsManager.AddWindowAspectTransform
             ),
             new ColorVertexGenerator())
+        { VertexSkip = ElementSkip.ElementsToMaintain(15) }
         );
     }
 
