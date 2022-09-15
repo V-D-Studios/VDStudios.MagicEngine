@@ -23,6 +23,27 @@ public static class AssortedExtensions
     }
 
     /// <summary>
+    /// Deconstructs <paramref name="vec"/> in the following order: <c>X</c>, <c>Y</c>, <c>Z</c>
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Deconstruct(this Vector3 vec, out float x, out float y, out float z)
+    {
+        x = vec.X;
+        y = vec.Y;
+        z = vec.Z;
+    }
+
+    /// <summary>
+    /// Deconstructs <paramref name="vec"/> in the following order: <c>X</c>, <c>Y</c>
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Deconstruct(this Vector2 vec, out float x, out float y)
+    {
+        x = vec.X;
+        y = vec.Y;
+    }
+
+    /// <summary>
     /// This method serves a shorthand for calling <see cref="object.GetType"/> on <paramref name="obj"/> and taking <see cref="MemberInfo.Name"/>
     /// </summary>
     /// <param name="obj">The object to get the type name from</param>
