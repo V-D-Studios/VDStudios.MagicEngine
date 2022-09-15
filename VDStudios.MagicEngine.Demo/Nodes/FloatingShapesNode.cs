@@ -21,9 +21,9 @@ public class FloatingShapesNode : Node, IDrawableNode
     {
         private static readonly RgbaFloat[] Colors = new RgbaFloat[]
         {
-            new(1f, .2f, .2f, 1f),
-            new(.2f, 1f, .2f, 1f),
-            new(.2f, .2f, 1f, 1f),
+            new(1f, .2f, .2f, .7f),
+            new(.2f, 1f, .2f, .7f),
+            new(.2f, .2f, 1f, .7f),
         };
 
         private static ColorVertex Generate(int index, Vector2 shapeVertex, ShapeDefinition2D shape)
@@ -162,7 +162,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                 FrontFace.Clockwise,
                 true,
                 false,
-                PolygonRenderMode.TriangulatedWireframe,
+                PolygonRenderMode.TriangulatedFill,
                 new VertexLayoutDescription(
                     new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
                     new VertexElementDescription("Color", VertexElementFormat.Float4, VertexElementSemantic.TextureCoordinate)
