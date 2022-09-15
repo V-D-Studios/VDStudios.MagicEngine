@@ -70,21 +70,19 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <summary>
     /// A number, between 0.0 and 1.0, defining the percentage of vertices that will be skipped for a shape
     /// </summary>
-    public float VertexSkipFactor
+    public ElementSkip VertexSkip
     {
-        get => __vertexSkipFactor;
+        get => __vertexSkip;
         set
         {
-            if (__vertexSkipFactor is < .0f or > 1.01f)
-                throw new ArgumentOutOfRangeException(nameof(value), "value must be between 0.0 and 1.0");
-            if (MathUtils.NearlyEqual(__vertexSkipFactor, value))
+            if(__vertexSkip == value)
                 return;
-            __vertexSkipFactor = float.Clamp(value, 0, 1);
+            __vertexSkip = value;
             __vertexSkipChanged = true;
             NotifyPendingGPUUpdate();
         }
     }
-    private float __vertexSkipFactor = 0.0f;
+    private ElementSkip __vertexSkip;
     private bool __vertexSkipChanged = false;
 
     /// <summary>
@@ -409,13 +407,15 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <summary>
     /// Generates and writes triangulated indices for a convex polygon into the buffer
     /// </summary>
-    protected virtual void WriteConvexTriangulatedIndices(ref ShapeDat pol, CommandList commandList, int indCount, out bool forceUpdateVertices)
+    protected virtual void WriteConvexTriangulatedIndices(ref ShapeDat pol, CommandList commandList, ElementSkip vsk, out bool forceUpdateVertices)
     {
         // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single variable (count).
         // There's probably an easier way to compute this
 
         int count = pol.Shape.Count;
-        int step = count / indCount;
+
+        int step = vsk.GetSkipFactor(count);
+        int indCount = vsk.GetElementCount(count);
 
         if (indCount is 4) // And is Convex
         {
@@ -456,10 +456,13 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <summary>
     /// Generates and writes line strip indices for a polygon into the buffer
     /// </summary>
-    protected virtual void WriteLineStripIndices(ref ShapeDat pol, CommandList commandList, int indCount, out bool forceUpdateVertices)
+    protected virtual void WriteLineStripIndices(ref ShapeDat pol, CommandList commandList, ElementSkip vsk, out bool forceUpdateVertices)
     {
         int count = pol.Shape.Count;
-        int step = count / indCount;
+
+        int step = vsk.GetSkipFactor(count);
+        int indCount = vsk.GetElementCount(count);
+
         int indexSpace = GPUHelpers.ComputeLineStripIndexBufferSize(count);
         int indexCount = GPUHelpers.ComputeLineStripIndexBufferSize(indCount);
         ushort[]? rented = null;
@@ -492,7 +495,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <exception cref="InvalidOperationException"></exception>
     protected virtual void UpdateIndices(ref ShapeDat pol, CommandList commandList, out bool forceUpdateVertices)
     {
-        int count = (int)(pol.Shape.Count * (1f - VertexSkipFactor));
+        var vsk = VertexSkip;
+        var count = vsk.GetElementCount(pol.Shape.Count);
         if (count < 3)
         {
             forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, 0, 0, Device!.ResourceFactory);
@@ -500,11 +504,11 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         }
 
         if (count == 3 || ShapeRendererDescription.RenderMode is PolygonRenderMode.LineStripWireframe)
-            WriteLineStripIndices(ref pol, commandList, count, out forceUpdateVertices);
+            WriteLineStripIndices(ref pol, commandList, vsk, out forceUpdateVertices);
         else if (pol.Shape.IsConvex is false)
             throw new InvalidOperationException($"Triangulation of Concave Polygons is not supported yet");
         else
-            WriteConvexTriangulatedIndices(ref pol, commandList, count, out forceUpdateVertices);
+            WriteConvexTriangulatedIndices(ref pol, commandList, vsk, out forceUpdateVertices);
     }
 
     #endregion
