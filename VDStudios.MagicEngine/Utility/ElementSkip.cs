@@ -71,7 +71,7 @@ public readonly struct ElementSkip : IEquatable<ElementSkip>
     public int GetSkipFactor(int length)
         => Mode switch
         {
-            ElementSkipMode.Default => length,
+            ElementSkipMode.Default => 1,
             ElementSkipMode.AmountToSkip => length / (length - Amount),
             ElementSkipMode.AmountToMaintain => length / Amount,
             ElementSkipMode.PercentageToSkip => length / (int)(length * (1f - Percentage)),
