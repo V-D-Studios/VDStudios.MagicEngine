@@ -761,7 +761,7 @@ public class GraphicsManager : GameObject, IDisposable
                             {
                                 int dqc = drawqueue.Count;
                                 var perCL = dqc / CLDispatchs.Length;
-                                if(perCL is 0 or 1)
+                                if (perCL is 0 || drawqueue.Count == CLDispatchs.Length) 
                                 {
                                     int i = 0;
                                     for (; i < dqc; i++)
@@ -860,9 +860,9 @@ public class GraphicsManager : GameObject, IDisposable
         IsRunning = false;
     }
 
-    #endregion
+#endregion
 
-    #region Events
+#region Events
 
     ///// <summary>
     ///// Fired when <see cref="GraphicsManager"/> start
@@ -888,17 +888,17 @@ public class GraphicsManager : GameObject, IDisposable
     ///// </remarks>
     //public GraphicsManagerRunStateChanged? RunStateChanged;
 
-    #endregion
+#endregion
 
-    #endregion
+#endregion
 
-    #region Private Fields
+#region Private Fields
 
     private readonly object sync = new();
 
-    #endregion
+#endregion
 
-    #region Setup Methods
+#region Setup Methods
 
     [MethodImpl]
     internal void SetupWindow()
@@ -1000,11 +1000,11 @@ public class GraphicsManager : GameObject, IDisposable
         );
     }
 
-    #endregion
+#endregion
 
-    #region Graphic Resources
+#region Graphic Resources
 
-    #region Public Properties
+#region Public Properties
 
     /// <summary>
     /// The current Main Window of the Game
@@ -1016,11 +1016,11 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     public GraphicsDevice Device { get; private set; }
 
-    #endregion
+#endregion
 
-    #endregion
+#endregion
 
-    #region Disposal
+#region Disposal
 
     private bool disposedValue;
 
@@ -1097,5 +1097,5 @@ public class GraphicsManager : GameObject, IDisposable
         Game.graphicsManagersAwaitingDestruction.Enqueue(this);
     }
 
-    #endregion
+#endregion
 }
