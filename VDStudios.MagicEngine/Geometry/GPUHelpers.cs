@@ -53,17 +53,26 @@ public static class GPUHelpers
     {
         int bufind = 0;
         TInt i = TInt.CreateSaturating(start);
-        TInt p0 = TInt.Zero;
-        TInt pHelper = TInt.One;
-        TInt pTemp;
 
-        for (; i < count; i++)
+        while (i < count) 
         {
-            pTemp = i;
-            indexBuffer[bufind++] = step * p0;
-            indexBuffer[bufind++] = step * pHelper;
-            indexBuffer[bufind++] = step * pTemp;
-            pHelper = pTemp;
+            indexBuffer[bufind++] = step * TInt.Zero;
+            indexBuffer[bufind++] = step * i++;
+            indexBuffer[bufind++] = step * i;
+        }
+    }
+
+    private static void GenerateFoldingPaperIndices<TInt>(TInt count, Span<TInt> indexBuffer, TInt step, byte start = 0) where TInt : unmanaged, IBinaryInteger<TInt>
+    {
+        int bufind = 0;
+        TInt i = TInt.CreateSaturating(start);
+
+        var add = TInt.CreateSaturating(2);
+        for (; i < count; i += add)
+        {
+            indexBuffer[bufind++] = TInt.One;
+            indexBuffer[bufind++] = i;
+            indexBuffer[bufind++] = count;
         }
     }
 
