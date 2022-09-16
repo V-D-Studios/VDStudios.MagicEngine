@@ -62,6 +62,16 @@ public class Game : SDLApplication<Game>
         VideoThread = new(VideoRun);
         UpdateFrameThrottle = TimeSpan.FromMilliseconds(5);
         Random = CreateRNG();
+
+#if FEATURE_INTERNAL_LOGGING
+        Log.Debug("Compiled with \"FEATURE_INTERNAL_LOGGING\" enabled");
+#endif
+#if VALIDATE_USAGE
+        Log.Debug("Compiled with \"VALIDATE_USAGE\" enabled");
+#endif
+#if FORCE_GM_NOPARALLEL
+        Log.Debug("Compiled with \"FORCE_GM_NOPARALLEL\" enabled");
+#endif
     }
 
     #endregion
