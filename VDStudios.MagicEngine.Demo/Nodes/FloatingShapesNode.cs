@@ -97,8 +97,8 @@ public class FloatingShapesNode : Node, IDrawableNode
         };
         DrawOperationManager = new DrawOperationManager(this);
         
-        var circ = PolygonDefinition.Circle(new(-.2f, .15f), .3f, 5);
-        circ.Name = "Circle";
+        var circ1 = new CircleDefinition(new(-.2f, .15f), .3f, 7) { Name = "Circle 1" };
+        var circ2 = new CircleDefinition(new(.2f, -.15f), .3f, 8) { Name = "Circle 2" };
 
         circle = new CircleDefinition(Vector2.Zero, .65f);
         var texturedRect = PolygonDefinition.Circle(new(.25f, .25f), .25f, 21844);
@@ -151,10 +151,11 @@ public class FloatingShapesNode : Node, IDrawableNode
             {
                 hexagon,
                 new PolygonDefinition(rectangle, true) { Name = "Rectangle" },
-                circ,
                 new PolygonDefinition(triangle, true) { Name = "Triangle" },
                 circle,
-                elipse
+                elipse,
+                circ1,
+                circ2,
             },
             new(
                 BlendStateDescription.SingleAlphaBlend,
@@ -173,7 +174,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                 GraphicsManager.AddWindowAspectTransform
             ),
             new ColorVertexGenerator())
-        { VertexSkip = ElementSkip.ElementsToMaintain(15) }
+        { VertexSkip = ElementSkip.PercentToMaintain(.5f) }
         );
     }
 
