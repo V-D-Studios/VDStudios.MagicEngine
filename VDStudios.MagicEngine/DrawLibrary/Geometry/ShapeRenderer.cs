@@ -413,13 +413,37 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         // There's probably an easier way to compute this
 
         int count = pol.Shape.Count;
+        int indexSpace = GPUHelpers.ComputeConvexTriangulatedIndexBufferSize(count, out _);
+        int step;
+        int indCount;
 
-        int step = vsk.GetSkipFactor(count);
-        int indCount = vsk.GetElementCount(count);
+        if (count > 4)
+        {
+            step = vsk.GetSkipFactor(count);
+            indCount = vsk.GetElementCount(count);
+        }
+        else
+        {
+            step = 1;
+            indCount = count;
+        }
+
+        if (indCount is 3)
+        {
+            forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, 4, count is 3 ? 4 : indexSpace, Device!.ResourceFactory);
+            commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, stackalloc ushort[4]
+            {
+                0,
+                (ushort)step,
+                (ushort)(count - 1),
+                0,
+            });
+            return;
+        }
 
         if (indCount is 4) // And is Convex
         {
-            forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, 6, 6, Device!.ResourceFactory);
+            forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, 6, count is 4 ? 6 : indexSpace, Device!.ResourceFactory);
             commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, stackalloc ushort[6]
             {
                 (ushort)(1 * step), // 1
@@ -427,12 +451,11 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                 (ushort)(3 * step), // 3
                 (ushort)(1 * step), // 1
                 (ushort)(2 * step), // 2
-                (ushort)(3 * step)  // 3
+                (ushort)(int.Min(3 * step, count - 1))  // 3
             });
             return;
         }
 
-        int indexSpace = GPUHelpers.ComputeConvexTriangulatedIndexBufferSize(count, out _);
         int indexCount = GPUHelpers.ComputeConvexTriangulatedIndexBufferSize(indCount, out var i);
         ushort[]? rented = null;
         Span<ushort> buffer = indexCount > 2048 / sizeof(ushort)
@@ -459,9 +482,19 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     protected virtual void WriteLineStripIndices(ref ShapeDat pol, CommandList commandList, ElementSkip vsk, out bool forceUpdateVertices)
     {
         int count = pol.Shape.Count;
+        int step;
+        int indCount;
 
-        int step = vsk.GetSkipFactor(count);
-        int indCount = vsk.GetElementCount(count);
+        if (count > 4)
+        {
+            step = vsk.GetSkipFactor(count);
+            indCount = vsk.GetElementCount(count);
+        }
+        else
+        {
+            step = vsk.GetSkipFactor(count);
+            indCount = vsk.GetElementCount(count);
+        }
 
         int indexSpace = GPUHelpers.ComputeLineStripIndexBufferSize(count);
         int indexCount = GPUHelpers.ComputeLineStripIndexBufferSize(indCount);
@@ -496,14 +529,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     protected virtual void UpdateIndices(ref ShapeDat pol, CommandList commandList, out bool forceUpdateVertices)
     {
         var vsk = VertexSkip;
-        var count = vsk.GetElementCount(pol.Shape.Count);
-        if (count < 3)
-        {
-            forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, 0, 0, Device!.ResourceFactory);
-            return;
-        }
-
-        if (count == 3 || ShapeRendererDescription.RenderMode is PolygonRenderMode.LineStripWireframe)
+        if (ShapeRendererDescription.RenderMode is PolygonRenderMode.LineStripWireframe)
             WriteLineStripIndices(ref pol, commandList, vsk, out forceUpdateVertices);
         else if (pol.Shape.IsConvex is false)
             throw new InvalidOperationException($"Triangulation of Concave Polygons is not supported yet");
