@@ -69,7 +69,7 @@ public readonly struct ElementSkip : IEquatable<ElementSkip>
     /// <param name="length">The length of the collection</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetSkipFactor(int length)
-        => Mode switch
+        => int.Max(1, Mode switch
         {
             ElementSkipMode.Default => 1,
             ElementSkipMode.AmountToSkip => length / (length - Amount),
@@ -77,7 +77,7 @@ public readonly struct ElementSkip : IEquatable<ElementSkip>
             ElementSkipMode.PercentageToSkip => length / (int)(length * (1f - Percentage)),
             ElementSkipMode.PercentageToMaintain => length / (int)(length * Percentage),
             _ => ThrowForUnknownMode()
-        };
+        });
 
     /// <summary>
     /// Computes the amount of elements that will be read from the collection if <see cref="GetSkipFactor(int)"/>'s value is used
@@ -85,7 +85,7 @@ public readonly struct ElementSkip : IEquatable<ElementSkip>
     /// <param name="length">The length of the collection</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetElementCount(int length)
-        => Mode switch
+        => int.Min(length, Mode switch
         {
             ElementSkipMode.Default => length,
             ElementSkipMode.AmountToSkip => length - Amount,
@@ -93,7 +93,7 @@ public readonly struct ElementSkip : IEquatable<ElementSkip>
             ElementSkipMode.PercentageToSkip => (int)(length * (1f - Percentage)),
             ElementSkipMode.PercentageToMaintain => (int)(length * Percentage),
             _ => ThrowForUnknownMode()
-        };
+        });
 
     private int ThrowForUnknownMode() => throw new InvalidOperationException($"Unknown ElementSkipMode {Mode}; likely a library bug");
     private static float CheckAndThrowIfOutOfRange(float value)
