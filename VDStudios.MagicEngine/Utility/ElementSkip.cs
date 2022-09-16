@@ -18,7 +18,6 @@ public readonly struct ElementSkip : IEquatable<ElementSkip>
         Default = 0,
         PercentageToSkip,
         PercentageToMaintain,
-        AmountToSkip,
         AmountToMaintain
     }
 
@@ -50,13 +49,6 @@ public readonly struct ElementSkip : IEquatable<ElementSkip>
         => new(CheckAndThrowIfOutOfRange(percentage), 0, ElementSkipMode.PercentageToMaintain);
 
     /// <summary>
-    /// Creates an <see cref="ElementSkip"/> that will skip <paramref name="skip"/> elements throughout a given collection
-    /// </summary>
-    /// <param name="skip">The amount of elements to skip in a given collection</param>
-    public static ElementSkip ElementsToSkip(int skip)
-        => new(0, CheckAndThrowIfOutOfRange(skip), ElementSkipMode.AmountToSkip);
-
-    /// <summary>
     /// Creates an <see cref="ElementSkip"/> that will skip all but <paramref name="maintain"/> elements throughout a given collection
     /// </summary>
     /// <param name="maintain">The amount of elements to maintain in a given collection</param>
@@ -72,7 +64,6 @@ public readonly struct ElementSkip : IEquatable<ElementSkip>
         => int.Max(1, Mode switch
         {
             ElementSkipMode.Default => 1,
-            ElementSkipMode.AmountToSkip => length / (length - Amount),
             ElementSkipMode.AmountToMaintain => length / Amount,
             ElementSkipMode.PercentageToSkip => length / (int)(length * (1f - Percentage)),
             ElementSkipMode.PercentageToMaintain => length / (int)(length * Percentage),
@@ -88,7 +79,6 @@ public readonly struct ElementSkip : IEquatable<ElementSkip>
         => int.Min(length, Mode switch
         {
             ElementSkipMode.Default => length,
-            ElementSkipMode.AmountToSkip => length - Amount,
             ElementSkipMode.AmountToMaintain => Amount,
             ElementSkipMode.PercentageToSkip => (int)(length * (1f - Percentage)),
             ElementSkipMode.PercentageToMaintain => (int)(length * Percentage),
