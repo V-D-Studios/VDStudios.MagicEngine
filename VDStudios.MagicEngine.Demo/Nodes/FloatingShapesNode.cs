@@ -174,7 +174,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                 GraphicsManager.AddWindowAspectTransform
             ),
             new ColorVertexGenerator())
-        { VertexSkip = ElementSkip.ElementsToMaintain(100) }
+            { VertexSkip = ElementSkip.ElementsToMaintain(100) }
         );
     }
 
