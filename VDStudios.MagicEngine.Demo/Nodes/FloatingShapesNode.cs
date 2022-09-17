@@ -22,9 +22,9 @@ public class FloatingShapesNode : Node, IDrawableNode
     {
         private static readonly RgbaFloat[] Colors = new RgbaFloat[]
         {
-            new(1f, .2f, .2f, .7f),
-            new(.2f, 1f, .2f, .7f),
-            new(.2f, .2f, 1f, .7f),
+            new(1f, .2f, .2f, 1f),
+            new(.2f, 1f, .2f, 1f),
+            new(.2f, .2f, 1f, 1f),
         };
 
         private static ColorVertex Generate(int index, Vector2 shapeVertex, ShapeDefinition2D shape)
