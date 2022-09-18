@@ -1,6 +1,7 @@
 ﻿using SDL2.NET;
 using SDL2.NET.Input;
 using System.Buffers;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
@@ -13,6 +14,47 @@ using Veldrid;
 namespace VDStudios.MagicEngine;
 
 /// <summary>
+/// Represents the data required to define a new CommandListGroup for this GraphicsManager
+/// </summary>
+public readonly struct CommandListGroupDefinition
+{
+    /// <summary>
+    /// The degree of parallelism that this CommandListGroup will have
+    /// </summary>
+    public int Parallelism { get; }
+
+    /// <summary>
+    /// The amount of expected operations each CommandList will have in the group
+    /// </summary>
+    public int ExpectedOperations { get; }
+
+    /// <summary>
+    /// Creates a new instance of type <see cref="CommandListGroupDefinition"/>
+    /// </summary>
+    /// <param name="parallelism">The degree of parallelism that this CommandListGroup will have</param>
+    /// <param name="expectedOperations">The amount of expected operations each CommandList will have in the group</param>
+    public CommandListGroupDefinition(int parallelism, int expectedOperations = 100)
+    {
+        if (parallelism <= 0)
+            throw new ArgumentOutOfRangeException(nameof(parallelism), parallelism, "The degree of parallelism must be larger than 0");
+        if (expectedOperations <= 0)
+            throw new ArgumentOutOfRangeException(nameof(expectedOperations), expectedOperations, "The amount of expected operations must be larger than 0");
+        Parallelism = parallelism;
+    }
+
+    /// <summary>
+    /// Deconstructs this <see cref="CommandListGroupDefinition"/> in the following order: parallelism, expectedOperations
+    /// </summary>
+    /// <param name="parallelism">The degree of parallelism that this CommandListGroup will have</param>
+    /// <param name="expectedOperations">The amount of expected operations each CommandList will have in the group</param>
+    public void Deconstruct(out int parallelism, out int expectedOperations)
+    {
+        parallelism = Parallelism;
+        expectedOperations = ExpectedOperations;
+    }
+}
+
+/// <summary>
 /// Represents a Thread dedicated solely to handling a specific pair of <see cref="SDL2.NET.Window"/> and <see cref="GraphicsDevice"/>, and managing their respective resources in a thread-safe manner
 /// </summary>
 /// <remarks>
@@ -23,12 +65,16 @@ public class GraphicsManager : GameObject, IDisposable
     #region Construction
 
     /// <summary>
-    /// Instances and constructs a new <see cref="GraphicsManager"/> objects
+    /// Instances and constructs a new <see cref="GraphicsManager"/> object
     /// </summary>
-    public GraphicsManager(int parallelism) : base("Graphics & Input", "Rendering")
+    /// <param name="commandListGroups">The CommandList group definitions for this <see cref="GraphicsManager"/></param>
+    public GraphicsManager(ImmutableArray<CommandListGroupDefinition> commandListGroups) : base("Graphics & Input", "Rendering")
     {
-        if (parallelism <= 0)
-            throw new ArgumentOutOfRangeException(nameof(parallelism), parallelism, "The degree of parallelism must be larger than 0");
+        if (commandListGroups.Length <= 0)
+            throw new ArgumentException("The array of CommandListGroups cannot be empty", nameof(commandListGroups));
+        for (int i = 0; i < commandListGroups.Length; i++)
+            if (commandListGroups[i].Parallelism <= 0 || commandListGroups[i].ExpectedOperations <= 0)
+                throw new ArgumentException($"The CommandListGroupDefinition at index {i} is improperly defined. The degree of parallelism and the amount of expected operations must both be larger than 0");
 
         initLock.Wait();
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
@@ -40,8 +86,20 @@ public class GraphicsManager : GameObject, IDisposable
         guilockWaiter = new(GUILock);
         drawlockWaiter = new(DrawLock);
 
-        Parallelism = parallelism;
+        CommandListGroups = commandListGroups;
     }
+
+    /// <summary>
+    /// Instances and constructs a new <see cref="GraphicsManager"/> object
+    /// </summary>
+    /// <param name="commandListGroups">The CommandList group definitions for this <see cref="GraphicsManager"/>. This array will be copied and turned into an <see cref="ImmutableArray{T}"/></param>
+    public GraphicsManager(params CommandListGroupDefinition[] commandListGroups) : this(ImmutableArray.Create(commandListGroups)) { }
+
+    /// <summary>
+    /// Instances and constructs a new <see cref="GraphicsManager"/> object
+    /// </summary>
+    /// <param name="parallelism">The degree of parallelism to assign to the single <see cref="CommandListGroupDefinition"/> this constructor will create</param>
+    public GraphicsManager(int parallelism) : this(ImmutableArray.Create(new CommandListGroupDefinition(parallelism))) { }
 
     private readonly SemaphoreSlim initLock = new(1, 1);
 
@@ -58,9 +116,9 @@ public class GraphicsManager : GameObject, IDisposable
     /// <summary>
     /// The maximum degree of parallel rendering to use for this <see cref="GraphicsManager"/>
     /// </summary>
-    public int Parallelism { get; }
+    public ImmutableArray<CommandListGroupDefinition> CommandListGroups { get; }
 
-    private CommandListDispatch[] CLDispatchs;
+    private CommandListDispatch[][] CLDispatchs;
 
     #endregion
 
@@ -676,9 +734,37 @@ public class GraphicsManager : GameObject, IDisposable
         }
     }
 
+    private void InitCLD()
+    {
+        var gd = Device!;
+        var factory = gd.ResourceFactory;
+        var count = CommandListGroups.Length;
+        CLDispatchs = new CommandListDispatch[][];
+        for (int i1 = 0; i1 < count; i1++)
+        {
+            var(paral, exops) = CommandListGroups[i1];
+
+#if FORCE_GM_NOPARALLEL
+            paral = 1;
+#endif
+
+            ref var cld = ref CLDispatchs[i1];
+            cld = new CommandListDispatch[paral];
+            int div = exops / paral;
+            for (int i2 = 0; i2 < cld.Length; i2++)
+                cld[i2] = new(div, CreateCommandList(gd, factory));
+            InternalLog?.Debug("Created a CommandList group with a degree of parallelism of {paralellism}, and an amount of expected operations of {exops}", paral, exops);
+        }
+        if (count is 1)
+            InternalLog?.Information("Started with {count} CommandList group", count);
+        else
+            InternalLog?.Information("Started with {count} CommandList groups", count);
+    }
+
     private async Task Run()
     {
         await Task.Yield();
+
         var framelock = FrameLock;
         var drawlock = DrawLock;
         var glock = GUILock;
@@ -695,18 +781,9 @@ public class GraphicsManager : GameObject, IDisposable
         
         var managercl = CreateCommandList(gd, gd.ResourceFactory);
 
-#if FORCE_GM_NOPARALLEL
-        CLDispatchs = new CommandListDispatch[1];
-#else
-        CLDispatchs = new CommandListDispatch[Parallelism];
-#endif
-        for (int i = 0; i < CLDispatchs.Length; i++)
-            CLDispatchs[i] = new(300 / Parallelism, CreateCommandList(gd, gd.ResourceFactory));
-
-        InternalLog?.Information("Started with a degree of parallelism of {paralellism}", Parallelism);
-
         ulong frameCount = 0;
 
+        InitCLD();
         InternalLog?.Debug("Querying WindowFlags");
         await PerformOnWindowAndWaitAsync(w =>
         {
