@@ -246,6 +246,14 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     public float PreferredPriority { get; set; }
 
     /// <summary>
+    /// Represents this <see cref="DrawOperation"/>'s CommandList Group affinity.
+    /// </summary>
+    /// <remarks>
+    /// If in doubt, leave this at 0
+    /// </remarks>
+    public int CommandListGroupAffinity { get; init; }
+
+    /// <summary>
     /// Represents the current reference to <see cref="DrawParameters"/> this <see cref="DrawOperation"/> has
     /// </summary>
     /// <remarks>
