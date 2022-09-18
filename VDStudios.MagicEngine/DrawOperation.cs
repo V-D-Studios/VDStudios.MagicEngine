@@ -246,12 +246,13 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     public float PreferredPriority { get; set; }
 
     /// <summary>
-    /// Represents this <see cref="DrawOperation"/>'s CommandList Group affinity.
+    /// Represents this <see cref="DrawOperation"/>'s CommandList Group affinity. If this value is 
     /// </summary>
     /// <remarks>
-    /// If in doubt, leave this at 0
+    /// This value will also set this <see cref="DrawOperation"/> in its own draw priority group; which means that it will be drawn over <see cref="DrawOperation"/>s that have a lower <see cref="CommandListGroupAffinity"/> regardless of priority. If in doubt, leave this as <see langword="null"/>
     /// </remarks>
-    public int CommandListGroupAffinity { get; init; }
+    public uint? CommandListGroupAffinity { get; init; }
+    internal int _clga => (int)(CommandListGroupAffinity ?? 0);
 
     /// <summary>
     /// Represents the current reference to <see cref="DrawParameters"/> this <see cref="DrawOperation"/> has
@@ -472,7 +473,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// Disposes of this <see cref="DrawOperation"/>'s resources
     /// </summary>
     /// <remarks>
-    /// Dispose of any additional resources your subtype allocates
+    /// Dispose of any additional resources your subtype allocates. Consider that this method may be called even if <see cref="GraphicsObject.Manager"/> is not set
     /// </remarks>
     protected virtual void Dispose(bool disposing) { }
 
@@ -489,17 +490,20 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
                 disposedValue = true;
             }
 
-            var @lock = Manager!.LockManagerDrawing();
-            try
+            if(Manager is GraphicsManager manager)
             {
-                Dispose(disposing);
-            }
-            finally
-            {
-                Device = null;
-                _owner = null!;
-                Manager = null;
-                @lock.Dispose();
+                var @lock = manager.LockManagerDrawing();
+                try
+                {
+                    Dispose(disposing);
+                }
+                finally
+                {
+                    Device = null;
+                    _owner = null!;
+                    Manager = null;
+                    @lock.Dispose();
+                }
             }
         }
         finally

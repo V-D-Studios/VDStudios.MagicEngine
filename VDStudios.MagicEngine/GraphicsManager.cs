@@ -214,6 +214,9 @@ public class GraphicsManager : GameObject, IDisposable
     /// <param name="operation">The <see cref="DrawOperation"/> that will be drawn in this <see cref="GraphicsManager"/></param>
     internal void QueueOperationRegistration(DrawOperation operation)
     {
+        if (operation._clga >= CommandListGroups.Length)
+            throw new InvalidOperationException($"This GraphicsManager only has {CommandListGroups.Length} CommandList groups [0-{CommandListGroups.Length - 1}], an operation with a CommandListGroupAffinity of {operation._clga} cannot be registered.");
+
         lock (RegistrationBuffer)
             RegistrationBuffer.Add(operation);
     }

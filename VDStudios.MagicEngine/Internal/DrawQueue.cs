@@ -30,13 +30,13 @@ internal sealed class DrawQueue : IDrawQueue<DrawOperation>
     public async Task EnqueueAsync(DrawOperation drawing, float priority)
     {
         using (await _lock.LockAsync())
-            _queues[drawing.CommandListGroupAffinity].Enqueue(drawing, priority);
+            _queues[drawing._clga].Enqueue(drawing, priority);
     }
 
     public void Enqueue(DrawOperation drawing, float priority)
     {
         using (_lock.Lock())
-            _queues[drawing.CommandListGroupAffinity].Enqueue(drawing, priority);
+            _queues[drawing._clga].Enqueue(drawing, priority);
     }
 
     #region Comparer
