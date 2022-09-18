@@ -129,7 +129,7 @@ internal sealed class DrawQueue<T> : IDrawQueue<T> where T : GraphicsObject
 
     private class PriorityComparer : IComparer<float>
     {
-        public int Compare(float x, float y) => x > y ? 1 : -1;
+        public int Compare(float x, float y) => x > y ? -1 : 1;
     }
 
     #endregion

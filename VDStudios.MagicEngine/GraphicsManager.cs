@@ -703,6 +703,8 @@ public class GraphicsManager : GameObject, IDisposable
         for (int i = 0; i < CLDispatchs.Length; i++)
             CLDispatchs[i] = new(300 / Parallelism, CreateCommandList(gd, gd.ResourceFactory));
 
+        InternalLog?.Information("Started with a degree of parallelism of {paralellism}", Parallelism);
+
         ulong frameCount = 0;
 
         InternalLog?.Debug("Querying WindowFlags");
@@ -761,7 +763,7 @@ public class GraphicsManager : GameObject, IDisposable
                             {
                                 int dqc = drawqueue.Count;
                                 var perCL = dqc / CLDispatchs.Length;
-                                if (perCL is 0 || drawqueue.Count == CLDispatchs.Length) 
+                                if (perCL is 0 || drawqueue.Count == CLDispatchs.Length)
                                 {
                                     int i = 0;
                                     for (; i < dqc; i++)
@@ -770,7 +772,7 @@ public class GraphicsManager : GameObject, IDisposable
                                         cld.Add(drawqueue.Dequeue());
                                         cld.Start(delta);
                                     }
-                                    while (i-- > 0) 
+                                    for (i = 0; i < dqc; i++)
                                         gd.SubmitCommands(CLDispatchs[i].WaitForEnd());
                                 }
                                 else
@@ -783,12 +785,12 @@ public class GraphicsManager : GameObject, IDisposable
                                             cld.Add(drawqueue.Dequeue());
                                         cld.Start(delta);
                                     }
-                                    var lcld = CLDispatchs[i++];
+                                    var lcld = CLDispatchs[i];
                                     while (drawqueue.Count > 0)
                                         lcld.Add(drawqueue.Dequeue());
                                     lcld.Start(delta);
-                                    while (i-- > 0)
-                                        gd.SubmitCommands(CLDispatchs[i].WaitForEnd());
+                                    for (int x = 0; x <= i; x++)
+                                        gd.SubmitCommands(CLDispatchs[x].WaitForEnd());
                                 }
                             }
                     }
