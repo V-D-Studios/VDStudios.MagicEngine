@@ -38,7 +38,7 @@ internal class CommandListDispatch
     {
         if (DopCount + 1 >= dops.Length)
             Array.Resize(ref dops, int.Max(dops.Length * 2, 6));
-        dops[DopCount] = dop;
+        dops[DopCount++] = dop;
     }
 
     private void WorkMethod(object? state)
