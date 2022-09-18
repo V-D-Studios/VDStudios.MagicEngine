@@ -24,6 +24,9 @@ internal sealed class DrawQueue : IDrawQueue<DrawOperation>
 
     internal bool TryDequeue(int group, [MaybeNullWhen(true)] out DrawOperation? drawOperation) => _queues[group].TryDequeue(out drawOperation, out _);
 
+    internal PriorityQueue<DrawOperation, float> GetQueue(int group) => _queues[group];
+    internal int QueueCount => _queues.Length;
+
     public async Task EnqueueAsync(DrawOperation drawing, float priority)
     {
         using (await _lock.LockAsync())

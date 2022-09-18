@@ -40,6 +40,7 @@ public readonly struct CommandListGroupDefinition
         if (expectedOperations <= 0)
             throw new ArgumentOutOfRangeException(nameof(expectedOperations), expectedOperations, "The amount of expected operations must be larger than 0");
         Parallelism = parallelism;
+        ExpectedOperations = expectedOperations;
     }
 
     /// <summary>
@@ -739,7 +740,7 @@ public class GraphicsManager : GameObject, IDisposable
         var gd = Device!;
         var factory = gd.ResourceFactory;
         var count = CommandListGroups.Length;
-        CLDispatchs = new CommandListDispatch[][];
+        CLDispatchs = new CommandListDispatch[count][];
         for (int i1 = 0; i1 < count; i1++)
         {
             var(paral, exops) = CommandListGroups[i1];
@@ -771,7 +772,7 @@ public class GraphicsManager : GameObject, IDisposable
         var winlock = WindowShownLock;
 
         var sw = new Stopwatch();
-        var drawqueue = new DrawQueue<DrawOperation>();
+        var drawqueue = new DrawQueue(CommandListGroups);
         var removalQueue = new Queue<Guid>(10);
         TimeSpan delta = default;
 
@@ -835,41 +836,45 @@ public class GraphicsManager : GameObject, IDisposable
                         managercl.End();
                         gd.SubmitCommands(managercl);
 
-                        if (drawqueue.Count > 0) 
-                            using (drawqueue._lock.Lock())
+                        using (drawqueue._lock.Lock())
+                        {
+                            for (int cld_g_i = 0; cld_g_i < drawqueue.QueueCount; cld_g_i++) 
                             {
-                                int dqc = drawqueue.Count;
-                                var perCL = dqc / CLDispatchs.Length;
-                                if (perCL is 0 || drawqueue.Count == CLDispatchs.Length)
+                                var queue = drawqueue.GetQueue(cld_g_i);
+                                int dqc = queue.Count;
+                                var cld_g = CLDispatchs[cld_g_i];
+                                var perCL = dqc / cld_g.Length;
+                                if (perCL is 0 || queue.Count == cld_g.Length)
                                 {
                                     int i = 0;
                                     for (; i < dqc; i++)
                                     {
-                                        var cld = CLDispatchs[i];
-                                        cld.Add(drawqueue.Dequeue());
+                                        var cld = cld_g[i];
+                                        cld.Add(queue.Dequeue());
                                         cld.Start(delta);
                                     }
                                     for (i = 0; i < dqc; i++)
-                                        gd.SubmitCommands(CLDispatchs[i].WaitForEnd());
+                                        gd.SubmitCommands(cld_g[i].WaitForEnd());
                                 }
                                 else
                                 {
                                     int i = 0;
-                                    for (; i < CLDispatchs.Length - 1; i++)
+                                    for (; i < cld_g.Length - 1; i++)
                                     {
-                                        var cld = CLDispatchs[i];
+                                        var cld = cld_g[i];
                                         for (int x = 0; x < perCL; x++)
-                                            cld.Add(drawqueue.Dequeue());
+                                            cld.Add(queue.Dequeue());
                                         cld.Start(delta);
                                     }
-                                    var lcld = CLDispatchs[i];
-                                    while (drawqueue.Count > 0)
-                                        lcld.Add(drawqueue.Dequeue());
+                                    var lcld = cld_g[i];
+                                    while (queue.Count > 0)
+                                        lcld.Add(queue.Dequeue());
                                     lcld.Start(delta);
                                     for (int x = 0; x <= i; x++)
-                                        gd.SubmitCommands(CLDispatchs[x].WaitForEnd());
+                                        gd.SubmitCommands(cld_g[x].WaitForEnd());
                                 }
                             }
+                        }
                     }
                     finally
                     {
