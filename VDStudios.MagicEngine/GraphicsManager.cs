@@ -754,7 +754,7 @@ public class GraphicsManager : GameObject, IDisposable
 
             ref var cld = ref CLDispatchs[i1];
             cld = new CommandListDispatch[paral];
-            int div = int.Max(exops / paral, 6);
+            int div = int.Max(exops / paral, exops);
             for (int i2 = 0; i2 < cld.Length; i2++)
                 cld[i2] = new(div, CreateCommandList(gd, factory));
             InternalLog?.Debug("Created a CommandList group with a degree of parallelism of {paralellism}, and an amount of expected operations of {exops}", paral, exops);
@@ -844,6 +844,7 @@ public class GraphicsManager : GameObject, IDisposable
                             for (int cld_g_i = 0; cld_g_i < drawqueue.QueueCount; cld_g_i++) 
                             {
                                 var queue = drawqueue.GetQueue(cld_g_i);
+                                if (queue.Count <= 0) continue;
                                 int dqc = queue.Count;
                                 var cld_g = CLDispatchs[cld_g_i];
                                 var perCL = dqc / cld_g.Length;
