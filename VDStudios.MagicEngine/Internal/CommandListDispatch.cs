@@ -36,9 +36,9 @@ internal class CommandListDispatch
 
     public void Add(DrawOperation dop)
     {
-        if (DopCount >= dops.Length)
-            Array.Resize(ref dops, dops.Length * 2);
-        dops[DopCount++] = dop;
+        if (DopCount + 1 >= dops.Length)
+            Array.Resize(ref dops, int.Max(dops.Length * 2, 6));
+        dops[DopCount] = dop;
     }
 
     private void WorkMethod(object? state)
