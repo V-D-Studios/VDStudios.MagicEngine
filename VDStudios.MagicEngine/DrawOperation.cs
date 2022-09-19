@@ -1,5 +1,6 @@
 ﻿using SDL2.Bindings;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Transactions;
 using VDStudios.MagicEngine.DrawLibrary;
@@ -36,7 +37,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     #region Transformation
 
     /// <summary>
-    /// The <see cref="ResourceLayout"/> used to describe the laoyut for <see cref="DrawOperation"/> transformations
+    /// The <see cref="ResourceLayout"/> used to describe the layout for <see cref="DrawOperation"/> color and vertex transformations
     /// </summary>
     /// <remarks>
     /// This layout is static across <see cref="GraphicsManager"/>s
@@ -51,33 +52,42 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     private DeviceBuffer TransformationBuffer { get; set; }
 
     /// <summary>
-    /// Updates the TransformationBuffer with data from <see cref="Transformation"/> if necessary
+    /// Updates the TransformationBuffer with data from <see cref="VertexTransformation"/> if necessary
     /// </summary>
     protected void UpdateTransformationBuffer(CommandList commandList)
     {
-        if (PendingTransformationUpdate)
+        if (PendingVertexTransformationUpdate)
         {
-            var tr = Transformation;
-            PendingTransformationUpdate = false;
-            commandList.UpdateBuffer(TransformationBuffer, 0, ref tr);
+            var tr = VertexTransformation;
+            PendingVertexTransformationUpdate = false;
+            commandList.UpdateBuffer(TransformationBuffer, VertexTransformationOffset, ref tr);
         } 
+        if (PendingColorTransformationUpdate)
+        {
+            var tr = ColorTransformation;
+            PendingColorTransformationUpdate = false;
+            commandList.UpdateBuffer(TransformationBuffer, ColorTransformationOffset, ref tr);
+        }
     }
 
     /// <summary>
     /// The transformation matrix that represents the current transformation properties in this <see cref="DrawOperation"/>
     /// </summary>
-    protected Matrix4x4 Transformation
+    /// <remarks>
+    /// This transformation can be used to represent the current world properties of the drawing operation, for example, it's position and rotation in relation to the world itself
+    /// </remarks>
+    protected Matrix4x4 VertexTransformation
     {
         get
         {
-            if (trans is not Matrix4x4 t)
+            if (vertrans is not Matrix4x4 t)
             {
                 var translation = Translation;
                 var scl = Scale;
                 var (cpxx, cpxy, cpxz, rotx) = RotationX;
                 var (cpyx, cpyy, cpyz, roty) = RotationY;
                 var (cpzx, cpzy, cpzz, rotz) = RotationZ;
-                trans = t =
+                vertrans = t =
                     Matrix4x4.CreateTranslation(translation) *
                     Matrix4x4.CreateScale(scl) *
                     Matrix4x4.CreateRotationX(rotx, new(cpxx, cpxy, cpxz)) *
@@ -87,8 +97,25 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
             return t;
         }
     }
-    private Matrix4x4? trans = Matrix4x4.Identity;
-    private bool PendingTransformationUpdate = false;
+    private Matrix4x4? vertrans = Matrix4x4.Identity;
+    private bool PendingVertexTransformationUpdate = false;
+    private const uint VertexTransformationOffset = 0;
+
+    /// <summary>
+    /// The transformation matrix that represents the current transformation properties in this <see cref="DrawOperation"/>
+    /// </summary>
+    public ColorTransformation ColorTransformation
+    {
+        get => colTrans;
+        set
+        {
+            colTrans = value;
+            PendingColorTransformationUpdate = true;
+        }
+    }
+    private ColorTransformation colTrans;
+    private bool PendingColorTransformationUpdate = false;
+    private readonly uint ColorTransformationOffset = (uint)Unsafe.SizeOf<Matrix4x4>();
 
     /// <summary>
     /// Adjusts the transformation parameters and calculates the appropriate transformation matrix for this <see cref="DrawOperation"/>
@@ -108,9 +135,9 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         RotationX = rotX ?? RotationX;
         RotationY = rotY ?? RotationY;
         RotationZ = rotZ ?? RotationZ;
-        PendingTransformationUpdate = true;
+        PendingVertexTransformationUpdate = true;
         NotifyPendingGPUUpdate();
-        trans = null;
+        vertrans = null;
     }
 
     /// <summary>
@@ -394,10 +421,17 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     protected virtual ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
     {
-        TransformationBuffer = factory.CreateBuffer(new BufferDescription(DataStructuring.FitToUniformBuffer<Matrix4x4, uint>(), BufferUsage.UniformBuffer));
+        TransformationBuffer = factory.CreateBuffer(
+            new BufferDescription(
+                DataStructuring.FitToUniformBuffer((uint)Unsafe.SizeOf<Matrix4x4>() + (uint)Unsafe.SizeOf<ColorTransformation>()),
+                BufferUsage.UniformBuffer
+            )
+        );
         TransformationSet = factory.CreateResourceSet(new ResourceSetDescription(TransformationLayout, TransformationBuffer));
-        var trans = Transformation;
-        device.UpdateBuffer(TransformationBuffer, 0, ref trans);
+        var vtrans = VertexTransformation;
+        var ctrans = ColorTransformation;
+        device.UpdateBuffer(TransformationBuffer, VertexTransformationOffset, ref vtrans);
+        device.UpdateBuffer(TransformationBuffer, ColorTransformationOffset, ref ctrans);
         builder.InsertLast(TransformationSet, TransformationLayout, out int _, "DrawOperation Base Transformation");
         return ValueTask.CompletedTask;
     }
