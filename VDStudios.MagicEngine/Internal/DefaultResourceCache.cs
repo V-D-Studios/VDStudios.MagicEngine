@@ -186,8 +186,8 @@ public sealed class DefaultResourceCache
     }
     private VertexLayoutDescription defaultShapeRendererLayout = new(new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate));
 
-    private static ShaderDescription srvertexDefault = new(ShaderStages.Vertex, BuiltInResources.DefaultPolygonVertexShader.GetUTF8Bytes(), "main");
-    private static ShaderDescription srfragmnDefault = new(ShaderStages.Fragment, BuiltInResources.DefaultPolygonFragmentShader.GetUTF8Bytes(), "main");
+    private static ShaderDescription srvertexDefault = new(ShaderStages.Vertex, DefaultShaders.DefaultShapeRendererVertexShader.GetUTF8Bytes(), "main");
+    private static ShaderDescription srfragmnDefault = new(ShaderStages.Fragment, DefaultShaders.DefaultShapeRendererFragmentShader.GetUTF8Bytes(), "main");
 
     #endregion
 
@@ -262,8 +262,8 @@ public sealed class DefaultResourceCache
                 new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate)
               );
 
-    private static ShaderDescription txtsrvertexDefault = new(ShaderStages.Vertex, BuiltInResources.DefaultPolygonVertexShader.GetUTF8Bytes(), "main");
-    private static ShaderDescription txtsrfragmnDefault = new(ShaderStages.Fragment, BuiltInResources.DefaultPolygonFragmentShader.GetUTF8Bytes(), "main");
+    private static ShaderDescription txtsrvertexDefault = new(ShaderStages.Vertex, DefaultShaders.DefaultTexturedShapeRendererVertexShader.GetUTF8Bytes(), "main");
+    private static ShaderDescription txtsrfragmnDefault = new(ShaderStages.Fragment, DefaultShaders.DefaultTexturedShapeRendererFragmentShader.GetUTF8Bytes(), "main");
 
     #endregion
 
