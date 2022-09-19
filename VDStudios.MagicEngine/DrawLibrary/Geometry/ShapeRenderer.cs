@@ -274,10 +274,6 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
 #endregion
 
-    private ShaderDescription vertexDefault = new(ShaderStages.Vertex, BuiltInResources.DefaultPolygonVertexShader.GetUTF8Bytes(), "main");
-    private ShaderDescription fragmnDefault = new(ShaderStages.Fragment, BuiltInResources.DefaultPolygonFragmentShader.GetUTF8Bytes(), "main");
-    private static readonly VertexLayoutDescription DefaultVector2Layout 
-        = new(new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate));
 
     /// <inheritdoc/>
     protected override async ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
@@ -289,11 +285,17 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? resourcesSets, ResourceLayout[]? resourceLayouts)
     {
-        var shaders = ShapeRendererDescription.Shaders ?? factory.CreateFromSpirv(
-            ShapeRendererDescription.VertexShaderSpirv ?? vertexDefault,
-            ShapeRendererDescription.FragmentShaderSpirv ?? fragmnDefault
-        );
-
+        Shader[] shaders = ShapeRendererDescription.Shaders is null
+            ? ShapeRendererDescription.VertexShaderSpirv is null && ShapeRendererDescription.FragmentShaderSpirv is null
+                ? Manager!.DefaultResourceCache.DefaultShapeRendererShaders
+                : ShapeRendererDescription.VertexShaderSpirv is null || ShapeRendererDescription.FragmentShaderSpirv is null
+                    ? throw new InvalidOperationException("Cannot have only one shader description set. Either they must both be set, or they must both be null")
+                    : factory.CreateFromSpirv(
+                                    (ShaderDescription)ShapeRendererDescription.VertexShaderSpirv,
+                                    (ShaderDescription)ShapeRendererDescription.FragmentShaderSpirv
+                                )
+            : ShapeRendererDescription.Shaders;
+        
         Pipeline = ShapeRendererDescription.Pipeline ?? factory.CreateGraphicsPipeline(new(
             ShapeRendererDescription.BlendState,
             ShapeRendererDescription.DepthStencilState,
@@ -317,7 +319,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             },
             new ShaderSetDescription(new VertexLayoutDescription[]
             {
-                ShapeRendererDescription.VertexLayout ?? DefaultVector2Layout
+                ShapeRendererDescription.VertexLayout ?? Manager!.DefaultResourceCache.DefaultShapeRendererLayout
             }, shaders),
             resourceLayouts,
             device.SwapchainFramebuffer.OutputDescription

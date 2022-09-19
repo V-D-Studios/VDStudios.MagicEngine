@@ -3,6 +3,7 @@ using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
 using Veldrid;
 using Veldrid.ImageSharp;
+using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.DrawLibrary;
 
@@ -112,12 +113,6 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
 
     #region DrawOperation
 
-    private static readonly VertexLayoutDescription DefaultVector2TexPosLayout
-        = new(
-              new VertexElementDescription("TexturePosition", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
-              new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate)
-          );
-
     /// <inheritdoc/>
     protected override async ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
     {
@@ -153,17 +148,19 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? sets, ResourceLayout[]? layouts)
     {
-        ShapeRendererDescription.VertexShaderSpirv ??= new(
-            ShaderStages.Vertex, 
-            DefaultShaders.DefaultTexturedShapeRendererVertexShader.BuildAgainst(sets!).GetUTF8Bytes(), 
-            "main"
-        );
-        ShapeRendererDescription.FragmentShaderSpirv ??= new(
-            ShaderStages.Fragment, 
-            DefaultShaders.DefaultTexturedShapeRendererFragmentShader.BuildAgainst(sets!).GetUTF8Bytes(),
-            "main"
-        );  
-        ShapeRendererDescription.VertexLayout ??= DefaultVector2TexPosLayout;
+        Shader[] shaders = ShapeRendererDescription.Shaders is null
+            ? ShapeRendererDescription.VertexShaderSpirv is null && ShapeRendererDescription.FragmentShaderSpirv is null
+                ? Manager!.DefaultResourceCache.DefaultTexturedShapeRendererShaders
+                : ShapeRendererDescription.VertexShaderSpirv is null || ShapeRendererDescription.FragmentShaderSpirv is null
+                    ? throw new InvalidOperationException("Cannot have only one shader description set. Either they must both be set, or they must both be null")
+                    : factory.CreateFromSpirv(
+                                    (ShaderDescription)ShapeRendererDescription.VertexShaderSpirv,
+                                    (ShaderDescription)ShapeRendererDescription.FragmentShaderSpirv
+                                )
+            : ShapeRendererDescription.Shaders;
+
+        ShapeRendererDescription.Shaders = shaders;
+        ShapeRendererDescription.VertexLayout ??= Manager!.DefaultResourceCache.DefaultTexturedShapeRendererLayout;
         return base.CreateResources(device, factory, sets, layouts);
     }
 
