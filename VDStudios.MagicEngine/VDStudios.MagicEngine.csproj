@@ -66,11 +66,6 @@
 	  <ProjectReference Include="..\dependencies\veldrid\src\Veldrid\Veldrid.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Compile Update="Properties\BuiltInResources.Designer.cs">
-	    <DesignTime>True</DesignTime>
-	    <AutoGen>True</AutoGen>
-	    <DependentUpon>BuiltInResources.resx</DependentUpon>
-	  </Compile>
 	  <Compile Update="Properties\ImGuiResources.Designer.cs">
 	    <DesignTime>True</DesignTime>
 	    <AutoGen>True</AutoGen>
@@ -78,10 +73,6 @@
 	  </Compile>
 	</ItemGroup>
 	<ItemGroup>
-	  <EmbeddedResource Update="Properties\BuiltInResources.resx">
-	    <Generator>PublicResXFileCodeGenerator</Generator>
-	    <LastGenOutput>BuiltInResources.Designer.cs</LastGenOutput>
-	  </EmbeddedResource>
 	  <EmbeddedResource Update="Properties\ImGuiResources.resx">
 	    <Generator>PublicResXFileCodeGenerator</Generator>
 	    <LastGenOutput>ImGuiResources.Designer.cs</LastGenOutput>
