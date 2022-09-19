@@ -88,6 +88,8 @@ public class GraphicsManager : GameObject, IDisposable
         drawlockWaiter = new(DrawLock);
 
         CommandListGroups = commandListGroups;
+
+        DefaultResourceCache = new(this);
     }
 
     /// <summary>
@@ -158,6 +160,11 @@ public class GraphicsManager : GameObject, IDisposable
     private static ResourceLayout? ManagerResourceLayout;
 
     internal ResourceLayout DrawOpTransLayout { get; private set; }
+
+    /// <summary>
+    /// The the default resource cache for this <see cref="GraphicsManager"/>
+    /// </summary>
+    public DefaultResourceCache DefaultResourceCache { get; }
 
     /// <summary>
     /// Gets or instantiates the layout of the resources relevant to this <see cref="GraphicsManager"/>
