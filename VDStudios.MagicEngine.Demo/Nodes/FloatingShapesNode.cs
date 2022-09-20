@@ -222,10 +222,10 @@ void main() {
             circle.Subdivisions = SubDivSeq[x++];
             TexturedRenderer.ColorTransformation = Random.Next(0, 100) switch
             {
-                < 25 => ColorTransformation.CreateTint(GenNewColor()),
-                < 50 => ColorTransformation.CreateOverlay(GenNewColor()),
-                < 75 => ColorTransformation.CreateTintAndOverlay(GenNewColor(), GenNewColor()),
-                _    => default,
+                < 25 => ColorTransformation.CreateTint(GenNewColor()).WithOpacity(.87f),
+                < 50 => ColorTransformation.CreateOverlay(GenNewColor()).WithOpacity(.87f),
+                < 75 => ColorTransformation.CreateTintAndOverlay(GenNewColor(), GenNewColor()).WithOpacity(.87f),
+                _    => ColorTransformation.CreateOpacity(.87f),
             };
         }
         var rotation = new Vector4(-.1f, -.1f, 0f, rot += rotspeed * (float)delta.TotalMilliseconds);
