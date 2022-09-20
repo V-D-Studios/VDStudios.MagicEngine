@@ -82,9 +82,15 @@ public class FloatingShapesNode : Node, IDrawableNode
 
         segment = new(new(.2f, .3f), new(-.4f, -.1f), 10f);
 
-        var elipse = new ElipseDefinition(new(-.3f, 0f), .2f, .5f, 30);
+        var elipseTall = new ElipseDefinition(new(0f, 0f), .2f, .65f, 30) { Name = "Tall Elipse" };
+        var elipseWide = new ElipseDefinition(new(0f, 0f), .65f, .2f, 30) { Name = "Wide Elipse" };
 
-        var watch = new Watch(viewLoggers: new() { ("Force segment update", () => { segment.ForceUpdate(); return true; }) });
+        var watch = new Watch(viewLoggers: new() 
+        {
+            ("Force Tall Elipse update", () => { elipseTall.ForceRegenerate(); return true; }),
+            ("Force Wide Elipse update", () => { elipseWide.ForceRegenerate(); return true; })
+        });
+
         Game.MainGraphicsManager.AddElement(watch);
 
         // Apparently, oddly numbered polygons have their last vertex skipped?
@@ -154,9 +160,10 @@ public class FloatingShapesNode : Node, IDrawableNode
                 new PolygonDefinition(rectangle, true) { Name = "Rectangle" },
                 new PolygonDefinition(triangle, true) { Name = "Triangle" },
                 circle,
-                elipse,
                 circ1,
                 circ2,
+                elipseTall,
+                elipseWide,
             },
             new(
                 BlendStateDescription.SingleAlphaBlend,
