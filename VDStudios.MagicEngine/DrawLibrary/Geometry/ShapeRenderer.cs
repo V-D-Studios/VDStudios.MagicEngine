@@ -211,7 +211,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                 if (sh.LastVersion != sh.Shape.Version)
                 {
                     NotifyPendingGPUUpdate();
-                    IndicesToUpdate.Enqueue(new(i, true, sh.LastCount != sh.Shape.Count, 0));
+                    IndicesToUpdate.Enqueue(new(i, true, true, 0));
                     // If the counts don't match, update the indices
                 }
             }
