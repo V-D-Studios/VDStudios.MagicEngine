@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Veldrid;
 
 namespace VDStudios.MagicEngine;
@@ -6,6 +7,7 @@ namespace VDStudios.MagicEngine;
 /// <summary>
 /// Represents the color transformation data for a given <see cref="DrawOperation"/>
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct ColorTransformation
 {
     /// <summary>
@@ -42,7 +44,7 @@ public readonly struct ColorTransformation
     /// <param name="tint">The color to tint the fragments with</param>
     /// <returns>The created <see cref="ColorTransformation"/></returns>
     public static ColorTransformation CreateTint(RgbaFloat tint)
-        => new(ColorEffect.Tinted, tint: tint.ToVector4());
+        => new(ColorEffect.Tinted | ColorEffect.GrayScale, tint: tint.ToVector4());
 
     /// <summary>
     /// Creates a <see cref="ColorTransformation"/> that overlays <paramref name="overlay"/> over the fragments
@@ -59,7 +61,7 @@ public readonly struct ColorTransformation
     /// <param name="overlay">The color to overlay over the fragments</param>
     /// <returns>The created <see cref="ColorTransformation"/></returns>
     public static ColorTransformation CreateTintAndOverlay(RgbaFloat tint, RgbaFloat overlay)
-        => new(ColorEffect.Tinted | ColorEffect.Overlay, tint: tint.ToVector4(), overlay: overlay.ToVector4());
+        => new(ColorEffect.Tinted | ColorEffect.GrayScale | ColorEffect.Overlay, tint: tint.ToVector4(), overlay: overlay.ToVector4());
 
     /// <summary>
     /// Creates a <see cref="ColorTransformation"/> that tints the fragments with <paramref name="tint"/>
@@ -67,7 +69,7 @@ public readonly struct ColorTransformation
     /// <param name="tint">The color to tint the fragments with</param>
     /// <returns>The created <see cref="ColorTransformation"/></returns>
     public static ColorTransformation CreateTint(Vector4 tint)
-        => new(ColorEffect.Tinted, tint: tint);
+        => new(ColorEffect.Tinted | ColorEffect.GrayScale, tint: tint);
 
     /// <summary>
     /// Creates a <see cref="ColorTransformation"/> that overlays <paramref name="overlay"/> over the fragments
