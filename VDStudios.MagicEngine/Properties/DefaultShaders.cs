@@ -13,7 +13,7 @@ namespace VDStudios.MagicEngine.Properties;
 /// </summary>
 public static class DefaultShaders
 {
-    private static readonly Lazy<ShaderBuilder> lazy_dtsrfs 
+    private static readonly Lazy<ShaderBuilder> lazy_dtsrfs
         = new(() =>
         {
             var builder = new ShaderBuilder(
@@ -23,6 +23,7 @@ public static class DefaultShaders
 const int grayscaleFx = 1 << 0;
 const int tintFx = 1 << 1;
 const int overlayFx = 1 << 2;
+const int opacityOverrideFx = 1 << 3;
 
 layout(location = 0) out vec4 outColor;
 layout(location = 0) in vec4 fragTexCoord;
@@ -38,6 +39,7 @@ void main() {
     if ((trans.colorfx & grayscaleFx) != 0) { c = toGrayscale(c); }
     if ((trans.colorfx & tintFx) != 0) { c *= trans.tint; }
     if ((trans.colorfx & overlayFx) != 0) { c *= trans.overlay; }
+    //if ((trans.colorfx & opacityOverrideFx) != 0) { c.a = trans.opacity; }
     outColor = c;
 }",
                 bindings:
@@ -48,7 +50,8 @@ void main() {
     layout(offset = 0) mat4 opTrans;
     layout(offset = 64) vec4 tint;
     layout(offset = 80) vec4 overlay;
-    layout(offset = 96) uint colorfx;
+    layout(offset = 96) float opacity;
+    layout(offset = 100) uint colorfx;
 } trans;
 "
             );
@@ -123,6 +126,7 @@ void main() {
 const int grayscaleFx = 1 << 0;
 const int tintFx = 1 << 1;
 const int overlayFx = 1 << 2;
+const int opacityOverrideFx = 1 << 3;
 
 layout(set=0,binding=0) uniform sampler TSamp;
 layout(set=0,binding=1) uniform texture2D Tex;
@@ -131,6 +135,7 @@ layout(set=2,binding=0) uniform Transform {
     layout(offset = 64) vec4 tint;
     layout(offset = 80) vec4 overlay;
     layout(offset = 96) uint colorfx;
+    layout(offset = 100) float opacity;
 } trans;
 
 layout(location = 0) out vec4 outColor;
@@ -147,6 +152,7 @@ void main() {
     if ((trans.colorfx & grayscaleFx) != 0) { c = toGrayscale(c); }
     if ((trans.colorfx & tintFx) != 0) { c = vec4(c.r * trans.tint.r, c.g * trans.tint.g, c.b * trans.tint.b, c.a); }
     if ((trans.colorfx & overlayFx) != 0) { c *= trans.overlay; }
+    if ((trans.colorfx & opacityOverrideFx) != 0) { c.a = trans.opacity; }
     outColor = c;
 }";
 

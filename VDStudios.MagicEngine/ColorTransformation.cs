@@ -5,6 +5,25 @@ using Veldrid;
 namespace VDStudios.MagicEngine;
 
 /// <summary>
+/// Provides an assortment of extensions for <see cref="ColorTransformation"/>
+/// </summary>
+public static class ColorTransformationExtensions
+{
+    /// <summary>
+    /// Returns a new <see cref="ColorTransformation"/> that has the specified opacity value set
+    /// </summary>
+    /// <param name="trans"></param>
+    /// <param name="opacity">The opacity value to set</param>
+    /// <returns></returns>
+    public static ColorTransformation WithOpacity(this in ColorTransformation trans, float opacity)
+        => trans with
+        {
+            Opacity = opacity,
+            Effects = ColorEffect.OpacityOverride | trans.Effects
+        };
+}
+
+/// <summary>
 /// Represents the color transformation data for a given <see cref="DrawOperation"/>
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
@@ -26,17 +45,42 @@ public readonly struct ColorTransformation
     public ColorEffect Effects { get; init; }
 
     /// <summary>
+    /// Overrides the alpha value of the fragment
+    /// </summary>
+    public float Opacity { get; init; } = 1;
+
+    /// <summary>
+    /// Deconstructs this <see cref="ColorTransformation"/> in the following order: <see cref="Tint"/>, <see cref="Overlay"/>, <see cref="Opacity"/> and <see cref="Effects"/>
+    /// </summary>
+    public void Deconstruct(out Vector4 tint, out Vector4 overlay, out float opacity, out ColorEffect effects)
+    {
+        tint = Tint;
+        overlay = Overlay;
+        opacity = Opacity;
+        effects = Effects;
+    }
+
+    /// <summary>
     /// Constructs a new instance of type <see cref="ColorTransformation"/>
     /// </summary>
     /// <param name="effects">The effects that will be enabled for the constructed <see cref="ColorTransformation"/></param>
     /// <param name="tint">The color tint that will be applied over the fragments</param>
     /// <param name="overlay">The color that will be overlayed over the fragments</param>
-    public ColorTransformation(ColorEffect effects, Vector4 tint = default, Vector4 overlay = default)
+    public ColorTransformation(ColorEffect effects, Vector4 tint = default, Vector4 overlay = default, float opacity = default)
     {
         Tint = tint;
         Overlay = overlay;
         Effects = effects;
+        Opacity = opacity;
     }
+
+    /// <summary>
+    /// Creates a <see cref="ColorTransformation"/> that overrides the opacity of the fragments
+    /// </summary>
+    /// <param name="opacity">The opacity the fragments will have</param>
+    /// <returns>The created <see cref="ColorTransformation"/></returns>
+    public static ColorTransformation CreateOpacity(float opacity)
+        => new(ColorEffect.OpacityOverride, opacity: opacity);
 
     /// <summary>
     /// Creates a <see cref="ColorTransformation"/> that tints the fragments with <paramref name="tint"/>

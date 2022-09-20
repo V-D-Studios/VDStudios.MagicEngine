@@ -22,4 +22,9 @@ public enum ColorEffect : uint
     /// Enables <see cref="ColorTransformation.Overlay"/> to be applied over fragments
     /// </summary>
     Overlay = 1 << 2,
+
+    /// <summary>
+    /// Enables <see cref="ColorTransformation.Opacity"/> to override the final fragment's alpha value
+    /// </summary>
+    OpacityOverride = 1 << 3,
 }
