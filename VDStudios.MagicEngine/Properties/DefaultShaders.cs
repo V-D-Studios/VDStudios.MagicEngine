@@ -20,17 +20,36 @@ public static class DefaultShaders
                 shaderbase:
 @"#version 450
 
+const int grayscaleFx = 1 << 0;
+const int tintFx = 1 << 1;
+const int overlayFx = 1 << 2;
+
 layout(location = 0) out vec4 outColor;
 layout(location = 0) in vec4 fragTexCoord;
 
-void main() {
-    outColor = texture(sampler2D(Tex, TSamp), vec2(fragTexCoord.x, fragTexCoord.y));
+vec4 toGrayscale(vec4 color)
+{
+    float average = (color.r + color.g + color.b) / 3.0;
+    return vec4(average, average, average, color.a);
 }
-",
+
+void main() {
+    vec4 c = texture(sampler2D(Tex, TSamp), vec2(fragTexCoord.x, fragTexCoord.y));
+    if ((trans.colorfx & grayscaleFx) != 0) { c = toGrayscale(c); }
+    if ((trans.colorfx & tintFx) != 0) { c *= trans.tint; }
+    if ((trans.colorfx & overlayFx) != 0) { c *= trans.overlay; }
+    outColor = c;
+}",
                 bindings:
 @"
 #binding uniform sampler TSamp;
 #binding uniform texture2D Tex;
+#binding uniform Transform {
+    layout(offset = 0) mat4 opTrans;
+    layout(offset = 64) vec4 tint;
+    layout(offset = 80) vec4 overlay;
+    layout(offset = 96) uint colorfx;
+} trans;
 "
             );
             return builder;
@@ -80,9 +99,9 @@ void main() {
     /// The default vertex shader for <see cref="TexturedShapeRenderer{TVertex}"/>
     /// </summary>
     public const string DefaultTexturedShapeRendererVertexShader = @"#version 450
-layout(set=1,binding=0) uniform  WindowTransform{
+layout(set=1,binding=0) uniform WindowTransform{
     layout(offset = 0) mat4 WinTrans;
-};layout(set=2,binding=0) uniform  Transform{
+};layout(set=2,binding=0) uniform Transform{
     layout(offset = 0) mat4 opTrans;
 };
 
@@ -100,13 +119,35 @@ void main() {
     /// The default fragment shader for <see cref="TexturedShapeRenderer{TVertex}"/>
     /// </summary>
     public const string DefaultTexturedShapeRendererFragmentShader = @"#version 450
-layout(set=0,binding=0) uniform sampler  TSamp;layout(set=0,binding=1) uniform texture2D  Tex;
+
+const int grayscaleFx = 1 << 0;
+const int tintFx = 1 << 1;
+const int overlayFx = 1 << 2;
+
+layout(set=0,binding=0) uniform sampler TSamp;
+layout(set=0,binding=1) uniform texture2D Tex;
+layout(set=2,binding=0) uniform Transform {
+    layout(offset = 0) mat4 opTrans;
+    layout(offset = 64) vec4 tint;
+    layout(offset = 80) vec4 overlay;
+    layout(offset = 96) uint colorfx;
+} trans;
 
 layout(location = 0) out vec4 outColor;
 layout(location = 0) in vec4 fragTexCoord;
 
+vec4 toGrayscale(vec4 color)
+{
+    float average = (color.r + color.g + color.b) / 3.0;
+    return vec4(average, average, average, color.a);
+}
+
 void main() {
-    outColor = texture(sampler2D(Tex, TSamp), vec2(fragTexCoord.x, fragTexCoord.y));
+    vec4 c = texture(sampler2D(Tex, TSamp), vec2(fragTexCoord.x, fragTexCoord.y));
+    if ((trans.colorfx & grayscaleFx) != 0) { c = toGrayscale(c); }
+    if ((trans.colorfx & tintFx) != 0) { c *= trans.tint; }
+    if ((trans.colorfx & overlayFx) != 0) { c *= trans.overlay; }
+    outColor = c;
 }";
 
     /// <summary>
