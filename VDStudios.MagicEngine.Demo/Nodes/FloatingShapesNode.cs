@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using VDStudios.MagicEngine.Demo.Properties;
 using VDStudios.MagicEngine.DrawLibrary;
 using VDStudios.MagicEngine.DrawLibrary.Geometry;
@@ -219,12 +220,27 @@ void main() {
             if (x >= SubDivSeq.Length)
                 x = 0;
             circle.Subdivisions = SubDivSeq[x++];
+            TexturedRenderer.ColorTransformation = Random.Next(0, 100) switch
+            {
+                < 25 => ColorTransformation.CreateTint(GenNewColor()),
+                < 50 => ColorTransformation.CreateOverlay(GenNewColor()),
+                < 75 => ColorTransformation.CreateTintAndOverlay(GenNewColor(), GenNewColor()),
+                _    => default,
+            };
         }
         var rotation = new Vector4(-.1f, -.1f, 0f, rot += rotspeed * (float)delta.TotalMilliseconds);
         TexturedRenderer.Transform(rotZ: rotation);
 
         return ValueTask.FromResult(true);
     }
+
+    private unsafe RgbaFloat GenNewColor()
+        => new(
+            r: Random.NextSingle(),
+            g: Random.NextSingle(),
+            b: Random.NextSingle(),
+            a: 1
+        );
 
     public DrawOperationManager DrawOperationManager { get; }
 
