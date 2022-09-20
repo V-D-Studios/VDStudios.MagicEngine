@@ -145,7 +145,7 @@ vec4 toGrayscale(vec4 color)
 void main() {
     vec4 c = texture(sampler2D(Tex, TSamp), vec2(fragTexCoord.x, fragTexCoord.y));
     if ((trans.colorfx & grayscaleFx) != 0) { c = toGrayscale(c); }
-    if ((trans.colorfx & tintFx) != 0) { c *= trans.tint; }
+    if ((trans.colorfx & tintFx) != 0) { c = vec4(c.r * trans.tint.r, c.g * trans.tint.g, c.b * trans.tint.b, c.a); }
     if ((trans.colorfx & overlayFx) != 0) { c *= trans.overlay; }
     outColor = c;
 }";
