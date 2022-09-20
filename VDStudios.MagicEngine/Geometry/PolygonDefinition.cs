@@ -153,6 +153,9 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     }
 
     /// <inheritdoc/>
+    public override bool ForceRegenerate() => false;
+
+    /// <inheritdoc/>
     public bool Equals(object? other, IEqualityComparer comparer)
     {
         return ((IStructuralEquatable)Vertices).Equals(other, comparer);

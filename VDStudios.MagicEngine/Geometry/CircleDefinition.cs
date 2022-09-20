@@ -70,6 +70,14 @@ public class CircleDefinition : ShapeDefinition2D
     /// <inheritdoc/>
     public override Vector2 this[int index] => VertexBuffer[index];
 
+    /// <inheritdoc/>
+    public override bool ForceRegenerate()
+    {
+        ___regenRequired = true;
+        ForceUpdate();
+        return true;
+    }
+
     /// <summary>
     /// Instances a new object of type <see cref="CircleDefinition"/>
     /// </summary>

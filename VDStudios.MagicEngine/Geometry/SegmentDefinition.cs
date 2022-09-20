@@ -55,6 +55,13 @@ public class SegmentDefinition : ShapeDefinition2D
         ___regenRequired = true;
     }
 
+    /// <inheritdoc/>
+    public override bool ForceRegenerate()
+    {
+        ___regenRequired = true;
+        ForceUpdate();
+        return true;
+    }
 
     /// <summary>
     /// The starting point of the segment
