@@ -65,6 +65,7 @@ public class FloatingShapesNode : Node, IDrawableNode
     private readonly PolygonDefinition hexagon;
     private readonly SegmentDefinition segment;
     private readonly TexturedShapeRenderer<Vector2> TexturedRenderer;
+    private readonly ShapeRenderer<ColorVertex> Renderer;
 
     public FloatingShapesNode()
     {
@@ -153,7 +154,7 @@ public class FloatingShapesNode : Node, IDrawableNode
             new TextureVertexGeneratorFill()) { PreferredPriority = -2 }
         );
 
-        DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(
+        Renderer = DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(
             new ShapeDefinition2D[]
             {
                 hexagon,
@@ -177,8 +178,8 @@ public class FloatingShapesNode : Node, IDrawableNode
                     new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
                     new VertexElementDescription("Color", VertexElementFormat.Float4, VertexElementSemantic.TextureCoordinate)
                 ),
-                new(ShaderStages.Vertex, FSNVertex.GetUTF8Bytes(), "main"),
-                new(ShaderStages.Fragment, FSNFragment.GetUTF8Bytes(), "main"),
+                null,
+                null,
                 GraphicsManager.AddWindowAspectTransform
             ),
             new ColorVertexGenerator())
@@ -186,34 +187,9 @@ public class FloatingShapesNode : Node, IDrawableNode
         );
     }
 
-    private static readonly string FSNFragment = @"
-#version 450
-
-layout(location = 0) out vec4 fsout_Color;
-layout(location = 0) in vec4 fsin_Color;
-
-void main() {
-    fsout_Color = fsin_Color;
-}
-";
-
-    private static readonly string FSNVertex = @"
-#version 450
-
-layout(location = 0) in vec2 Position;
-layout(location = 1) in vec4 Color;
-layout(location = 0) out vec4 fsin_Color;
-layout(binding = 0) uniform WindowAspectTransform {
-    layout(offset = 0) mat4 WindowScale;
-};
-
-void main() {
-    fsin_Color = Color;
-    gl_Position = WindowScale * vec4(Position, 0.0, 1.0);
-}
-";
     private TimeSpan tb;
     private float rot;
+    private float sca;
     private float rotspeed = 1f / 1000;
     private static readonly TimeSpan tb_ceil = TimeSpan.FromSeconds(1.5);
     private int x = 0;
@@ -236,7 +212,9 @@ void main() {
             };
         }
         var rotation = new Vector4(-.1f, -.1f, 0f, rot += rotspeed * (float)delta.TotalMilliseconds);
+        sca = (((rotspeed * (float)(delta.TotalMilliseconds))) + sca) % 1.5f;
         TexturedRenderer.Transform(rotZ: rotation);
+        Renderer.Transform(scale: new(sca, sca, 1));
 
         return ValueTask.FromResult(true);
     }
