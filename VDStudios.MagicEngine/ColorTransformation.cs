@@ -10,16 +10,24 @@ namespace VDStudios.MagicEngine;
 public static class ColorTransformationExtensions
 {
     /// <summary>
+    /// Ensures <see cref="ColorEffect.OpacityOverride"/> is not set and sets <see cref="ColorEffect.OpacityMultiply"/>
+    /// </summary>
+    /// <param name="effect"></param>
+    public static ColorEffect WithOpacityMultiply(this ColorEffect effect)
+        => (effect & (ColorEffect)0xFFFFFFF7) | ColorEffect.OpacityMultiply;
+
+    /// <summary>
     /// Returns a new <see cref="ColorTransformation"/> that has the specified opacity value set
     /// </summary>
     /// <param name="trans"></param>
     /// <param name="opacity">The opacity value to set</param>
+    /// <param name="ovrride">If <see langword="true"/>, <see cref="ColorEffect.OpacityOverride"/> will be used instead of <see cref="ColorEffect.OpacityMultiply"/></param>
     /// <returns></returns>
-    public static ColorTransformation WithOpacity(this in ColorTransformation trans, float opacity)
+    public static ColorTransformation WithOpacity(this in ColorTransformation trans, float opacity, bool ovrride = false)
         => trans with
         {
             Opacity = opacity,
-            Effects = ColorEffect.OpacityOverride | trans.Effects
+            Effects = ovrride ? trans.Effects | ColorEffect.OpacityOverride : trans.Effects.WithOpacityMultiply()
         };
 
     /// <summary>
@@ -131,9 +139,10 @@ public readonly struct ColorTransformation
     /// Creates a <see cref="ColorTransformation"/> that overrides the opacity of the fragments
     /// </summary>
     /// <param name="opacity">The opacity the fragments will have</param>
+    /// <param name="ovrride">If <see langword="true"/>, <see cref="ColorEffect.OpacityOverride"/> will be used instead of <see cref="ColorEffect.OpacityMultiply"/></param>
     /// <returns>The created <see cref="ColorTransformation"/></returns>
-    public static ColorTransformation CreateOpacity(float opacity)
-        => new(ColorEffect.OpacityOverride, opacity: opacity);
+    public static ColorTransformation CreateOpacity(float opacity, bool ovrride = false)
+        => new(ovrride ? ColorEffect.OpacityOverride : ColorEffect.OpacityMultiply, opacity: opacity);
 
     /// <summary>
     /// Creates a <see cref="ColorTransformation"/> that tints the fragments with <paramref name="tint"/>
