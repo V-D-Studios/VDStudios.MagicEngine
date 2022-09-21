@@ -24,6 +24,7 @@ const int grayscaleFx = 1 << 0;
 const int tintFx = 1 << 1;
 const int overlayFx = 1 << 2;
 const int opacityOverrideFx = 1 << 3;
+const int opacityMultiplyFx = 1 << 4;
 
 layout(location = 0) out vec4 outColor;
 layout(location = 0) in vec4 fragTexCoord;
@@ -39,7 +40,8 @@ void main() {
     if ((trans.colorfx & grayscaleFx) != 0) { c = toGrayscale(c); }
     if ((trans.colorfx & tintFx) != 0) { c *= trans.tint; }
     if ((trans.colorfx & overlayFx) != 0) { c *= trans.overlay; }
-    //if ((trans.colorfx & opacityOverrideFx) != 0) { c.a = trans.opacity; }
+    if ((trans.colorfx & opacityOverrideFx) != 0) { c.a = trans.opacity; }
+    else if ((trans.colorfx & opacityMultiplyFx) != 0) { c.a *= trans.opacity; }
     outColor = c;
 }",
                 bindings:
@@ -127,6 +129,7 @@ const int grayscaleFx = 1 << 0;
 const int tintFx = 1 << 1;
 const int overlayFx = 1 << 2;
 const int opacityOverrideFx = 1 << 3;
+const int opacityMultiplyFx = 1 << 4;
 
 layout(set=0,binding=0) uniform sampler TSamp;
 layout(set=0,binding=1) uniform texture2D Tex;
@@ -153,6 +156,7 @@ void main() {
     if ((trans.colorfx & tintFx) != 0) { c = vec4(c.r * trans.tint.r, c.g * trans.tint.g, c.b * trans.tint.b, c.a); }
     if ((trans.colorfx & overlayFx) != 0) { c *= trans.overlay; }
     if ((trans.colorfx & opacityOverrideFx) != 0) { c.a = trans.opacity; }
+    else if ((trans.colorfx & opacityMultiplyFx) != 0) { c.a *= trans.opacity; }
     outColor = c;
 }";
 
@@ -162,9 +166,18 @@ void main() {
     public const string DefaultShapeRendererVertexShader = @"#version 450
 
 layout(location = 0) in vec2 Position;
+layout(location = 1) in vec4 Color;
+layout(location = 0) out vec4 fsin_Color;
+layout(binding = 0) uniform WindowAspectTransform {
+    layout(offset = 0) mat4 WindowScale;
+};
+layout(set=1,binding=0) uniform Transform {
+    layout(offset = 0) mat4 opTrans;
+};
 
 void main() {
-    gl_Position = vec4(Position, 0.0, 1.0);
+    fsin_Color = Color;
+    gl_Position = WindowScale * opTrans * vec4(Position, 0.0, 1.0);
 }";
 
     /// <summary>
@@ -172,9 +185,36 @@ void main() {
     /// </summary>
     public const string DefaultShapeRendererFragmentShader = @"#version 450
 
-layout(location = 0) out vec4 outColor;
+const int grayscaleFx = 1 << 0;
+const int tintFx = 1 << 1;
+const int overlayFx = 1 << 2;
+const int opacityOverrideFx = 1 << 3;
+const int opacityMultiplyFx = 1 << 4;
+
+layout(location = 0) out vec4 fsout_Color;
+layout(location = 0) in vec4 fsin_Color;
+
+layout(set=1,binding=0) uniform Transform {
+    layout(offset = 0) mat4 opTrans;
+    layout(offset = 64) vec4 tint;
+    layout(offset = 80) vec4 overlay;
+    layout(offset = 96) uint colorfx;
+    layout(offset = 100) float opacity;
+} trans;
+
+vec4 toGrayscale(vec4 color)
+{
+    float average = (color.r + color.g + color.b) / 3.0;
+    return vec4(average, average, average, color.a);
+}
 
 void main() {
-    outColor = vec4(1.0, 50.0, 1.0, 0.5);
+    vec4 c = fsin_Color;
+    if ((trans.colorfx & grayscaleFx) != 0) { c = toGrayscale(c); }
+    if ((trans.colorfx & tintFx) != 0) { c = vec4(c.r * trans.tint.r, c.g * trans.tint.g, c.b * trans.tint.b, c.a); }
+    if ((trans.colorfx & overlayFx) != 0) { c *= trans.overlay; }
+    if ((trans.colorfx & opacityOverrideFx) != 0) { c.a = trans.opacity; }
+    else if ((trans.colorfx & opacityMultiplyFx) != 0) { c.a *= trans.opacity; }
+    fsout_Color = c;
 }";
 }
