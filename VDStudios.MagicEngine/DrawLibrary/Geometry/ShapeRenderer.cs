@@ -119,7 +119,14 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             IndicesToUpdate.Enqueue(new(i, true, true, 1));
         
         TVertexGenerator = generator;
-        IndexGenerator = Shape2DRendererIndexGenerators.TriangulatedIndexGenerator;
+        IndexGenerator = description.IndexGenerator ?? description.RenderMode switch
+        {
+            null => throw new ArgumentException("If description.IndexGenerator is null, description.RenderMode can't also be null; at least one of them must be set in order to select an IndexGenerator for this ShapeRenderer", nameof(description)),
+            PolygonRenderMode.LineStripWireframe => Shape2DRendererIndexGenerators.LinearIndexGenerator,
+            PolygonRenderMode.TriangulatedFill => Shape2DRendererIndexGenerators.TriangulatedIndexGenerator,
+            PolygonRenderMode.TriangulatedWireframe => Shape2DRendererIndexGenerators.TriangulatedIndexGenerator,
+            _ => throw new NotSupportedException($"Unknown PolygonRenderMode: {description.RenderMode}")
+        };
     }
 
     #region List
@@ -314,28 +321,34 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                                     (ShaderDescription)ShapeRendererDescription.FragmentShaderSpirv
                                 )
             : ShapeRendererDescription.Shaders;
-        
+
+        var fillmode = ShapeRendererDescription.FillMode ?? ShapeRendererDescription.RenderMode switch
+        {
+            null => throw new InvalidOperationException("If ShapeRendererDescription.FillMode is null, ShapeRendererDescription.RenderMode can't also be null; at least one of them must be set to select a FillMode for the pipeline that is being created"),
+            PolygonRenderMode.LineStripWireframe or PolygonRenderMode.TriangulatedWireframe => PolygonFillMode.Wireframe,
+            PolygonRenderMode.TriangulatedFill => PolygonFillMode.Solid,
+            _ => throw new NotSupportedException($"Unknown PolygonRenderMode: {ShapeRendererDescription.RenderMode}")
+        };
+
+        var topology = ShapeRendererDescription.Topology ?? ShapeRendererDescription.RenderMode switch
+        {
+            null => throw new InvalidOperationException("If ShapeRendererDescription.Topology is null, ShapeRendererDescription.RenderMode can't also be null; at least one of them must be set to select a PrimitiveTopology for the pipeline that is being created"),
+            PolygonRenderMode.TriangulatedFill or PolygonRenderMode.TriangulatedWireframe => PrimitiveTopology.TriangleStrip,
+            PolygonRenderMode.LineStripWireframe => PrimitiveTopology.LineStrip,
+            _ => throw new NotSupportedException($"Unknown PolygonRenderMode: {ShapeRendererDescription.RenderMode}")
+        };
+
         Pipeline = ShapeRendererDescription.Pipeline ?? factory.CreateGraphicsPipeline(new(
             ShapeRendererDescription.BlendState,
             ShapeRendererDescription.DepthStencilState,
             new(
                 ShapeRendererDescription.FaceCullMode,
-                ShapeRendererDescription.RenderMode switch
-                {
-                    PolygonRenderMode.LineStripWireframe or PolygonRenderMode.TriangulatedWireframe => PolygonFillMode.Wireframe,
-                    PolygonRenderMode.TriangulatedFill => PolygonFillMode.Solid,
-                    _ => throw new InvalidOperationException($"Unknown PolygonRenderMode: {ShapeRendererDescription.RenderMode}")
-                },
+                fillmode,
                 ShapeRendererDescription.FrontFace,
                 ShapeRendererDescription.DepthClipEnabled,
                 ShapeRendererDescription.ScissorTestEnabled
             ),
-            ShapeRendererDescription.RenderMode switch
-            {
-                PolygonRenderMode.TriangulatedFill or PolygonRenderMode.TriangulatedWireframe => PrimitiveTopology.TriangleStrip,
-                PolygonRenderMode.LineStripWireframe => PrimitiveTopology.LineStrip,
-                _ => throw new InvalidOperationException($"Unknown PolygonRenderMode: {ShapeRendererDescription.RenderMode}")
-            },
+            topology,
             new ShaderSetDescription(new VertexLayoutDescription[]
             {
                 ShapeRendererDescription.VertexLayout ?? Manager!.DefaultResourceCache.DefaultShapeRendererLayout

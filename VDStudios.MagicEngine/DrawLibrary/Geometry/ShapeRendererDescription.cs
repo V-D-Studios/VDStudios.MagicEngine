@@ -40,9 +40,25 @@ public struct ShapeRendererDescription
     public bool ScissorTestEnabled;
 
     /// <summary>
+    /// The primitive topology of the Pipeline that will be created.
+    /// </summary>
+    /// <remarks>
+    /// Ignored if <see cref="Pipeline"/> is set. If <see langword="null"/> it will be selected automatically using <see cref="RenderMode"/>
+    /// </remarks>
+    public PrimitiveTopology? Topology;
+
+    /// <summary>
+    /// The polygon fillmode of the Pipeline that will be created.
+    /// </summary>
+    /// <remarks>
+    /// Ignored if <see cref="Pipeline"/> is set. If <see langword="null"/> it will be selected automatically using <see cref="RenderMode"/>
+    /// </remarks>
+    public PolygonFillMode? FillMode;
+
+    /// <summary>
     /// Describes how the polygons for the destination <see cref="ShapeRenderer{TVertex}"/> will be rendered
     /// </summary>
-    public PolygonRenderMode RenderMode;
+    public PolygonRenderMode? RenderMode;
 
     /// <summary>
     /// Describes the vertex buffer's structure for the given <see cref="ShapeRenderer{TVertex}"/>
@@ -63,6 +79,14 @@ public struct ShapeRendererDescription
     /// Describes the Fragment shader for the <see cref="ShapeRenderer{TVertex}"/> in Vulkan style GLSL or SPIR-V bytecode
     /// </summary>
     public ShaderDescription? FragmentShaderSpirv;
+
+    /// <summary>
+    /// The index generator that will be used by the <see cref="ShapeRenderer{TVertex}"/>
+    /// </summary>
+    /// <remarks>
+    /// If <see langword="null"/> it will be selected from the defaults using <see cref="RenderMode"/>
+    /// </remarks>
+    public IShape2DRendererIndexGenerator IndexGenerator;
 
     /// <summary>
     /// Represents the Shader array for the <see cref="ShapeRenderer{TVertex}"/>
