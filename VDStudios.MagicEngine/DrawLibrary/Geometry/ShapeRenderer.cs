@@ -1,4 +1,5 @@
-﻿using System.Buffers;
+﻿using SixLabors.ImageSharp.Processing;
+using System.Buffers;
 using System.Collections;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -52,14 +53,31 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// </remarks>
     protected IShape2DRendererVertexGenerator<TVertex> TVertexGenerator
     {
-        get => _gen;
+        get => _vgen;
         set
         {
             ArgumentNullException.ThrowIfNull(value);
-            _gen = value;
+            _vgen = value;
         }
     }
-    private IShape2DRendererVertexGenerator<TVertex> _gen;
+    private IShape2DRendererVertexGenerator<TVertex> _vgen;
+
+    /// <summary>
+    /// The Index Generator for this <see cref="ShapeRenderer{TVertex}"/>
+    /// </summary>
+    /// <remarks>
+    /// Can NEVER be null; an exception will be thrown if an attempt is made to set this property to null
+    /// </remarks>
+    protected IShape2DRendererIndexGenerator IndexGenerator
+    {
+        get => _igen;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _igen = value;
+        }
+    }
+    private IShape2DRendererIndexGenerator _igen;
 
     /// <summary>
     /// Be careful when modifying this -- And know that most changes won't have any effect after <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[], ResourceLayout[])"/> is called
@@ -101,6 +119,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             IndicesToUpdate.Enqueue(new(i, true, true, 1));
         
         TVertexGenerator = generator;
+        IndexGenerator = Shape2DRendererIndexGenerators.TriangulatedIndexGenerator;
     }
 
     #region List
@@ -407,119 +426,6 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     #region Index Data
 
     /// <summary>
-    /// Generates and writes triangulated indices for a convex polygon into the buffer
-    /// </summary>
-    protected virtual void WriteConvexTriangulatedIndices(ref ShapeDat pol, CommandList commandList, ElementSkip vsk, out bool forceUpdateVertices)
-    {
-        // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single variable (count).
-        // There's probably an easier way to compute this
-
-        int count = pol.Shape.Count;
-        int indexSpace = GPUHelpers.ComputeConvexTriangulatedIndexBufferSize(count, out _);
-        int step;
-        int indCount;
-
-        if (count > 4)
-        {
-            step = vsk.GetSkipFactor(count);
-            indCount = vsk.GetElementCount(count);
-        }
-        else
-        {
-            step = 1;
-            indCount = count;
-        }
-
-        if (indCount is 3)
-        {
-            forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, 4, count is 3 ? 4 : indexSpace, Device!.ResourceFactory);
-            commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, stackalloc ushort[4]
-            {
-                0,
-                (ushort)step,
-                (ushort)(count - 1),
-                0,
-            });
-            return;
-        }
-
-        if (indCount is 4) // And is Convex
-        {
-            forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, 6, count is 4 ? 6 : indexSpace, Device!.ResourceFactory);
-            commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, stackalloc ushort[6]
-            {
-                (ushort)(1 * step), // 1
-                (ushort)(0 * step), // 0
-                (ushort)(3 * step), // 3
-                (ushort)(1 * step), // 1
-                (ushort)(2 * step), // 2
-                (ushort)(int.Min(3 * step, count - 1))  // 3
-            });
-            return;
-        }
-
-        int indexCount = GPUHelpers.ComputeConvexTriangulatedIndexBufferSize(indCount, out var i);
-        ushort[]? rented = null;
-        Span<ushort> buffer = indexCount > 2048 / sizeof(ushort)
-            ? (rented = ArrayPool<ushort>.Shared.Rent(indexCount)).AsSpan(0, indexCount)
-            : stackalloc ushort[indexCount];
-        buffer.Clear();
-
-        try
-        {
-            GPUHelpers.GenerateConvexTriangulatedIndices((ushort)indCount, buffer, (ushort)step, i);
-            forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, indexCount, indexSpace, Device!.ResourceFactory);
-            commandList.UpdateBuffer(pol.Buffer, pol.IndexStart, buffer);
-        }
-        finally
-        {
-            if (rented is not null)
-                ArrayPool<ushort>.Shared.Return(rented, true);
-        }
-    }
-
-    /// <summary>
-    /// Generates and writes line strip indices for a polygon into the buffer
-    /// </summary>
-    protected virtual void WriteLineStripIndices(ref ShapeDat pol, CommandList commandList, ElementSkip vsk, out bool forceUpdateVertices)
-    {
-        int count = pol.Shape.Count;
-        int step;
-        int indCount;
-
-        if (count > 4)
-        {
-            step = vsk.GetSkipFactor(count);
-            indCount = vsk.GetElementCount(count);
-        }
-        else
-        {
-            step = vsk.GetSkipFactor(count);
-            indCount = vsk.GetElementCount(count);
-        }
-
-        int indexSpace = GPUHelpers.ComputeLineStripIndexBufferSize(count);
-        int indexCount = GPUHelpers.ComputeLineStripIndexBufferSize(indCount);
-        ushort[]? rented = null;
-        Span<ushort> indexBuffer = indexCount > 2048 / sizeof(ushort)
-                ? (rented = ArrayPool<ushort>.Shared.Rent(indexCount)).AsSpan(0, indexCount)
-                : stackalloc ushort[indexCount];
-        indexBuffer.Clear();
-
-        try
-        {
-            GPUHelpers.GenerateLineStripIndices((ushort)indCount, indexBuffer, (ushort)step);
-            forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, indexCount, indexSpace, Device!.ResourceFactory);
-            commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, indexBuffer);
-        }
-        finally
-        {
-            if (rented is not null)
-                ArrayPool<ushort>.Shared.Return(rented);
-        }
-    }
-
-    /// <summary>
     /// Updates the indices of a given shape in the renderer
     /// </summary>
     /// <remarks>
@@ -528,15 +434,32 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <param name="pol"></param>
     /// <param name="commandList"></param>
     /// <exception cref="InvalidOperationException"></exception>
-    protected virtual void UpdateIndices(ref ShapeDat pol, CommandList commandList, out bool forceUpdateVertices)
+    protected virtual void UpdateIndices(ref ShapeDat pol, CommandList commandList, int index, IShape2DRendererIndexGenerator gen, ref object? generatorContext, out bool forceUpdateVertices)
     {
         var vsk = VertexSkip;
-        if (ShapeRendererDescription.RenderMode is PolygonRenderMode.LineStripWireframe)
-            WriteLineStripIndices(ref pol, commandList, vsk, out forceUpdateVertices);
-        else if (pol.Shape.IsConvex is false)
-            throw new InvalidOperationException($"Triangulation of Concave Polygons is not supported yet");
-        else
-            WriteConvexTriangulatedIndices(ref pol, commandList, vsk, out forceUpdateVertices);
+        var alloc = gen.QueryUInt16BufferSize(pol.Shape, Shapes, index, vsk, out int indexCount, out int indexSpace, ref generatorContext);
+        forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, indexCount, indexSpace, Device!.ResourceFactory);
+
+        ushort[]? rented = null;
+        Span<ushort> indexBuffer = alloc
+            ? indexCount * 2 > 2048 // 2KB 
+                ? (rented = ArrayPool<ushort>.Shared.Rent(indexCount)).AsSpan(0, indexCount)
+                : (stackalloc ushort[indexCount])
+            : default;
+
+        try
+        {
+            indexBuffer.Clear();
+            gen.GenerateUInt16(pol.Shape, Shapes, indexBuffer, commandList, pol.Buffer, index, indexCount, vsk, pol.IndexStart, pol.IndexCount * 2, out bool useBuff, ref generatorContext);
+
+            if (!useBuff)
+                commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, indexBuffer);
+        }
+        finally
+        {
+            if (rented is not null)
+                ArrayPool<ushort>.Shared.Return(rented);
+        }
     }
 
     #endregion
@@ -559,10 +482,12 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
             if (__vertexSkipChanged)
             {
+                object? igenContext = null;
+                var igen = IndexGenerator;
                 __vertexSkipChanged = false;
                 for (int i = 0; i < polybuffer.Length; i++)
                 {
-                    UpdateIndices(ref polybuffer[i], commandList, out bool updatevertices);
+                    UpdateIndices(ref polybuffer[i], commandList, i, igen, ref igenContext, out bool updatevertices);
                     if (updatevertices)
                         IndicesToUpdate.Enqueue(new(i, true, false, 0));
                 }
@@ -570,11 +495,13 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
             if (IndicesToUpdate.TryDequeue(out var dat))
             {
-                var gen = TVertexGenerator;
-                object? genContext = null;
+                var vgen = TVertexGenerator;
+                var igen = IndexGenerator;
+                object? vgenContext = null;
+                object? igenContext = null;
                 int ind = 0;
                 bool forceUpdateVertices = false;
-                gen.Start(this, Shapes, IndicesToUpdate.Count, ref genContext);
+                vgen.Start(this, Shapes, IndicesToUpdate.Count, ref vgenContext);
                 do
                 {
                     switch (dat.Added)
@@ -585,21 +512,21 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                             continue;
                         case 0:
                             if (dat.UpdateIndices)
-                                UpdateIndices(ref polybuffer[dat.Index], commandList, out forceUpdateVertices);
+                                UpdateIndices(ref polybuffer[dat.Index], commandList, dat.Index, igen, ref igenContext, out forceUpdateVertices);
                             if (forceUpdateVertices || dat.UpdateVertices)
-                                UpdateVertices(ref polybuffer[dat.Index], commandList, ind++, gen, ref genContext);
+                                UpdateVertices(ref polybuffer[dat.Index], commandList, ind++, vgen, ref vgenContext);
                             ShapeDat.UpdateLastVer(ref polybuffer[dat.Index]);
                             continue;
                         case > 0:
                             var np = new ShapeDat(_shapes[dat.Index], dat.Index, device.ResourceFactory);
-                            UpdateIndices(ref np, commandList, out _);
-                            UpdateVertices(ref np, commandList, ind++, gen, ref genContext);
+                            UpdateIndices(ref np, commandList, dat.Index, igen, ref igenContext, out _);
+                            UpdateVertices(ref np, commandList, ind++, vgen, ref vgenContext);
                             ShapeBufferList.Insert(dat.Index, np);
                             ShapeDat.UpdateLastVer(ref np);
                             continue;
                     }
                 } while (IndicesToUpdate.TryDequeue(out dat));
-                gen.Stop(this, ref genContext);
+                vgen.Stop(this, ref vgenContext);
             }
         }
 
