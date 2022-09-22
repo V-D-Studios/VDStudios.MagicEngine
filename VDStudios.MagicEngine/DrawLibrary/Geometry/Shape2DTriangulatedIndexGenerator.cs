@@ -18,7 +18,7 @@ public class Shape2DTriangulatedIndexGenerator : IShape2DRendererIndexGenerator
     public void GenerateUInt16(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<ushort> indices, CommandList commandList, DeviceBuffer indexBuffer, int index, int indexCount, ElementSkip vertexSkip, uint indexStart, uint indexSize, out bool useDeviceBuffer, ref object? context)
     {
         var count = shape.Count;
-        var step = vertexSkip.GetElementCount(shape.Count);
+        var step = vertexSkip.GetSkipFactor(shape.Count);
         ComputeConvexTriangulatedIndexBufferSize(vertexSkip.GetElementCount(count), out var start);
 
         if (shape.IsConvex)
