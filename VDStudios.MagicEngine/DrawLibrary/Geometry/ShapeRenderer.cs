@@ -391,7 +391,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
         try
         {
-            gen.Generate(pol.Shape, Shapes, vertexBuffer, commandList, pol.Buffer, index, out bool vertexBufferAlreadyUpdated, ref generatorContext);
+            gen.Generate(pol.Shape, Shapes, vertexBuffer, commandList, pol.Buffer, index, pol.VertexStart, vc_bytes, out bool vertexBufferAlreadyUpdated, ref generatorContext);
             if (!vertexBufferAlreadyUpdated)
                 commandList.UpdateBuffer(pol.Buffer, pol.VertexStart, vertexBuffer);
         }

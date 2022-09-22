@@ -11,7 +11,7 @@ namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 public interface IShape2DRendererVertexGenerator<TVertex> where TVertex : unmanaged
 {
     /// <summary>
-    /// Queries this generator to know if a CPU buffer should be allocated on the stack. If false, only the <see cref="DeviceBuffer"/> passed to <see cref="Generate(ShapeDefinition2D, IEnumerable{ShapeDefinition2D}, Span{TVertex}, CommandList, DeviceBuffer, int, out bool, ref object?)"/> will be usable, while the <see cref="Span{T}"/> will have a length of 0
+    /// Queries this generator to know if a CPU buffer should be allocated on the stack. If false, only the <see cref="DeviceBuffer"/> passed to <see cref="Generate(ShapeDefinition2D, IEnumerable{ShapeDefinition2D}, Span{TVertex}, CommandList, DeviceBuffer, int, uint, uint, out bool, ref object?)"/> will be usable, while the <see cref="Span{T}"/> will have a length of 0
     /// </summary>
     /// <param name="shape">The <see cref="ShapeDefinition2D"/> the vertices will be generated for</param>
     /// <param name="allShapes">All the shapes that are currently owned by the <see cref="ShapeRenderer{TVertex}"/></param>
@@ -40,8 +40,21 @@ public interface IShape2DRendererVertexGenerator<TVertex> where TVertex : unmana
     /// <param name="commandList">The command list in the context of the <see cref="ShapeRenderer{TVertex}"/> that owns <paramref name="shape"/></param>
     /// <param name="allShapes">All the shapes that are currently owned by the <see cref="ShapeRenderer{TVertex}"/></param>
     /// <param name="useDeviceBuffer">Set to <c>true</c> if <paramref name="vertexBuffer"/> was filled in this method and should be used as-is, <c>false</c> if <paramref name="vertices"/> was filled instead and needs to be copied over</param>
+    /// <param name="vertexSize">The amount of space *in bytes* allocated for the vertices in <paramref name="vertexBuffer"/>. Writing more bytes than allocated, or after the byte resulting from <paramref name="vertexStart"/> + <paramref name="vertexSize"/> will most likely result in corrupted index data, or an exception being thrown.</param>
+    /// <param name="vertexStart">The byte where the space allocated for the vertex start. Writing before this byte, or after the byte resulting from <paramref name="vertexStart"/> + <paramref name="vertexSize"/> will most likely result in corrupted index data, or an exception being thrown.</param>
     /// <param name="context">An optional context parameter. The same reference will be used for all the calls relating to a <see cref="ShapeRenderer{TVertex}"/> in a single vertex regeneration</param>
-    public void Generate(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<TVertex> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, out bool useDeviceBuffer, ref object? context);
+    public void Generate(
+        ShapeDefinition2D shape, 
+        IEnumerable<ShapeDefinition2D> allShapes, 
+        Span<TVertex> vertices, 
+        CommandList commandList, 
+        DeviceBuffer vertexBuffer, 
+        int index,
+        uint vertexStart,
+        uint vertexSize,
+        out bool useDeviceBuffer, 
+        ref object? context
+    );
 
     /// <summary>
     /// This method is called when the generator finishes a vertex regeneration batch

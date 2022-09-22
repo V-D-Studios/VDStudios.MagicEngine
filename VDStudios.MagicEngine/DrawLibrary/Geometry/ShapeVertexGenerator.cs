@@ -21,7 +21,7 @@ public sealed class ShapeVertexGenerator : IShape2DRendererVertexGenerator<Vecto
     public void Start(ShapeRenderer<Vector2> renderer, IEnumerable<ShapeDefinition2D> allShapes, int regenCount, ref object? context) { }
 
     /// <inheritdoc/>
-    public void Generate(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<Vector2> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, out bool useDeviceBuffer, ref object? context)
+    public void Generate(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<Vector2> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, uint vertexStart, uint vertexSize, out bool useDeviceBuffer, ref object? context)
     {
         for (int i = 0; i < vertices.Length; i++)
             vertices[i] = shape[i];

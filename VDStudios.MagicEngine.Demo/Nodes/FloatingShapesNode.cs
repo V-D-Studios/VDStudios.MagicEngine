@@ -50,7 +50,7 @@ public class FloatingShapesNode : Node, IDrawableNode
         public void Start(ShapeRenderer<ColorVertex> renderer, IEnumerable<ShapeDefinition2D> allShapes, int regenCount, ref object? context) { }
 
         /// <inheritdoc/>
-        public void Generate(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<ColorVertex> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, out bool useDeviceBuffer, ref object? context)
+        public void Generate(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<ColorVertex> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, uint vertexStart, uint vertexSize, out bool useDeviceBuffer, ref object? context)
         {
             for (int i = 0; i < vertices.Length; i++)
                 vertices[i] = Generate(i, shape[i], shape);
