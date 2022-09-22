@@ -56,6 +56,23 @@ public interface IShape2DRendererIndexGenerator
     );
 
     /// <summary>
+    /// Queries this generator to know how many elements the index buffer is expected to contain
+    /// </summary>
+    /// <param name="shape">The shape the index is being generated for</param>
+    /// <param name="index">The index of the shape whose vertices are being generated in relation to the amount of shapes that will be regenerated in this batch</param>
+    /// <param name="context">An optional context parameter. The same reference will be used for all the calls relating to a <see cref="ShapeRenderer{TVertex}"/> in a single index regeneration</param>
+    /// <param name="allShapes">All the shapes that are currently owned by the <see cref="ShapeRenderer{TVertex}"/></param>
+    /// <param name="vertexSkip">A struct that provides information on how to spread the indices that should be written to the index buffer</param>
+    /// <returns></returns>
+    public uint QueryUInt16BufferSize(
+        ShapeDefinition2D shape,
+        IEnumerable<ShapeDefinition2D> allShapes,
+        int index,
+        ElementSkip vertexSkip,
+        ref object? context
+    );
+
+    /// <summary>
     /// This method is called when the generator finishes a index regeneration batch
     /// </summary>
     /// <param name="context">An optional context parameter. The same reference will be used for all the calls relating to a <see cref="ShapeRenderer{TVertex}"/> in a single index regeneration</param>
