@@ -19,7 +19,7 @@ public class FloatingShapesNode : Node, IDrawableNode
         public RgbaFloat Color;
     }
 
-    private class ColorVertexGenerator : IShapeRendererVertexGenerator<ColorVertex>
+    private class ColorVertexGenerator : IShape2DRendererVertexGenerator<ColorVertex>
     {
         private static readonly RgbaFloat[] Colors = new RgbaFloat[]
         {

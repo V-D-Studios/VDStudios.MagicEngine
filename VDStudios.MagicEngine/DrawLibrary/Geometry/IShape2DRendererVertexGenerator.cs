@@ -1,4 +1,5 @@
-﻿using VDStudios.MagicEngine.Geometry;
+﻿using SDL2.NET;
+using VDStudios.MagicEngine.Geometry;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
@@ -7,7 +8,7 @@ namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 /// Represents an object that generates vertices for a <see cref="ShapeRenderer{TVertex}"/>
 /// </summary>
 /// <typeparam name="TVertex">The type of the vertex the <see cref="ShapeRenderer{TVertex}"/> expects</typeparam>
-public interface IShapeRendererVertexGenerator<TVertex> where TVertex : unmanaged
+public interface IShape2DRendererVertexGenerator<TVertex> where TVertex : unmanaged
 {
     /// <summary>
     /// Queries this generator to know if a CPU buffer should be allocated on the stack. If false, only the <see cref="DeviceBuffer"/> passed to <see cref="Generate(ShapeDefinition2D, IEnumerable{ShapeDefinition2D}, Span{TVertex}, CommandList, DeviceBuffer, int, out bool, ref object?)"/> will be usable, while the <see cref="Span{T}"/> will have a length of 0

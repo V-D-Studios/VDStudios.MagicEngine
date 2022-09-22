@@ -40,7 +40,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// This enumerable is always updated instantaneously, and represents the real-time state of the renderer before it's properly updated for the next draw sequence
     /// </summary>
     /// <remarks>
-    /// Don't mutate this property -- Use <see cref="ShapeRenderer{TVertex}"/>'s methods instead. This property is meant exclusively to be passed to a <see cref="IShapeRendererVertexGenerator{TVertex}"/>
+    /// Don't mutate this property -- Use <see cref="ShapeRenderer{TVertex}"/>'s methods instead. This property is meant exclusively to be passed to a <see cref="IShape2DRendererVertexGenerator{TVertex}"/>
     /// </remarks>
     protected IEnumerable<ShapeDefinition2D> Shapes => _shapes;
     
@@ -50,7 +50,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <remarks>
     /// Can NEVER be null; an exception will be thrown if an attempt is made to set this property to null
     /// </remarks>
-    protected IShapeRendererVertexGenerator<TVertex> TVertexGenerator
+    protected IShape2DRendererVertexGenerator<TVertex> TVertexGenerator
     {
         get => _gen;
         set
@@ -59,7 +59,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             _gen = value;
         }
     }
-    private IShapeRendererVertexGenerator<TVertex> _gen;
+    private IShape2DRendererVertexGenerator<TVertex> _gen;
 
     /// <summary>
     /// Be careful when modifying this -- And know that most changes won't have any effect after <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[], ResourceLayout[])"/> is called
@@ -90,8 +90,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// </summary>
     /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="ShapeRenderer{TVertex}"/></param>
-    /// <param name="generator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
-    public ShapeRenderer(IEnumerable<ShapeDefinition2D> shapes, ShapeRendererDescription description, IShapeRendererVertexGenerator<TVertex> generator)
+    /// <param name="generator">The <see cref="IShape2DRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
+    public ShapeRenderer(IEnumerable<ShapeDefinition2D> shapes, ShapeRendererDescription description, IShape2DRendererVertexGenerator<TVertex> generator)
     {
         ShapeRendererDescription = description;
         _shapes = new(shapes);
@@ -375,8 +375,8 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <param name="commandList"></param>
     /// <param name="gen">The generator that will be used by this method. Prevents <see cref="TVertexGenerator"/> from being changed while the vertices are being generated</param>
     /// <param name="index">The index of the shape in relation to the amount of shapes whose vertices are being regenerated</param>
-    /// <param name="generatorContext">Represents a handle to the <see cref="IShapeRendererVertexGenerator{TVertex}"/>'s context for the current vertex update batch.</param>
-    protected virtual void UpdateVertices(ref ShapeDat pol, CommandList commandList, int index, IShapeRendererVertexGenerator<TVertex> gen, ref object? generatorContext)
+    /// <param name="generatorContext">Represents a handle to the <see cref="IShape2DRendererVertexGenerator{TVertex}"/>'s context for the current vertex update batch.</param>
+    protected virtual void UpdateVertices(ref ShapeDat pol, CommandList commandList, int index, IShape2DRendererVertexGenerator<TVertex> gen, ref object? generatorContext)
     {
         var vc = pol.Shape.Count;
         var vc_bytes = DataStructuring.GetSize<TVertex, uint>((uint)vc);

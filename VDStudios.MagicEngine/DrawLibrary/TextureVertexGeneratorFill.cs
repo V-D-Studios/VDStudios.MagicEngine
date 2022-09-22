@@ -8,7 +8,7 @@ namespace VDStudios.MagicEngine.DrawLibrary;
 /// <summary>
 /// A VertexGenerator for <see cref="TextureVertex{TVertex}"/> data that intends to fill the image into each individual shape
 /// </summary>
-public class TextureVertexGeneratorFill : IShapeRendererVertexGenerator<TextureVertex<Vector2>> 
+public class TextureVertexGeneratorFill : IShape2DRendererVertexGenerator<TextureVertex<Vector2>> 
 {
     /// <inheritdoc/>
     public void Start(ShapeRenderer<TextureVertex<Vector2>> renderer, IEnumerable<ShapeDefinition2D> allShapes, int regenCount, ref object? context) { }

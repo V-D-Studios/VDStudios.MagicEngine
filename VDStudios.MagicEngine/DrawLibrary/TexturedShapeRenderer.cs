@@ -47,8 +47,8 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// <param name="imgSharpTexture">Represents an ImageSharpTexture that will create a DeviceTexture for use with this <see cref="TexturedShapeRenderer{TVertex}"/>, taking precedence for the one set in the description, if any</param>
     /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="TexturedShapeRenderer{TVertex}"/></param>
-    /// <param name="vertexGenerator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
-    public TexturedShapeRenderer(ImageSharpTexture imgSharpTexture, IEnumerable<ShapeDefinition2D> shapes, TexturedShapeRenderDescription description, IShapeRendererVertexGenerator<TextureVertex<TVertex>> vertexGenerator)
+    /// <param name="vertexGenerator">The <see cref="IShape2DRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
+    public TexturedShapeRenderer(ImageSharpTexture imgSharpTexture, IEnumerable<ShapeDefinition2D> shapes, TexturedShapeRenderDescription description, IShape2DRendererVertexGenerator<TextureVertex<TVertex>> vertexGenerator)
         : base(shapes, description.ShapeRendererDescription, vertexGenerator)
     {
         TextureRendererDescription = description;
@@ -62,8 +62,8 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// <param name="textureFactory">Represents a method that will create a DeviceTexture for use with this <see cref="TexturedShapeRenderer{TVertex}"/>, taking precedence for the one set in the description, if any</param>
     /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="TexturedShapeRenderer{TVertex}"/></param>
-    /// <param name="vertexGenerator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
-    public TexturedShapeRenderer(TextureFactory textureFactory, IEnumerable<ShapeDefinition2D> shapes, TexturedShapeRenderDescription description, IShapeRendererVertexGenerator<TextureVertex<TVertex>> vertexGenerator)
+    /// <param name="vertexGenerator">The <see cref="IShape2DRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
+    public TexturedShapeRenderer(TextureFactory textureFactory, IEnumerable<ShapeDefinition2D> shapes, TexturedShapeRenderDescription description, IShape2DRendererVertexGenerator<TextureVertex<TVertex>> vertexGenerator)
         : base(shapes, description.ShapeRendererDescription, vertexGenerator)
     {
         TextureRendererDescription = description;
@@ -76,8 +76,8 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// </summary>
     /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="TexturedShapeRenderer{TVertex}"/></param>
-    /// <param name="vertexGenerator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
-    public TexturedShapeRenderer(IEnumerable<ShapeDefinition2D> shapes, TexturedShapeRenderDescription description, IShapeRendererVertexGenerator<TextureVertex<TVertex>> vertexGenerator) 
+    /// <param name="vertexGenerator">The <see cref="IShape2DRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
+    public TexturedShapeRenderer(IEnumerable<ShapeDefinition2D> shapes, TexturedShapeRenderDescription description, IShape2DRendererVertexGenerator<TextureVertex<TVertex>> vertexGenerator) 
         : base(shapes, description.ShapeRendererDescription, vertexGenerator)
     {
         TextureRendererDescription = description;
