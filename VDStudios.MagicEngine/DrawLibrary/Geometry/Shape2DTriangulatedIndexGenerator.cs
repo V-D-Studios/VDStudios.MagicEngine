@@ -15,50 +15,62 @@ public class Shape2DTriangulatedIndexGenerator : IShape2DRendererIndexGenerator
     }
 
     /// <inheritdoc/>
-    public void GenerateUInt16(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<ushort> indices, CommandList commandList, DeviceBuffer indexBuffer, int index, int indexCount, ElementSkip vertexSkip, uint indexStart, uint indexSize, out bool useDeviceBuffer, ref object? context)
+    public void GenerateUInt16(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<ushort> indices, CommandList commandList, DeviceBuffer indexBuffer, int index, int indexCount, ElementSkip vertexSkip, uint indexStart, uint indexSize, out bool isBufferReady, ref object? context)
     {
         var count = shape.Count;
         var step = vertexSkip.GetSkipFactor(shape.Count);
         ComputeConvexTriangulatedIndexBufferSize(vertexSkip.GetElementCount(count), out var start);
 
-        if (shape.IsConvex)
-        {
-            if (indices.Length is 0)
-            {
-                if (indexCount is 3)
-                {
-                    commandList.UpdateBuffer(indexBuffer, indexStart, stackalloc ushort[4]
-                    {
-                        0,
-                        (ushort)step,
-                        (ushort)(count - 1),
-                        0,
-                    });
-                    useDeviceBuffer = true;
-                    return;
-                }
-                else if (indexCount is 4)
-                {
-                    commandList.UpdateBuffer(indexBuffer, indexStart, stackalloc ushort[6]
-                    {
-                        (ushort)(1 * step), // 1
-                        (ushort)(0 * step), // 0
-                        (ushort)(3 * step), // 3
-                        (ushort)(1 * step), // 1
-                        (ushort)(2 * step), // 2
-                        (ushort)(int.Min(3 * step, count - 1))  // 3
-                    });
-                    useDeviceBuffer = true;
-                    return;
-                }
-            }
+        #region Triangle
 
-            GenerateConvexTriangulatedIndices((ushort)count, indices, (ushort)step, start);
-            useDeviceBuffer = false;
+        if (indexCount is 3)
+        {
+            commandList.UpdateBuffer(indexBuffer, indexStart, stackalloc ushort[4]
+            {
+                0,
+                (ushort)step,
+                (ushort)(count - 1),
+                0,
+            });
+            isBufferReady = true;
             return;
         }
 
-        throw new NotSupportedException("Non convex shapes are not supported!");
+        #endregion
+
+        #region Convex
+
+        if (shape.IsConvex)
+        {
+            if (indices.Length is 0 && indexCount is 4)
+            {
+                commandList.UpdateBuffer(indexBuffer, indexStart, stackalloc ushort[6]
+                {
+                    (ushort)(1 * step), // 1
+                    (ushort)(0 * step), // 0
+                    (ushort)(3 * step), // 3
+                    (ushort)(1 * step), // 1
+                    (ushort)(2 * step), // 2
+                    (ushort)(int.Min(3 * step, count - 1))  // 3
+                });
+                isBufferReady = true;
+                return;
+            }
+
+            GenerateConvexTriangulatedIndices((ushort)count, indices, (ushort)step, start);
+            isBufferReady = false;
+            return;
+        }
+
+        #endregion
+
+        #region Concave
+
+        GenerateConcaveTriangulatedIndices((ushort)count, indices, shape.AsSpan(), (ushort)step);
+        isBufferReady = false;
+        return;
+
+        #endregion
     }
     
     /// <inheritdoc/>
@@ -116,6 +128,36 @@ public class Shape2DTriangulatedIndexGenerator : IShape2DRendererIndexGenerator
     /// <param name="indexBuffer">The buffer to store the indices in</param>
     /// <param name="start">The starting point of the triangulation. Synonym to <c>added</c> in <see cref="ComputeConvexTriangulatedIndexBufferSize(int, out byte)"/></param>
     public static void GenerateConvexTriangulatedIndices<TInt>(TInt count, Span<TInt> indexBuffer, TInt step, byte start = 0) where TInt : unmanaged, IBinaryInteger<TInt>
+    {
+        int bufind = 0;
+        TInt i = TInt.CreateSaturating(start);
+
+        while (i < count)
+        {
+            indexBuffer[bufind++] = step * TInt.Zero;
+            indexBuffer[bufind++] = step * i++;
+            indexBuffer[bufind++] = step * i;
+        }
+    }
+
+    /// <summary>
+    /// Computes the appropriate size for an index buffer that will store triangulated indices for a 2D shape of <paramref name="vertexCount"/> vertices
+    /// </summary>
+    /// <param name="vertexCount">The amount of vertices the shape has</param>
+    /// <param name="added">A number, either a <c>1</c> or <c>0</c>, that offsets the triangulation to account for odd vertex counts</param>
+    /// <param name="vertices">The buffer that contains the vertices that are to be indexed</param>
+    public static int ComputeConcaveTriangulatedIndexBufferSize(int vertexCount, out byte added, ReadOnlySpan<Vector2> vertices)
+        => (vertexCount - (added = vertexCount % 2 == 0 ? (byte)0u : (byte)1u)) * 3;
+
+    /// <summary>
+    /// Generates indices for a shape that is to be rendered as a triangle strip
+    /// </summary>
+    /// <typeparam name="TInt">The type of integer to fill the buffer with</typeparam>
+    /// <param name="count">The amount of vertices in the shape</param>
+    /// <param name="indexBuffer">The buffer to store the indices in</param>
+    /// <param name="vertices">The buffer that contains the vertices that are to be indexed</param>
+    /// <param name="start">The starting point of the triangulation. Synonym to <c>added</c> in <see cref="ComputeConcaveTriangulatedIndexBufferSize(int, out byte)"/></param>
+    public static void GenerateConcaveTriangulatedIndices<TInt>(TInt count, Span<TInt> indexBuffer, ReadOnlySpan<Vector2> vertices, TInt step, byte start = 0) where TInt : unmanaged, IBinaryInteger<TInt>
     {
         int bufind = 0;
         TInt i = TInt.CreateSaturating(start);

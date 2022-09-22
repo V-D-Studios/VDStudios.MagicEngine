@@ -13,10 +13,10 @@ public class Shape2DLinearIndexGenerator : IShape2DRendererIndexGenerator
     public void Start(IEnumerable<ShapeDefinition2D> allShapes, int regenCount, ref object? context) { }
 
     /// <inheritdoc/>
-    public void GenerateUInt16(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<ushort> indices, CommandList commandList, DeviceBuffer indexBuffer, int index, int indexCount, ElementSkip vertexSkip, uint indexStart, uint indexSize, out bool useDeviceBuffer, ref object? context)
+    public void GenerateUInt16(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<ushort> indices, CommandList commandList, DeviceBuffer indexBuffer, int index, int indexCount, ElementSkip vertexSkip, uint indexStart, uint indexSize, out bool isBufferReady, ref object? context)
     {
         GenerateLineStripIndices((ushort)shape.Count, indices, (ushort)vertexSkip.GetSkipFactor(shape.Count));
-        useDeviceBuffer = false;
+        isBufferReady = false;
     }
 
     /// <inheritdoc/>

@@ -463,9 +463,9 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         try
         {
             indexBuffer.Clear();
-            gen.GenerateUInt16(pol.Shape, Shapes, indexBuffer, commandList, pol.Buffer, index, indexCount, vsk, pol.IndexStart, pol.IndexCount * 2, out bool useBuff, ref generatorContext);
+            gen.GenerateUInt16(pol.Shape, Shapes, indexBuffer, commandList, pol.Buffer, index, indexCount, vsk, pol.IndexStart, pol.IndexCount * 2, out bool isBufferReady, ref generatorContext);
 
-            if (!useBuff)
+            if (!isBufferReady)
                 commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, indexBuffer);
         }
         finally

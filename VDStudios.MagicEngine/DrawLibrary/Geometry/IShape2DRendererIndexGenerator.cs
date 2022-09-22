@@ -28,7 +28,7 @@ public interface IShape2DRendererIndexGenerator
     /// <param name="indexBuffer">The <see cref="DeviceBuffer"/> that contains the actual index data. Use it only if you intend to generate the indices on the GPU</param>
     /// <param name="commandList">The command list in the context of the <see cref="ShapeRenderer{TVertex}"/> that owns <paramref name="shape"/></param>
     /// <param name="allShapes">All the shapes that are currently owned by the <see cref="ShapeRenderer{TVertex}"/></param>
-    /// <param name="useDeviceBuffer">Set to <c>true</c> if <paramref name="indexBuffer"/> was filled in this method and should be used as-is, <c><see langword="false"/></c> if <paramref name="indices"/> was filled instead and needs to be copied over</param>
+    /// <param name="isBufferReady">Set to <c>true</c> if <paramref name="indexBuffer"/> was filled in this method and should be used as-is, <c><see langword="false"/></c> if <paramref name="indices"/> was filled instead and needs to be copied over</param>
     /// <param name="context">An optional context parameter. The same reference will be used for all the calls relating to a <see cref="ShapeRenderer{TVertex}"/> in a single index regeneration</param>
     /// <param name="indexSize">The amount of space *in bytes* allocated for the indices in <paramref name="indexBuffer"/>. Writing more bytes than allocated, or after the byte resulting from <paramref name="indexStart"/> + <paramref name="indexSize"/> will most likely result in corrupted vertex data, or an exception being thrown.</param>
     /// <param name="indexStart">The byte where the space allocated for the indices start. Writing before this byte, or after the byte resulting from <paramref name="indexStart"/> + <paramref name="indexSize"/> will most likely result in corrupted vertex data, or an exception being thrown.</param>
@@ -46,7 +46,7 @@ public interface IShape2DRendererIndexGenerator
         ElementSkip vertexSkip, 
         uint indexStart, 
         uint indexSize, 
-        out bool useDeviceBuffer, 
+        out bool isBufferReady, 
         ref object? context
     );
 
