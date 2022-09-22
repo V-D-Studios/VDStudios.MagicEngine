@@ -86,7 +86,7 @@ public struct ShapeRendererDescription
     /// <remarks>
     /// If <see langword="null"/> it will be selected from the defaults using <see cref="RenderMode"/>
     /// </remarks>
-    public IShape2DRendererIndexGenerator IndexGenerator;
+    public IShape2DRendererIndexGenerator? IndexGenerator;
 
     /// <summary>
     /// Represents the Shader array for the <see cref="ShapeRenderer{TVertex}"/>
