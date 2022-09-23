@@ -58,6 +58,7 @@ internal class CommandListDispatch
         catch(Exception e)
         {
             Fault = e;
+            throw;
         }
         finally
         {
@@ -74,8 +75,14 @@ internal class CommandListDispatch
         {
             if (Fault is Exception e)
             {
-                Fault = null;
-                throw e;
+                try
+                {
+                    throw e;
+                }
+                finally
+                {
+                    Fault = null;
+                }
             }
             Array.Clear(dops);
             DopCount = 0;
