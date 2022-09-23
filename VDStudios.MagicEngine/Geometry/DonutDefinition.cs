@@ -26,8 +26,8 @@ public class DonutDefinition : ShapeDefinition2D
             {
                 if (___vertexBuffer.Length < Count)
                     ___vertexBuffer = new Vector2[Count];
-                CircleDefinition.GenerateVertices(CenterPoint, InnerRadius, InnerSubdivisions, WritableInnerCircleSpan);
-                CircleDefinition.GenerateVertices(CenterPoint, OuterRadius, OuterSubdivisions, WritableOuterCircleSpan);
+                CircleDefinition.GenerateVertices(CenterPoint, InnerRadius, InnerSubdivisions, SliceInnerCircle(___vertexBuffer));
+                CircleDefinition.GenerateVertices(CenterPoint, OuterRadius, OuterSubdivisions, SliceOuterCircle(___vertexBuffer));
                 ___regenRequired = false;
             }
             return ___vertexBuffer.AsSpan(0, Count);
@@ -50,18 +50,18 @@ public class DonutDefinition : ShapeDefinition2D
     /// </remarks>
     public int InnerCircleStart => 0;
 
-    private Span<Vector2> WritableInnerCircleSpan => ___vertexBuffer.AsSpan(InnerCircleStart, OuterCircleStart - 1);
-    private Span<Vector2> WritableOuterCircleSpan => ___vertexBuffer.AsSpan(OuterCircleStart, Count);
+    private Span<Vector2> SliceInnerCircle(Span<Vector2> buffer) => buffer.Slice(InnerCircleStart, OuterCircleStart - 1);
+    private Span<Vector2> SliceOuterCircle(Span<Vector2> buffer) => buffer.Slice(OuterCircleStart, Count);
 
     /// <summary>
     /// Represents the area in this <see cref="DonutDefinition"/>'s vertex array that contains the Inner Circle's vertices
     /// </summary>
-    public ReadOnlySpan<Vector2> InnerCircleSpan => WritableInnerCircleSpan;
+    public ReadOnlySpan<Vector2> InnerCircleSpan => SliceInnerCircle(VertexBuffer);
 
     /// <summary>
     /// Represents the area in this <see cref="DonutDefinition"/>'s vertex array that contains the Outer Circle's vertices
     /// </summary>
-    public ReadOnlySpan<Vector2> OuterCircleSpan => WritableOuterCircleSpan;
+    public ReadOnlySpan<Vector2> OuterCircleSpan => SliceOuterCircle(VertexBuffer);
 
     /// <summary>
     /// The center point of the circle
