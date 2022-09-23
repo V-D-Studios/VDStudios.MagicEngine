@@ -156,17 +156,41 @@ public class Shape2DTriangulatedIndexGenerator : IShape2DRendererIndexGenerator
     /// <param name="count">The amount of vertices in the shape</param>
     /// <param name="indexBuffer">The buffer to store the indices in</param>
     /// <param name="vertices">The buffer that contains the vertices that are to be indexed</param>
-    /// <param name="start">The starting point of the triangulation. Synonym to <c>added</c> in <see cref="ComputeConcaveTriangulatedIndexBufferSize(int, out byte)"/></param>
+    /// <param name="start">The starting point of the triangulation. Synonym to <c>added</c> in <see cref="ComputeConcaveTriangulatedIndexBufferSize(int, out byte, ReadOnlySpan{Vector2})"/></param>
+    [Obsolete("This method is not yet implemented")]
     public static void GenerateConcaveTriangulatedIndices<TInt>(TInt count, Span<TInt> indexBuffer, ReadOnlySpan<Vector2> vertices, TInt step, byte start = 0) where TInt : unmanaged, IBinaryInteger<TInt>
     {
         int bufind = 0;
-        TInt i = TInt.CreateSaturating(start);
+        int c = int.CreateChecked(count);
+        int s = int.CreateChecked(step);
 
-        while (i < count)
+        //while true
+        //  for every vertex
+        //    let pPrev = the previous vertex in the list
+        //    let pCur = the current vertex;
+        //    let pNext = the next vertex in the list
+        //    if the vertex is not an interior vertex (the wedge product of (pPrev - pCur) and (pNext - pCur) <= 0, for CCW winding);
+        //      continue;
+        //    if there are any vertices in the polygon inside the triangle made by the current vertex and the two adjacent ones
+        //      continue;
+        //    create the triangle with the points pPrev, pCur, pNext, for a CCW triangle;
+        //    remove pCur from the list;
+        //  if no triangles were made in the above for loop
+        //    break;
+
+        Vector2 prev;
+        Vector2 curr;
+        Vector2 next;
+        while (true)
         {
-            indexBuffer[bufind++] = step * TInt.Zero;
-            indexBuffer[bufind++] = step * i++;
-            indexBuffer[bufind++] = step * i;
+            for (int i = c; i >= 0; i -= s)
+            {
+                prev = i < c ? vertices[i + 1] : vertices[i];
+                curr = vertices[i];
+                next = i > 0 ? vertices[i - 1] : vertices[i];
+                if ((prev - curr).Cross(next - curr) <= 0)
+                    continue;
+            }
         }
     }
 }
