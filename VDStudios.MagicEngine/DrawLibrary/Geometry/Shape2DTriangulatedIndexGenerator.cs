@@ -9,6 +9,11 @@ namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 /// </summary>
 public class Shape2DTriangulatedIndexGenerator : IShape2DRendererIndexGenerator
 {
+    /// <summary>
+    /// The <see cref="DonutDefinition"/> index generator to handle <see cref="DonutDefinition"/>s
+    /// </summary>
+    public DonutShape2DTriangulatedIndexGenerator DonutTriangulator { get; } = new();
+
     /// <inheritdoc/>
     public void Start(IEnumerable<ShapeDefinition2D> allShapes, int regenCount, ref object? context)
     {
@@ -17,6 +22,11 @@ public class Shape2DTriangulatedIndexGenerator : IShape2DRendererIndexGenerator
     /// <inheritdoc/>
     public void GenerateUInt16(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<ushort> indices, CommandList commandList, DeviceBuffer indexBuffer, int index, int indexCount, ElementSkip vertexSkip, uint indexStart, uint indexSize, out bool isBufferReady, ref object? context)
     {
+        if (shape is DonutDefinition)
+        {
+            DonutTriangulator.GenerateUInt16(shape, allShapes, indices, commandList, indexBuffer, index, indexCount, vertexSkip, indexStart, indexStart, out isBufferReady, ref context);
+            return;
+        }
         var count = shape.Count;
         var step = vertexSkip.GetSkipFactor(shape.Count);
         ComputeConvexTriangulatedIndexBufferSize(vertexSkip.GetElementCount(count), out var start);
@@ -76,6 +86,8 @@ public class Shape2DTriangulatedIndexGenerator : IShape2DRendererIndexGenerator
     /// <inheritdoc/>
     public bool QueryUInt16BufferSize(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, int index, ElementSkip vertexSkip, out int indexCount, out int indexSpace, ref object? context)
     {
+        if (shape is DonutDefinition)
+            return DonutTriangulator.QueryUInt16BufferSize(shape, allShapes, index, vertexSkip, out indexCount, out indexSpace, ref context);
         if (shape.IsConvex)
         {
             var count = shape.Count;
