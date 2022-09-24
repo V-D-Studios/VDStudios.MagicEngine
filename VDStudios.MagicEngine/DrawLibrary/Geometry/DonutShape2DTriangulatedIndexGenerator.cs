@@ -33,12 +33,32 @@ public class DonutShape2DTriangulatedIndexGenerator : IShape2DRendererIndexGener
             for (ushort stage = 0; stage < ratio; stage++)
                 for (ushort i = 0; i < isp; i++)
                 {
-                    indices[bufind++] = (ushort)((i + 1) % isp + istart);
-                    indices[bufind++] = (ushort)((i % ratio) * stage + ostart);
-                    indices[bufind++] = (ushort)(i % isp + istart);
+                    //indices[bufind++] = (ushort)((i + 1) % isp + istart);
+                    //indices[bufind++] = (ushort)((i % ratio) * stage + ostart);
+                    //indices[bufind++] = (ushort)(i % isp + istart);
+
+                    try
+                    {
+                        ushort in1 = (ushort)((i + 1) % osp + istart);
+                        ushort ou0 = (ushort)(i + ostart);
+
+                        indices[bufind++] = in1;
+                        indices[bufind++] = ou0;
+                        indices[bufind++] = (ushort)(i + istart);
+
+                        indices[bufind++] = in1;
+                        indices[bufind++] = ou0;
+                        indices[bufind++] = (ushort)((i + 1) % osp + ostart);
+
+                        indices[bufind++] = in1;
+                    }
+                    catch
+                    {
+
+                    }
                 }
         }
-        if (osp > isp)
+        else if (osp > isp)
         {
             var ratio = osp / isp;
             for (ushort stage = 0; stage < ratio; stage++)
@@ -53,9 +73,18 @@ public class DonutShape2DTriangulatedIndexGenerator : IShape2DRendererIndexGener
         {
             for (ushort i = 0; i < osp; i++)
             {
-                indices[bufind++] = (ushort)((i + 1) % osp + istart);
-                indices[bufind++] = (ushort)(i + ostart);
+                ushort in1 = (ushort)((i + 1) % osp + istart);
+                ushort ou0 = (ushort)(i + ostart);
+
+                indices[bufind++] = in1;
+                indices[bufind++] = ou0;
                 indices[bufind++] = (ushort)(i + istart);
+
+                indices[bufind++] = in1;
+                indices[bufind++] = ou0;
+                indices[bufind++] = (ushort)((i + 1) % osp + ostart);
+
+                indices[bufind++] = in1;
             }
         }
 
@@ -68,7 +97,7 @@ public class DonutShape2DTriangulatedIndexGenerator : IShape2DRendererIndexGener
         var donut = CheckAndThrowIfNotDonut(shape);   
         var isp = donut.InnerCircleSpan.Length;
         var osp = donut.OuterCircleSpan.Length;
-        indexCount = indexSpace = isp > osp ? (isp + isp / osp) * 3 : osp > isp ? (osp + osp / isp) * 3 : isp * 3;
+        indexCount = indexSpace = isp > osp ? (isp + isp / osp) * 7 : osp > isp ? (osp + osp / isp) * 7 : isp * 7;
         return true;
     }
 
