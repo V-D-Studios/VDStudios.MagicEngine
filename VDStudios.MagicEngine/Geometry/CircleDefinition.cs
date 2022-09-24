@@ -14,14 +14,15 @@ public class CircleDefinition : ShapeDefinition2D
     {
         get
         {
+            int sub = Subdivisions;
             if (___regenRequired)
             {
-                if (___vertexBuffer.Length < Subdivisions)
-                    ___vertexBuffer = new Vector2[Subdivisions];
-                GenerateVertices(CenterPoint, Radius, Subdivisions, ___vertexBuffer.AsSpan(0, Subdivisions));
+                if (___vertexBuffer.Length < sub)
+                    ___vertexBuffer = new Vector2[sub];
+                GenerateVertices(CenterPoint, Radius, sub, ___vertexBuffer.AsSpan(0, sub));
                 ___regenRequired = false;
             }
-            return ___vertexBuffer.AsSpan(0, Subdivisions);
+            return ___vertexBuffer.AsSpan(0, sub);
         }
     }
 
