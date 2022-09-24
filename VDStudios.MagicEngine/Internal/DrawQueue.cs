@@ -27,6 +27,18 @@ internal sealed class DrawQueue : IDrawQueue<DrawOperation>
     internal PriorityQueue<DrawOperation, float> GetQueue(int group) => _queues[group];
     internal int QueueCount => _queues.Length;
 
+    /// <summary>
+    /// Gets the total amount of <see cref="DrawOperation"/>s in all the queues in this draw queue
+    /// </summary>
+    /// <returns></returns>
+    public int GetTotalCount()
+    {
+        int count = 0;
+        for (int i = 0; i < _queues.Length; i++)
+            count += _queues[i].Count;
+        return count;
+    }
+
     public async Task EnqueueAsync(DrawOperation drawing, float priority)
     {
         using (await _lock.LockAsync())

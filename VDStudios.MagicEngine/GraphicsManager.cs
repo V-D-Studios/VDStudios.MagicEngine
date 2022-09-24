@@ -784,6 +784,7 @@ public class GraphicsManager : GameObject, IDisposable
         var sw = new Stopwatch();
         var drawqueue = new DrawQueue(CommandListGroups);
         var removalQueue = new Queue<Guid>(10);
+        CommandListDispatch[] activeDispatchs = Array.Empty<CommandListDispatch>();
         TimeSpan delta = default;
 
         DrawParameters = new(this);
@@ -848,6 +849,11 @@ public class GraphicsManager : GameObject, IDisposable
 
                         using (drawqueue._lock.Lock())
                         {
+                            int totalcount = drawqueue.GetTotalCount();
+                            int dispatchs = 0;
+                            if (activeDispatchs.Length < totalcount)
+                                activeDispatchs = new CommandListDispatch[int.Max(totalcount, activeDispatchs.Length * 2)];
+
                             for (int cld_g_i = 0; cld_g_i < drawqueue.QueueCount; cld_g_i++) 
                             {
                                 var queue = drawqueue.GetQueue(cld_g_i);
@@ -863,9 +869,8 @@ public class GraphicsManager : GameObject, IDisposable
                                         var cld = cld_g[i];
                                         cld.Add(queue.Dequeue());
                                         cld.Start(delta);
+                                        activeDispatchs[dispatchs++] = cld;
                                     }
-                                    for (i = 0; i < dqc; i++)
-                                        gd.SubmitCommands(cld_g[i].WaitForEnd());
                                 }
                                 else
                                 {
@@ -876,15 +881,26 @@ public class GraphicsManager : GameObject, IDisposable
                                         for (int x = 0; x < perCL; x++)
                                             cld.Add(queue.Dequeue());
                                         cld.Start(delta);
+                                        activeDispatchs[dispatchs++] = cld;
                                     }
                                     var lcld = cld_g[i];
                                     while (queue.Count > 0)
                                         lcld.Add(queue.Dequeue());
                                     lcld.Start(delta);
-                                    for (int x = 0; x <= i; x++)
-                                        gd.SubmitCommands(cld_g[x].WaitForEnd());
+                                    activeDispatchs[dispatchs++] = lcld;
                                 }
+#if FORCE_GM_NOPARALLEL
+                                for (int i = 0; i < dispatchs; i++)
+                                    gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
+                                Array.Clear(activeDispatchs, 0, dispatchs);
+#endif
                             }
+
+#if !FORCE_GM_NOPARALLEL
+                            for (int i = 0; i < dispatchs; i++)
+                                gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
+                            Array.Clear(activeDispatchs, 0, dispatchs);
+#endif
                         }
                     }
                     finally
