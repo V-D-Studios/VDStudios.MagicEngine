@@ -69,6 +69,8 @@ public class FloatingShapesNode : Node, IDrawableNode
 
     public FloatingShapesNode()
     {
+        DrawOperationManager = new DrawOperationManager(this);
+
         Span<Vector2> triangle = stackalloc Vector2[] { new(-.15f + .5f, -.15f + .5f), new(.15f + .5f, -.15f + .5f), new(.5f, .15f + .5f) };
         hexagon = new PolygonDefinition(stackalloc Vector2[]
         {
@@ -87,41 +89,13 @@ public class FloatingShapesNode : Node, IDrawableNode
         var elipseWide = new ElipseDefinition(new(0f, 0f), .65f, .2f, 30) { Name = "Wide Elipse" };
         var donut = new DonutDefinition(new(.2f, .2f), .2f, .1f, 15, 30);
 
-        var watch = new Watch(viewLoggers: new() 
-        {
-            ("Force Donut update", () => { donut.ForceRegenerate(); return true; }),
-        });
-
-        Game.MainGraphicsManager.AddElement(watch);
-
-        // Apparently, oddly numbered polygons have their last vertex skipped?
-
-        Span<Vector2> rectangle = stackalloc Vector2[]
-        {
-            new(-.15f - .5f, -.15f - .5f),
-            new(-.15f - .5f, .15f - .5f),
-            new(.15f - .5f, .15f - .5f),
-            new(.15f - .5f, -.15f - .5f)
-        };
-        DrawOperationManager = new DrawOperationManager(this);
-        
-        var circ1 = new CircleDefinition(new(-.2f, .15f), .3f, 7) { Name = "Circle 1" };
-        var circ2 = new CircleDefinition(new(.2f, -.15f), .3f, 8) { Name = "Circle 2" };
-        circle = new CircleDefinition(Vector2.Zero, .65f);
-
         var texturedRect = PolygonDefinition.Circle(new(.25f, .25f), .25f, 21844);
 
         var robstrm = new MemoryStream(Assets.boundary_test);
         var img = new ImageSharpTexture(robstrm);
         robstrm.Dispose();
-        TexturedRenderer = DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
-            img,
-            new ShapeDefinition2D[]
-            {
-                //texturedRect,
-                donut
-            },
-            new(
+
+        TexturedShapeRenderDescription shapeRendererDesc = new(
                 new(
                     BlendStateDescription.SingleAlphaBlend,
                     DepthStencilStateDescription.DepthOnlyLessEqual,
@@ -130,10 +104,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                     true,
                     false,
                     PolygonRenderMode.TriangulatedWireframe,
-                    new VertexLayoutDescription(
-                        new VertexElementDescription("TexturePosition", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
-                        new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate)
-                    ),
+                    null,
                     null,
                     null,
                     GraphicsManager.AddWindowAspectTransform
@@ -151,9 +122,66 @@ public class FloatingShapesNode : Node, IDrawableNode
                     SamplerBorderColor.TransparentBlack
                 ),
                 default(TextureViewDescription)
-            ),
+            );
+
+        TexturedRenderer = DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
+            img,
+            new ShapeDefinition2D[]
+            {
+                //texturedRect,
+                donut
+            },
+            shapeRendererDesc,
             new TextureVertexGeneratorFill()) { PreferredPriority = -2 }
         );
+
+        TexturedRenderer.WaitUntilReady();
+        var wireframePipeline = TexturedRenderer.Pipeline;
+        TexturedShapeRenderer<Vector2>.ConfigureDescription(TexturedRenderer.Manager, TexturedRenderer.Manager.Device.ResourceFactory, ref shapeRendererDesc.ShapeRendererDescription);
+        shapeRendererDesc.ShapeRendererDescription.RenderMode = PolygonRenderMode.TriangulatedFill;
+        var fillPipeline = TexturedShapeRenderer<Vector2>.CreatePipeline(
+            TexturedRenderer.Manager, 
+            TexturedRenderer.Manager.Device, 
+            TexturedRenderer.Manager.Device.ResourceFactory,
+            wireframePipeline.ResourceLayouts.ToArray(),
+            shapeRendererDesc.ShapeRendererDescription
+        );
+
+        bool isWireframe = true;
+        var watch = new Watch(viewLoggers: new() 
+        {
+            ("Force Donut update", () => { donut.ForceRegenerate(); return true; }),
+            ("Toggle Donut Pipeline", () => 
+            {
+                if (isWireframe)
+                {
+                    TexturedRenderer.Pipeline = fillPipeline;
+                    isWireframe = false;
+                }
+                else
+                {
+                    TexturedRenderer.Pipeline = wireframePipeline;
+                    isWireframe = true;
+                }
+                return true;
+            })
+        });
+
+        Game.MainGraphicsManager.AddElement(watch);
+
+        // Apparently, oddly numbered polygons have their last vertex skipped?
+
+        Span<Vector2> rectangle = stackalloc Vector2[]
+        {
+            new(-.15f - .5f, -.15f - .5f),
+            new(-.15f - .5f, .15f - .5f),
+            new(.15f - .5f, .15f - .5f),
+            new(.15f - .5f, -.15f - .5f)
+        };
+        
+        var circ1 = new CircleDefinition(new(-.2f, .15f), .3f, 7) { Name = "Circle 1" };
+        var circ2 = new CircleDefinition(new(.2f, -.15f), .3f, 8) { Name = "Circle 2" };
+        circle = new CircleDefinition(Vector2.Zero, .65f);
 
         Renderer = DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(
             new ShapeDefinition2D[]
