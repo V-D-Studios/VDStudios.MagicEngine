@@ -26,8 +26,12 @@ public class DonutDefinition : ShapeDefinition2D
             {
                 if (___vertexBuffer.Length < Count)
                     ___vertexBuffer = new Vector2[Count];
-                CircleDefinition.GenerateVertices(CenterPoint, InnerRadius, InnerSubdivisions, SliceInnerCircle(___vertexBuffer));
-                CircleDefinition.GenerateVertices(CenterPoint, OuterRadius, OuterSubdivisions, SliceOuterCircle(___vertexBuffer));
+
+                var inner = SliceInnerCircle(___vertexBuffer);
+                var outer = SliceOuterCircle(___vertexBuffer);
+
+                CircleDefinition.GenerateVertices(CenterPoint, InnerRadius, InnerSubdivisions, inner);
+                CircleDefinition.GenerateVertices(CenterPoint, OuterRadius, OuterSubdivisions, outer);
                 ___regenRequired = false;
             }
             return ___vertexBuffer.AsSpan(0, Count);
@@ -50,8 +54,8 @@ public class DonutDefinition : ShapeDefinition2D
     /// </remarks>
     public int InnerCircleStart => 0;
 
-    private Span<Vector2> SliceInnerCircle(Span<Vector2> buffer) => buffer.Slice(InnerCircleStart, OuterCircleStart - 1);
-    private Span<Vector2> SliceOuterCircle(Span<Vector2> buffer) => buffer.Slice(OuterCircleStart, Count);
+    private Span<Vector2> SliceInnerCircle(Span<Vector2> buffer) => buffer.Slice(InnerCircleStart, OuterCircleStart);
+    private Span<Vector2> SliceOuterCircle(Span<Vector2> buffer) => buffer.Slice(OuterCircleStart, Count - OuterCircleStart);
 
     /// <summary>
     /// Represents the area in this <see cref="DonutDefinition"/>'s vertex array that contains the Inner Circle's vertices
