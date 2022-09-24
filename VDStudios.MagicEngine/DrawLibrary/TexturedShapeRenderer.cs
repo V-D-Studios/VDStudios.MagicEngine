@@ -145,22 +145,30 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
         TextureFactory = null;
     }
 
+    /// <summary>
+    /// Configures the base
+    /// </summary>
+    public static void ConfigureDescription(GraphicsManager manager, ResourceFactory factory, ref ShapeRendererDescription description)
+    {
+        Shader[] shaders = description.Shaders is null
+            ? description.VertexShaderSpirv is null && description.FragmentShaderSpirv is null
+                ? manager.DefaultResourceCache.DefaultTexturedShapeRendererShaders
+                : description.VertexShaderSpirv is null || description.FragmentShaderSpirv is null
+                    ? throw new InvalidOperationException("Cannot have only one shader description set. Either they must both be set, or they must both be null")
+                    : factory.CreateFromSpirv(
+                                    (ShaderDescription)description.VertexShaderSpirv,
+                                    (ShaderDescription)description.FragmentShaderSpirv
+                                )
+            : description.Shaders;
+
+        description.Shaders = shaders;
+        description.VertexLayout ??= manager.DefaultResourceCache.DefaultTexturedShapeRendererLayout;
+    }
+
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? sets, ResourceLayout[]? layouts)
     {
-        Shader[] shaders = ShapeRendererDescription.Shaders is null
-            ? ShapeRendererDescription.VertexShaderSpirv is null && ShapeRendererDescription.FragmentShaderSpirv is null
-                ? Manager!.DefaultResourceCache.DefaultTexturedShapeRendererShaders
-                : ShapeRendererDescription.VertexShaderSpirv is null || ShapeRendererDescription.FragmentShaderSpirv is null
-                    ? throw new InvalidOperationException("Cannot have only one shader description set. Either they must both be set, or they must both be null")
-                    : factory.CreateFromSpirv(
-                                    (ShaderDescription)ShapeRendererDescription.VertexShaderSpirv,
-                                    (ShaderDescription)ShapeRendererDescription.FragmentShaderSpirv
-                                )
-            : ShapeRendererDescription.Shaders;
-
-        ShapeRendererDescription.Shaders = shaders;
-        ShapeRendererDescription.VertexLayout ??= Manager!.DefaultResourceCache.DefaultTexturedShapeRendererLayout;
+        ConfigureDescription(Manager!, factory, ref ShapeRendererDescription);
         return base.CreateResources(device, factory, sets, layouts);
     }
 

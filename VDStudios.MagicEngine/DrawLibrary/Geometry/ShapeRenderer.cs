@@ -300,7 +300,6 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
 
 #endregion
 
-
     /// <inheritdoc/>
     protected override async ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
     {
@@ -308,57 +307,72 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         ShapeRendererDescription.ResourceLayoutAndSetBuilder?.Invoke(Manager!, device, factory, builder);
     }
 
-    /// <inheritdoc/>
-    protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? resourcesSets, ResourceLayout[]? resourceLayouts)
+    /// <summary>
+    /// Creates a Pipeline using the passed resources and the description
+    /// </summary>
+    public static Pipeline CreatePipeline(
+        GraphicsManager manager, 
+        GraphicsDevice device,
+        ResourceFactory factory,
+        ResourceLayout[]? resourceLayouts, 
+        ShapeRendererDescription description)
     {
-        Shader[] shaders = ShapeRendererDescription.Shaders is null
-            ? ShapeRendererDescription.VertexShaderSpirv is null && ShapeRendererDescription.FragmentShaderSpirv is null
-                ? Manager!.DefaultResourceCache.DefaultShapeRendererShaders
-                : ShapeRendererDescription.VertexShaderSpirv is null || ShapeRendererDescription.FragmentShaderSpirv is null
+        Shader[] shaders = description.Shaders is null
+            ? description.VertexShaderSpirv is null && description.FragmentShaderSpirv is null
+                ? manager.DefaultResourceCache.DefaultShapeRendererShaders
+                : description.VertexShaderSpirv is null || description.FragmentShaderSpirv is null
                     ? throw new InvalidOperationException("Cannot have only one shader description set. Either they must both be set, or they must both be null")
                     : factory.CreateFromSpirv(
-                                    (ShaderDescription)ShapeRendererDescription.VertexShaderSpirv,
-                                    (ShaderDescription)ShapeRendererDescription.FragmentShaderSpirv
+                                    (ShaderDescription)description.VertexShaderSpirv,
+                                    (ShaderDescription)description.FragmentShaderSpirv
                                 )
-            : ShapeRendererDescription.Shaders;
+            : description.Shaders;
 
-        var fillmode = ShapeRendererDescription.FillMode ?? ShapeRendererDescription.RenderMode switch
+        var fillmode = description.FillMode ?? description.RenderMode switch
         {
-            null => throw new InvalidOperationException("If ShapeRendererDescription.FillMode is null, ShapeRendererDescription.RenderMode can't also be null; at least one of them must be set to select a FillMode for the pipeline that is being created"),
+            null => throw new InvalidOperationException("If description.FillMode is null, description.RenderMode can't also be null; at least one of them must be set to select a FillMode for the pipeline that is being created"),
             PolygonRenderMode.LineStripWireframe or PolygonRenderMode.TriangulatedWireframe => PolygonFillMode.Wireframe,
             PolygonRenderMode.TriangulatedFill => PolygonFillMode.Solid,
-            _ => throw new NotSupportedException($"Unknown PolygonRenderMode: {ShapeRendererDescription.RenderMode}")
+            _ => throw new NotSupportedException($"Unknown PolygonRenderMode: {description.RenderMode}")
         };
 
-        var topology = ShapeRendererDescription.Topology ?? ShapeRendererDescription.RenderMode switch
+        var topology = description.Topology ?? description.RenderMode switch
         {
-            null => throw new InvalidOperationException("If ShapeRendererDescription.Topology is null, ShapeRendererDescription.RenderMode can't also be null; at least one of them must be set to select a PrimitiveTopology for the pipeline that is being created"),
+            null => throw new InvalidOperationException("If description.Topology is null, description.RenderMode can't also be null; at least one of them must be set to select a PrimitiveTopology for the pipeline that is being created"),
             PolygonRenderMode.TriangulatedFill or PolygonRenderMode.TriangulatedWireframe => PrimitiveTopology.TriangleStrip,
             PolygonRenderMode.LineStripWireframe => PrimitiveTopology.LineStrip,
-            _ => throw new NotSupportedException($"Unknown PolygonRenderMode: {ShapeRendererDescription.RenderMode}")
+            _ => throw new NotSupportedException($"Unknown PolygonRenderMode: {description.RenderMode}")
         };
 
-        Pipeline = ShapeRendererDescription.Pipeline ?? factory.CreateGraphicsPipeline(new(
-            ShapeRendererDescription.BlendState,
-            ShapeRendererDescription.DepthStencilState,
+        var pipeline = description.Pipeline ?? factory.CreateGraphicsPipeline(new(
+            description.BlendState,
+            description.DepthStencilState,
             new(
-                ShapeRendererDescription.FaceCullMode,
+                description.FaceCullMode,
                 fillmode,
-                ShapeRendererDescription.FrontFace,
-                ShapeRendererDescription.DepthClipEnabled,
-                ShapeRendererDescription.ScissorTestEnabled
+                description.FrontFace,
+                description.DepthClipEnabled,
+                description.ScissorTestEnabled
             ),
             topology,
             new ShaderSetDescription(new VertexLayoutDescription[]
             {
-                ShapeRendererDescription.VertexLayout ?? Manager!.DefaultResourceCache.DefaultShapeRendererLayout
+                description.VertexLayout ?? manager.DefaultResourceCache.DefaultShapeRendererLayout
             }, shaders),
             resourceLayouts,
             device.SwapchainFramebuffer.OutputDescription
         ));
 
-        ResourceSets = resourcesSets!;
+        return pipeline;
+    }
 
+    /// <inheritdoc/>
+    protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? resourcesSets, ResourceLayout[]? resourceLayouts)
+    {
+        Pipeline = CreatePipeline(Manager!, device, factory, resourceLayouts, ShapeRendererDescription);
+
+        ResourceSets = resourcesSets!;
+        
         NotifyPendingGPUUpdate();
 
         return ValueTask.CompletedTask;
