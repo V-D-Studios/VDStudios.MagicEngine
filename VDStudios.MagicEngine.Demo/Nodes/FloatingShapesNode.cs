@@ -85,11 +85,11 @@ public class FloatingShapesNode : Node, IDrawableNode
 
         var elipseTall = new ElipseDefinition(new(0f, 0f), .2f, .65f, 30) { Name = "Tall Elipse" };
         var elipseWide = new ElipseDefinition(new(0f, 0f), .65f, .2f, 30) { Name = "Wide Elipse" };
+        var donut = new DonutDefinition(new(.2f, .2f), .2f, .1f, 15, 30);
 
         var watch = new Watch(viewLoggers: new() 
         {
-            ("Force Tall Elipse update", () => { elipseTall.ForceRegenerate(); return true; }),
-            ("Force Wide Elipse update", () => { elipseWide.ForceRegenerate(); return true; })
+            ("Force Donut update", () => { donut.ForceRegenerate(); return true; }),
         });
 
         Game.MainGraphicsManager.AddElement(watch);
@@ -107,8 +107,8 @@ public class FloatingShapesNode : Node, IDrawableNode
         
         var circ1 = new CircleDefinition(new(-.2f, .15f), .3f, 7) { Name = "Circle 1" };
         var circ2 = new CircleDefinition(new(.2f, -.15f), .3f, 8) { Name = "Circle 2" };
-
         circle = new CircleDefinition(Vector2.Zero, .65f);
+
         var texturedRect = PolygonDefinition.Circle(new(.25f, .25f), .25f, 21844);
 
         var robstrm = new MemoryStream(Assets.boundary_test);
@@ -118,7 +118,8 @@ public class FloatingShapesNode : Node, IDrawableNode
             img,
             new ShapeDefinition2D[]
             {
-                texturedRect
+                //texturedRect,
+                donut
             },
             new(
                 new(
@@ -128,7 +129,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                     FrontFace.Clockwise,
                     true,
                     false,
-                    PolygonRenderMode.TriangulatedFill,
+                    PolygonRenderMode.TriangulatedWireframe,
                     new VertexLayoutDescription(
                         new VertexElementDescription("TexturePosition", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
                         new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate)
@@ -165,6 +166,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                 circ2,
                 elipseTall,
                 elipseWide,
+                //donut
             },
             new(
                 BlendStateDescription.SingleAlphaBlend,
@@ -203,18 +205,20 @@ public class FloatingShapesNode : Node, IDrawableNode
             if (x >= SubDivSeq.Length)
                 x = 0;
             circle.Subdivisions = SubDivSeq[x++];
-            TexturedRenderer.ColorTransformation = Random.Next(0, 100) switch
-            {
-                < 25 => ColorTransformation.CreateTint(GenNewColor()).WithOpacity(.87f),
-                < 50 => ColorTransformation.CreateOverlay(GenNewColor()).WithOpacity(.87f),
-                < 75 => ColorTransformation.CreateTintAndOverlay(GenNewColor(), GenNewColor()).WithOpacity(.87f),
-                _    => ColorTransformation.CreateOpacity(.87f),
-            };
+            TexturedRenderer.Transform(translation: new(-.2f, -.2f, 1), scale: new(2, 2, 1));
+            //wTexturedRenderer.ColorTransformation = ColorTransformation.CreateOverlay(RgbaFloat.Black);
+            //TexturedRenderer.ColorTransformation = Random.Next(0, 100) switch
+            //{
+            //    < 25 => ColorTransformation.CreateTint(GenNewColor()).WithOpacity(.87f),
+            //    < 50 => ColorTransformation.CreateOverlay(GenNewColor()).WithOpacity(.87f),
+            //    < 75 => ColorTransformation.CreateTintAndOverlay(GenNewColor(), GenNewColor()).WithOpacity(.87f),
+            //    _    => ColorTransformation.CreateOpacity(.87f),
+            //};
         }
         var rotation = new Vector4(-.1f, -.1f, 0f, rot += rotspeed * (float)delta.TotalMilliseconds);
         sca = (((rotspeed * (float)(delta.TotalMilliseconds))) + sca) % 1.5f;
-        TexturedRenderer.Transform(rotZ: rotation);
-        Renderer.Transform(scale: new(sca, sca, 1));
+        //TexturedRenderer.Transform(rotZ: rotation);
+        //Renderer.Transform(scale: new(sca, sca, 1));
 
         return ValueTask.FromResult(true);
     }
