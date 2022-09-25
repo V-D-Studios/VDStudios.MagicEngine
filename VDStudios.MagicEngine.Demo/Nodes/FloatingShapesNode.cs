@@ -87,7 +87,7 @@ public class FloatingShapesNode : Node, IDrawableNode
 
         var elipseTall = new ElipseDefinition(new(0f, 0f), .2f, .65f, 30) { Name = "Tall Elipse" };
         var elipseWide = new ElipseDefinition(new(0f, 0f), .65f, .2f, 30) { Name = "Wide Elipse" };
-        var donut = new DonutDefinition(new(.2f, .2f), .2f, .1f, 15, 30);
+        var donut = new DonutDefinition(new(.2f, .2f), .2f, .1f, 30, 3);
 
         var texturedRect = PolygonDefinition.Circle(new(.25f, .25f), .25f, 21844);
 
