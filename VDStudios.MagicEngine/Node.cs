@@ -21,6 +21,7 @@ public abstract class Node : NodeBase
     protected Node() : base("Game Node Tree")
     {
         DrawableSelf = this as IDrawableNode;
+        ReadySemaphore = new(0, 1);
     }
 
     #endregion
@@ -55,23 +56,90 @@ public abstract class Node : NodeBase
     #region Public Properties
 
     /// <summary>
-    /// <c>true</c> if this <see cref="Node"/> is ready and should be updated and, if it implements <see cref="IDrawableNode"/>, added to the draw queue. <c>false</c> otherwise
+    /// <c>true</c> if this <see cref="Node"/> is active and should be updated and, if it implements <see cref="IDrawableNode"/>, added to the draw queue. <c>false</c> otherwise
     /// </summary>
     /// <remarks>
     /// If this property is <c>false</c>, this <see cref="Node"/> and its children will be skipped, along with any handlers it may have. Defaults to <c>true</c> and must be set to <c>false</c> manually if desired
     /// </remarks>
-    public bool IsReady
+    public bool IsActive
     {
-        get => isReady;
+        get => isActive;
         protected set
         {
-            if (isReady == value)
+            if (isActive == value)
                 return;
-            isReady = value;
-            ReadinessChanged?.Invoke(this, Game.TotalTime, value);
+            isActive = value;
+            ActiveChanged?.Invoke(this, Game.TotalTime, value);
         }
     }
-    private bool isReady = true;
+    private bool isActive = true;
+
+    /// <summary>
+    /// <c>true</c> when the node has been added to the scene tree and initialized
+    /// </summary>
+    public bool IsReady 
+    {
+        get => _isReady; 
+        private set
+        {
+            if (value == _isReady) return;
+            if (value)
+                ReadySemaphore.Release();
+            else
+                ReadySemaphore.Wait();
+            _isReady = value;
+        }
+    }
+    private bool _isReady;
+    private readonly SemaphoreSlim ReadySemaphore;
+
+    /// <summary>
+    /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public async ValueTask WaitUntilReadyAsync()
+    {
+        if (IsReady)
+            return;
+        if (ReadySemaphore.Wait(15))
+        {
+            ReadySemaphore.Release();
+            return;
+        }
+
+        await ReadySemaphore.WaitAsync();
+        ReadySemaphore.Release();
+    }
+
+    /// <summary>
+    /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public async ValueTask<bool> WaitUntilReadyAsync(int timeoutMilliseconds)
+    {
+        if (IsReady)
+            return true;
+        if (timeoutMilliseconds > 25)
+        {
+            if (ReadySemaphore.Wait(15))
+            {
+                ReadySemaphore.Release();
+                return true;
+            }
+
+            if (await ReadySemaphore.WaitAsync(timeoutMilliseconds - 15))
+            {
+                ReadySemaphore.Release();
+                return true;
+            }
+            return false;
+        }
+
+        if (await ReadySemaphore.WaitAsync(timeoutMilliseconds))
+        {
+            ReadySemaphore.Release();
+            return true;
+        }
+        return false;
+    }
 
     #endregion
 
@@ -81,9 +149,9 @@ public abstract class Node : NodeBase
     /// Fired when this <see cref="Node"/>'s readiness to be updated or drawn changes
     /// </summary>
     /// <remarks>
-    /// Specifically, when this <see cref="Node.IsReady"/> changes
+    /// Specifically, when this <see cref="Node.IsActive"/> changes
     /// </remarks>
-    public NodeReadinessChangedEvent? ReadinessChanged;
+    public NodeReadinessChangedEvent? ActiveChanged;
 
     #endregion
 
@@ -347,6 +415,7 @@ public abstract class Node : NodeBase
 
         Root = parent;
         Parent = parent;
+        IsReady = true;
     }
 
     /// <summary>
@@ -385,6 +454,7 @@ public abstract class Node : NodeBase
         parent.DetachedFromSceneEvent += WhenDetachedFromScene;
         parent.AttachedToSceneEvent += WhenAttachedToScene;
         Parent = parent;
+        IsReady = true;
     }
 
     /// <summary>
@@ -404,6 +474,7 @@ public abstract class Node : NodeBase
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfNotAttached();
+        IsReady = false;
         InternalLog?.Information("Detaching from {name}-{type}", Parent!.Name, Parent.GetTypeName());
 
         await Detaching();
@@ -631,31 +702,8 @@ public abstract class Node : NodeBase
     {
         if (DrawableSelf is not IDrawableNode ds) 
             return;
-
-        {
-            var manager = ds.DrawOperationManager;
-
-            if (manager.HasPendingRegistrations)
-            {
-                var regSync = manager.DrawOperations.RegistrationSync;
-                if (!regSync.Wait(50))
-                    await regSync.WaitAsync();
-                try
-                {
-                    if (manager.HasPendingRegistrations)
-                        await manager.RegisterDrawOperations(Game.MainGraphicsManager, Game.ActiveGraphicsManagers);
-                }
-                finally
-                {
-                    regSync.Release();
-                }
-            }
-        }
-
         if (ds.SkipDrawPropagation)
             return;
-
-#pragma warning disable CA2012 // Just like Roslyn is so kind to warn us about, this code right here has the potential to offer some nasty asynchrony bugs. Be careful here, remember ValueTasks must only ever be consumed once
 
         var pool = ArrayPool<ValueTask>.Shared;
         int toUpdate = Children.Count;
@@ -668,8 +716,8 @@ public abstract class Node : NodeBase
                 for (int i = 0; i < toUpdate; i++)
                 {
                     var child = Children.Get(i);
-                    if (child.IsReady)
-                        tasks[ind++] = InternalHandleChildDrawRegistration(child);
+                    if (child.IsActive)
+                        tasks[ind++] = InternalHandleChildDrawRegistration(child).Preserve();
                 }
             }
             for (int i = 0; i < ind; i++)
@@ -679,7 +727,6 @@ public abstract class Node : NodeBase
         {
             pool.Return(tasks, true);
         }
-#pragma warning restore CA2012
     }
 
     #endregion

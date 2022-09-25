@@ -11,56 +11,85 @@ public struct TexturedShapeRenderDescription
     /// <summary>
     /// The Description for the backing <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
-    public ShapeRendererDescription ShapeRenderer;
+    public ShapeRendererDescription ShapeRendererDescription;
 
     /// <summary>
     /// The description for the Sampler
     /// </summary>
-    public SamplerDescription Sampler;
+    public SamplerDescription SamplerDescription;
 
     /// <summary>
-    /// The PixelFormat for the <see cref="TextureView"/>
+    /// A pre-created <see cref="Sampler"/>, to use instead of creating a new one with <see cref="SamplerDescription"/>
     /// </summary>
-    public PixelFormat? TexturePixelFormat;
+    public Sampler? Sampler;
 
     /// <summary>
-    /// The BaseMipLevel for the <see cref="TextureView"/>
+    /// The description for the TextureView
     /// </summary>
-    public uint? TextureBaseMipLevel;
+    public TextureViewDescription TextureViewDescription;
 
     /// <summary>
-    /// The MipLevels for the <see cref="TextureView"/>
+    /// A pre-created <see cref="TextureView"/> to use instead of creating a new one
     /// </summary>
-    public uint? TextureMipLevels;
-    
-    /// <summary>
-    /// The BaseArrayLayer for the <see cref="TextureView"/>
-    /// </summary>
-    public uint? TextureBaseArrayLayer;
-    
-    /// <summary>
-    /// The ArrayLayers for the <see cref="TextureView"/>
-    /// </summary>
-    public uint? TextureArrayLayers;
+    public TextureView? TextureView;
 
     /// <summary>
     /// Instances a new <see cref="TexturedShapeRenderDescription"/>
     /// </summary>
     /// <param name="shapeRenderer"></param>
     /// <param name="sampler"></param>
-    /// <param name="textureArrayLayers"></param>
-    /// <param name="textureBaseArrayLayer"></param>
-    /// <param name="textureBaseMipLevel"></param>
-    /// <param name="textureMipLevels"></param>
-    /// <param name="texturePixelFormat"></param>
-    public TexturedShapeRenderDescription(ShapeRendererDescription shapeRenderer, SamplerDescription sampler, PixelFormat? texturePixelFormat = null, uint? textureBaseMipLevel = null, uint? textureMipLevels = null, uint? textureBaseArrayLayer = null, uint? textureArrayLayers = null)
+    /// <param name="textureView"></param>
+    public TexturedShapeRenderDescription(ShapeRendererDescription shapeRenderer, Sampler sampler, TextureView textureView)
     {
-        ShapeRenderer = shapeRenderer;
+        ShapeRendererDescription = shapeRenderer;
+
+        ArgumentNullException.ThrowIfNull(sampler);
+        ArgumentNullException.ThrowIfNull(textureView);
         Sampler = sampler;
-        TexturePixelFormat = texturePixelFormat;
-        TextureBaseMipLevel = textureBaseMipLevel;
-        TextureMipLevels = textureMipLevels;
-        TextureBaseArrayLayer = textureBaseArrayLayer;
-        TextureArrayLayers = textureArrayLayers;
+        TextureView = textureView;
+    }
+
+    /// <summary>
+    /// Instances a new <see cref="TexturedShapeRenderDescription"/>
+    /// </summary>
+    /// <param name="shapeRenderer"></param>
+    /// <param name="sampler"></param>
+    /// <param name="textureView"></param>
+    public TexturedShapeRenderDescription(ShapeRendererDescription shapeRenderer, SamplerDescription sampler, TextureView textureView)
+    {
+        ShapeRendererDescription = shapeRenderer;
+        SamplerDescription = sampler;
+
+        ArgumentNullException.ThrowIfNull(textureView);
+        TextureView = textureView;
+    }
+
+    /// <summary>
+    /// Instances a new <see cref="TexturedShapeRenderDescription"/>
+    /// </summary>
+    /// <param name="shapeRenderer"></param>
+    /// <param name="sampler"></param>
+    /// <param name="textureView"></param>
+    public TexturedShapeRenderDescription(ShapeRendererDescription shapeRenderer, Sampler sampler, TextureViewDescription textureView)
+    {
+        ShapeRendererDescription = shapeRenderer;
+
+        ArgumentNullException.ThrowIfNull(sampler);
+
+        Sampler = sampler;
+        TextureViewDescription = textureView;
+    }
+
+    /// <summary>
+    /// Instances a new <see cref="TexturedShapeRenderDescription"/>
+    /// </summary>
+    /// <param name="shapeRenderer"></param>
+    /// <param name="sampler"></param>
+    /// <param name="textureView"></param>
+    public TexturedShapeRenderDescription(ShapeRendererDescription shapeRenderer, SamplerDescription sampler, TextureViewDescription textureView)
+    {
+        ShapeRendererDescription = shapeRenderer;
+        SamplerDescription = sampler;
+        TextureViewDescription = textureView;
     }
 }

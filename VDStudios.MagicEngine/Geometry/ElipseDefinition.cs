@@ -1,11 +1,13 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using System.Text;
+using System.Threading.Tasks;
+using VDStudios.MagicEngine;
 
 namespace VDStudios.MagicEngine.Geometry;
-
-/// <summary>
-/// Represents the definition of a single circle
-/// </summary>
-public class CircleDefinition : ShapeDefinition2D
+public class ElipseDefinition : ShapeDefinition2D
 {
     private Vector2[] ___vertexBuffer = Array.Empty<Vector2>();
     private bool ___regenRequired = true;
@@ -14,20 +16,19 @@ public class CircleDefinition : ShapeDefinition2D
     {
         get
         {
-            int sub = Subdivisions;
             if (___regenRequired)
             {
-                if (___vertexBuffer.Length < sub)
-                    ___vertexBuffer = new Vector2[sub];
-                GenerateVertices(CenterPoint, Radius, sub, ___vertexBuffer.AsSpan(0, sub));
+                if (___vertexBuffer.Length < Subdivisions)
+                    ___vertexBuffer = new Vector2[Subdivisions];
+                GenerateVertices(CenterPoint, RadiusX, RadiusY, Subdivisions, ___vertexBuffer.AsSpan(0, Subdivisions));
                 ___regenRequired = false;
             }
-            return ___vertexBuffer.AsSpan(0, sub);
+            return ___vertexBuffer.AsSpan(0, Subdivisions);
         }
     }
 
     /// <summary>
-    /// The center point of the circle
+    /// The center point of the elipse
     /// </summary>
     public Vector2 CenterPoint
     {
@@ -44,9 +45,14 @@ public class CircleDefinition : ShapeDefinition2D
     private Vector2 cenp;
 
     /// <summary>
-    /// The radius of the circle
+    /// The radius of the elipse along the x axis
     /// </summary>
-    public Radius Radius { get; }
+    public Radius RadiusX { get; }
+
+    /// <summary>
+    /// The radius of the elipse along the y axis
+    /// </summary>
+    public Radius RadiusY { get; }
 
     /// <summary>
     /// The amount of subdivisions the produced polygon will have
@@ -80,15 +86,17 @@ public class CircleDefinition : ShapeDefinition2D
     }
 
     /// <summary>
-    /// Instances a new object of type <see cref="CircleDefinition"/>
+    /// Instances a new object of type <see cref="ElipseDefinition"/>
     /// </summary>
-    /// <param name="centerPoint">The center point of the circle</param>
-    /// <param name="radius">The length of each point along the circle from its center, or half its diameter</param>
-    /// <param name="subdivisions">The amount of vertices the circle will have. Must be larger than 3</param>
-    public CircleDefinition(Vector2 centerPoint, Radius radius, int subdivisions = 30) : base(true)
+    /// <param name="centerPoint">The center point of the elipse</param>
+    /// <param name="radiusX">The length of each point along the elipse from its center along its x axis</param>
+    /// <param name="radiusY">The length of each point along the elipse from its center along its y axis</param>
+    /// <param name="subdivisions">The amount of vertices the elipse will have. Must be larger than 3</param>
+    public ElipseDefinition(Vector2 centerPoint, Radius radiusX, Radius radiusY, int subdivisions = 30) : base(true)
     {
         CenterPoint = centerPoint;
-        Radius = radius;
+        RadiusX = radiusX;
+        RadiusY = radiusY;
         Subdivisions = subdivisions;
     }
 
@@ -96,22 +104,29 @@ public class CircleDefinition : ShapeDefinition2D
     /// Generates a list of vertices using the given information
     /// </summary>
     /// <remarks>
-    /// This is the method used internally by <see cref="CircleDefinition"/>, can be used to generate vertices into an external buffer separately from a <see cref="CircleDefinition"/> instance. To do it relative to an instance, consider using <see cref="CopyTo(Span{Vector2})"/> instead
+    /// This is the method used internally by <see cref="ElipseDefinition"/>, can be used to generate vertices into an external buffer separately from a <see cref="ElipseDefinition"/> instance. To do it relative to an instance, consider using <see cref="CopyTo(Span{Vector2})"/> instead
     /// </remarks>
-    /// <param name="center">The centerpoint of the circle</param>
-    /// <param name="radius">The radius of the circle</param>
-    /// <param name="subdivisions">The amount of vertices to subdivide the circle into</param>
+    /// <param name="center">The centerpoint of the elipse</param>
+    /// <param name="radiusX">The radius of the elipse along the x axis</param>
+    /// <param name="radiusY">The radius of the elipse along the y axis</param>
+    /// <param name="subdivisions">The amount of vertices to subdivide the elipse into</param>
     /// <param name="buffer">The location in memory into which to store the newly generated vertices</param>
-    /// <param name="angle">The portion of the circle to generate vertices for. For example: <c><see cref="float.Tau"/> / 2</c> would yield a half circle with <paramref name="subdivisions"/> subdivisions</param>
-    public static void GenerateVertices(Vector2 center, Radius radius, int subdivisions, Span<Vector2> buffer, float angle = float.Tau)
+    public static void GenerateVertices(Vector2 center, Radius radiusX, Radius radiusY, int subdivisions, Span<Vector2> buffer)
     {
-        var pbuf = new Vector2(center.X - radius, center.Y);
-        var rot = Matrix3x2.CreateRotation(-angle / subdivisions, center);
+        //(radiusY, radiusX) = (radiusX, radiusY);
+        var pbuf = new Vector2(center.X - radiusX, 0);
+        var trans = Matrix3x2.CreateRotation(-float.Tau / subdivisions, center);
+        var scale = radiusX.Diameter.CompareTo(radiusY.Diameter) switch
+        {
+            < 0 => Matrix3x2.CreateScale(1f, radiusY / radiusX, center),
+            > 0 => Matrix3x2.CreateScale(1f, radiusY / radiusX, center),
+            _ => Matrix3x2.Identity
+        };
 
         for (int i = 0; i < subdivisions; i++)
         {
-            buffer[i] = pbuf;
-            pbuf = Vector2.Transform(pbuf, rot);
+            buffer[i] = Vector2.Transform(pbuf, scale);
+            pbuf = Vector2.Transform(pbuf, trans);
         }
     }
 

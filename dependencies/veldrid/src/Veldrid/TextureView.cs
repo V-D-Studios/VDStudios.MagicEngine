@@ -37,11 +37,12 @@ namespace Veldrid
         internal TextureView(ref TextureViewDescription description)
         {
             Target = description.Target;
-            BaseMipLevel = description.BaseMipLevel;
-            MipLevels = description.MipLevels;
-            BaseArrayLayer = description.BaseArrayLayer;
-            ArrayLayers = description.ArrayLayers;
-            Format = description.Format ?? description.Target.Format;
+            description.GetData(out var format, out var arrayLayers, out var baseMipLevel, out var mipLevels, out var baseArrayLayer);
+            BaseMipLevel = baseMipLevel;
+            MipLevels = mipLevels;
+            BaseArrayLayer = baseArrayLayer;
+            ArrayLayers = arrayLayers;
+            Format = format;
         }
 
         /// <summary>

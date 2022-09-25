@@ -31,12 +31,21 @@ public abstract class GameObject
         Game = Game.Instance;
         Facility = facility;
         Area = area;
+        Random = Game.Random;
     }
 
     /// <summary>
     /// A Logger that belongs to this <see cref="GameObject"/> and is attached to <see cref="Game.Logger"/>
     /// </summary>
     protected ILogger Log => logSync.Value;
+
+    /// <summary>
+    /// The RandomNumberGenerator for this <see cref="GameObject"/>
+    /// </summary>
+    /// <remarks>
+    /// The very same one as <see cref="Game.Random"/>
+    /// </remarks>
+    protected Random Random { get; }
 
     internal ILogger? InternalLog
     {

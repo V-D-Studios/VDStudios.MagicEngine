@@ -45,31 +45,31 @@ namespace Veldrid.Utilities
                 }
             }
 
-            return new BoundingSphere(center, (float)Math.Sqrt(maxDistanceSquared));
+            return new BoundingSphere(center, float.Sqrt(maxDistanceSquared));
         }
 
-        public static unsafe BoundingSphere CreateFromPoints(Vector3* pointPtr, int numPoints, int stride)
+        public static unsafe BoundingSphere CreateFromPoints(Span<Vector3> points, int stride)
         {
             Vector3 center = Vector3.Zero;
-            StrideHelper<Vector3> helper = new StrideHelper<Vector3>(pointPtr, numPoints, stride);
-            foreach (Vector3 pos in helper)
+            fixed (Vector3* pointPtr = points)
             {
-                center += pos;
-            }
+                StrideHelper<Vector3> helper = new StrideHelper<Vector3>(pointPtr, points.Length, stride);
+                foreach (Vector3 pos in helper)
+                    center += pos;
+                center /= points.Length;
 
-            center /= numPoints;
-
-            float maxDistanceSquared = 0f;
-            foreach (Vector3 pos in helper)
-            {
-                float distSq = Vector3.DistanceSquared(center, pos);
-                if (distSq > maxDistanceSquared)
+                float maxDistanceSquared = 0f;
+                foreach (Vector3 pos in helper)
                 {
-                    maxDistanceSquared = distSq;
+                    float distSq = Vector3.DistanceSquared(center, pos);
+                    if (distSq > maxDistanceSquared)
+                    {
+                        maxDistanceSquared = distSq;
+                    }
                 }
-            }
 
-            return new BoundingSphere(center, (float)Math.Sqrt(maxDistanceSquared));
+                return new BoundingSphere(center, float.Sqrt(maxDistanceSquared));
+            }
         }
     }
 }

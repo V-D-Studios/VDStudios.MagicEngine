@@ -38,16 +38,17 @@ namespace Veldrid.Vk
                 aspectFlags = VkImageAspectFlags.Color;
             }
 
+            description.GetData(out var format, out var arrayLayers, out var baseMipLevel, out var mipLevels, out var baseArrayLayer);
             imageViewCI.subresourceRange = new VkImageSubresourceRange(
                 aspectFlags,
-                description.BaseMipLevel,
-                description.MipLevels,
-                description.BaseArrayLayer,
-                description.ArrayLayers);
+                baseMipLevel,
+                mipLevels,
+                baseArrayLayer,
+                arrayLayers);
 
             if ((tex.Usage & TextureUsage.Cubemap) == TextureUsage.Cubemap)
             {
-                imageViewCI.viewType = description.ArrayLayers == 1 ? VkImageViewType.ImageCube : VkImageViewType.ImageCubeArray;
+                imageViewCI.viewType = arrayLayers == 1 ? VkImageViewType.ImageCube : VkImageViewType.ImageCubeArray;
                 imageViewCI.subresourceRange.layerCount *= 6;
             }
             else
@@ -55,12 +56,12 @@ namespace Veldrid.Vk
                 switch (tex.Type)
                 {
                     case TextureType.Texture1D:
-                        imageViewCI.viewType = description.ArrayLayers == 1
+                        imageViewCI.viewType = arrayLayers == 1
                             ? VkImageViewType.Image1D
                             : VkImageViewType.Image1DArray;
                         break;
                     case TextureType.Texture2D:
-                        imageViewCI.viewType = description.ArrayLayers == 1
+                        imageViewCI.viewType = arrayLayers == 1
                             ? VkImageViewType.Image2D
                             : VkImageViewType.Image2DArray;
                         break;

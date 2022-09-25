@@ -5,6 +5,7 @@ using System.Text;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System;
+using System.Collections.Immutable;
 
 namespace Veldrid.OpenGL
 {
@@ -184,7 +185,7 @@ namespace Veldrid.OpenGL
             ProcessResourceSetLayouts(ResourceLayouts);
         }
 
-        private void ProcessResourceSetLayouts(ResourceLayout[] layouts)
+        private void ProcessResourceSetLayouts(ImmutableArray<ResourceLayout> layouts)
         {
             int resourceLayoutCount = layouts.Length;
             _setInfos = new SetBindingsInfo[resourceLayoutCount];
@@ -194,7 +195,7 @@ namespace Veldrid.OpenGL
             uint storageBlockIndex = 0; // Tracks OpenGL ES storage buffers.
             for (uint setSlot = 0; setSlot < resourceLayoutCount; setSlot++)
             {
-                ResourceLayout setLayout = layouts[setSlot];
+                ResourceLayout setLayout = layouts[(int)setSlot];
                 OpenGLResourceLayout glSetLayout = Util.AssertSubtype<ResourceLayout, OpenGLResourceLayout>(setLayout);
                 ResourceLayoutElementDescription[] resources = glSetLayout.Elements;
 

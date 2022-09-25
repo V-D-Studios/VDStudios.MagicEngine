@@ -1,9 +1,12 @@
-﻿using System.Collections;
+﻿using SixLabors.ImageSharp.Processing;
+using System.Buffers;
+using System.Collections;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using VDStudios.MagicEngine.Geometry;
 using Veldrid;
+using Veldrid.MetalBindings;
 using Veldrid.SPIRV;
 using Vulkan;
 
@@ -19,7 +22,7 @@ public class ShapeRenderer : ShapeRenderer<Vector2>
     /// </summary>
     /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="ShapeRenderer"/></param>
-    public ShapeRenderer(IEnumerable<ShapeDefinition> shapes, ShapeRendererDescription description)
+    public ShapeRenderer(IEnumerable<ShapeDefinition2D> shapes, ShapeRendererDescription description)
         : base(shapes, description, ShapeVertexGenerator.Default)
     { }
 }
@@ -27,20 +30,20 @@ public class ShapeRenderer : ShapeRenderer<Vector2>
 /// <summary>
 /// Represents an operation to draw a list of 2D shapes
 /// </summary>
-public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition> where TVertex : unmanaged
+public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition2D> where TVertex : unmanaged
 {
     /// <summary>
     /// This list is always updated instantaneously, and represents the real-time state of the renderer before it's properly updated for the next draw sequence
     /// </summary>
-    private readonly List<ShapeDefinition> _shapes;
+    private readonly List<ShapeDefinition2D> _shapes;
 
     /// <summary>
     /// This enumerable is always updated instantaneously, and represents the real-time state of the renderer before it's properly updated for the next draw sequence
     /// </summary>
     /// <remarks>
-    /// Don't mutate this property -- Use <see cref="ShapeRenderer{TVertex}"/>'s methods instead. This property is meant exclusively to be passed to a <see cref="IShapeRendererVertexGenerator{TVertex}"/>
+    /// Don't mutate this property -- Use <see cref="ShapeRenderer{TVertex}"/>'s methods instead. This property is meant exclusively to be passed to a <see cref="IShape2DRendererVertexGenerator{TVertex}"/>
     /// </remarks>
-    protected IEnumerable<ShapeDefinition> Shapes => _shapes;
+    protected IEnumerable<ShapeDefinition2D> Shapes => _shapes;
     
     /// <summary>
     /// The Vertex Generator for this <see cref="ShapeRenderer{TVertex}"/>
@@ -48,30 +51,65 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <remarks>
     /// Can NEVER be null; an exception will be thrown if an attempt is made to set this property to null
     /// </remarks>
-    protected IShapeRendererVertexGenerator<TVertex> TVertexGenerator
+    protected IShape2DRendererVertexGenerator<TVertex> TVertexGenerator
     {
-        get => _gen;
+        get => _vgen;
         set
         {
             ArgumentNullException.ThrowIfNull(value);
-            _gen = value;
+            _vgen = value;
         }
     }
-    private IShapeRendererVertexGenerator<TVertex> _gen;
+    private IShape2DRendererVertexGenerator<TVertex> _vgen;
 
     /// <summary>
-    /// Be careful when modifying this -- And know that most changes won't have any effect after <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[]?, ResourceLayout[]?)"/> is called
+    /// The Index Generator for this <see cref="ShapeRenderer{TVertex}"/>
+    /// </summary>
+    /// <remarks>
+    /// Can NEVER be null; an exception will be thrown if an attempt is made to set this property to null
+    /// </remarks>
+    protected IShape2DRendererIndexGenerator IndexGenerator
+    {
+        get => _igen;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _igen = value;
+        }
+    }
+    private IShape2DRendererIndexGenerator _igen;
+
+    /// <summary>
+    /// Be careful when modifying this -- And know that most changes won't have any effect after <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[], ResourceLayout[])"/> is called
     /// </summary>
     protected ShapeRendererDescription ShapeRendererDescription;
     private ResourceSet[] ResourceSets;
+
+    /// <summary>
+    /// A number, between 0.0 and 1.0, defining the percentage of vertices that will be skipped for a shape
+    /// </summary>
+    public ElementSkip VertexSkip
+    {
+        get => __vertexSkip;
+        set
+        {
+            if(__vertexSkip == value)
+                return;
+            __vertexSkip = value;
+            __vertexSkipChanged = true;
+            NotifyPendingGPUUpdate();
+        }
+    }
+    private ElementSkip __vertexSkip;
+    private bool __vertexSkipChanged = false;
 
     /// <summary>
     /// Instantiates a new <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
     /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="ShapeRenderer{TVertex}"/></param>
-    /// <param name="generator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
-    public ShapeRenderer(IEnumerable<ShapeDefinition> shapes, ShapeRendererDescription description, IShapeRendererVertexGenerator<TVertex> generator)
+    /// <param name="generator">The <see cref="IShape2DRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
+    public ShapeRenderer(IEnumerable<ShapeDefinition2D> shapes, ShapeRendererDescription description, IShape2DRendererVertexGenerator<TVertex> generator)
     {
         ShapeRendererDescription = description;
         _shapes = new(shapes);
@@ -81,6 +119,14 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             IndicesToUpdate.Enqueue(new(i, true, true, 1));
         
         TVertexGenerator = generator;
+        IndexGenerator = description.IndexGenerator ?? description.RenderMode switch
+        {
+            null => throw new ArgumentException("If description.IndexGenerator is null, description.RenderMode can't also be null; at least one of them must be set in order to select an IndexGenerator for this ShapeRenderer", nameof(description)),
+            PolygonRenderMode.LineStripWireframe => Shape2DRendererIndexGenerators.LinearIndexGenerator,
+            PolygonRenderMode.TriangulatedFill => Shape2DRendererIndexGenerators.TriangulatedIndexGenerator,
+            PolygonRenderMode.TriangulatedWireframe => Shape2DRendererIndexGenerators.TriangulatedIndexGenerator,
+            _ => throw new NotSupportedException($"Unknown PolygonRenderMode: {description.RenderMode}")
+        };
     }
 
     #region List
@@ -88,20 +134,20 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     private readonly Queue<UpdateDat> IndicesToUpdate = new();
 
     /// <inheritdoc/>
-    public int IndexOf(ShapeDefinition item)
+    public int IndexOf(ShapeDefinition2D item)
     {
         lock (_shapes)
         {
-            return ((IList<ShapeDefinition>)_shapes).IndexOf(item);
+            return ((IList<ShapeDefinition2D>)_shapes).IndexOf(item);
         }
     }
 
     /// <inheritdoc/>
-    public void Insert(int index, ShapeDefinition item)
+    public void Insert(int index, ShapeDefinition2D item)
     {
         lock (_shapes)
         {
-            ((IList<ShapeDefinition>)_shapes).Insert(index, item);
+            ((IList<ShapeDefinition2D>)_shapes).Insert(index, item);
             IndicesToUpdate.Enqueue(new(index, true, true, 1));
             NotifyPendingGPUUpdate();
         }
@@ -112,20 +158,20 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     {
         lock (_shapes)
         {
-            ((IList<ShapeDefinition>)_shapes).RemoveAt(index);
+            ((IList<ShapeDefinition2D>)_shapes).RemoveAt(index);
             IndicesToUpdate.Enqueue(new(index, false, false, -1));
             NotifyPendingGPUUpdate();
         }
     }
 
     /// <inheritdoc/>
-    public ShapeDefinition this[int index]
+    public ShapeDefinition2D this[int index]
     {
         get
         {
             lock (_shapes)
             {
-                return ((IList<ShapeDefinition>)_shapes)[index];
+                return ((IList<ShapeDefinition2D>)_shapes)[index];
             }
         }
 
@@ -133,7 +179,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         {
             lock (_shapes)
             {
-                ((IList<ShapeDefinition>)_shapes)[index] = value;
+                ((IList<ShapeDefinition2D>)_shapes)[index] = value;
                 IndicesToUpdate.Enqueue(new(index, true, true, 1));
                 NotifyPendingGPUUpdate();
             }
@@ -141,12 +187,12 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     }
 
     /// <inheritdoc/>
-    public void Add(ShapeDefinition item)
+    public void Add(ShapeDefinition2D item)
     {
         lock (_shapes)
         {
             IndicesToUpdate.Enqueue(new(_shapes.Count - 1, true, true, 1));
-            ((ICollection<ShapeDefinition>)_shapes).Add(item);
+            ((ICollection<ShapeDefinition2D>)_shapes).Add(item);
             NotifyPendingGPUUpdate();
         }
     }
@@ -159,25 +205,25 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
             NotifyPendingGPUUpdate();
             for (int i = 0; i < _shapes.Count; i++)
                 IndicesToUpdate.Enqueue(new(i, false, false, -1));
-            ((ICollection<ShapeDefinition>)_shapes).Clear();
+            ((ICollection<ShapeDefinition2D>)_shapes).Clear();
         }
     }
 
     /// <inheritdoc/>
-    public bool Contains(ShapeDefinition item)
+    public bool Contains(ShapeDefinition2D item)
     {
         lock (_shapes)
         {
-            return ((ICollection<ShapeDefinition>)_shapes).Contains(item);
+            return ((ICollection<ShapeDefinition2D>)_shapes).Contains(item);
         }
     }
 
     /// <inheritdoc/>
-    public void CopyTo(ShapeDefinition[] array, int arrayIndex)
+    public void CopyTo(ShapeDefinition2D[] array, int arrayIndex)
     {
         lock (_shapes)
         {
-            ((ICollection<ShapeDefinition>)_shapes).CopyTo(array, arrayIndex);
+            ((ICollection<ShapeDefinition2D>)_shapes).CopyTo(array, arrayIndex);
         }
     }
 
@@ -191,19 +237,19 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                 if (sh.LastVersion != sh.Shape.Version)
                 {
                     NotifyPendingGPUUpdate();
-                    IndicesToUpdate.Enqueue(new(i, true, sh.LastCount != sh.Shape.Count, 0));
+                    IndicesToUpdate.Enqueue(new(i, true, true, 0));
                     // If the counts don't match, update the indices
                 }
             }
     }
 
     /// <inheritdoc/>
-    public int Count => ((ICollection<ShapeDefinition>)_shapes).Count;
+    public int Count => ((ICollection<ShapeDefinition2D>)_shapes).Count;
 
     /// <inheritdoc/>
-    public IEnumerator<ShapeDefinition> GetEnumerator()
+    public IEnumerator<ShapeDefinition2D> GetEnumerator()
     {
-        return ((IEnumerable<ShapeDefinition>)_shapes).GetEnumerator();
+        return ((IEnumerable<ShapeDefinition2D>)_shapes).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -222,14 +268,27 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     #region Resources
 
     /// <summary>
-    /// The shaders that will be used to render the shapes
-    /// </summary>
-    protected Shader[] Shaders;
-
-    /// <summary>
     /// The Pipeline that will be used to render the shapes
     /// </summary>
-    protected Pipeline Pipeline;
+    /// <remarks>
+    /// Will become available after <see cref="DrawOperation.IsReady"/> is <c>true</c>. If, for any reason, this property is set before that, it will be overwritten
+    /// </remarks>
+    public Pipeline Pipeline
+    {
+        get => _pipeline;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+#if VALIDATE_USAGE
+            if (ReferenceEquals(_pipeline, value))
+                return;
+            if (value.IsComputePipeline)
+                throw new ArgumentException("A ShapeRenderer cannot have a Compute Pipeline as its Pipeline. It must be a Graphics Pipeline.", nameof(value));
+#endif
+            _pipeline = value;
+        }
+    }
+    private Pipeline _pipeline;
 
     /// <summary>
     /// The temporary buffer into which the shapes held in this object will be copied for drawing.
@@ -239,12 +298,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// </remarks>
     protected List<ShapeDat> ShapeBufferList = new();
 
-    #endregion
-
-    private ShaderDescription vertexDefault = new(ShaderStages.Vertex, BuiltInResources.DefaultPolygonVertexShader.GetUTF8Bytes(), "main");
-    private ShaderDescription fragmnDefault = new(ShaderStages.Fragment, BuiltInResources.DefaultPolygonFragmentShader.GetUTF8Bytes(), "main");
-    private static readonly VertexLayoutDescription DefaultVector2Layout 
-        = new(new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate));
+#endregion
 
     /// <inheritdoc/>
     protected override async ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
@@ -253,45 +307,72 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         ShapeRendererDescription.ResourceLayoutAndSetBuilder?.Invoke(Manager!, device, factory, builder);
     }
 
-    /// <inheritdoc/>
-    protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? resourcesSets, ResourceLayout[]? resourceLayouts)
+    /// <summary>
+    /// Creates a Pipeline using the passed resources and the description
+    /// </summary>
+    public static Pipeline CreatePipeline(
+        GraphicsManager manager, 
+        GraphicsDevice device,
+        ResourceFactory factory,
+        ResourceLayout[]? resourceLayouts, 
+        ShapeRendererDescription description)
     {
-        Shaders = factory.CreateFromSpirv(
-            ShapeRendererDescription.VertexShaderSpirv ?? vertexDefault,
-            ShapeRendererDescription.FragmentShaderSpirv ?? fragmnDefault
-        );
+        Shader[] shaders = description.Shaders is null
+            ? description.VertexShaderSpirv is null && description.FragmentShaderSpirv is null
+                ? manager.DefaultResourceCache.DefaultShapeRendererShaders
+                : description.VertexShaderSpirv is null || description.FragmentShaderSpirv is null
+                    ? throw new InvalidOperationException("Cannot have only one shader description set. Either they must both be set, or they must both be null")
+                    : factory.CreateFromSpirv(
+                                    (ShaderDescription)description.VertexShaderSpirv,
+                                    (ShaderDescription)description.FragmentShaderSpirv
+                                )
+            : description.Shaders;
 
-        Pipeline = factory.CreateGraphicsPipeline(new(
-            ShapeRendererDescription.BlendState,
-            ShapeRendererDescription.DepthStencilState,
+        var fillmode = description.FillMode ?? description.RenderMode switch
+        {
+            null => throw new InvalidOperationException("If description.FillMode is null, description.RenderMode can't also be null; at least one of them must be set to select a FillMode for the pipeline that is being created"),
+            PolygonRenderMode.LineStripWireframe or PolygonRenderMode.TriangulatedWireframe => PolygonFillMode.Wireframe,
+            PolygonRenderMode.TriangulatedFill => PolygonFillMode.Solid,
+            _ => throw new NotSupportedException($"Unknown PolygonRenderMode: {description.RenderMode}")
+        };
+
+        var topology = description.Topology ?? description.RenderMode switch
+        {
+            null => throw new InvalidOperationException("If description.Topology is null, description.RenderMode can't also be null; at least one of them must be set to select a PrimitiveTopology for the pipeline that is being created"),
+            PolygonRenderMode.TriangulatedFill or PolygonRenderMode.TriangulatedWireframe => PrimitiveTopology.TriangleStrip,
+            PolygonRenderMode.LineStripWireframe => PrimitiveTopology.LineStrip,
+            _ => throw new NotSupportedException($"Unknown PolygonRenderMode: {description.RenderMode}")
+        };
+
+        var pipeline = description.Pipeline ?? factory.CreateGraphicsPipeline(new(
+            description.BlendState,
+            description.DepthStencilState,
             new(
-                ShapeRendererDescription.FaceCullMode,
-                ShapeRendererDescription.RenderMode switch
-                {
-                    PolygonRenderMode.LineStripWireframe or PolygonRenderMode.TriangulatedWireframe => PolygonFillMode.Wireframe,
-                    PolygonRenderMode.TriangulatedFill => PolygonFillMode.Solid,
-                    _ => throw new InvalidOperationException($"Unknown PolygonRenderMode: {ShapeRendererDescription.RenderMode}")
-                },
-                ShapeRendererDescription.FrontFace,
-                ShapeRendererDescription.DepthClipEnabled,
-                ShapeRendererDescription.ScissorTestEnabled
+                description.FaceCullMode,
+                fillmode,
+                description.FrontFace,
+                description.DepthClipEnabled,
+                description.ScissorTestEnabled
             ),
-            ShapeRendererDescription.RenderMode switch
-            {
-                PolygonRenderMode.TriangulatedFill or PolygonRenderMode.TriangulatedWireframe => PrimitiveTopology.TriangleStrip,
-                PolygonRenderMode.LineStripWireframe => PrimitiveTopology.LineStrip,
-                _ => throw new InvalidOperationException($"Unknown PolygonRenderMode: {ShapeRendererDescription.RenderMode}")
-            },
+            topology,
             new ShaderSetDescription(new VertexLayoutDescription[]
             {
-                ShapeRendererDescription.VertexLayout ?? DefaultVector2Layout
-            }, Shaders),
+                description.VertexLayout ?? manager.DefaultResourceCache.DefaultShapeRendererLayout
+            }, shaders),
             resourceLayouts,
             device.SwapchainFramebuffer.OutputDescription
         ));
 
-        ResourceSets = resourcesSets!;
+        return pipeline;
+    }
 
+    /// <inheritdoc/>
+    protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? resourcesSets, ResourceLayout[]? resourceLayouts)
+    {
+        Pipeline = CreatePipeline(Manager!, device, factory, resourceLayouts, ShapeRendererDescription);
+
+        ResourceSets = resourcesSets!;
+        
         NotifyPendingGPUUpdate();
 
         return ValueTask.CompletedTask;
@@ -305,14 +386,14 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     /// <param name="cl">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
     /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
-    protected virtual void DrawShape(TimeSpan delta, ShapeDat shape, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer)
+    protected virtual void DrawShape(TimeSpan delta, in ShapeDat shape, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer)
     {
-        cl.SetVertexBuffer(0, shape.VertexBuffer);
-        cl.SetIndexBuffer(shape.IndexBuffer!, IndexFormat.UInt16);
+        cl.SetVertexBuffer(0, shape.Buffer, shape.VertexStart);
+        cl.SetIndexBuffer(shape.Buffer!, IndexFormat.UInt16, shape.IndexStart);
         cl.SetPipeline(Pipeline);
         for (uint index = 0; index < ResourceSets.Length; index++)
             cl.SetGraphicsResourceSet(index, ResourceSets[index]);
-        cl.DrawIndexed(shape.CurrentIndexCount, 1, 0, 0, 0);
+        cl.DrawIndexed(shape.IndexCount, 1, 0, 0, 0);
     }
 
     /// <inheritdoc/>
@@ -320,40 +401,56 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     {
         QueryForChange();
         cl.SetFramebuffer(mainBuffer);
-        foreach (var pd in ShapeBufferList)
-            DrawShape(delta, pd, cl, device, mainBuffer);
-
+        var sbl = CollectionsMarshal.AsSpan(ShapeBufferList);
+        for (int i = 0; i < sbl.Length; i++)
+            DrawShape(delta, in sbl[i], cl, device, mainBuffer);
         return ValueTask.CompletedTask;
     }
+
+    #region Buffer Updates
+
+    #region Vertex Data
 
     /// <summary>
     /// Updates the vertices of a given shape in the renderer
     /// </summary>
     /// <remarks>
-    /// CAUTION: Only override this method if you know what you're doing! By default, this method creates a stack-allocated span of <typeparamref name="TVertex"/> instances, generates the vertices using <see cref="TVertexGenerator"/>, and submits it to <see cref="ShapeDat.VertexBuffer"/>, adjusting its size as appropriate
+    /// CAUTION: Only override this method if you know what you're doing! By default, this method creates a stack-allocated span of <typeparamref name="TVertex"/> instances, generates the vertices using <see cref="TVertexGenerator"/>, and submits it to <see cref="ShapeDat.Buffer"/>, adjusting its size as appropriate
     /// </remarks>
     /// <param name="pol">A reference to the shape's internal data context</param>
     /// <param name="commandList"></param>
     /// <param name="gen">The generator that will be used by this method. Prevents <see cref="TVertexGenerator"/> from being changed while the vertices are being generated</param>
     /// <param name="index">The index of the shape in relation to the amount of shapes whose vertices are being regenerated</param>
-    /// <param name="generatorContext">Represents a handle to the <see cref="IShapeRendererVertexGenerator{TVertex}"/>'s context for the current vertex update batch.</param>
-    protected virtual void UpdateVertices(ref ShapeDat pol, CommandList commandList, int index, IShapeRendererVertexGenerator<TVertex> gen, ref object? generatorContext)
+    /// <param name="generatorContext">Represents a handle to the <see cref="IShape2DRendererVertexGenerator{TVertex}"/>'s context for the current vertex update batch.</param>
+    protected virtual void UpdateVertices(ref ShapeDat pol, CommandList commandList, int index, IShape2DRendererVertexGenerator<TVertex> gen, ref object? generatorContext)
     {
         var vc = pol.Shape.Count;
-        Span<TVertex> vertexBuffer = 
-            gen.QueryAllocCPUBuffer(pol.Shape, Shapes, ref generatorContext) ?
-            vc > 5000 ? new TVertex[vc] : stackalloc TVertex[vc] : default;
+        var vc_bytes = DataStructuring.GetSize<TVertex, uint>((uint)vc);
 
-        var vc_bytes = (uint)Unsafe.SizeOf<TVertex>() * (uint)vc;
+        TVertex[]? rented = null;
+        Span<TVertex> vertexBuffer = gen.QueryAllocCPUBuffer(pol.Shape, Shapes, ref generatorContext)
+            ? vc_bytes > 2048 // 2KB 
+                ? (rented = ArrayPool<TVertex>.Shared.Rent(vc)).AsSpan(0, vc) 
+                : (stackalloc TVertex[vc])
+            : default;
+        vertexBuffer.Clear();
 
-        if (pol.VertexBuffer is null || vc_bytes > pol.VertexBuffer.SizeInBytes)  
-            ShapeDat.SetVertexBufferSize(ref pol, Device!.ResourceFactory);
-
-        gen.Generate(pol.Shape, Shapes, vertexBuffer, commandList, pol.VertexBuffer, index, out bool vertexBufferAlreadyUpdated, ref generatorContext);
-
-        if (!vertexBufferAlreadyUpdated)
-            commandList.UpdateBuffer(pol.VertexBuffer, 0, vertexBuffer);
+        try
+        {
+            gen.Generate(pol.Shape, Shapes, vertexBuffer, commandList, pol.Buffer, index, pol.VertexStart, vc_bytes, out bool vertexBufferAlreadyUpdated, ref generatorContext);
+            if (!vertexBufferAlreadyUpdated)
+                commandList.UpdateBuffer(pol.Buffer, pol.VertexStart, vertexBuffer);
+        }
+        finally
+        {
+            if (rented is not null)
+                ArrayPool<TVertex>.Shared.Return(rented, true);
+        }
     }
+
+    #endregion
+
+    #region Index Data
 
     /// <summary>
     /// Updates the indices of a given shape in the renderer
@@ -364,63 +461,37 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <param name="pol"></param>
     /// <param name="commandList"></param>
     /// <exception cref="InvalidOperationException"></exception>
-    protected virtual void UpdateIndices(ref ShapeDat pol, CommandList commandList)
+    protected virtual void UpdateIndices(ref ShapeDat pol, CommandList commandList, int index, IShape2DRendererIndexGenerator gen, ref object? generatorContext, out bool forceUpdateVertices)
     {
-        const int MaxVertices = 21845;
-        var count = pol.Shape.Count;
-        if (count >= MaxVertices)
-            throw new NotSupportedException($"Triangulating indices for shapes with {MaxVertices} or more vertices is not supported! The shape in question has {count}. The ints used for indices are 16 bits wide, and switching to 32 or 64 bits is not yet supported");
+        var vsk = VertexSkip;
+        var alloc = gen.QueryUInt16BufferSize(pol.Shape, Shapes, index, vsk, out int indexCount, out int indexSpace, ref generatorContext);
+        forceUpdateVertices = ShapeDat.ResizeBuffer(ref pol, indexCount, indexSpace, Device!.ResourceFactory);
 
-        int indexCount = pol.LineStripIndexCount;
-        if (count <= 3 || ShapeRendererDescription.RenderMode is PolygonRenderMode.LineStripWireframe)
+        ushort[]? rented = null;
+        Span<ushort> indexBuffer = alloc
+            ? indexCount * 2 > 2048 // 2KB 
+                ? (rented = ArrayPool<ushort>.Shared.Rent(indexCount)).AsSpan(0, indexCount)
+                : (stackalloc ushort[indexCount])
+            : default;
+
+        try
         {
-            Span<ushort> indexBuffer = indexCount > 5000 ? new ushort[indexCount] : stackalloc ushort[indexCount];
-            for (int ind = 0; ind < count; ind++)
-                indexBuffer[ind] = (ushort)ind;
-            indexBuffer[count] = 0;
-            ShapeDat.SetLineStripIndicesBufferSize(ref pol, Device!.ResourceFactory);
-            commandList.UpdateBuffer(pol.IndexBuffer!, 0, indexBuffer);
-            return;
+            indexBuffer.Clear();
+            gen.GenerateUInt16(pol.Shape, Shapes, indexBuffer, commandList, pol.Buffer, index, indexCount, vsk, pol.IndexStart, pol.IndexCount * 2, out bool isBufferReady, ref generatorContext);
+
+            if (!isBufferReady)
+                commandList.UpdateBuffer(pol.Buffer!, pol.IndexStart, indexBuffer);
         }
-
-        // Triangulation
-
-        // For Convex shapes
-        // Since we're working exclusively with indices here, this is all data that can be calculated exclusively with a single variable (count).
-        // There's probably an easier way to compute this
-
-        if (pol.Shape.IsConvex is false)
-            throw new InvalidOperationException($"Triangulation of Concave Polygons is not supported yet");
-
-        if (count is 4) // And is Convex
+        finally
         {
-            ShapeDat.SetTriangulatedIndicesBufferSize(ref pol, 6, Device!.ResourceFactory);
-            commandList.UpdateBuffer(pol.IndexBuffer!, 0, stackalloc ushort[6] { 1, 0, 3, 1, 2, 3 });
-            return;
+            if (rented is not null)
+                ArrayPool<ushort>.Shared.Return(rented);
         }
-
-        ushort i = count % 2 == 0 ? (ushort)0u : (ushort)1u;
-        indexCount = (count - i) * 3;
-
-        Span<ushort> buffer = indexCount > 5000 ? new ushort[indexCount] : stackalloc ushort[indexCount];
-        int bufind = 0;
-
-        ushort p0 = 0;
-        ushort pHelper = 1;
-        ushort pTemp;
-
-        for (; i < count; i++)
-        {
-            pTemp = i;
-            buffer[bufind++] = p0;
-            buffer[bufind++] = pHelper;
-            buffer[bufind++] = pTemp;
-            pHelper = pTemp;
-        }
-
-        ShapeDat.SetTriangulatedIndicesBufferSize(ref pol, indexCount, Device!.ResourceFactory);
-        commandList.UpdateBuffer(pol.IndexBuffer!, 0, buffer);
     }
+
+    #endregion
+
+    #endregion
 
     /// <inheritdoc/>
     protected override async ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList)
@@ -434,12 +505,30 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     {
         lock (_shapes)
         {
+            var polybuffer = CollectionsMarshal.AsSpan(ShapeBufferList);
+
+            if (__vertexSkipChanged)
+            {
+                object? igenContext = null;
+                var igen = IndexGenerator;
+                __vertexSkipChanged = false;
+                for (int i = 0; i < polybuffer.Length; i++)
+                {
+                    UpdateIndices(ref polybuffer[i], commandList, i, igen, ref igenContext, out bool updatevertices);
+                    if (updatevertices)
+                        IndicesToUpdate.Enqueue(new(i, true, false, 0));
+                }
+            }
+
             if (IndicesToUpdate.TryDequeue(out var dat))
             {
-                var gen = TVertexGenerator;
-                object? genContext = null;
+                var vgen = TVertexGenerator;
+                var igen = IndexGenerator;
+                object? vgenContext = null;
+                object? igenContext = null;
                 int ind = 0;
-                gen.Start(this, Shapes, IndicesToUpdate.Count, ref genContext);
+                bool forceUpdateVertices = false;
+                vgen.Start(this, Shapes, IndicesToUpdate.Count, ref vgenContext);
                 do
                 {
                     switch (dat.Added)
@@ -449,34 +538,44 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
                             pd.Dispose();
                             continue;
                         case 0:
-                            var polybuffer = CollectionsMarshal.AsSpan(ShapeBufferList);
-                            if (dat.UpdateVertices)
-                                UpdateVertices(ref polybuffer[dat.Index], commandList, ind++, gen, ref genContext);
                             if (dat.UpdateIndices)
-                                UpdateIndices(ref polybuffer[dat.Index], commandList);
+                                UpdateIndices(ref polybuffer[dat.Index], commandList, dat.Index, igen, ref igenContext, out forceUpdateVertices);
+                            if (forceUpdateVertices || dat.UpdateVertices)
+                                UpdateVertices(ref polybuffer[dat.Index], commandList, ind++, vgen, ref vgenContext);
                             ShapeDat.UpdateLastVer(ref polybuffer[dat.Index]);
                             continue;
                         case > 0:
-                            var np = new ShapeDat(_shapes[dat.Index], device.ResourceFactory);
-                            UpdateVertices(ref np, commandList, ind++, gen, ref genContext);
-                            UpdateIndices(ref np, commandList);
+                            var np = new ShapeDat(_shapes[dat.Index], dat.Index, device.ResourceFactory);
+                            UpdateIndices(ref np, commandList, dat.Index, igen, ref igenContext, out _);
+                            UpdateVertices(ref np, commandList, ind++, vgen, ref vgenContext);
                             ShapeBufferList.Insert(dat.Index, np);
                             ShapeDat.UpdateLastVer(ref np);
                             continue;
                     }
                 } while (IndicesToUpdate.TryDequeue(out dat));
-                gen.Stop(this, ref genContext);
+                vgen.Stop(this, ref vgenContext);
             }
         }
 
+        bool changed = false;
         for (int i = ShapeBufferList.Count - 1; i >= 0; i--)
-            if (ShapeBufferList[i].remove)
+            if (ShapeBufferList[i].remove) 
+            {
+                changed = true;
                 ShapeBufferList.RemoveAt(i);
+            }
+
+        if (changed)
+        {
+            var polybuffer = CollectionsMarshal.AsSpan(ShapeBufferList);
+            for (int i = 0; i < polybuffer.Length; i++)
+                polybuffer[i].ShapeIndex = i;
+        }
     }
 
-    #endregion
+#endregion
 
-    #region Helper Classes
+#region Helper Classes
 
     private readonly record struct UpdateDat(int Index, bool UpdateVertices, bool UpdateIndices, sbyte Added);
 
@@ -489,84 +588,112 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         /// <summary>
         /// The shape in question
         /// </summary>
-        public readonly ShapeDefinition Shape;
+        public readonly ShapeDefinition2D Shape;
 
         /// <summary>
         /// The buffer holding the vertex data for this shape
         /// </summary>
-        public DeviceBuffer VertexBuffer = null;
+        /// <remarks>
+        /// The vertices are set first, and the indices are set right after the vertices as follows, where I: index space, V: vertex space: [VVVIIIIII]. This is because vertices actually change less often than indices
+        /// </remarks>
+        public DeviceBuffer Buffer = null;
 
         /// <summary>
-        /// The buffer holding the index data for this shape
+        /// The offset at which vertex data starts
+        /// </summary>
+        public uint VertexStart;
+
+        /// <summary>
+        /// The offset at which index data starts
+        /// </summary>
+        public uint IndexStart;
+
+        /// <summary>
+        /// The amount of indices in the buffer
+        /// </summary>
+        public uint IndexCount;
+
+        /// <summary>
+        /// This property is used to keep track of changes to the shape, so that it can be re-processed if needed
+        /// </summary>
+        public int LastVersion { get; private set; }
+
+        /// <summary>
+        /// This property is used to keep track of changes to the shape, so that it can be re-processed if needed
+        /// </summary>
+        public int LastCount { get; private set; }
+
+        /// <summary>
+        /// The index of the shape represented by this <see cref="ShapeDat"/> in the renderer that owns it
+        /// </summary>
+        public int ShapeIndex { get; internal set; }
+
+        /// <summary>
+        /// Sets the size of the buffer, taking into account that the indices are triangulated. Adjusts the offsets, and creates or resizes the buffer as needed.
         /// </summary>
         /// <remarks>
-        /// This buffer will be null until <see cref="SetTriangulatedIndicesBufferSize"/> or <see cref="SetLineStripIndicesBufferSize"/> is called. This is guaranteed, by the methods of <see cref="ShapeRenderer{TVertex}"/>, to be the case before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer, DeviceBuffer)"/> is called
+        /// If the buffer is created and large enough, only the offsets are updated. If it's <c>null</c> or too small, it's recreated (and disposed of, if necessary)
         /// </remarks>
-        public DeviceBuffer? IndexBuffer = null;
+        public static bool ResizeBuffer(ref ShapeDat dat, int indexCount, int indexSpace, ResourceFactory factory)
+        {
+            var indexSize = DataStructuring.GetSize<ushort, uint>((uint)indexSpace);
+            var vertexSize = DataStructuring.GetSize<TVertex, uint>((uint)dat.Shape.Count);
+            var size = vertexSize + indexSize;
+            var resize = indexSize > dat.VertexStart;
+            
+            dat.VertexStart = indexSize;
+            dat.IndexStart = 0;
+
+            if (dat.Buffer is null || size > dat.Buffer.SizeInBytes)
+            {
+                dat.Buffer?.Dispose();
+                dat.Buffer = factory.CreateBuffer(new(
+                    size,
+                    BufferUsage.VertexBuffer | BufferUsage.IndexBuffer
+                ));
+                resize = true;
+            }
+
+            dat.IndexCount = (ushort)indexCount;
+
+            return resize;
+        }
 
         /// <summary>
-        /// The actual current count of indices for this shape
+        /// Updates the shape version data cache so that it may be re-processed if needed
         /// </summary>
-        public ushort CurrentIndexCount;
-
-        /// <summary>
-        /// The count of indices in this Polygon
-        /// </summary>
-        public readonly ushort LineStripIndexCount;
-
-        public int LastVersion;
-        public int LastCount;
-
-        public static void SetVertexBufferSize(ref ShapeDat dat, ResourceFactory factory)
-        {
-            dat.VertexBuffer = factory.CreateBuffer(new(
-                (uint)(Unsafe.SizeOf<TVertex>() * dat.Shape.Count),
-                BufferUsage.VertexBuffer
-            ));
-        }
-
-        public static void SetTriangulatedIndicesBufferSize(ref ShapeDat dat, int indexCount, ResourceFactory factory)
-        {
-            dat.IndexBuffer = factory.CreateBuffer(new(
-                sizeof(ushort) * (uint)indexCount,
-                BufferUsage.IndexBuffer
-            ));
-            dat.CurrentIndexCount = (ushort)indexCount;
-        }
-
-        public static void SetLineStripIndicesBufferSize(ref ShapeDat dat, ResourceFactory factory)
-        {
-            dat.IndexBuffer = factory.CreateBuffer(new(
-                sizeof(ushort) * (uint)dat.LineStripIndexCount,
-                BufferUsage.IndexBuffer
-            ));
-            dat.CurrentIndexCount = (ushort)dat.LineStripIndexCount;
-        }
-
         public static void UpdateLastVer(ref ShapeDat dat)
         {
             dat.LastVersion = dat.Shape.Version;
             dat.LastCount = dat.Shape.Count;
         }
 
-        public ShapeDat(ShapeDefinition def, ResourceFactory factory)
+        /// <summary>
+        /// Instances a new ShapeDat object for <paramref name="def"/>
+        /// </summary>
+        /// <param name="def"></param>
+        /// <param name="factory"></param>
+        /// <param name="shapeIndex"></param>
+        public ShapeDat(ShapeDefinition2D def, int shapeIndex, ResourceFactory factory)
         {
             ArgumentNullException.ThrowIfNull(def);
             
-            LineStripIndexCount = (ushort)(def.Count + 1);
-            CurrentIndexCount = 0;
+            IndexCount = 0;
+            ShapeIndex = shapeIndex;
             Shape = def;
             LastVersion = 0;
             LastCount = 0;
         }
 
+        /// <summary>
+        /// Disposes of the resources held by this <see cref="ShapeDat"/> and marks it for removal
+        /// </summary>
         public void Dispose()
         {
-            ((IDisposable)VertexBuffer).Dispose();
-            ((IDisposable)IndexBuffer).Dispose();
+            ((IDisposable)Buffer).Dispose();
             remove = true;
         }
     }
 
-    #endregion
+#endregion
 }

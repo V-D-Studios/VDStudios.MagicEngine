@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Veldrid;
+using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.DrawLibrary.Geometry;
 
@@ -39,14 +40,35 @@ public struct ShapeRendererDescription
     public bool ScissorTestEnabled;
 
     /// <summary>
+    /// The primitive topology of the Pipeline that will be created.
+    /// </summary>
+    /// <remarks>
+    /// Ignored if <see cref="Pipeline"/> is set. If <see langword="null"/> it will be selected automatically using <see cref="RenderMode"/>
+    /// </remarks>
+    public PrimitiveTopology? Topology;
+
+    /// <summary>
+    /// The polygon fillmode of the Pipeline that will be created.
+    /// </summary>
+    /// <remarks>
+    /// Ignored if <see cref="Pipeline"/> is set. If <see langword="null"/> it will be selected automatically using <see cref="RenderMode"/>
+    /// </remarks>
+    public PolygonFillMode? FillMode;
+
+    /// <summary>
     /// Describes how the polygons for the destination <see cref="ShapeRenderer{TVertex}"/> will be rendered
     /// </summary>
-    public PolygonRenderMode RenderMode;
+    public PolygonRenderMode? RenderMode;
 
     /// <summary>
     /// Describes the vertex buffer's structure for the given <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
     public VertexLayoutDescription? VertexLayout;
+
+    /// <summary>
+    /// Represents the *Graphics* pipeline that will be used by the <see cref="ShapeRenderer{TVertex}"/>
+    /// </summary>
+    public Pipeline? Pipeline;
 
     /// <summary>
     /// Describes the Vertex shader for the <see cref="ShapeRenderer{TVertex}"/> in Vulkan style GLSL or SPIR-V bytecode
@@ -59,9 +81,25 @@ public struct ShapeRendererDescription
     public ShaderDescription? FragmentShaderSpirv;
 
     /// <summary>
+    /// The index generator that will be used by the <see cref="ShapeRenderer{TVertex}"/>
+    /// </summary>
+    /// <remarks>
+    /// If <see langword="null"/> it will be selected from the defaults using <see cref="RenderMode"/>
+    /// </remarks>
+    public IShape2DRendererIndexGenerator? IndexGenerator;
+
+    /// <summary>
+    /// Represents the Shader array for the <see cref="ShapeRenderer{TVertex}"/>
+    /// </summary>
+    /// <remarks>
+    /// Generally, this contains a single pair of Vertex and Fragment shaders, and is created with <see cref="ResourceFactoryExtensions.CreateFromSpirv(ResourceFactory, ShaderDescription, ShaderDescription)"/>
+    /// </remarks>
+    public Shader[]? Shaders;
+
+    /// <summary>
     /// Represents the method that will be used to build an array of <see cref="ResourceSet"/>s and <see cref="ResourceLayout"/>s for the <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
-    public MagicEngine.ResourceBuilder? ResourceLayoutAndSetBuilder;
+    public ResourceBuilder? ResourceLayoutAndSetBuilder;
 
     /// <summary>
     /// Creates a new <see cref="ShapeRendererDescription"/>

@@ -1,5 +1,6 @@
 ﻿using SDL2.Bindings;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Transactions;
 using VDStudios.MagicEngine.DrawLibrary;
@@ -30,12 +31,13 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// </summary>
     public DrawOperation() : base("Drawing")
     {
+        ReadySemaphore = new(0, 1);
     }
 
     #region Transformation
 
     /// <summary>
-    /// The <see cref="ResourceLayout"/> used to describe the laoyut for <see cref="DrawOperation"/> transformations
+    /// The <see cref="ResourceLayout"/> used to describe the layout for <see cref="DrawOperation"/> color and vertex transformations
     /// </summary>
     /// <remarks>
     /// This layout is static across <see cref="GraphicsManager"/>s
@@ -50,33 +52,42 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     private DeviceBuffer TransformationBuffer { get; set; }
 
     /// <summary>
-    /// Updates the TransformationBuffer with data from <see cref="Transformation"/> if necessary
+    /// Updates the TransformationBuffer with data from <see cref="VertexTransformation"/> if necessary
     /// </summary>
     protected void UpdateTransformationBuffer(CommandList commandList)
     {
-        if (PendingTransformationUpdate)
+        if (PendingVertexTransformationUpdate)
         {
-            var tr = Transformation;
-            PendingTransformationUpdate = false;
-            commandList.UpdateBuffer(TransformationBuffer, 0, ref tr);
+            var tr = VertexTransformation;
+            PendingVertexTransformationUpdate = false;
+            commandList.UpdateBuffer(TransformationBuffer, VertexTransformationOffset, ref tr);
         } 
+        if (PendingColorTransformationUpdate)
+        {
+            var tr = ColorTransformation;
+            PendingColorTransformationUpdate = false;
+            commandList.UpdateBuffer(TransformationBuffer, ColorTransformationOffset, ref tr);
+        }
     }
 
     /// <summary>
     /// The transformation matrix that represents the current transformation properties in this <see cref="DrawOperation"/>
     /// </summary>
-    protected Matrix4x4 Transformation
+    /// <remarks>
+    /// This transformation can be used to represent the current world properties of the drawing operation, for example, it's position and rotation in relation to the world itself
+    /// </remarks>
+    protected Matrix4x4 VertexTransformation
     {
         get
         {
-            if (trans is not Matrix4x4 t)
+            if (vertrans is not Matrix4x4 t)
             {
                 var translation = Translation;
                 var scl = Scale;
                 var (cpxx, cpxy, cpxz, rotx) = RotationX;
                 var (cpyx, cpyy, cpyz, roty) = RotationY;
                 var (cpzx, cpzy, cpzz, rotz) = RotationZ;
-                trans = t =
+                vertrans = t =
                     Matrix4x4.CreateTranslation(translation) *
                     Matrix4x4.CreateScale(scl) *
                     Matrix4x4.CreateRotationX(rotx, new(cpxx, cpxy, cpxz)) *
@@ -86,8 +97,25 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
             return t;
         }
     }
-    private Matrix4x4? trans = Matrix4x4.Identity;
-    private bool PendingTransformationUpdate = false;
+    private Matrix4x4? vertrans = Matrix4x4.Identity;
+    private bool PendingVertexTransformationUpdate = false;
+    private const uint VertexTransformationOffset = 0;
+
+    /// <summary>
+    /// The transformation matrix that represents the current transformation properties in this <see cref="DrawOperation"/>
+    /// </summary>
+    public ColorTransformation ColorTransformation
+    {
+        get => colTrans;
+        set
+        {
+            colTrans = value;
+            PendingColorTransformationUpdate = true;
+        }
+    }
+    private ColorTransformation colTrans;
+    private bool PendingColorTransformationUpdate = false;
+    private readonly uint ColorTransformationOffset = (uint)Unsafe.SizeOf<Matrix4x4>();
 
     /// <summary>
     /// Adjusts the transformation parameters and calculates the appropriate transformation matrix for this <see cref="DrawOperation"/>
@@ -107,9 +135,9 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         RotationX = rotX ?? RotationX;
         RotationY = rotY ?? RotationY;
         RotationZ = rotZ ?? RotationZ;
-        PendingTransformationUpdate = true;
+        PendingVertexTransformationUpdate = true;
         NotifyPendingGPUUpdate();
-        trans = null;
+        vertrans = null;
     }
 
     /// <summary>
@@ -149,9 +177,109 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     #endregion
 
     /// <summary>
+    /// <c>true</c> when the node has been added to the scene tree and initialized
+    /// </summary>
+    public bool IsReady
+    {
+        get => _isReady;
+        private set
+        {
+            if (value == _isReady) return;
+            if (value)
+                ReadySemaphore.Release();
+            else
+                ReadySemaphore.Wait();
+            _isReady = value;
+        }
+    }
+    private bool _isReady;
+    private readonly SemaphoreSlim ReadySemaphore;
+
+    /// <summary>
+    /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public async ValueTask WaitUntilReadyAsync()
+    {
+        if (IsReady)
+            return;
+        if (ReadySemaphore.Wait(15))
+        {
+            ReadySemaphore.Release();
+            return;
+        }
+
+        await ReadySemaphore.WaitAsync();
+        ReadySemaphore.Release();
+    }
+
+    /// <summary>
+    /// Waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public void WaitUntilReady()
+    {
+        if (IsReady)
+            return;
+        ReadySemaphore.Wait();
+        ReadySemaphore.Release();
+    }
+
+    /// <summary>
+    /// Waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public bool WaitUntilReady(int timeoutMilliseconds)
+    {
+        if (IsReady)
+            return true;
+        if (ReadySemaphore.Wait(timeoutMilliseconds))
+        {
+            ReadySemaphore.Release();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
+    /// </summary>
+    public async ValueTask<bool> WaitUntilReadyAsync(int timeoutMilliseconds)
+    {
+        if (IsReady)
+            return true;
+        if (timeoutMilliseconds > 15)
+        {
+            if (ReadySemaphore.Wait(15))
+            {
+                ReadySemaphore.Release();
+                return true;
+            }
+
+            if (await ReadySemaphore.WaitAsync(timeoutMilliseconds - 15))
+            {
+                ReadySemaphore.Release();
+                return true;
+            }
+        }
+        if (await ReadySemaphore.WaitAsync(timeoutMilliseconds))
+        {
+            ReadySemaphore.Release();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Represents this <see cref="DrawOperation"/>'s preferred priority. May or may not be honored depending on the <see cref="DrawOperationManager"/>
     /// </summary>
     public float PreferredPriority { get; set; }
+
+    /// <summary>
+    /// Represents this <see cref="DrawOperation"/>'s CommandList Group affinity. If this value is 
+    /// </summary>
+    /// <remarks>
+    /// This value will also set this <see cref="DrawOperation"/> in its own draw priority group; which means that it will be drawn over <see cref="DrawOperation"/>s that have a lower <see cref="CommandListGroupAffinity"/> regardless of priority. If in doubt, leave this as <see langword="null"/>
+    /// </remarks>
+    public uint? CommandListGroupAffinity { get; init; }
+    internal int _clga => (int)(CommandListGroupAffinity ?? 0);
 
     /// <summary>
     /// Represents the current reference to <see cref="DrawParameters"/> this <see cref="DrawOperation"/> has
@@ -212,6 +340,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         }
 
         Registered();
+        IsReady = true;
     }
 
     #endregion
@@ -292,10 +421,17 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     protected virtual ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
     {
-        TransformationBuffer = factory.CreateBuffer(new BufferDescription(DataStructuring.FitToUniformBuffer<Matrix4x4, uint>(), BufferUsage.UniformBuffer));
+        TransformationBuffer = factory.CreateBuffer(
+            new BufferDescription(
+                DataStructuring.FitToUniformBuffer((uint)Unsafe.SizeOf<Matrix4x4>() + (uint)Unsafe.SizeOf<ColorTransformation>()),
+                BufferUsage.UniformBuffer
+            )
+        );
         TransformationSet = factory.CreateResourceSet(new ResourceSetDescription(TransformationLayout, TransformationBuffer));
-        var trans = Transformation;
-        device.UpdateBuffer(TransformationBuffer, 0, ref trans);
+        var vtrans = VertexTransformation;
+        var ctrans = ColorTransformation;
+        device.UpdateBuffer(TransformationBuffer, VertexTransformationOffset, ref vtrans);
+        device.UpdateBuffer(TransformationBuffer, ColorTransformationOffset, ref ctrans);
         builder.InsertLast(TransformationSet, TransformationLayout, out int _, "DrawOperation Base Transformation");
         return ValueTask.CompletedTask;
     }
@@ -371,7 +507,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// Disposes of this <see cref="DrawOperation"/>'s resources
     /// </summary>
     /// <remarks>
-    /// Dispose of any additional resources your subtype allocates
+    /// Dispose of any additional resources your subtype allocates. Consider that this method may be called even if <see cref="GraphicsObject.Manager"/> is not set
     /// </remarks>
     protected virtual void Dispose(bool disposing) { }
 
@@ -388,17 +524,20 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
                 disposedValue = true;
             }
 
-            var @lock = Manager!.LockManagerDrawing();
-            try
+            if(Manager is GraphicsManager manager)
             {
-                Dispose(disposing);
-            }
-            finally
-            {
-                Device = null;
-                _owner = null!;
-                Manager = null;
-                @lock.Dispose();
+                var @lock = manager.LockManagerDrawing();
+                try
+                {
+                    Dispose(disposing);
+                }
+                finally
+                {
+                    Device = null;
+                    _owner = null!;
+                    Manager = null;
+                    @lock.Dispose();
+                }
             }
         }
         finally

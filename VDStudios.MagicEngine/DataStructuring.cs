@@ -32,6 +32,19 @@ public static class DataStructuring
         => TNumber.CreateSaturating(16u) * TNumber.CreateSaturating(Unsafe.SizeOf<TStruct>() / 16u + 1u);
 
     /// <summary>
+    /// Fits <paramref name="size"/> to the smallest possible size in bytes allowed by an uniform buffer
+    /// </summary>
+    /// <remarks>
+    /// Uniform buffer sizes must be multiples of 16
+    /// </remarks>
+    /// <param name="size"></param>
+    /// <typeparam name="TNumber">The type of the numeric representing the size</typeparam>
+    /// <returns>The appropriate buffer size necessary to fit the struct</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TNumber FitToUniformBuffer<TNumber>(TNumber size) where TNumber : IBinaryInteger<TNumber>
+        => TNumber.CreateSaturating(16u) * (size / TNumber.CreateSaturating(16u) + TNumber.One);
+
+    /// <summary>
     /// Gets the size of a blittable type <typeparamref name="TStruct"/> and fits it to the smallest possible size in bytes that is a multiple of <paramref name="multipleOf"/>
     /// </summary>
     /// <typeparam name="TStruct">The type to calculate the size for</typeparam>

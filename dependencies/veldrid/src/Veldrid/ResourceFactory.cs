@@ -245,32 +245,34 @@ namespace Veldrid
         /// <returns>A new <see cref="TextureView"/>.</returns>
         public TextureView CreateTextureView(ref TextureViewDescription description)
         {
+            description.GetData(out var format, out var arrayLayers, out var baseMipLevel, out var mipLevels, out var baseArrayLayer);
+            var target = description.Target;
 #if VALIDATE_USAGE
-            if (description.MipLevels == 0 || description.ArrayLayers == 0
-                || (description.BaseMipLevel + description.MipLevels) > description.Target.MipLevels
-                || (description.BaseArrayLayer + description.ArrayLayers) > description.Target.ArrayLayers)
+            if (mipLevels == 0 || arrayLayers == 0
+                || (baseMipLevel + mipLevels) > target.MipLevels
+                || (baseArrayLayer + arrayLayers) > target.ArrayLayers)
             {
                 throw new VeldridException(
                     "TextureView mip level and array layer range must be contained in the target Texture.");
             }
-            if ((description.Target.Usage & TextureUsage.Sampled) == 0
-                && (description.Target.Usage & TextureUsage.Storage) == 0)
+            if ((target.Usage & TextureUsage.Sampled) == 0
+                && (target.Usage & TextureUsage.Storage) == 0)
             {
                 throw new VeldridException(
                     "To create a TextureView, the target texture must have either Sampled or Storage usage flags.");
             }
             if (!Features.SubsetTextureView &&
-                (description.BaseMipLevel != 0 || description.MipLevels != description.Target.MipLevels
-                || description.BaseArrayLayer != 0 || description.ArrayLayers != description.Target.ArrayLayers))
+                (baseMipLevel != 0 || mipLevels != target.MipLevels
+                || baseArrayLayer != 0 || arrayLayers != target.ArrayLayers))
             {
                 throw new VeldridException("GraphicsDevice does not support subset TextureViews.");
             }
-            if (description.Format != null && description.Format != description.Target.Format)
+            if (format != target.Format)
             {
-                if (!FormatHelpers.IsFormatViewCompatible(description.Format.Value, description.Target.Format))
+                if (!FormatHelpers.IsFormatViewCompatible(format, target.Format))
                 {
                     throw new VeldridException(
-                        $"Cannot create a TextureView with format {description.Format.Value} targeting a Texture with format " +
+                        $"Cannot create a TextureView with format {format} targeting a Texture with format " +
                         $"{description.Target.Format}. A TextureView's format must have the same size and number of " +
                         $"components as the underlying Texture's format, or the same format.");
                 }

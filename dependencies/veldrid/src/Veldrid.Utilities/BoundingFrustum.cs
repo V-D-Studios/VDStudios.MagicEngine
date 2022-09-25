@@ -1,9 +1,10 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace Veldrid.Utilities
 {
-    public unsafe struct BoundingFrustum
+    public struct BoundingFrustum
     {
         private SixPlane _planes;
 
@@ -15,6 +16,19 @@ namespace Veldrid.Utilities
             public Plane Top;
             public Plane Near;
             public Plane Far;
+
+            public void WritePlanes(Span<Plane> buffer)
+            {
+                if (buffer.Length < 6)
+                    throw new ArgumentException("The passed buffer must have a length of at least 6 elements", nameof(buffer));
+
+                buffer[0] = Left;
+                buffer[1] = Right;
+                buffer[2] = Bottom;
+                buffer[3] = Top;
+                buffer[4] = Near;
+                buffer[5] = Far;
+            }
         }
 
         public BoundingFrustum(Matrix4x4 m)
@@ -76,7 +90,8 @@ namespace Veldrid.Utilities
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ContainmentType Contains(Vector3 point)
         {
-            Plane* planes = (Plane*)Unsafe.AsPointer(ref _planes); // Is this safe?
+            Span<Plane> planes = stackalloc Plane[6];
+            _planes.WritePlanes(planes);
 
             for (int i = 0; i < 6; i++)
             {
@@ -90,13 +105,14 @@ namespace Veldrid.Utilities
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ContainmentType Contains(Vector3* point)
+        public ContainmentType Contains(ref Vector3 point)
         {
-            Plane* planes = (Plane*)Unsafe.AsPointer(ref _planes); // Is this safe?
+            Span<Plane> planes = stackalloc Plane[6];
+            _planes.WritePlanes(planes);
 
             for (int i = 0; i < 6; i++)
             {
-                if (Plane.DotCoordinate(planes[i], *point) < 0)
+                if (Plane.DotCoordinate(planes[i], point) < 0)
                 {
                     return ContainmentType.Disjoint;
                 }
@@ -107,7 +123,8 @@ namespace Veldrid.Utilities
 
         public ContainmentType Contains(BoundingSphere sphere)
         {
-            Plane* planes = (Plane*)Unsafe.AsPointer(ref _planes);
+            Span<Plane> planes = stackalloc Plane[6];
+            _planes.WritePlanes(planes);
 
             ContainmentType result = ContainmentType.Contains;
             for (int i = 0; i < 6; i++)
@@ -131,7 +148,8 @@ namespace Veldrid.Utilities
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ContainmentType Contains(ref BoundingBox box)
         {
-            Plane* planes = (Plane*)Unsafe.AsPointer(ref _planes);
+            Span<Plane> planes = stackalloc Plane[6];
+            _planes.WritePlanes(planes);
 
             ContainmentType result = ContainmentType.Contains;
             for (int i = 0; i < 6; i++)
@@ -180,31 +198,21 @@ namespace Veldrid.Utilities
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe ContainmentType Contains(ref BoundingFrustum other)
+        public ContainmentType Contains(ref BoundingFrustum other)
         {
             int pointsContained = 0;
-            FrustumCorners corners = other.GetCorners();
-            Vector3* cornersPtr = (Vector3*)&corners;
+            Span<Vector3> corners = stackalloc Vector3[8]; 
+            other.GetCorners(corners);
+
             for (int i = 0; i < 8; i++)
             {
-                if (Contains(&cornersPtr[i]) != ContainmentType.Disjoint)
+                if (Contains(ref corners[i]) != ContainmentType.Disjoint)
                 {
                     pointsContained++;
                 }
             }
 
-            if (pointsContained == 8)
-            {
-                return ContainmentType.Contains;
-            }
-            else if (pointsContained == 0)
-            {
-                return ContainmentType.Disjoint;
-            }
-            else
-            {
-                return ContainmentType.Intersects;
-            }
+            return pointsContained == 8 ? ContainmentType.Contains : pointsContained == 0 ? ContainmentType.Disjoint : ContainmentType.Intersects;
         }
 
         public FrustumCorners GetCorners()
@@ -224,6 +232,20 @@ namespace Veldrid.Utilities
             PlaneIntersection(ref _planes.Far, ref _planes.Top, ref _planes.Right, out corners.FarTopRight);
             PlaneIntersection(ref _planes.Far, ref _planes.Bottom, ref _planes.Left, out corners.FarBottomLeft);
             PlaneIntersection(ref _planes.Far, ref _planes.Bottom, ref _planes.Right, out corners.FarBottomRight);
+        }
+
+        public void GetCorners(Span<Vector3> corners)
+        {
+            if (corners.Length < 8)
+                throw new ArgumentException("The passed buffer must have a length of 8 elements or more", nameof(corners));
+            PlaneIntersection(ref _planes.Near, ref _planes.Top, ref _planes.Left, out corners[0]);
+            PlaneIntersection(ref _planes.Near, ref _planes.Top, ref _planes.Right, out corners[1]);
+            PlaneIntersection(ref _planes.Near, ref _planes.Bottom, ref _planes.Left, out corners[2]);
+            PlaneIntersection(ref _planes.Near, ref _planes.Bottom, ref _planes.Right, out corners[3]);
+            PlaneIntersection(ref _planes.Far, ref _planes.Top, ref _planes.Left, out corners[4]);
+            PlaneIntersection(ref _planes.Far, ref _planes.Top, ref _planes.Right, out corners[5]);
+            PlaneIntersection(ref _planes.Far, ref _planes.Bottom, ref _planes.Left, out corners[6]);
+            PlaneIntersection(ref _planes.Far, ref _planes.Bottom, ref _planes.Right, out corners[7]);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

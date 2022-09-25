@@ -3,6 +3,7 @@ using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
 using Veldrid;
 using Veldrid.ImageSharp;
+using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.DrawLibrary;
 
@@ -43,30 +44,42 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     /// <summary>
     /// Creates a new <see cref="TexturedShapeRenderer{TVertex}"/> object
     /// </summary>
-    /// <param name="texture">The Device Texture for this Renderer. Must be created with <see cref="TextureUsage.Sampled"/></param>
+    /// <param name="imgSharpTexture">Represents an ImageSharpTexture that will create a DeviceTexture for use with this <see cref="TexturedShapeRenderer{TVertex}"/>, taking precedence for the one set in the description, if any</param>
     /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="TexturedShapeRenderer{TVertex}"/></param>
-    /// <param name="vertexGenerator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
-    public TexturedShapeRenderer(ImageSharpTexture texture, IEnumerable<ShapeDefinition> shapes, TexturedShapeRenderDescription description, IShapeRendererVertexGenerator<TextureVertex<TVertex>> vertexGenerator) 
-        : base(shapes, description.ShapeRenderer, vertexGenerator)
+    /// <param name="vertexGenerator">The <see cref="IShape2DRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
+    public TexturedShapeRenderer(ImageSharpTexture imgSharpTexture, IEnumerable<ShapeDefinition2D> shapes, TexturedShapeRenderDescription description, IShape2DRendererVertexGenerator<TextureVertex<TVertex>> vertexGenerator)
+        : base(shapes, description.ShapeRendererDescription, vertexGenerator)
     {
-        ArgumentNullException.ThrowIfNull(texture);
-        TextureFactory = texture.CreateDeviceTexture;
         TextureRendererDescription = description;
+        ArgumentNullException.ThrowIfNull(imgSharpTexture);
+        TextureFactory = imgSharpTexture.CreateDeviceTexture;
     }
 
     /// <summary>
     /// Creates a new <see cref="TexturedShapeRenderer{TVertex}"/> object
     /// </summary>
-    /// <param name="textureFactory">Represents the method that will create the Device Texture for this Renderer. Must be created with <see cref="TextureUsage.Sampled"/></param>
+    /// <param name="textureFactory">Represents a method that will create a DeviceTexture for use with this <see cref="TexturedShapeRenderer{TVertex}"/>, taking precedence for the one set in the description, if any</param>
     /// <param name="shapes">The shapes to fill this list with</param>
     /// <param name="description">Provides data for the configuration of this <see cref="TexturedShapeRenderer{TVertex}"/></param>
-    /// <param name="vertexGenerator">The <see cref="IShapeRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
-    public TexturedShapeRenderer(TextureFactory textureFactory, IEnumerable<ShapeDefinition> shapes, TexturedShapeRenderDescription description, IShapeRendererVertexGenerator<TextureVertex<TVertex>> vertexGenerator)
-        : base(shapes, description.ShapeRenderer, vertexGenerator)
+    /// <param name="vertexGenerator">The <see cref="IShape2DRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
+    public TexturedShapeRenderer(TextureFactory textureFactory, IEnumerable<ShapeDefinition2D> shapes, TexturedShapeRenderDescription description, IShape2DRendererVertexGenerator<TextureVertex<TVertex>> vertexGenerator)
+        : base(shapes, description.ShapeRendererDescription, vertexGenerator)
     {
+        TextureRendererDescription = description;
         ArgumentNullException.ThrowIfNull(textureFactory);
         TextureFactory = textureFactory;
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="TexturedShapeRenderer{TVertex}"/> object
+    /// </summary>
+    /// <param name="shapes">The shapes to fill this list with</param>
+    /// <param name="description">Provides data for the configuration of this <see cref="TexturedShapeRenderer{TVertex}"/></param>
+    /// <param name="vertexGenerator">The <see cref="IShape2DRendererVertexGenerator{TVertex}"/> object that will generate the vertices for all shapes in the buffer</param>
+    public TexturedShapeRenderer(IEnumerable<ShapeDefinition2D> shapes, TexturedShapeRenderDescription description, IShape2DRendererVertexGenerator<TextureVertex<TVertex>> vertexGenerator) 
+        : base(shapes, description.ShapeRendererDescription, vertexGenerator)
+    {
         TextureRendererDescription = description;
     }
 
@@ -75,49 +88,44 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
     #region Resources
 
     /// <summary>
-    /// Be careful when modifying this -- And know that most changes won't have any effect after <see cref="CreateResources(GraphicsDevice, ResourceFactory)"/> is called
+    /// Be careful when modifying this -- And know that most changes won't have any effect after <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[], ResourceLayout[])"/> is called
     /// </summary>
     protected TexturedShapeRenderDescription TextureRendererDescription;
-    private Sampler Sampler;
-    private readonly TextureFactory TextureFactory;
 
     /// <summary>
-    /// The texture that this <see cref="TexturedShapeRenderer{TVertex}"/> is in charge of rendering. Will become available after <see cref="CreateResources(GraphicsDevice, ResourceFactory)"/> is called
+    /// The Sampler used by this <see cref="TexturedShapeRenderer{TVertex}"/>
     /// </summary>
-    protected TextureView Texture;
+    /// <remarks>
+    /// Will be <c>null</c> until <see cref="DrawOperation.IsReady"/> is <c>true</c>
+    /// </remarks>
+    public Sampler Sampler { get; private set; }
+
+    /// <summary>
+    /// The texture that this <see cref="TexturedShapeRenderer{TVertex}"/> is in charge of rendering.
+    /// </summary>
+    /// <remarks>
+    /// Will be <c>null</c> until <see cref="DrawOperation.IsReady"/> is <c>true</c>
+    /// </remarks>
+    public TextureView Texture { get; private set; }
+    private TextureFactory? TextureFactory;
 
     #endregion
 
     #region DrawOperation
-
-    private static readonly VertexLayoutDescription DefaultVector2TexPosLayout
-        = new(
-              new VertexElementDescription("TexturePosition", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
-              new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate)
-          );
 
     /// <inheritdoc/>
     protected override async ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
     {
         await base.CreateResourceSets(device, builder, factory);
 
-        var texture = TextureFactory.Invoke(device, factory);
-        if (texture is null)
-        {
-            var exc = new InvalidOperationException($"The TextureFactory for TextureRenderer returned null, rather than a Device Texture");
-            Log.Fatal(exc, "A TextureRenderer's TextureFactory failed to create a valid Device Texture");
-            throw exc;
-        }
-        Sampler = factory.CreateSampler(TextureRendererDescription.Sampler);
-        Texture = factory.CreateTextureView(new TextureViewDescription()
-        {
-            BaseMipLevel = TextureRendererDescription.TextureBaseMipLevel ?? 0u,
-            MipLevels = TextureRendererDescription.TextureMipLevels ?? texture.MipLevels,
-            BaseArrayLayer = TextureRendererDescription.TextureBaseArrayLayer ?? 0u,
-            ArrayLayers = TextureRendererDescription.TextureArrayLayers ?? texture.ArrayLayers,
-            Format = TextureRendererDescription.TexturePixelFormat ?? texture.Format,
-            Target = texture
-        });
+        Sampler = TextureRendererDescription.Sampler ?? factory.CreateSampler(TextureRendererDescription.SamplerDescription);
+        Texture = TextureRendererDescription.TextureView ??
+            (TextureFactory is TextureFactory txtf ?
+                factory.CreateTextureView(TextureRendererDescription.TextureViewDescription with
+                {
+                    Target = txtf.Invoke(device, factory)
+                }) :
+                factory.CreateTextureView(TextureRendererDescription.TextureViewDescription));
 
         var layout = builder.InsertFirst(out _);
         layout.InsertFirst(new ResourceLayoutElementDescription(
@@ -134,22 +142,33 @@ public class TexturedShapeRenderer<TVertex> : ShapeRenderer<TextureVertex<TVerte
             ),
             Sampler
         );
+        TextureFactory = null;
+    }
+
+    /// <summary>
+    /// Configures the base
+    /// </summary>
+    public static void ConfigureDescription(GraphicsManager manager, ResourceFactory factory, ref ShapeRendererDescription description)
+    {
+        Shader[] shaders = description.Shaders is null
+            ? description.VertexShaderSpirv is null && description.FragmentShaderSpirv is null
+                ? manager.DefaultResourceCache.DefaultTexturedShapeRendererShaders
+                : description.VertexShaderSpirv is null || description.FragmentShaderSpirv is null
+                    ? throw new InvalidOperationException("Cannot have only one shader description set. Either they must both be set, or they must both be null")
+                    : factory.CreateFromSpirv(
+                                    (ShaderDescription)description.VertexShaderSpirv,
+                                    (ShaderDescription)description.FragmentShaderSpirv
+                                )
+            : description.Shaders;
+
+        description.Shaders = shaders;
+        description.VertexLayout ??= manager.DefaultResourceCache.DefaultTexturedShapeRendererLayout;
     }
 
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? sets, ResourceLayout[]? layouts)
     {
-        ShapeRendererDescription.VertexShaderSpirv ??= new(
-            ShaderStages.Vertex, 
-            DefaultShaders.DefaultTexturedShapeRendererVertexShader.BuildAgainst(sets!).GetUTF8Bytes(), 
-            "main"
-        );
-        ShapeRendererDescription.FragmentShaderSpirv ??= new(
-            ShaderStages.Fragment, 
-            DefaultShaders.DefaultTexturedShapeRendererFragmentShader.BuildAgainst(sets!).GetUTF8Bytes(),
-            "main"
-        );  
-        ShapeRendererDescription.VertexLayout ??= DefaultVector2TexPosLayout;
+        ConfigureDescription(Manager!, factory, ref ShapeRendererDescription);
         return base.CreateResources(device, factory, sets, layouts);
     }
 

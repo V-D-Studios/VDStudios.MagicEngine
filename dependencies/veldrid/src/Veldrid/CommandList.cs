@@ -222,7 +222,7 @@ namespace Veldrid
                     $"Failed to bind ResourceSet to slot {slot}. The active graphics Pipeline only contains {layoutsCount} ResourceLayouts.");
             }
 
-            ResourceLayout layout = _graphicsPipeline.ResourceLayouts[slot]
+            ResourceLayout layout = _graphicsPipeline.ResourceLayouts[(int)slot]
                 ?? throw new VeldridException($"There is no ResourceLayout at slot {slot} in the active graphics Pipeline");
 
             int pipelineLength = layout.Description.Elements.Length;
@@ -306,7 +306,7 @@ namespace Veldrid
         /// <see cref="ResourceSet"/>. The number of elements in this array must be equal to the number of dynamic buffers
         /// (<see cref="ResourceLayoutElementOptions.DynamicBinding"/>) contained in the <see cref="ResourceSet"/>. These offsets
         /// are applied in the order that dynamic buffer elements appear in the <see cref="ResourceSet"/>.</param>
-        public void SetComputeResourceSet(uint slot, ResourceSet rs, uint[] dynamicOffsets)
+        public void SetComputeResourceSet(uint slot, ResourceSet rs, Span<uint> dynamicOffsets)
             => SetComputeResourceSet(slot, rs, (uint)dynamicOffsets.Length, ref dynamicOffsets[0]);
 
         /// <summary>
@@ -338,7 +338,7 @@ namespace Veldrid
                     $"Failed to bind ResourceSet to slot {slot}. The active compute Pipeline only contains {layoutsCount} ResourceLayouts.");
             }
 
-            ResourceLayout layout = _computePipeline.ResourceLayouts[slot];
+            ResourceLayout layout = _computePipeline.ResourceLayouts[(int)slot];
             int pipelineLength = layout.Description.Elements.Length;
             int setLength = rs.Layout.Description.Elements.Length;
             if (pipelineLength != setLength)
@@ -842,7 +842,7 @@ namespace Veldrid
             uint bufferOffsetInBytes,
             ReadOnlySpan<T> source) where T : unmanaged
         {
-            fixed (void* pin = &MemoryMarshal.GetReference(source))
+            fixed (void* pin = source)
             {
                 UpdateBuffer(buffer, bufferOffsetInBytes, (IntPtr)pin, (uint)(sizeof(T) * source.Length));
             }

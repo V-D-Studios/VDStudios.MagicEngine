@@ -11,22 +11,27 @@ namespace Veldrid
         /// The desired target <see cref="Texture"/>.
         /// </summary>
         public Texture Target;
+
         /// <summary>
         /// The base mip level visible in the view. Must be less than <see cref="Texture.MipLevels"/>.
         /// </summary>
-        public uint BaseMipLevel;
+        public uint? BaseMipLevel;
+
         /// <summary>
         /// The number of mip levels visible in the view.
         /// </summary>
-        public uint MipLevels;
+        public uint? MipLevels;
+
         /// <summary>
         /// The base array layer visible in the view.
         /// </summary>
-        public uint BaseArrayLayer;
+        public uint? BaseArrayLayer;
+
         /// <summary>
         /// The number of array layers visible in the view.
         /// </summary>
-        public uint ArrayLayers;
+        public uint? ArrayLayers;
+
         /// <summary>
         /// An optional <see cref="PixelFormat"/> which specifies how the data within <see cref="Target"/> will be viewed.
         /// If this value is null, then the created TextureView will use the same <see cref="PixelFormat"/> as the target
@@ -44,11 +49,22 @@ namespace Veldrid
         public TextureViewDescription(Texture target)
         {
             Target = target;
-            BaseMipLevel = 0;
-            MipLevels = target.MipLevels;
-            BaseArrayLayer = 0;
-            ArrayLayers = target.ArrayLayers;
-            Format = target.Format;
+            BaseMipLevel = null;
+            MipLevels = null;
+            BaseArrayLayer = null;
+            ArrayLayers = null;
+            Format = null;
+        }
+
+        public void GetData(out PixelFormat format, out uint arrayLayers, out uint baseArrayLayer, out uint mipLevels, out uint baseMipLevel)
+        {
+            if (Target is not Texture target)
+                throw new InvalidOperationException("Cannot get the data from a TextureViewDescription with no Target");
+            baseMipLevel = BaseMipLevel ?? 0;
+            mipLevels = MipLevels ?? target.MipLevels;
+            baseArrayLayer = BaseArrayLayer ?? 0;
+            arrayLayers = ArrayLayers ?? target.ArrayLayers;
+            format = Format ?? target.Format;
         }
 
         /// <summary>
@@ -63,10 +79,10 @@ namespace Veldrid
         public TextureViewDescription(Texture target, PixelFormat format)
         {
             Target = target;
-            BaseMipLevel = 0;
-            MipLevels = target.MipLevels;
-            BaseArrayLayer = 0;
-            ArrayLayers = target.ArrayLayers;
+            BaseMipLevel = null;
+            MipLevels = null;
+            BaseArrayLayer = null;
+            ArrayLayers = null;
             Format = format;
         }
 
@@ -86,7 +102,7 @@ namespace Veldrid
             MipLevels = mipLevels;
             BaseArrayLayer = baseArrayLayer;
             ArrayLayers = arrayLayers;
-            Format = target.Format;
+            Format = null;
         }
 
         /// <summary>
@@ -109,7 +125,7 @@ namespace Veldrid
             MipLevels = mipLevels;
             BaseArrayLayer = baseArrayLayer;
             ArrayLayers = arrayLayers;
-            Format = target.Format;
+            Format = format;
         }
 
         /// <summary>
@@ -120,10 +136,10 @@ namespace Veldrid
         public bool Equals(TextureViewDescription other)
         {
             return Target.Equals(other.Target)
-                && BaseMipLevel.Equals(other.BaseMipLevel)
-                && MipLevels.Equals(other.MipLevels)
-                && BaseArrayLayer.Equals(other.BaseArrayLayer)
-                && ArrayLayers.Equals(other.ArrayLayers)
+                && BaseMipLevel == other.BaseMipLevel
+                && MipLevels == other.MipLevels
+                && BaseArrayLayer == other.BaseArrayLayer
+                && ArrayLayers == other.ArrayLayers
                 && Format == other.Format;
         }
 
@@ -134,11 +150,11 @@ namespace Veldrid
         public override int GetHashCode()
         {
             return HashHelper.Combine(
-                Target.GetHashCode(),
-                BaseMipLevel.GetHashCode(),
-                MipLevels.GetHashCode(),
-                BaseArrayLayer.GetHashCode(),
-                ArrayLayers.GetHashCode(),
+                Target?.GetHashCode() ?? 0,
+                BaseMipLevel?.GetHashCode() ?? 0,
+                MipLevels?.GetHashCode() ?? 0,
+                BaseArrayLayer?.GetHashCode() ?? 0,
+                ArrayLayers?.GetHashCode() ?? 0,
                 Format?.GetHashCode() ?? 0);
         }
     }

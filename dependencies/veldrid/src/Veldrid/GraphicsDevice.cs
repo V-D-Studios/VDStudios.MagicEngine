@@ -472,7 +472,7 @@ namespace Veldrid
             ValidateUpdateTextureParameters(texture, sizeInBytes, x, y, z, width, height, depth, mipLevel, arrayLayer);
 #endif
 
-            fixed (void* pin = &MemoryMarshal.GetReference(source))
+            fixed (void* pin = source)
             {
                 UpdateTextureCore(
                 texture,
@@ -677,7 +677,7 @@ namespace Veldrid
             uint bufferOffsetInBytes,
             ReadOnlySpan<T> source) where T : unmanaged
         {
-            fixed (void* pin = &MemoryMarshal.GetReference(source))
+            fixed (void* pin = source)
             {
                 UpdateBuffer(buffer, bufferOffsetInBytes, (IntPtr)pin, (uint)(sizeof(T) * source.Length));
             }

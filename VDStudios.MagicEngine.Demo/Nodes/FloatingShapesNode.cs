@@ -1,9 +1,11 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using VDStudios.MagicEngine.Demo.Properties;
 using VDStudios.MagicEngine.DrawLibrary;
 using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
+using VDStudios.MagicEngine.Utility;
 using Veldrid;
 using Veldrid.ImageSharp;
 
@@ -17,7 +19,7 @@ public class FloatingShapesNode : Node, IDrawableNode
         public RgbaFloat Color;
     }
 
-    private class ColorVertexGenerator : IShapeRendererVertexGenerator<ColorVertex>
+    private class ColorVertexGenerator : IShape2DRendererVertexGenerator<ColorVertex>
     {
         private static readonly RgbaFloat[] Colors = new RgbaFloat[]
         {
@@ -26,7 +28,7 @@ public class FloatingShapesNode : Node, IDrawableNode
             new(.2f, .2f, 1f, 1f),
         };
 
-        private static ColorVertex Generate(int index, Vector2 shapeVertex, ShapeDefinition shape)
+        private static ColorVertex Generate(int index, Vector2 shapeVertex, ShapeDefinition2D shape)
         {
             if (shape.Count is 3)
                 goto Preset;
@@ -45,10 +47,10 @@ public class FloatingShapesNode : Node, IDrawableNode
         }
 
         /// <inheritdoc/>
-        public void Start(ShapeRenderer<ColorVertex> renderer, IEnumerable<ShapeDefinition> allShapes, int regenCount, ref object? context) { }
+        public void Start(ShapeRenderer<ColorVertex> renderer, IEnumerable<ShapeDefinition2D> allShapes, int regenCount, ref object? context) { }
 
         /// <inheritdoc/>
-        public void Generate(ShapeDefinition shape, IEnumerable<ShapeDefinition> allShapes, Span<ColorVertex> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, out bool useDeviceBuffer, ref object? context)
+        public void Generate(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<ColorVertex> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, uint vertexStart, uint vertexSize, out bool useDeviceBuffer, ref object? context)
         {
             for (int i = 0; i < vertices.Length; i++)
                 vertices[i] = Generate(i, shape[i], shape);
@@ -63,9 +65,12 @@ public class FloatingShapesNode : Node, IDrawableNode
     private readonly PolygonDefinition hexagon;
     private readonly SegmentDefinition segment;
     private readonly TexturedShapeRenderer<Vector2> TexturedRenderer;
+    private readonly ShapeRenderer<ColorVertex> Renderer;
 
     public FloatingShapesNode()
     {
+        DrawOperationManager = new DrawOperationManager(this);
+
         Span<Vector2> triangle = stackalloc Vector2[] { new(-.15f + .5f, -.15f + .5f), new(.15f + .5f, -.15f + .5f), new(.5f, .15f + .5f) };
         hexagon = new PolygonDefinition(stackalloc Vector2[]
         {
@@ -80,7 +85,88 @@ public class FloatingShapesNode : Node, IDrawableNode
 
         segment = new(new(.2f, .3f), new(-.4f, -.1f), 10f);
 
-        var watch = new Watch(viewLoggers: new() { ("Force segment update", () => { segment.ForceUpdate(); return true; }) });
+        var elipseTall = new ElipseDefinition(new(0f, 0f), .2f, .65f, 30) { Name = "Tall Elipse" };
+        var elipseWide = new ElipseDefinition(new(0f, 0f), .65f, .2f, 30) { Name = "Wide Elipse" };
+        var donut = new DonutDefinition(new(.2f, .2f), .2f, .1f, 30, 3);
+
+        var texturedRect = PolygonDefinition.Circle(new(.25f, .25f), .25f, 21844);
+
+        var robstrm = new MemoryStream(Assets.boundary_test);
+        var img = new ImageSharpTexture(robstrm);
+        robstrm.Dispose();
+
+        TexturedShapeRenderDescription shapeRendererDesc = new(
+                new(
+                    BlendStateDescription.SingleAlphaBlend,
+                    DepthStencilStateDescription.DepthOnlyLessEqual,
+                    FaceCullMode.Front,
+                    FrontFace.Clockwise,
+                    true,
+                    false,
+                    PolygonRenderMode.TriangulatedWireframe,
+                    null,
+                    null,
+                    null,
+                    GraphicsManager.AddWindowAspectTransform
+                ),
+                new SamplerDescription(
+                    SamplerAddressMode.Clamp,
+                    SamplerAddressMode.Clamp,
+                    SamplerAddressMode.Clamp,
+                    SamplerFilter.MinPoint_MagPoint_MipPoint,
+                    null,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SamplerBorderColor.TransparentBlack
+                ),
+                default(TextureViewDescription)
+            );
+
+        TexturedRenderer = DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
+            img,
+            new ShapeDefinition2D[]
+            {
+                //texturedRect,
+                donut
+            },
+            shapeRendererDesc,
+            new TextureVertexGeneratorFill()) { PreferredPriority = -2 }
+        );
+
+        TexturedRenderer.WaitUntilReady();
+        var wireframePipeline = TexturedRenderer.Pipeline;
+        TexturedShapeRenderer<Vector2>.ConfigureDescription(TexturedRenderer.Manager, TexturedRenderer.Manager.Device.ResourceFactory, ref shapeRendererDesc.ShapeRendererDescription);
+        shapeRendererDesc.ShapeRendererDescription.RenderMode = PolygonRenderMode.TriangulatedFill;
+        var fillPipeline = TexturedShapeRenderer<Vector2>.CreatePipeline(
+            TexturedRenderer.Manager, 
+            TexturedRenderer.Manager.Device, 
+            TexturedRenderer.Manager.Device.ResourceFactory,
+            wireframePipeline.ResourceLayouts.ToArray(),
+            shapeRendererDesc.ShapeRendererDescription
+        );
+
+        bool isWireframe = true;
+        var watch = new Watch(viewLoggers: new() 
+        {
+            ("Force Donut update", () => { donut.ForceRegenerate(); return true; }),
+            ("Toggle Donut Pipeline", () => 
+            {
+                if (isWireframe)
+                {
+                    TexturedRenderer.Pipeline = fillPipeline;
+                    isWireframe = false;
+                }
+                else
+                {
+                    TexturedRenderer.Pipeline = wireframePipeline;
+                    isWireframe = true;
+                }
+                return true;
+            })
+        });
+
         Game.MainGraphicsManager.AddElement(watch);
 
         // Apparently, oddly numbered polygons have their last vertex skipped?
@@ -92,65 +178,24 @@ public class FloatingShapesNode : Node, IDrawableNode
             new(.15f - .5f, .15f - .5f),
             new(.15f - .5f, -.15f - .5f)
         };
-        DrawOperationManager = new DrawOperationManager(this);
-
-        var circ = PolygonDefinition.Circle(new(-.2f, .15f), .3f, 5);
-        circ.Name = "Circle";
-
+        
+        var circ1 = new CircleDefinition(new(-.2f, .15f), .3f, 7) { Name = "Circle 1" };
+        var circ2 = new CircleDefinition(new(.2f, -.15f), .3f, 8) { Name = "Circle 2" };
         circle = new CircleDefinition(Vector2.Zero, .65f);
-        var texturedRect = PolygonDefinition.Circle(new(.25f, .25f), .25f, 21844);
 
-        var robstrm = new MemoryStream(Assets.boundary_test);
-        var img = new ImageSharpTexture(robstrm);
-        TexturedRenderer = DrawOperationManager.AddDrawOperation(new TexturedShapeRenderer<Vector2>(
-            img,
-            new ShapeDefinition[]
+        Renderer = DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(
+            new ShapeDefinition2D[]
             {
-                texturedRect,
-                segment
-            },
-            new(
-                new(
-                    BlendStateDescription.SingleAlphaBlend,
-                    DepthStencilStateDescription.DepthOnlyLessEqual,
-                    FaceCullMode.Front,
-                    FrontFace.Clockwise,
-                    true,
-                    false,
-                    PolygonRenderMode.TriangulatedFill,
-                    new VertexLayoutDescription(
-                        new VertexElementDescription("TexturePosition", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
-                        new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate)
-                    ),
-                    null,
-                    null,
-                    GraphicsManager.AddWindowAspectTransform
-                ),
-                new(
-                    SamplerAddressMode.Clamp,
-                    SamplerAddressMode.Clamp,
-                    SamplerAddressMode.Clamp,
-                    SamplerFilter.MinPoint_MagPoint_MipPoint,
-                    null,
-                    0,
-                    0,
-                    0,
-                    0,
-                    SamplerBorderColor.TransparentBlack
-                )
-            ),
-            new TextureVertexGeneratorFill()) { PreferredPriority = -2 }
-        );
-
-        DrawOperationManager.AddDrawOperation(new ShapeRenderer<ColorVertex>(
-            new ShapeDefinition[]
-            {
-                new PolygonDefinition(triangle, true) { Name = "Triangle" },
                 hexagon,
                 new PolygonDefinition(rectangle, true) { Name = "Rectangle" },
-                circ,
-                circle
-            }, 
+                new PolygonDefinition(triangle, true) { Name = "Triangle" },
+                circle,
+                circ1,
+                circ2,
+                elipseTall,
+                elipseWide,
+                //donut
+            },
             new(
                 BlendStateDescription.SingleAlphaBlend,
                 DepthStencilStateDescription.DepthOnlyLessEqual,
@@ -163,42 +208,18 @@ public class FloatingShapesNode : Node, IDrawableNode
                     new VertexElementDescription("Position", VertexElementFormat.Float2, VertexElementSemantic.TextureCoordinate),
                     new VertexElementDescription("Color", VertexElementFormat.Float4, VertexElementSemantic.TextureCoordinate)
                 ),
-                new(ShaderStages.Vertex, FSNVertex.GetUTF8Bytes(), "main"),
-                new(ShaderStages.Fragment, FSNFragment.GetUTF8Bytes(), "main"),
+                null,
+                null,
                 GraphicsManager.AddWindowAspectTransform
             ),
             new ColorVertexGenerator())
+            { VertexSkip = ElementSkip.ElementsToMaintain(100) }
         );
     }
 
-    private static readonly string FSNFragment = @"
-#version 450
-
-layout(location = 0) out vec4 fsout_Color;
-layout(location = 0) in vec4 fsin_Color;
-
-void main() {
-    fsout_Color = fsin_Color;
-}
-";
-
-    private static readonly string FSNVertex = @"
-#version 450
-
-layout(location = 0) in vec2 Position;
-layout(location = 1) in vec4 Color;
-layout(location = 0) out vec4 fsin_Color;
-layout(binding = 0) uniform WindowAspectTransform {
-    layout(offset = 0) mat4 WindowScale;
-};
-
-void main() {
-    fsin_Color = Color;
-    gl_Position = WindowScale * vec4(Position, 0.0, 1.0);
-}
-";
     private TimeSpan tb;
     private float rot;
+    private float sca;
     private float rotspeed = 1f / 1000;
     private static readonly TimeSpan tb_ceil = TimeSpan.FromSeconds(1.5);
     private int x = 0;
@@ -212,12 +233,31 @@ void main() {
             if (x >= SubDivSeq.Length)
                 x = 0;
             circle.Subdivisions = SubDivSeq[x++];
+            TexturedRenderer.Transform(translation: new(-.2f, -.2f, 1), scale: new(2, 2, 1));
+            //wTexturedRenderer.ColorTransformation = ColorTransformation.CreateOverlay(RgbaFloat.Black);
+            //TexturedRenderer.ColorTransformation = Random.Next(0, 100) switch
+            //{
+            //    < 25 => ColorTransformation.CreateTint(GenNewColor()).WithOpacity(.87f),
+            //    < 50 => ColorTransformation.CreateOverlay(GenNewColor()).WithOpacity(.87f),
+            //    < 75 => ColorTransformation.CreateTintAndOverlay(GenNewColor(), GenNewColor()).WithOpacity(.87f),
+            //    _    => ColorTransformation.CreateOpacity(.87f),
+            //};
         }
         var rotation = new Vector4(-.1f, -.1f, 0f, rot += rotspeed * (float)delta.TotalMilliseconds);
-        TexturedRenderer.Transform(rotZ: rotation);
+        sca = (((rotspeed * (float)(delta.TotalMilliseconds))) + sca) % 1.5f;
+        //TexturedRenderer.Transform(rotZ: rotation);
+        //Renderer.Transform(scale: new(sca, sca, 1));
 
         return ValueTask.FromResult(true);
     }
+
+    private unsafe RgbaFloat GenNewColor()
+        => new(
+            r: Random.NextSingle(),
+            g: Random.NextSingle(),
+            b: Random.NextSingle(),
+            a: 1
+        );
 
     public DrawOperationManager DrawOperationManager { get; }
 

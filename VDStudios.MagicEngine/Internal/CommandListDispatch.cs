@@ -36,8 +36,8 @@ internal class CommandListDispatch
 
     public void Add(DrawOperation dop)
     {
-        if (DopCount >= dops.Length)
-            Array.Resize(ref dops, dops.Length * 2);
+        if (DopCount + 1 >= dops.Length)
+            Array.Resize(ref dops, int.Max(dops.Length * 2, 6));
         dops[DopCount++] = dop;
     }
 
@@ -58,6 +58,7 @@ internal class CommandListDispatch
         catch(Exception e)
         {
             Fault = e;
+            throw;
         }
         finally
         {
@@ -74,8 +75,14 @@ internal class CommandListDispatch
         {
             if (Fault is Exception e)
             {
-                Fault = null;
-                throw e;
+                try
+                {
+                    throw e;
+                }
+                finally
+                {
+                    Fault = null;
+                }
             }
             Array.Clear(dops);
             DopCount = 0;

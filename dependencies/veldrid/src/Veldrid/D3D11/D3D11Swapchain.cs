@@ -27,30 +27,24 @@ namespace Veldrid.D3D11
 
         public override Framebuffer Framebuffer => _framebuffer;
 
-        public override string Name
+        public unsafe override string Name
         {
             get
             {
-                unsafe
-                {
-                    byte* pname = stackalloc byte[1024];
-                    int size = 1024 - 1;
-                    _dxgiSwapChain.GetPrivateData(CommonGuid.DebugObjectName, ref size, new IntPtr(pname));
-                    pname[size] = 0;
-                    return Marshal.PtrToStringAnsi(new IntPtr(pname));
-                }
+                byte* pname = stackalloc byte[1024];
+                int size = 1024 - 1;
+                _dxgiSwapChain.GetPrivateData(CommonGuid.DebugObjectName, ref size, new IntPtr(pname));
+                pname[size] = 0;
+                return Marshal.PtrToStringAnsi(new IntPtr(pname))!;
             }
             set
             {
                 if (string.IsNullOrEmpty(value))
-                {
                     _dxgiSwapChain.SetPrivateData(CommonGuid.DebugObjectName, 0, IntPtr.Zero);
-                }
                 else
                 {
-                    var namePtr = Marshal.StringToHGlobalAnsi(value);
-                    _dxgiSwapChain.SetPrivateData(CommonGuid.DebugObjectName, value.Length, namePtr);
-                    Marshal.FreeHGlobal(namePtr);
+                    fixed (char* str = value)
+                        _dxgiSwapChain.SetPrivateData(CommonGuid.DebugObjectName, value.Length, new nint(str));
                 }
             }
         }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
 
 namespace Veldrid.Utilities
@@ -53,15 +54,13 @@ namespace Veldrid.Utilities
         int RayCast(Ray ray, List<float> distances);
 
         /// <summary>
-        /// Gets an array containing the raw vertex positions of the mesh.
+        /// Writes the raw vertex positions of the mesh into the passed buffer.
         /// </summary>
-        /// <returns>An array of vertex positions.</returns>
-        Vector3[] GetVertexPositions();
+        void GetVertexPositions(Span<Vector3> buffer);
 
         /// <summary>
-        /// Gets an array containing the raw indices of the mesh.
+        /// Writes the raw indices of the mesh into the passed buffer.
         /// </summary>
-        /// <returns>An array of indices.</returns>
-        ushort[] GetIndices();
+        void GetIndices(Span<ushort> buffer);
     }
 }

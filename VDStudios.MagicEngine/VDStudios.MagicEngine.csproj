@@ -22,12 +22,12 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DebugType>embedded</DebugType>
-    <DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING</DefineConstants>
+    <DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DebugType>embedded</DebugType>
-    <DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING</DefineConstants>
+    <DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
   </PropertyGroup>
 
 	<!-- This copies all .dll files from the lib folder to the project output root folder -->
@@ -48,9 +48,6 @@
 		<None Include="lib\*.txt" />
 	</ItemGroup>
 	<ItemGroup>
-	  <None Remove="Properties\ImGuiResources.resx~RF3df0b850.TMP" />
-	</ItemGroup>
-	<ItemGroup>
 	  <PackageReference Include="ImGui.NET" Version="1.87.3" />
 	  <PackageReference Include="MessagePack" Version="2.4.35" />
 	  <PackageReference Include="MessagePackAnalyzer" Version="2.4.35">
@@ -69,11 +66,6 @@
 	  <ProjectReference Include="..\dependencies\veldrid\src\Veldrid\Veldrid.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Compile Update="Properties\BuiltInResources.Designer.cs">
-	    <DesignTime>True</DesignTime>
-	    <AutoGen>True</AutoGen>
-	    <DependentUpon>BuiltInResources.resx</DependentUpon>
-	  </Compile>
 	  <Compile Update="Properties\ImGuiResources.Designer.cs">
 	    <DesignTime>True</DesignTime>
 	    <AutoGen>True</AutoGen>
@@ -81,10 +73,6 @@
 	  </Compile>
 	</ItemGroup>
 	<ItemGroup>
-	  <EmbeddedResource Update="Properties\BuiltInResources.resx">
-	    <Generator>PublicResXFileCodeGenerator</Generator>
-	    <LastGenOutput>BuiltInResources.Designer.cs</LastGenOutput>
-	  </EmbeddedResource>
 	  <EmbeddedResource Update="Properties\ImGuiResources.resx">
 	    <Generator>PublicResXFileCodeGenerator</Generator>
 	    <LastGenOutput>ImGuiResources.Designer.cs</LastGenOutput>

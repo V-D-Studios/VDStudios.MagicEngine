@@ -10,7 +10,7 @@ namespace VDStudios.MagicEngine.Geometry;
 /// <remarks>
 /// Vertices should be defined in a space relative to themselves, as transformations and positions should be handled by the owner of the definition
 /// </remarks>
-public class PolygonDefinition : ShapeDefinition, IStructuralEquatable
+public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
 {
     #region Predefined Polygons
 
@@ -151,6 +151,9 @@ public class PolygonDefinition : ShapeDefinition, IStructuralEquatable
         }
         version++;
     }
+
+    /// <inheritdoc/>
+    public override bool ForceRegenerate() => false;
 
     /// <inheritdoc/>
     public bool Equals(object? other, IEqualityComparer comparer)

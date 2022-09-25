@@ -1,135 +1,61 @@
 ﻿using Nito.AsyncEx;
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace VDStudios.MagicEngine.Internal;
 
-internal sealed class DrawQueue<T> : IDrawQueue<T> where T : GraphicsObject
+internal sealed class DrawQueue : IDrawQueue<DrawOperation>
 {
     #region Fields
 
-    private readonly PriorityQueue<T, float> _queue = new(20, new PriorityComparer());
+    private readonly PriorityQueue<DrawOperation, float>[] _queues;
     internal readonly AsyncLock _lock = new();
 
     #endregion
 
-    internal T Dequeue() => _queue.Dequeue();
+    public DrawQueue(ImmutableArray<CommandListGroupDefinition> commandListGroups)
+    {
+        _queues = new PriorityQueue<DrawOperation, float>[commandListGroups.Length];
+        for (int i = 0; i < _queues.Length; i++)
+            _queues[i] = new(commandListGroups[i].ExpectedOperations, new PriorityComparer());
+    }
 
-    public int Count => _queue.Count;
+    internal DrawOperation Dequeue(int group) => _queues[group].Dequeue();
 
-    public async Task EnqueueAsync(T drawing, float priority)
+    internal bool TryDequeue(int group, [MaybeNullWhen(true)] out DrawOperation? drawOperation) => _queues[group].TryDequeue(out drawOperation, out _);
+
+    internal PriorityQueue<DrawOperation, float> GetQueue(int group) => _queues[group];
+    internal int QueueCount => _queues.Length;
+
+    /// <summary>
+    /// Gets the total amount of <see cref="DrawOperation"/>s in all the queues in this draw queue
+    /// </summary>
+    /// <returns></returns>
+    public int GetTotalCount()
+    {
+        int count = 0;
+        for (int i = 0; i < _queues.Length; i++)
+            count += _queues[i].Count;
+        return count;
+    }
+
+    public async Task EnqueueAsync(DrawOperation drawing, float priority)
     {
         using (await _lock.LockAsync())
-            _queue.Enqueue(drawing, priority);
+            _queues[drawing._clga].Enqueue(drawing, priority);
     }
 
-    public void Enqueue(T drawing, float priority)
+    public void Enqueue(DrawOperation drawing, float priority)
     {
         using (_lock.Lock())
-            _queue.Enqueue(drawing, priority);
-    }
-
-    public void EnsureCapacity(int capacity)
-    {
-        using (_lock.Lock())
-            _queue.EnsureCapacity(capacity);
-    }
-
-    public async Task EnsureCapacityAsync(int capacity)
-    {
-        using (await _lock.LockAsync())
-            _queue.EnsureCapacity(capacity);
-    }
-
-    public void EnsureFreeSpace(int freeSpace)
-    {
-        using (_lock.Lock())
-            _queue.EnsureCapacity(_queue.Count + freeSpace);
-    }
-
-    public async Task EnsureFreeSpaceAsync(int freeSpace)
-    {
-        using (await _lock.LockAsync())
-            _queue.EnsureCapacity(_queue.Count + freeSpace);
-    }
-
-    public void EnqueueCollection(IReadOnlyCollection<(T drawing, float priority)> items)
-    {
-        using (_lock.Lock())
-        {
-            _queue.EnsureCapacity(_queue.Count + items.Count);
-            _queue.EnqueueRange(items);
-        }
-    }
-
-    public async Task EnqueueCollectionAsync(IReadOnlyCollection<(T drawing, float priority)> items)
-    {
-        using (await _lock.LockAsync())
-        {
-            _queue.EnsureCapacity(_queue.Count + items.Count);
-            _queue.EnqueueRange(items);
-        }
-    }
-
-    public void EnqueueRange(IEnumerable<(T drawing, float priority)> items)
-    {
-        using (_lock.Lock())
-            _queue.EnqueueRange(items);
-    }
-
-    public async Task EnqueueRangeAsync(IEnumerable<(T drawing, float priority)> items)
-    {
-        using (await _lock.LockAsync())
-            _queue.EnqueueRange(items);
-    }
-
-    public async Task EnqueueAsyncRange(IAsyncEnumerable<(T drawing, float priority)> items)
-    {
-        await foreach (var (drawing, priority) in items)
-            using(await _lock.LockAsync())
-                _queue.Enqueue(drawing, priority);
-    }
-
-    public void EnqueueCollection(IReadOnlyCollection<T> items, float priority)
-    {
-        using (_lock.Lock())
-        {
-            _queue.EnsureCapacity(_queue.Count + items.Count);
-            _queue.EnqueueRange(items, priority);
-        }
-    }
-
-    public async Task EnqueueCollectionAsync(IReadOnlyCollection<T> items, float priority)
-    {
-        using (await _lock.LockAsync())
-        {
-            _queue.EnsureCapacity(_queue.Count + items.Count);
-            _queue.EnqueueRange(items, priority);
-        }
-    }
-
-    public void EnqueueRange(IEnumerable<T> items, float priority)
-    {
-        using (_lock.Lock())
-            _queue.EnqueueRange(items, priority);
-    }
-
-    public async Task EnqueueRangeAsync(IEnumerable<T> items, float priority)
-    {
-        using (await _lock.LockAsync())
-            _queue.EnqueueRange(items, priority);
-    }
-
-    public async Task EnqueueAsyncRange(IAsyncEnumerable<T> items, float priority)
-    {
-        await foreach (var drawing in items)
-            using (await _lock.LockAsync())
-                _queue.Enqueue(drawing, priority);
+            _queues[drawing._clga].Enqueue(drawing, priority);
     }
 
     #region Comparer
 
     private class PriorityComparer : IComparer<float>
     {
-        public int Compare(float x, float y) => x > y ? 1 : -1;
+        public int Compare(float x, float y) => x > y ? -1 : 1;
     }
 
     #endregion

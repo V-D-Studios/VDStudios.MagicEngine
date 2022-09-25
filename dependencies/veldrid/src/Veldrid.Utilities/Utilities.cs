@@ -15,7 +15,6 @@ namespace Veldrid.Utilities
             return Matrix4x4.Transpose(inverted);
         }
 
-
         public static unsafe string GetString(byte* stringStart)
         {
             int characters = 0;
@@ -49,7 +48,7 @@ namespace Veldrid.Utilities
                 if (fallbackAxis != Vector3.Zero)
                 {
                     // rotate 180 degrees about the fallback axis
-                    q = Quaternion.CreateFromAxisAngle(fallbackAxis, (float)Math.PI);
+                    q = Quaternion.CreateFromAxisAngle(fallbackAxis, float.Pi);
                 }
                 else
                 {
@@ -61,12 +60,12 @@ namespace Veldrid.Utilities
                     }
 
                     axis = Vector3.Normalize(axis);
-                    q = Quaternion.CreateFromAxisAngle(axis, (float)Math.PI);
+                    q = Quaternion.CreateFromAxisAngle(axis, float.Pi);
                 }
             }
             else
             {
-                float s = (float)Math.Sqrt((1 + d) * 2);
+                float s = float.Sqrt((1 + d) * 2);
                 float invs = 1.0f / s;
 
                 Vector3 c = Vector3.Cross(v0, v1);

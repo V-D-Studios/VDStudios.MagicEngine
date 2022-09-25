@@ -1,5 +1,7 @@
 ﻿using SDL2.NET;
 using SDL2.NET.Input;
+using System.Buffers;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
@@ -12,6 +14,48 @@ using Veldrid;
 namespace VDStudios.MagicEngine;
 
 /// <summary>
+/// Represents the data required to define a new CommandListGroup for this GraphicsManager
+/// </summary>
+public readonly struct CommandListGroupDefinition
+{
+    /// <summary>
+    /// The degree of parallelism that this CommandListGroup will have
+    /// </summary>
+    public int Parallelism { get; }
+
+    /// <summary>
+    /// The amount of expected operations each CommandList will have in the group
+    /// </summary>
+    public int ExpectedOperations { get; }
+
+    /// <summary>
+    /// Creates a new instance of type <see cref="CommandListGroupDefinition"/>
+    /// </summary>
+    /// <param name="parallelism">The degree of parallelism that this CommandListGroup will have</param>
+    /// <param name="expectedOperations">The amount of expected operations each CommandList will have in the group</param>
+    public CommandListGroupDefinition(int parallelism, int expectedOperations = 100)
+    {
+        if (parallelism <= 0)
+            throw new ArgumentOutOfRangeException(nameof(parallelism), parallelism, "The degree of parallelism must be larger than 0");
+        if (expectedOperations <= 0)
+            throw new ArgumentOutOfRangeException(nameof(expectedOperations), expectedOperations, "The amount of expected operations must be larger than 0");
+        Parallelism = parallelism;
+        ExpectedOperations = expectedOperations;
+    }
+
+    /// <summary>
+    /// Deconstructs this <see cref="CommandListGroupDefinition"/> in the following order: parallelism, expectedOperations
+    /// </summary>
+    /// <param name="parallelism">The degree of parallelism that this CommandListGroup will have</param>
+    /// <param name="expectedOperations">The amount of expected operations each CommandList will have in the group</param>
+    public void Deconstruct(out int parallelism, out int expectedOperations)
+    {
+        parallelism = Parallelism;
+        expectedOperations = ExpectedOperations;
+    }
+}
+
+/// <summary>
 /// Represents a Thread dedicated solely to handling a specific pair of <see cref="SDL2.NET.Window"/> and <see cref="GraphicsDevice"/>, and managing their respective resources in a thread-safe manner
 /// </summary>
 /// <remarks>
@@ -22,12 +66,16 @@ public class GraphicsManager : GameObject, IDisposable
     #region Construction
 
     /// <summary>
-    /// Instances and constructs a new <see cref="GraphicsManager"/> objects
+    /// Instances and constructs a new <see cref="GraphicsManager"/> object
     /// </summary>
-    public GraphicsManager(int parallelism) : base("Graphics & Input", "Rendering")
+    /// <param name="commandListGroups">The CommandList group definitions for this <see cref="GraphicsManager"/></param>
+    public GraphicsManager(ImmutableArray<CommandListGroupDefinition> commandListGroups) : base("Graphics & Input", "Rendering")
     {
-        if (parallelism <= 0)
-            throw new ArgumentOutOfRangeException(nameof(parallelism), parallelism, "The degree of parallelism must be larger than 0");
+        if (commandListGroups.Length <= 0)
+            throw new ArgumentException("The array of CommandListGroups cannot be empty", nameof(commandListGroups));
+        for (int i = 0; i < commandListGroups.Length; i++)
+            if (commandListGroups[i].Parallelism <= 0 || commandListGroups[i].ExpectedOperations <= 0)
+                throw new ArgumentException($"The CommandListGroupDefinition at index {i} is improperly defined. The degree of parallelism and the amount of expected operations must both be larger than 0");
 
         initLock.Wait();
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
@@ -39,8 +87,22 @@ public class GraphicsManager : GameObject, IDisposable
         guilockWaiter = new(GUILock);
         drawlockWaiter = new(DrawLock);
 
-        Parallelism = parallelism;
+        CommandListGroups = commandListGroups;
+
+        DefaultResourceCache = new(this);
     }
+
+    /// <summary>
+    /// Instances and constructs a new <see cref="GraphicsManager"/> object
+    /// </summary>
+    /// <param name="commandListGroups">The CommandList group definitions for this <see cref="GraphicsManager"/>. This array will be copied and turned into an <see cref="ImmutableArray{T}"/></param>
+    public GraphicsManager(params CommandListGroupDefinition[] commandListGroups) : this(ImmutableArray.Create(commandListGroups)) { }
+
+    /// <summary>
+    /// Instances and constructs a new <see cref="GraphicsManager"/> object
+    /// </summary>
+    /// <param name="parallelism">The degree of parallelism to assign to the single <see cref="CommandListGroupDefinition"/> this constructor will create</param>
+    public GraphicsManager(int parallelism) : this(ImmutableArray.Create(new CommandListGroupDefinition(parallelism))) { }
 
     private readonly SemaphoreSlim initLock = new(1, 1);
 
@@ -57,9 +119,9 @@ public class GraphicsManager : GameObject, IDisposable
     /// <summary>
     /// The maximum degree of parallel rendering to use for this <see cref="GraphicsManager"/>
     /// </summary>
-    public int Parallelism { get; }
+    public ImmutableArray<CommandListGroupDefinition> CommandListGroups { get; }
 
-    private CommandListDispatch[] CLDispatchs;
+    private CommandListDispatch[][] CLDispatchs;
 
     #endregion
 
@@ -98,6 +160,11 @@ public class GraphicsManager : GameObject, IDisposable
     private static ResourceLayout? ManagerResourceLayout;
 
     internal ResourceLayout DrawOpTransLayout { get; private set; }
+
+    /// <summary>
+    /// The the default resource cache for this <see cref="GraphicsManager"/>
+    /// </summary>
+    public DefaultResourceCache DefaultResourceCache { get; }
 
     /// <summary>
     /// Gets or instantiates the layout of the resources relevant to this <see cref="GraphicsManager"/>
@@ -141,6 +208,8 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region DrawOperation Registration
 
+    private readonly List<DrawOperation> RegistrationBuffer = new();
+
     #region Public
 
     /// <summary>
@@ -150,19 +219,13 @@ public class GraphicsManager : GameObject, IDisposable
     /// Remember than any single <see cref="DrawOperation"/> can only be assigned to one <see cref="GraphicsManager"/>, and can only be deregistered after disposing. <see cref="DrawOperation"/>s should not be dropped, as <see cref="GraphicsManager"/>s only keep <see cref="WeakReference"/>s to them
     /// </remarks>
     /// <param name="operation">The <see cref="DrawOperation"/> that will be drawn in this <see cref="GraphicsManager"/></param>
-    internal async Task RegisterOperation(DrawOperation operation)
+    internal void QueueOperationRegistration(DrawOperation operation)
     {
-        using (await LockManagerDrawingAsync())
-        {
-            await operation.Register(this);
-            if (!DrawOperationRegistering(operation, out var reason))
-            {
-                var excp = new DrawOperationRejectedException(reason, this, operation);
-                operation.Dispose();
-                throw excp;
-            }
-            RegisteredOperations.Add(operation.Identifier, new(operation));
-        }
+        if (operation._clga >= CommandListGroups.Length)
+            throw new InvalidOperationException($"This GraphicsManager only has {CommandListGroups.Length} CommandList groups [0-{CommandListGroups.Length - 1}], an operation with a CommandListGroupAffinity of {operation._clga} cannot be registered.");
+
+        lock (RegistrationBuffer)
+            RegistrationBuffer.Add(operation);
     }
 
     #endregion
@@ -648,17 +711,80 @@ public class GraphicsManager : GameObject, IDisposable
         cl.UpdateBuffer(WindowTransformBuffer, 0, trans);
     }
 
+    private async ValueTask ProcessDrawOpRegistrationBuffer()
+    {
+        int count = RegistrationBuffer.Count;
+        DrawOperation[] regbuf;
+        lock (RegistrationBuffer)
+        {
+            if (RegistrationBuffer.Count <= 0) return;
+            regbuf = ArrayPool<DrawOperation>.Shared.Rent(count);
+            RegistrationBuffer.CopyTo(regbuf);
+            RegistrationBuffer.Clear();
+        }
+
+        try
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var operation = regbuf[i];
+                InternalLog?.Verbose("Registering DrawOperation {objName}-{type}", operation.Name ?? "", operation.GetTypeName());
+                await operation.Register(this);
+                if (!DrawOperationRegistering(operation, out var reason))
+                {
+                    var excp = new DrawOperationRejectedException(reason, this, operation);
+                    operation.Dispose();
+                    throw excp;
+                }
+                RegisteredOperations.Add(operation.Identifier, new(operation));
+            }
+        }
+        finally
+        {
+            ArrayPool<DrawOperation>.Shared.Return(regbuf);
+        }
+    }
+
+    private void InitCLD()
+    {
+        var gd = Device!;
+        var factory = gd.ResourceFactory;
+        var count = CommandListGroups.Length;
+        CLDispatchs = new CommandListDispatch[count][];
+        for (int i1 = 0; i1 < count; i1++)
+        {
+            var(paral, exops) = CommandListGroups[i1];
+
+#if FORCE_GM_NOPARALLEL
+            paral = 1;
+#endif
+
+            ref var cld = ref CLDispatchs[i1];
+            cld = new CommandListDispatch[paral];
+            int div = int.Max(exops / paral, exops);
+            for (int i2 = 0; i2 < cld.Length; i2++)
+                cld[i2] = new(div, CreateCommandList(gd, factory));
+            InternalLog?.Debug("Created a CommandList group with a degree of parallelism of {paralellism}, and an amount of expected operations of {exops}", paral, exops);
+        }
+        if (count is 1)
+            InternalLog?.Information("Started with {count} CommandList group", count);
+        else
+            InternalLog?.Information("Started with {count} CommandList groups", count);
+    }
+
     private async Task Run()
     {
         await Task.Yield();
+
         var framelock = FrameLock;
         var drawlock = DrawLock;
         var glock = GUILock;
         var winlock = WindowShownLock;
 
         var sw = new Stopwatch();
-        var drawqueue = new DrawQueue<DrawOperation>();
+        var drawqueue = new DrawQueue(CommandListGroups);
         var removalQueue = new Queue<Guid>(10);
+        CommandListDispatch[] activeDispatchs = Array.Empty<CommandListDispatch>();
         TimeSpan delta = default;
 
         DrawParameters = new(this);
@@ -667,12 +793,9 @@ public class GraphicsManager : GameObject, IDisposable
         
         var managercl = CreateCommandList(gd, gd.ResourceFactory);
 
-        CLDispatchs = new CommandListDispatch[Parallelism];
-        for (int i = 0; i < CLDispatchs.Length; i++)
-            CLDispatchs[i] = new(300 / Parallelism, CreateCommandList(gd, gd.ResourceFactory));
-
         ulong frameCount = 0;
 
+        InitCLD();
         InternalLog?.Debug("Querying WindowFlags");
         await PerformOnWindowAndWaitAsync(w =>
         {
@@ -692,6 +815,9 @@ public class GraphicsManager : GameObject, IDisposable
                     await Task.Delay(1000);
                 if (await WaitOn(winlock, condition: !IsRendering, syncWait: 500, asyncWait: 1000)) break;
             }
+
+            if (RegistrationBuffer.Count > 0)
+                await ProcessDrawOpRegistrationBuffer();
 
             try
             {
@@ -721,41 +847,61 @@ public class GraphicsManager : GameObject, IDisposable
                         managercl.End();
                         gd.SubmitCommands(managercl);
 
-                        if (drawqueue.Count > 0) 
-                            using (drawqueue._lock.Lock())
+                        using (drawqueue._lock.Lock())
+                        {
+                            int totalcount = drawqueue.GetTotalCount();
+                            int dispatchs = 0;
+                            if (activeDispatchs.Length < totalcount)
+                                activeDispatchs = new CommandListDispatch[int.Max(totalcount, activeDispatchs.Length * 2)];
+
+                            for (int cld_g_i = 0; cld_g_i < drawqueue.QueueCount; cld_g_i++) 
                             {
-                                int dqc = drawqueue.Count;
-                                var perCL = dqc / CLDispatchs.Length;
-                                if(perCL is 0 or 1)
+                                var queue = drawqueue.GetQueue(cld_g_i);
+                                if (queue.Count <= 0) continue;
+                                int dqc = queue.Count;
+                                var cld_g = CLDispatchs[cld_g_i];
+                                var perCL = dqc / cld_g.Length;
+                                if (perCL is 0 || queue.Count == cld_g.Length)
                                 {
                                     int i = 0;
                                     for (; i < dqc; i++)
                                     {
-                                        var cld = CLDispatchs[i];
-                                        cld.Add(drawqueue.Dequeue());
+                                        var cld = cld_g[i];
+                                        cld.Add(queue.Dequeue());
                                         cld.Start(delta);
+                                        activeDispatchs[dispatchs++] = cld;
                                     }
-                                    while (i-- > 0) 
-                                        gd.SubmitCommands(CLDispatchs[i].WaitForEnd());
                                 }
                                 else
                                 {
                                     int i = 0;
-                                    for (; i < CLDispatchs.Length - 1; i++)
+                                    for (; i < cld_g.Length - 1; i++)
                                     {
-                                        var cld = CLDispatchs[i];
+                                        var cld = cld_g[i];
                                         for (int x = 0; x < perCL; x++)
-                                            cld.Add(drawqueue.Dequeue());
+                                            cld.Add(queue.Dequeue());
                                         cld.Start(delta);
+                                        activeDispatchs[dispatchs++] = cld;
                                     }
-                                    var lcld = CLDispatchs[i++];
-                                    while (drawqueue.Count > 0)
-                                        lcld.Add(drawqueue.Dequeue());
+                                    var lcld = cld_g[i];
+                                    while (queue.Count > 0)
+                                        lcld.Add(queue.Dequeue());
                                     lcld.Start(delta);
-                                    while (i-- > 0)
-                                        gd.SubmitCommands(CLDispatchs[i].WaitForEnd());
+                                    activeDispatchs[dispatchs++] = lcld;
                                 }
+#if FORCE_GM_NOPARALLEL
+                                for (int i = 0; i < dispatchs; i++)
+                                    gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
+                                Array.Clear(activeDispatchs, 0, dispatchs);
+#endif
                             }
+
+#if !FORCE_GM_NOPARALLEL
+                            for (int i = 0; i < dispatchs; i++)
+                                gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
+                            Array.Clear(activeDispatchs, 0, dispatchs);
+#endif
+                        }
                     }
                     finally
                     {
@@ -825,9 +971,9 @@ public class GraphicsManager : GameObject, IDisposable
         IsRunning = false;
     }
 
-    #endregion
+#endregion
 
-    #region Events
+#region Events
 
     ///// <summary>
     ///// Fired when <see cref="GraphicsManager"/> start
@@ -853,17 +999,17 @@ public class GraphicsManager : GameObject, IDisposable
     ///// </remarks>
     //public GraphicsManagerRunStateChanged? RunStateChanged;
 
-    #endregion
+#endregion
 
-    #endregion
+#endregion
 
-    #region Private Fields
+#region Private Fields
 
     private readonly object sync = new();
 
-    #endregion
+#endregion
 
-    #region Setup Methods
+#region Setup Methods
 
     [MethodImpl]
     internal void SetupWindow()
@@ -965,11 +1111,11 @@ public class GraphicsManager : GameObject, IDisposable
         );
     }
 
-    #endregion
+#endregion
 
-    #region Graphic Resources
+#region Graphic Resources
 
-    #region Public Properties
+#region Public Properties
 
     /// <summary>
     /// The current Main Window of the Game
@@ -981,11 +1127,11 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     public GraphicsDevice Device { get; private set; }
 
-    #endregion
+#endregion
 
-    #endregion
+#endregion
 
-    #region Disposal
+#region Disposal
 
     private bool disposedValue;
 
@@ -1062,5 +1208,5 @@ public class GraphicsManager : GameObject, IDisposable
         Game.graphicsManagersAwaitingDestruction.Enqueue(this);
     }
 
-    #endregion
+#endregion
 }
