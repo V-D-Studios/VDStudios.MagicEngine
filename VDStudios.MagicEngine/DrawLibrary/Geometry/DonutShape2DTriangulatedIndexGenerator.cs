@@ -27,49 +27,8 @@ public class DonutShape2DTriangulatedIndexGenerator : IShape2DRendererIndexGener
         var ostart = checked((ushort)donut.OuterCircleStart);
         int bufind = 0;
 
-        if (isp > osp)
-        {
-            var ratio = isp / osp;
-            for (ushort stage = 0; stage < ratio; stage++)
-                for (ushort i = 0; i < isp; i++)
-                {
-                    //indices[bufind++] = (ushort)((i + 1) % isp + istart);
-                    //indices[bufind++] = (ushort)((i % ratio) * stage + ostart);
-                    //indices[bufind++] = (ushort)(i % isp + istart);
-
-                    try
-                    {
-                        ushort in1 = (ushort)((i + 1) % osp + istart);
-                        ushort ou0 = (ushort)(i + ostart);
-
-                        indices[bufind++] = in1;
-                        indices[bufind++] = ou0;
-                        indices[bufind++] = (ushort)(i + istart);
-
-                        indices[bufind++] = in1;
-                        indices[bufind++] = ou0;
-                        indices[bufind++] = (ushort)((i + 1) % osp + ostart);
-
-                        indices[bufind++] = in1;
-                    }
-                    catch
-                    {
-
-                    }
-                }
-        }
-        else if (osp > isp)
-        {
-            var ratio = osp / isp;
-            for (ushort stage = 0; stage < ratio; stage++)
-                for (ushort i = 0; i < osp; i++)
-                {
-                    indices[bufind++] = (ushort)((i + 1) % osp + istart);
-                    indices[bufind++] = (ushort)((i % ratio) * stage + ostart);
-                    indices[bufind++] = (ushort)(i % osp + istart);
-                }
-        }
-        else
+        isBufferReady = false;
+        if (isp == osp)
         {
             for (ushort i = 0; i < osp; i++)
             {
@@ -86,9 +45,39 @@ public class DonutShape2DTriangulatedIndexGenerator : IShape2DRendererIndexGener
 
                 indices[bufind++] = in1;
             }
+            return;
         }
 
-        isBufferReady = false;
+        if (isp > osp)
+            (isp, osp, istart, ostart) = (osp, isp, ostart, istart); // We swap these variables around so that we only have to write one implementation; and the functionality will be the same
+
+        // This algorithm works under the asumption that there are more subdivisions in the outer circle than in the inner one
+        // Therefore, each inner circle vertex will have more than one outer circle vertex connected to it
+        ushort ratio = (ushort)(osp / isp);
+        for (ushort stage = 0; stage < isp * ratio; stage += ratio) 
+        {
+            ushort in0 = (ushort)(stage / ratio + istart);
+            ushort ou1;
+            ushort ou0;
+            for (ushort i = 0; i < ratio; i++)
+            {
+                //indices[bufind++] = (ushort)((i + 1) % isp + istart);
+                //indices[bufind++] = (ushort)((i % ratio) * stage + ostart);
+                //indices[bufind++] = (ushort)(i % isp + istart);
+                
+                ou1 = (ushort)(((i + stage) + 1) % osp + ostart);
+                ou0 = (ushort)((i + stage) + ostart);
+
+                indices[bufind++] = in0;
+                indices[bufind++] = ou1;
+                indices[bufind++] = ou0;
+            }
+            indices[bufind++] = in0;
+            indices[bufind++] = (ushort)((in0 + 1) % isp);
+            indices[bufind++] = (ushort)((stage + 2) % osp + ostart);
+            indices[bufind++] = in0;
+        }
+        indices[bufind++] = 0;
     }
 
     /// <inheritdoc/>
@@ -97,7 +86,13 @@ public class DonutShape2DTriangulatedIndexGenerator : IShape2DRendererIndexGener
         var donut = CheckAndThrowIfNotDonut(shape);   
         var isp = donut.InnerCircleSpan.Length;
         var osp = donut.OuterCircleSpan.Length;
-        indexCount = indexSpace = isp > osp ? (isp + isp / osp) * 7 : osp > isp ? (osp + osp / isp) * 7 : isp * 7;
+
+        if (isp == osp)
+            indexCount = indexSpace = isp * 7;
+        else
+        {
+            indexCount = indexSpace = 1000;// (isp * 4 + (osp / isp) * 3) * 2;
+        }
         return true;
     }
 
