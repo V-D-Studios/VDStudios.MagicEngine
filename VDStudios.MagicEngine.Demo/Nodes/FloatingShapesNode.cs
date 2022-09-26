@@ -216,13 +216,13 @@ public class FloatingShapesNode : Node, IDrawableNode
             { VertexSkip = ElementSkip.ElementsToMaintain(100) }
         );
 
-        GameDeferredCallsSchedule.Schedule(DeferredTest, 12);
+        GameDeferredCallSchedule.Schedule(DeferredTest, 12);
     }
 
     private void DeferredTest()
     {
         Log.Information("I was deferred for 100 frames");
-        GameDeferredCallsSchedule.Schedule(DeferredTest, 100);
+        GameDeferredCallSchedule.Schedule(DeferredTest, 100);
     }
 
     private TimeSpan tb;

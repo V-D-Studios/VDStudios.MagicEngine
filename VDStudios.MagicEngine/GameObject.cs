@@ -32,7 +32,7 @@ public abstract class GameObject
         Facility = facility;
         Area = area;
         Random = Game.Random;
-        GameDeferredCallsSchedule = Game.DeferredExecutionSchedule;
+        GameDeferredCallSchedule = Game.DeferredCallSchedule;
     }
 
     /// <summary>
@@ -49,12 +49,12 @@ public abstract class GameObject
     protected Random Random { get; }
 
     /// <summary>
-    /// The Game's <see cref="MagicEngine.DeferredExecutionSchedule"/>, can be used to defer calls in the update thread. Points to the same object as <see cref="Game.DeferredExecutionSchedule"/>
+    /// The Game's <see cref="MagicEngine.DeferredExecutionSchedule"/>, can be used to defer calls in the update thread. Points to the same object as <see cref="Game.DeferredCallSchedule"/>
     /// </summary>
     /// <remarks>
     /// This schedule is updated every game frame, as such, it's subject to update rate drops and its maximum time resolution is <see cref="Game.UpdateFrameThrottle"/>
     /// </remarks>
-    protected DeferredExecutionSchedule GameDeferredCallsSchedule { get; }
+    protected DeferredExecutionSchedule GameDeferredCallSchedule { get; }
 
     internal ILogger? InternalLog
     {

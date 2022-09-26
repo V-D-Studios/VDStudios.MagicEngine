@@ -62,7 +62,7 @@ public class Game : SDLApplication<Game>
         VideoThread = new(VideoRun);
         UpdateFrameThrottle = TimeSpan.FromMilliseconds(5);
         Random = CreateRNG();
-        DeferredExecutionSchedule = DeferredExecutionSchedule.New(out var desup);
+        DeferredCallSchedule = DeferredExecutionSchedule.New(out var desup);
         DeferredExecutionScheduleUpdater = desup;
 
 #if FEATURE_INTERNAL_LOGGING
@@ -115,7 +115,7 @@ public class Game : SDLApplication<Game>
     /// <remarks>
     /// This schedule is updated every game frame, as such, it's subject to update rate drops and its maximum time resolution is <see cref="UpdateFrameThrottle"/>
     /// </remarks>
-    public DeferredExecutionSchedule DeferredExecutionSchedule { get; }
+    public DeferredExecutionSchedule DeferredCallSchedule { get; }
     private readonly Action DeferredExecutionScheduleUpdater;
 
     /// <summary>

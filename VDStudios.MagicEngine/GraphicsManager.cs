@@ -23,6 +23,12 @@ public class GraphicsManager : GameObject, IDisposable
 {
     #region Construction
 
+    /// <summary>
+    /// Represents the <see cref="DeferredExecutionSchedule"/> tied to this <see cref="GraphicsManager"/>, and can be used to defer calls that should run under this <see cref="GraphicsManager"/>'s loop. 
+    /// </summary>
+    /// <remarks>
+    /// This schedule is updated every frame, as such, it's subject to the framerate of this <see cref="GraphicsManager"/>, which, depending on configuration, can vary between the <see cref="GraphicsDevice"/> vertical refresh rate, or as fast as it can run. ---- Not to be confused with <see cref="Game.DeferredCallSchedule"/> (or <see cref="GameObject.GameDeferredCallSchedule"/>, which is the same)
+    /// </remarks>
     public DeferredExecutionSchedule DeferredCallSchedule { get; }
     private readonly Action DeferredCallScheduleUpdater;
 
