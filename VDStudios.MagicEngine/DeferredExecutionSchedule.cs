@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -16,15 +17,13 @@ public sealed class DeferredExecutionSchedule
 {
     private readonly Stopwatch Watch;
     private readonly LinkedList<DeferredCallInfo> OneTimeSchedule;
-    private readonly List<Action> ActionList;
-    private ulong CurrentFrame;
+    private ulong CurrentFrame = 1;
 
     private DeferredExecutionSchedule()
     {
         OneTimeSchedule = new();
         Watch = new();
         Watch.Start();
-        ActionList = new();
         Updater = Update;
     }
 
@@ -56,11 +55,11 @@ public sealed class DeferredExecutionSchedule
                 ref var info = ref node.ValueRef;
                 if ((CurrentFrame % info.Frames) == 0 || stamp > info.Time)
                 {
-                    ActionList.Add(info.Action);
                     var prevNode = node;
                     node = prevNode.Next;
                     lock (OneTimeSchedule)
                         OneTimeSchedule.Remove(prevNode);
+                    info.Action();
                 }
                 else
                     node = node.Next;
@@ -107,12 +106,7 @@ public sealed class DeferredExecutionSchedule
             throw new ArgumentOutOfRangeException(nameof(frames), "The amount of frames to defer action for must be larger than 0");
 
         lock (OneTimeSchedule)
-            OneTimeSchedule.AddLast(new DeferredCallInfo()
-            {
-                Action = action,
-                Frames = (uint)(CurrentFrame % frames + frames + 1),
-                Time = TimeSpan.MaxValue
-            });
+            OneTimeSchedule.AddLast(dci);
     }
 
     // Schedule in the Game thread
