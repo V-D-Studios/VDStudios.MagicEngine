@@ -106,7 +106,12 @@ public sealed class DeferredExecutionSchedule
             throw new ArgumentOutOfRangeException(nameof(frames), "The amount of frames to defer action for must be larger than 0");
 
         lock (OneTimeSchedule)
-            OneTimeSchedule.AddLast(dci);
+            OneTimeSchedule.AddLast(new DeferredCallInfo()
+            {
+                Action = action,
+                Frames = (uint)(CurrentFrame % frames + frames + 1),
+                Time = TimeSpan.MaxValue
+            });
     }
 
     // Schedule in the Game thread
