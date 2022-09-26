@@ -47,6 +47,14 @@ public abstract class GameObject
     /// </remarks>
     protected Random Random { get; }
 
+    /// <summary>
+    /// The Game's <see cref="MagicEngine.DeferredExecutionSchedule"/>, can be used to defer calls in the update thread. Points to the same object as <see cref="Game.DeferredExecutionSchedule"/>
+    /// </summary>
+    /// <remarks>
+    /// This schedule is updated every game frame, as such, it's subject to update rate drops and its maximum time resolution is <see cref="Game.UpdateFrameThrottle"/>
+    /// </remarks>
+    protected DeferredExecutionSchedule GameDeferredCallsSchedule { get; }
+
     internal ILogger? InternalLog
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

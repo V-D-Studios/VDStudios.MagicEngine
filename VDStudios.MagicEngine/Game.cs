@@ -62,6 +62,8 @@ public class Game : SDLApplication<Game>
         VideoThread = new(VideoRun);
         UpdateFrameThrottle = TimeSpan.FromMilliseconds(5);
         Random = CreateRNG();
+        DeferredExecutionSchedule = DeferredExecutionSchedule.New(out var desup);
+        DeferredExecutionScheduleUpdater = desup;
 
 #if FEATURE_INTERNAL_LOGGING
         Log.Debug("Compiled with \"FEATURE_INTERNAL_LOGGING\" enabled");
@@ -106,6 +108,15 @@ public class Game : SDLApplication<Game>
     /// Represents the Main <see cref="GraphicsManager"/> used by the game
     /// </summary>
     public GraphicsManager MainGraphicsManager { get; private set; }
+
+    /// <summary>
+    /// The Game's <see cref="MagicEngine.DeferredExecutionSchedule"/>, can be used to defer calls in the update thread
+    /// </summary>
+    /// <remarks>
+    /// This schedule is updated every game frame, as such, it's subject to update rate drops and its maximum time resolution is <see cref="UpdateFrameThrottle"/>
+    /// </remarks>
+    public DeferredExecutionSchedule DeferredExecutionSchedule { get; }
+    private readonly Action DeferredExecutionScheduleUpdater;
 
     /// <summary>
     /// Represents all <see cref="GraphicsManager"/>s the <see cref="Game"/> currently has available
@@ -519,7 +530,7 @@ public class Game : SDLApplication<Game>
 
 #endregion
 
-#region Run
+    #region Run
 
     private async Task Run(IGameLifetime lifetime)
     {
@@ -620,6 +631,7 @@ public class Game : SDLApplication<Game>
 
             await scene.Update(delta).ConfigureAwait(false);
             await scene.RegisterDrawOperations();
+            DeferredExecutionScheduleUpdater();
 
             {
                 var c = (UpdateFrameThrottle - sw.Elapsed).TotalMilliseconds;
@@ -640,7 +652,7 @@ public class Game : SDLApplication<Game>
 
 #endregion
 
-#region Events
+    #region Events
 
     internal Action? SetupScenes;
     internal Action? StopScenes;
