@@ -23,6 +23,9 @@ public class GraphicsManager : GameObject, IDisposable
 {
     #region Construction
 
+    public DeferredExecutionSchedule DeferredCallSchedule { get; }
+    private readonly Action DeferredCallScheduleUpdater;
+
     /// <summary>
     /// Instances and constructs a new <see cref="GraphicsManager"/> object
     /// </summary>
@@ -48,6 +51,8 @@ public class GraphicsManager : GameObject, IDisposable
         CommandListGroups = commandListGroups;
 
         DefaultResourceCache = new(this);
+
+        DeferredCallSchedule = DeferredExecutionSchedule.New(out DeferredCallScheduleUpdater);
     }
 
     /// <summary>
@@ -785,6 +790,7 @@ public class GraphicsManager : GameObject, IDisposable
                     Vector4 winsize = LastReportedWinSize;
 
                     Running();
+                    DeferredCallScheduleUpdater();
 
                     if (!await WaitOn(drawlock, condition: IsRunning)) break; // Frame Render Stage 1: General Drawing
                     try
