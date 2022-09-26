@@ -785,9 +785,6 @@ public class GraphicsManager : GameObject, IDisposable
                 if (await WaitOn(winlock, condition: !IsRendering, syncWait: 500, asyncWait: 1000)) break;
             }
 
-            if (RegistrationBuffer.Count > 0)
-                await ProcessDrawOpRegistrationBuffer();
-
             try
             {
                 if (!await WaitOn(framelock, condition: IsRunning)) break; // Frame Render
@@ -796,7 +793,6 @@ public class GraphicsManager : GameObject, IDisposable
                     Vector4 winsize = LastReportedWinSize;
 
                     Running();
-                    DeferredCallScheduleUpdater();
 
                     if (!await WaitOn(drawlock, condition: IsRunning)) break; // Frame Render Stage 1: General Drawing
                     try
@@ -904,9 +900,6 @@ public class GraphicsManager : GameObject, IDisposable
                             glock.Release(); // End the GUI drawing stage
                         }
                     }
-
-                    gd.WaitForIdle(); // Wait for operations to finish
-                    gd.SwapBuffers(); // Present
                 }
                 finally
                 {
@@ -917,6 +910,17 @@ public class GraphicsManager : GameObject, IDisposable
             {
                 winlock.Release();
             }
+
+            {
+                var t = ValueTask.CompletedTask;
+                if (RegistrationBuffer.Count > 0)
+                    t = ProcessDrawOpRegistrationBuffer().Preserve();
+                DeferredCallScheduleUpdater();
+                await t;
+            }
+
+            gd.WaitForIdle(); // Wait for operations to finish
+            gd.SwapBuffers(); // Present
 
             // Code that does not require any resources and is not bothered if resources are suddenly released
 
