@@ -215,14 +215,6 @@ public class FloatingShapesNode : Node, IDrawableNode
             new ColorVertexGenerator())
             { VertexSkip = ElementSkip.ElementsToMaintain(100) }
         );
-
-        GameDeferredCallSchedule.Schedule(DeferredTest, 12);
-    }
-
-    private void DeferredTest()
-    {
-        Log.Information("I was deferred for 100 frames");
-        GameDeferredCallSchedule.Schedule(DeferredTest, 100);
     }
 
     private TimeSpan tb;
