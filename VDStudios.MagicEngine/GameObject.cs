@@ -32,6 +32,7 @@ public abstract class GameObject
         Facility = facility;
         Area = area;
         Random = Game.Random;
+        GameDeferredCallsSchedule = Game.DeferredExecutionSchedule;
     }
 
     /// <summary>
