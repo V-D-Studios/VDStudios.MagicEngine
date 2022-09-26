@@ -215,6 +215,14 @@ public class FloatingShapesNode : Node, IDrawableNode
             new ColorVertexGenerator())
             { VertexSkip = ElementSkip.ElementsToMaintain(100) }
         );
+
+        GameDeferredCallsSchedule.Schedule(DeferredTest, 12);
+    }
+
+    private void DeferredTest()
+    {
+        Log.Information("I was deferred for 100 frames");
+        GameDeferredCallsSchedule.Schedule(DeferredTest, 100);
     }
 
     private TimeSpan tb;
@@ -242,6 +250,8 @@ public class FloatingShapesNode : Node, IDrawableNode
             //    < 75 => ColorTransformation.CreateTintAndOverlay(GenNewColor(), GenNewColor()).WithOpacity(.87f),
             //    _    => ColorTransformation.CreateOpacity(.87f),
             //};
+
+            //GameDeferredCallsSchedule.Schedule(() => Log.Information("I was deferred for 1 second"), TimeSpan.FromSeconds(1));
         }
         var rotation = new Vector4(-.1f, -.1f, 0f, rot += rotspeed * (float)delta.TotalMilliseconds);
         sca = (((rotspeed * (float)(delta.TotalMilliseconds))) + sca) % 1.5f;
