@@ -173,7 +173,7 @@ public abstract class Node : NodeBase
 
     #region FrameSkip
 
-    private readonly struct SkipData
+    internal readonly struct SkipData
     {
         public readonly bool Enabled;
         public readonly bool SkipChildren;
@@ -187,7 +187,7 @@ public abstract class Node : NodeBase
         }
     }
 
-    private SkipData SkipDat;
+    internal SkipData SkipDat { get; private set; }
 
     /// <summary>
     /// Schedules this Node to skip <paramref name="updateFrames"/> update frames starting after the frame after this method is called
