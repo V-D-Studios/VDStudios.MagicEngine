@@ -11,6 +11,21 @@ namespace VDStudios.MagicEngine;
 public static class AssortedExtensions
 {
     /// <summary>
+    /// Represents the largest prime number that is less than <see cref="uint.MaxValue"/>
+    /// </summary>
+    public const ulong PrimeNumberNearestToUInt64MaxValue = 18446744073709551557;
+
+    /// <summary>
+    /// Represents the largest prime number that is less than <see cref="uint.MaxValue"/>
+    /// </summary>
+    public const uint PrimeNumberNearestToUInt32MaxValue = 4294967291;
+
+    /// <summary>
+    /// Represents the largest prime number that is less than <see cref="ushort.MaxValue"/>
+    /// </summary>
+    public const ushort PrimeNumberNearestToUInt16MaxValue = 65521;
+
+    /// <summary>
     /// Deconstructs <paramref name="vec"/> in the following order: <c>X</c>, <c>Y</c>, <c>Z</c>, <c>W</c>
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
