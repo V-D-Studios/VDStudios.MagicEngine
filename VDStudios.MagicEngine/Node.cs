@@ -171,6 +171,39 @@ public abstract class Node : NodeBase
 
     #endregion
 
+    #region FrameSkip
+
+    private readonly struct SkipData
+    {
+        public readonly bool Enabled;
+        public readonly bool SkipChildren;
+        public readonly uint Frames;
+
+        public SkipData(bool skipChildren, uint frames) : this()
+        {
+            SkipChildren = skipChildren;
+            Frames = frames;
+            Enabled = true;
+        }
+    }
+
+    private SkipData SkipDat;
+
+    /// <summary>
+    /// Schedules this Node to skip <paramref name="updateFrames"/> update frames starting after the frame after this method is called
+    /// </summary>
+    /// <remarks>
+    /// Reminder: This is NOT the same as the Game's FPS! <see cref="GraphicsManager.FramesPerSecond"/> are different from the update thread's <see cref="Game.AverageDelta"/>
+    /// </remarks>
+    /// <param name="updateFrames">The amount of frames this node will be skipped for after this method is called</param>
+    /// <param name="skipChildren">Whether to also skip this <see cref="Node"/>'s children. If <see langword="true"/>, this node and all its children will be skipped. Otherwise, if <see langword="false"/>, only this node, but not its children will be skipped</param>
+    public void Skip(ushort updateFrames, bool skipChildren = true)
+    {
+        SkipDat = updateFrames is 0 ? default : (new(skipChildren, (uint)(Game.FrameCount % updateFrames + updateFrames + 1)));
+    }
+
+    #endregion
+
     #endregion
 
     #region Functional Components
