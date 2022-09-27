@@ -86,7 +86,7 @@ public sealed class DeferredExecutionSchedule
             OneTimeSchedule.AddLast(new DeferredCallInfo()
             {
                 Action = action,
-                Frames = ushort.MaxValue,
+                Frames = AssortedExtensions.PrimeNumberNearestToUInt16MaxValue,
                 Time = time + Watch.Elapsed
             });
     }
