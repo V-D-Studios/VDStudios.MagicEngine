@@ -185,6 +185,20 @@ public abstract class NodeBase : GameObject, IDisposable
 
     internal async ValueTask InternalHandleChildUpdate(Node node, TimeSpan delta)
     {
+        var sd = node.SkipDat;
+        if (sd.Enabled)
+        {
+            if (Game.FrameCount % sd.Frames == 0)
+            {
+                node.SkipDat = default;
+                goto NormalUpdate;
+            }
+            else if (!sd.SkipChildren)
+                await node.PropagateUpdate(delta);
+            return;
+        }
+
+    NormalUpdate:
         if (node.updater is NodeUpdater updater
             ? await updater.PerformUpdate()
             : await HandleChildUpdate(node))

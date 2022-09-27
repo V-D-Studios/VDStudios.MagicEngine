@@ -187,7 +187,7 @@ public abstract class Node : NodeBase
         }
     }
 
-    internal SkipData SkipDat { get; private set; }
+    internal SkipData SkipDat;
 
     /// <summary>
     /// Schedules this Node to skip <paramref name="updateFrames"/> update frames starting after the frame after this method is called
