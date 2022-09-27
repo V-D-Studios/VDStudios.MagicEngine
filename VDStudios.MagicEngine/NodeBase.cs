@@ -188,7 +188,7 @@ public abstract class NodeBase : GameObject, IDisposable
         var sd = node.SkipDat;
         if (sd.Enabled)
         {
-            if (Game.FrameCount % sd.Frames == 0)
+            if ((sd.Time is TimeSpan t && t <= Game.TotalTime) || Game.FrameCount % sd.Frames == 0)
             {
                 node.SkipDat = default;
                 goto NormalUpdate;

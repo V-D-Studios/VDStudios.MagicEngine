@@ -178,11 +178,22 @@ public abstract class Node : NodeBase
         public readonly bool Enabled;
         public readonly bool SkipChildren;
         public readonly uint Frames;
+        public readonly TimeSpan? Time;
 
         public SkipData(bool skipChildren, uint frames) : this()
         {
             SkipChildren = skipChildren;
             Frames = frames;
+            Enabled = true;
+        }
+
+        public SkipData(bool skipChildren, TimeSpan time) : this()
+        {
+            if (time <= TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(time), "Parameter 'time' must be larger than zero");
+            SkipChildren = skipChildren;
+            Frames = AssortedExtensions.PrimeNumberNearestToUInt32MaxValue;
+            Time = time;
             Enabled = true;
         }
     }
@@ -200,6 +211,16 @@ public abstract class Node : NodeBase
     public void Skip(ushort updateFrames, bool skipChildren = true)
     {
         SkipDat = updateFrames is 0 ? default : (new(skipChildren, (uint)(Game.FrameCount % updateFrames + updateFrames + 1)));
+    }
+
+    /// <summary>
+    /// Schedules this Node to skip updating for <paramref name="time"/> starting after the frame after this method is called
+    /// </summary>
+    /// <param name="time">The amount of frames this node will be skipped for after this method is called</param>
+    /// <param name="skipChildren">Whether to also skip this <see cref="Node"/>'s children. If <see langword="true"/>, this node and all its children will be skipped. Otherwise, if <see langword="false"/>, only this node, but not its children will be skipped</param>
+    public void Skip(TimeSpan? time, bool skipChildren = true)
+    {
+        SkipDat = time is not TimeSpan t ? default : new(skipChildren, Game.TotalTime + t);
     }
 
     #endregion
