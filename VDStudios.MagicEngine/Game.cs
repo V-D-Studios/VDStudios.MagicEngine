@@ -532,12 +532,13 @@ public class Game : SDLApplication<Game>
 
     #region Run
 
+    internal ulong FrameCount { get; private set; }
+
     private async Task Run(IGameLifetime lifetime)
     {
         var sw = new Stopwatch();
         TimeSpan delta = default;
         uint remaining = default;
-        ulong frameCount = 0;
         Scene scene;
 
         var sceneSetupList = new ValueTask[10];
@@ -578,11 +579,11 @@ public class Game : SDLApplication<Game>
 
             scene = CurrentScene;
 
-            if (frameCount++ % 100 == 0)
+            if (FrameCount++ % 100 == 0)
                 foreach (var manager in ActiveGraphicsManagers)
                     await manager.AwaitIfFaulted();
 #if FEATURE_INTERNAL_LOGGING
-            if (frameCount % 16 == 0)
+            if (FrameCount % 16 == 0)
             {
                 if (_mspup.Average > _warningTicks)
                 {
