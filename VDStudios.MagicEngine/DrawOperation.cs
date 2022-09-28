@@ -347,7 +347,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// <summary>
     /// This method is called automatically when this <see cref="DrawOperation"/> is being registered onto <paramref name="manager"/>
     /// </summary>
-    /// <param name="owner">The <see cref="Node"/> that registered this <see cref="DrawOperation"/></param>
     /// <param name="manager">The <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is being registered onto</param>
     protected virtual void Registering(GraphicsManager manager) { }
 
