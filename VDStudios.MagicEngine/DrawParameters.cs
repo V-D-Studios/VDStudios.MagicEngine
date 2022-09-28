@@ -43,7 +43,10 @@ public sealed class DrawParameters
         {
             if (trans == value) return;
             lock (sync)
+            {
+                PendingBufferUpdate = true;
                 trans = value;
+            }
         }
     }
 

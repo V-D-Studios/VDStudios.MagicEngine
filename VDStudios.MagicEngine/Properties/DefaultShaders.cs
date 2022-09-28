@@ -13,6 +13,10 @@ namespace VDStudios.MagicEngine.Properties;
 /// </summary>
 public static class DefaultShaders
 {
+    #region TexturedShapeRenderer
+
+    #region Builders 
+
     private static readonly Lazy<ShaderBuilder> lazy_dtsrfs
         = new(() =>
         {
@@ -78,7 +82,7 @@ layout(location = 0) out vec4 fragTexCoord;
 
 void main() {
     fragTexCoord = vec4(inTexCoord, 0.0, 1.0);
-    gl_Position = WinTrans * opTrans * vec4(Position, 0.0, 1.0);
+    gl_Position = projection * view * WinTrans * opTrans * vec4(Position, 0.0, 1.0);
 }
 
 ",
@@ -90,6 +94,10 @@ void main() {
 #binding uniform Transform {
     layout(offset = 0) mat4 opTrans;
 };
+#binding uniform Parameters {
+    layout(offset = 0) mat4 view;
+    layout(offset = 64) mat4 projection;
+};
 "
             );
             return builder;
@@ -100,6 +108,10 @@ void main() {
     /// </summary>
     public static ShaderBuilder DefaultTexturedShapeRendererVertexShaderBuilder => lazy_dtsrvs.Value;
 
+    #endregion
+
+    #region Pre-Built
+
     /// <summary>
     /// The default vertex shader for <see cref="TexturedShapeRenderer{TVertex}"/>
     /// </summary>
@@ -108,6 +120,9 @@ layout(set=1,binding=0) uniform WindowTransform{
     layout(offset = 0) mat4 WinTrans;
 };layout(set=2,binding=0) uniform Transform{
     layout(offset = 0) mat4 opTrans;
+};layout (set=3,binding=0)uniform Parameters {
+    layout(offset = 0) mat4 view;
+    layout(offset = 64) mat4 projection;
 };
 
 layout(location = 0) in vec2 inTexCoord;
@@ -160,6 +175,12 @@ void main() {
     outColor = c;
 }";
 
+    #endregion
+
+    #endregion
+
+    #region ShapeRenderer
+
     /// <summary>
     /// The default vertex shader for <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
@@ -173,6 +194,10 @@ layout(binding = 0) uniform WindowAspectTransform {
 };
 layout(set=1,binding=0) uniform Transform {
     layout(offset = 0) mat4 opTrans;
+};
+layout(set=2,binding=0) uniform Parameters {
+    layout(offset = 0) mat4 view;
+    layout(offset = 64) mat4 projection;
 };
 
 void main() {
@@ -217,4 +242,6 @@ void main() {
     else if ((trans.colorfx & opacityMultiplyFx) != 0) { c.a *= trans.opacity; }
     fsout_Color = c;
 }";
+
+    #endregion
 }

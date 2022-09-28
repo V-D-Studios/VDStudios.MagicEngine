@@ -282,12 +282,9 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     internal int _clga => (int)(CommandListGroupAffinity ?? 0);
 
     /// <summary>
-    /// Represents the current reference to <see cref="DrawParameters"/> this <see cref="DrawOperation"/> has
+    /// Represents the current reference to <see cref="DrawParameters"/> this <see cref="DrawOperation"/> has, which has been cascaded through the nodes that own this operation
     /// </summary>
-    /// <remarks>
-    /// Rather than change this manually, it's better to let the owner of this <see cref="DrawOperation"/> assign it in the next cascade assignment
-    /// </remarks>
-    public DrawParameters? ReferenceParameters { get; set; }
+    public DrawParameters? ReferenceParameters { get; internal set; }
 
     /// <summary>
     /// Returns either <see cref="ReferenceParameters"/> or <see cref="GraphicsManager.DrawParameters"/> if the former is <c>null</c>
@@ -433,6 +430,8 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         device.UpdateBuffer(TransformationBuffer, VertexTransformationOffset, ref vtrans);
         device.UpdateBuffer(TransformationBuffer, ColorTransformationOffset, ref ctrans);
         builder.InsertLast(TransformationSet, TransformationLayout, out int _, "DrawOperation Base Transformation");
+        builder.InsertLast(Parameters.ResourceSet, Parameters.ResourceLayout, out int _, "Parameters");
+
         return ValueTask.CompletedTask;
     }
 
