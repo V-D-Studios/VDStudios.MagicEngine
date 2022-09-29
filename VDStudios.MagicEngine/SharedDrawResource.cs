@@ -30,8 +30,8 @@ public abstract class SharedDrawResource : GraphicsObject
     /// <remarks>
     /// Multiple calls to this method will *not* result in this <see cref="SharedDrawResource"/> being updated multiple times
     /// </remarks>
-    public void NotifyPendingUpdate() => pendingGpuUpdate = true;
-    private bool pendingGpuUpdate = false;
+    public void NotifyPendingUpdate() => PendingGpuUpdate = true;
+    internal bool PendingGpuUpdate { get; private set; }
 
     /// <summary>
     /// Updates the data relevant to this <see cref="SharedDrawResource"/>
@@ -48,16 +48,23 @@ public abstract class SharedDrawResource : GraphicsObject
     {
         ThrowIfDisposed();
 
-        if (pendingGpuUpdate)
+        if (PendingGpuUpdate)
             lock (sync)
-                if (pendingGpuUpdate)
-                    pendingGpuUpdate = false;
+                if (PendingGpuUpdate)
+                    PendingGpuUpdate = false;
                 else return ValueTask.CompletedTask;
 
         return Update(Manager!, Manager!.Device!, cl);
     }
 
     #region Registration
+
+    internal void ThrowIfAlreadyRegistered()
+    {
+        lock (sync)
+            if (Manager is not null)
+                throw new InvalidOperationException("This SharedDrawResource is already registered on a GraphicsManager");
+    }
 
     #region Readiness
 
@@ -158,11 +165,25 @@ public abstract class SharedDrawResource : GraphicsObject
     {
         ThrowIfDisposed();
 
-        Registering(manager);
+        lock (sync)
+        {
+            if (Manager is not null)
+                throw new InvalidOperationException("This SharedDrawResource is already registered on a GraphicsManager");
+            Manager = manager;
+        }
+
+        try
+        {
+            Registering(manager);
+        }
+        catch
+        {
+            Manager = null;
+            throw;
+        }
 
         var device = manager.Device;
         var factory = device.ResourceFactory;
-        Manager = manager;
 
         await CreateResources(device, factory);
         
