@@ -137,11 +137,7 @@ public class Game : SDLApplication<Game>
     /// <remarks>
     /// This method is called from the Game's constructor, do not assume anything else has been initialized.
     /// </remarks>
-    protected unsafe virtual Random CreateRNG()
-    {
-        var guid = Guid.NewGuid(); // Generates a known cryptographic random number
-        return new Random(((int*)&guid)[1]); // Takes the address of the guid, turns it into an int pointer (As Guids are 128 bits long, they can be used as a 4 element int span), and takes the second element (The second quarter of the Guid) as the seed
-    }
+    protected virtual Random CreateRNG() => Random.Shared;
 
     /// <summary>
     /// The current title of the game
