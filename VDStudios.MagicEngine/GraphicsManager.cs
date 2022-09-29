@@ -984,17 +984,8 @@ public class GraphicsManager : GameObject, IDisposable
 #if FORCE_GM_NOPARALLEL
                                 managercl.Begin();
                                 PrepareForDraw(managercl, gd.SwapchainFramebuffer); // Set the base of the frame: clear the background, etc.
-                                var tbuff = ArrayPool<ValueTask>.Shared.Rent(resBufferFill);
-                                try
-                                {
-                                    for (int i = 0; i < resBufferFill; i++)
-                                        tbuff[i] = resBuffer[i].InternalUpdate(managercl).Preserve();
-                                    for (int i = 0; i < resBufferFill; i++) await tbuff[i];
-                                }
-                                finally
-                                {
-                                    ArrayPool<ValueTask>.Shared.Return(tbuff);
-                                }
+                                for (int i = 0; i < resBufferFill; i++)
+                                    await resBuffer[i].InternalUpdate(managercl);
                                 managercl.End();
                                 gd.SubmitCommands(managercl);
                                 for (int i = 0; i < dispatchs; i++)
@@ -1007,17 +998,8 @@ public class GraphicsManager : GameObject, IDisposable
 
                             managercl.Begin();
                             PrepareForDraw(managercl, gd.SwapchainFramebuffer); // Set the base of the frame: clear the background, etc.
-                            var tbuff = ArrayPool<ValueTask>.Shared.Rent(resBufferFill);
-                            try
-                            {
-                                for (int i = 0; i < resBufferFill; i++)
-                                    tbuff[i] = resBuffer[i].InternalUpdate(managercl).Preserve();
-                                for (int i = 0; i < resBufferFill; i++) await tbuff[i];
-                            }
-                            finally
-                            {
-                                ArrayPool<ValueTask>.Shared.Return(tbuff);
-                            }
+                            for (int i = 0; i < resBufferFill; i++)
+                                await resBuffer[i].InternalUpdate(managercl);
                             managercl.End();
                             gd.SubmitCommands(managercl);
                             for (int i = 0; i < dispatchs; i++)
