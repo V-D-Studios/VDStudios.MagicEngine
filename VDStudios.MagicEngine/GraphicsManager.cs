@@ -988,6 +988,7 @@ public class GraphicsManager : GameObject, IDisposable
                                     await resBuffer[i].InternalUpdate(managercl);
                                 managercl.End();
                                 gd.SubmitCommands(managercl);
+                                Array.Clear(resBuffer, 0, resBufferFill);
                                 for (int i = 0; i < dispatchs; i++)
                                     gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
                                 Array.Clear(activeDispatchs, 0, dispatchs);
@@ -1002,6 +1003,7 @@ public class GraphicsManager : GameObject, IDisposable
                                 await resBuffer[i].InternalUpdate(managercl);
                             managercl.End();
                             gd.SubmitCommands(managercl);
+                            Array.Clear(resBuffer, 0, resBufferFill);
                             for (int i = 0; i < dispatchs; i++)
                                 gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
                             Array.Clear(activeDispatchs, 0, dispatchs);
