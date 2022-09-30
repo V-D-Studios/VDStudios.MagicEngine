@@ -131,7 +131,7 @@ layout(location = 0) out vec4 fragTexCoord;
 
 void main() {
     fragTexCoord = vec4(inTexCoord, 0.0, 1.0);
-    gl_Position = WinTrans * opTrans * vec4(Position, 0.0, 1.0);
+    gl_Position = view * projection * WinTrans * opTrans * vec4(Position, 0.0, 1.0);
 }
 ";
 
@@ -202,7 +202,7 @@ layout(set=2,binding=0) uniform Parameters {
 
 void main() {
     fsin_Color = Color;
-    gl_Position = WindowScale * opTrans * vec4(Position, 0.0, 1.0);
+    gl_Position = view * projection * WindowScale * opTrans * vec4(Position, 0.0, 1.0);
 }";
 
     /// <summary>
