@@ -208,7 +208,8 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
             return;
         }
 
-        await ReadySemaphore.WaitAsync();
+        while (!await ReadySemaphore.WaitAsync(50))
+            await Manager!.AwaitIfFaulted();
         ReadySemaphore.Release();
     }
 
@@ -219,7 +220,12 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     {
         if (IsReady)
             return;
-        ReadySemaphore.Wait();
+        while (!ReadySemaphore.Wait(50))
+        {
+            var t = Manager!.AwaitIfFaulted();
+            if (t.IsCompleted)
+                t.GetAwaiter().GetResult();
+        }
         ReadySemaphore.Release();
     }
 
@@ -230,11 +236,20 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     {
         if (IsReady)
             return true;
+        ValueTask t;
         if (ReadySemaphore.Wait(timeoutMilliseconds))
         {
+            t = Manager!.AwaitIfFaulted();
+            if (t.IsCompleted)
+                t.GetAwaiter().GetResult();
+
             ReadySemaphore.Release();
             return true;
         }
+
+        t = Manager!.AwaitIfFaulted();
+        if (t.IsCompleted)
+            t.GetAwaiter().GetResult();
         return false;
     }
 
@@ -249,21 +264,25 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         {
             if (ReadySemaphore.Wait(15))
             {
+                await Manager!.AwaitIfFaulted();
                 ReadySemaphore.Release();
                 return true;
             }
 
             if (await ReadySemaphore.WaitAsync(timeoutMilliseconds - 15))
             {
+                await Manager!.AwaitIfFaulted();
                 ReadySemaphore.Release();
                 return true;
             }
         }
         if (await ReadySemaphore.WaitAsync(timeoutMilliseconds))
         {
+            await Manager!.AwaitIfFaulted();
             ReadySemaphore.Release();
             return true;
         }
+        await Manager!.AwaitIfFaulted();
         return false;
     }
 
@@ -316,13 +335,16 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     internal async ValueTask Register(GraphicsManager manager)
     {
         ThrowIfDisposed();
+#if DEBUG
+        if (!ReferenceEquals(manager, Manager))
+            throw new InvalidOperationException("Cannot register a DrawOperation under a different GraphicsManager than it was first queued to. This is likely a library bug.");
+#endif
 
         Registering(manager);
         
         var device = manager.Device;
         var factory = device.ResourceFactory;
         Device = device;
-        Manager = manager;
 
         var resb = ResourceSetBuilderPool.Rent();
         try

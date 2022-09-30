@@ -21,7 +21,7 @@ public abstract class SharedDrawResource : GraphicsObject
     /// </summary>
     public SharedDrawResource() : base("resources") 
     {
-        ReadySemaphore = new(1, 1);
+        ReadySemaphore = new(0, 1);
     }
 
     /// <summary>
@@ -161,15 +161,19 @@ public abstract class SharedDrawResource : GraphicsObject
 
     #endregion
 
+    private bool isRegistered = false;
     internal async ValueTask Register(GraphicsManager manager)
     {
         ThrowIfDisposed();
 
         lock (sync)
         {
-            if (Manager is not null)
+            if (isRegistered) 
                 throw new InvalidOperationException("This SharedDrawResource is already registered on a GraphicsManager");
-            Manager = manager;
+            isRegistered = true;
+
+            if (!ReferenceEquals(manager, Manager))
+                throw new InvalidOperationException("Cannot register a DrawOperation under a different GraphicsManager than it was first queued to. This is likely a library bug.");
         }
 
         try

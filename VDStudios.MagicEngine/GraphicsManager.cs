@@ -197,6 +197,7 @@ public class GraphicsManager : GameObject, IDisposable
         if (operation._clga >= CommandListGroups.Length)
             throw new InvalidOperationException($"This GraphicsManager only has {CommandListGroups.Length} CommandList groups [0-{CommandListGroups.Length - 1}], an operation with a CommandListGroupAffinity of {operation._clga} cannot be registered.");
 
+        operation.Manager = this;
         lock (DOPRegistrationBuffer)
             DOPRegistrationBuffer.Add(operation);
     }
@@ -208,6 +209,7 @@ public class GraphicsManager : GameObject, IDisposable
     public void RegisterSharedDrawResource(SharedDrawResource resource)
     {
         resource.ThrowIfAlreadyRegistered();
+        resource.Manager = this;
         lock (SDRRegistrationBuffer)
             SDRRegistrationBuffer.Add(resource);
     }
@@ -228,12 +230,14 @@ public class GraphicsManager : GameObject, IDisposable
                 {
                     var obj = arr[i];
                     obj.ThrowIfAlreadyRegistered();
+                    obj.Manager = this;
                     SDRRegistrationBuffer.Add(obj);
                 }
             else
                 foreach (var obj in resources)
                 {
                     obj.ThrowIfAlreadyRegistered();
+                    obj.Manager = this;
                     SDRRegistrationBuffer.Add(obj);
                 }
         }
@@ -652,8 +656,6 @@ public class GraphicsManager : GameObject, IDisposable
     private readonly SemaphoreSlim FrameLock = new(1, 1);
     private readonly SemaphoreSlim DrawLock = new(1, 1);
     private readonly SemaphoreSlim GUILock = new(1, 1);
-    private readonly SemaphoreSlim ResLock = new(1, 1);
-    private readonly SemaphoreSlim DopLock = new(1, 1);
 
     internal Vector4 LastReportedWinSize = default;
 
@@ -742,7 +744,6 @@ public class GraphicsManager : GameObject, IDisposable
             SDRRegistrationBuffer.Clear();
         }
 
-        if (!await WaitOn(ResLock, IsRunningCheck)) return;
         try
         {
             for (int i = 0; i < count; i++)
@@ -755,7 +756,6 @@ public class GraphicsManager : GameObject, IDisposable
         }
         finally
         {
-            ResLock.Release();
             ArrayPool<SharedDrawResource>.Shared.Return(regbuf);
         }
     }
@@ -772,7 +772,6 @@ public class GraphicsManager : GameObject, IDisposable
             DOPRegistrationBuffer.Clear();
         }
 
-        if (!await WaitOn(DopLock, IsRunningCheck)) return;
         try
         {
             for (int i = 0; i < count; i++)
@@ -791,7 +790,6 @@ public class GraphicsManager : GameObject, IDisposable
         }
         finally
         {
-            DopLock.Release();
             ArrayPool<DrawOperation>.Shared.Return(regbuf);
         }
     }
@@ -834,8 +832,6 @@ public class GraphicsManager : GameObject, IDisposable
         var drawlock = DrawLock;
         var glock = GUILock;
         var winlock = WindowShownLock;
-        var reslock = ResLock;
-        var doplock = DopLock;
 
         var isRunning = IsRunningCheck;
         var isNotRendering = IsNotRenderingCheck;
@@ -848,7 +844,8 @@ public class GraphicsManager : GameObject, IDisposable
         int resBufferFill = 0;
         TimeSpan delta = default;
 
-        DrawParameters = new(this);
+        DrawParameters = new();
+        RegisterSharedDrawResource(DrawParameters);
 
         var gd = Device!;
         
@@ -889,54 +886,41 @@ public class GraphicsManager : GameObject, IDisposable
                     if (!await WaitOn(drawlock, condition: isRunning)) break; // Frame Render Stage 1: General Drawing
                     try
                     {
-                        #region Draw Operations
+                        #region Draw Resources
 
-                        if (!await WaitOn(doplock, condition: isRunning)) break;
-                        try
-                        {
-                            var ops = RegisteredOperations;
+                        if (SDRRegistrationBuffer.Count > 0)
+                            await ProcessSharedResourceRegistrationBuffer();
 
-                            foreach (var kv in ops) // Iterate through all registered operations
-                                if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)  // Filter out those that have been disposed or collected
-                                    op.Owner.AddToDrawQueue(drawqueue, op); // And query them
+                        var res = RegisteredResources;
+
+                        if (resBuffer.Length < res.Count)
+                            resBuffer = new SharedDrawResource[int.Max(resBuffer.Length * 2, res.Count + 1)];
+
+                        foreach (var kv in res) // Iterate through all registered operations
+                            if (kv.Value.TryGetTarget(out var sdr) && !sdr.disposedValue)  // Filter out those that have been disposed or collected
+                                if (sdr.PendingGpuUpdate)
+                                    resBuffer[resBufferFill++] = sdr;
                                 else
                                     removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
 
-                            while (removalQueue.Count > 0)
-                                ops.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
-                        }
-                        finally
-                        {
-                            doplock.Release();
-                        }
-
+                        while (removalQueue.Count > 0)
+                            res.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
+                        
                         #endregion
 
-                        #region Draw Resources
+                        #region Draw Operations
 
-                        if (!await WaitOn(reslock, isRunning)) break;
-                        try
-                        {
-                            var res = RegisteredResources;
+                        var ops = RegisteredOperations;
 
-                            if (resBuffer.Length < res.Count)
-                                resBuffer = new SharedDrawResource[int.Max(resBuffer.Length * 2, res.Count + 1)];
+                        foreach (var kv in ops) // Iterate through all registered operations
+                            if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)  // Filter out those that have been disposed or collected
+                                op.Owner.AddToDrawQueue(drawqueue, op); // And query them
+                            else
+                                removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
 
-                            foreach (var kv in res) // Iterate through all registered operations
-                                if (kv.Value.TryGetTarget(out var sdr) && !sdr.disposedValue)  // Filter out those that have been disposed or collected
-                                    if (sdr.PendingGpuUpdate)
-                                        resBuffer[resBufferFill++] = sdr;
-                                    else
-                                        removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
-
-                            while (removalQueue.Count > 0)
-                                res.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
-                        }
-                        finally
-                        {
-                            reslock.Release();
-                        }
-
+                        while (removalQueue.Count > 0)
+                            ops.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
+                        
                         #endregion
 
                         using (drawqueue._lock.Lock())
@@ -1052,17 +1036,13 @@ public class GraphicsManager : GameObject, IDisposable
                 winlock.Release();
             }
 
-            {
+            { 
                 var tdopr = ValueTask.CompletedTask;
                 if (DOPRegistrationBuffer.Count > 0)
                     tdopr = ProcessDrawOpRegistrationBuffer().Preserve();
-                var tsdrr = ValueTask.CompletedTask;
-                if (SDRRegistrationBuffer.Count > 0)
-                    tsdrr = ProcessSharedResourceRegistrationBuffer().Preserve();
 
                 DeferredCallScheduleUpdater();
                 await tdopr;
-                await tsdrr;
             }
 
             gd.WaitForIdle(); // Wait for operations to finish
