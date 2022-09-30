@@ -19,7 +19,6 @@ public sealed class DrawParameters : SharedDrawResource
 
     private readonly object sync = new();
     private DrawTransformation trans;
-    private bool PendingBufferUpdate = true;
 
     /// <summary>
     /// Instances a new object of type <see cref="DrawParameters"/>
@@ -38,11 +37,8 @@ public sealed class DrawParameters : SharedDrawResource
         set
         {
             if (trans == value) return;
-            lock (sync)
-            {
-                PendingBufferUpdate = true;
-                trans = value;
-            }
+            trans = value;
+            NotifyPendingUpdate();
         }
     }
 
@@ -67,18 +63,8 @@ public sealed class DrawParameters : SharedDrawResource
     /// <inheritdoc/>
     public override ValueTask Update(GraphicsManager manager, GraphicsDevice device, CommandList commandList)
     {
-        DrawTransformation dtr;
-        if (PendingBufferUpdate)
-        {
-            lock (sync)
-                if (!PendingBufferUpdate)
-                    return ValueTask.CompletedTask;
-                else
-                    PendingBufferUpdate = false;
-
-            dtr = trans;
-            commandList.UpdateBuffer(TransformationBuffer, 0, ref dtr);
-        }
+        DrawTransformation dtr = trans;
+        commandList.UpdateBuffer(TransformationBuffer, 0, ref dtr);
 
         return ValueTask.CompletedTask;
     }
