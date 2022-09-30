@@ -31,7 +31,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// </summary>
     public DrawOperation() : base("Drawing")
     {
-        ReadySemaphore = new(0, 1);
     }
 
     #region Transformation
@@ -177,116 +176,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     #endregion
 
     /// <summary>
-    /// <c>true</c> when the node has been added to the scene tree and initialized
-    /// </summary>
-    public bool IsReady
-    {
-        get => _isReady;
-        private set
-        {
-            if (value == _isReady) return;
-            if (value)
-                ReadySemaphore.Release();
-            else
-                ReadySemaphore.Wait();
-            _isReady = value;
-        }
-    }
-    private bool _isReady;
-    private readonly SemaphoreSlim ReadySemaphore;
-
-    /// <summary>
-    /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
-    /// </summary>
-    public async ValueTask WaitUntilReadyAsync()
-    {
-        if (IsReady)
-            return;
-        if (ReadySemaphore.Wait(15))
-        {
-            ReadySemaphore.Release();
-            return;
-        }
-
-        while (!await ReadySemaphore.WaitAsync(50))
-            await Manager!.AwaitIfFaulted();
-        ReadySemaphore.Release();
-    }
-
-    /// <summary>
-    /// Waits until the Node has been added to the scene tree and is ready to be used
-    /// </summary>
-    public void WaitUntilReady()
-    {
-        if (IsReady)
-            return;
-        while (!ReadySemaphore.Wait(50))
-        {
-            var t = Manager!.AwaitIfFaulted();
-            if (t.IsCompleted)
-                t.GetAwaiter().GetResult();
-        }
-        ReadySemaphore.Release();
-    }
-
-    /// <summary>
-    /// Waits until the Node has been added to the scene tree and is ready to be used
-    /// </summary>
-    public bool WaitUntilReady(int timeoutMilliseconds)
-    {
-        if (IsReady)
-            return true;
-        ValueTask t;
-        if (ReadySemaphore.Wait(timeoutMilliseconds))
-        {
-            t = Manager!.AwaitIfFaulted();
-            if (t.IsCompleted)
-                t.GetAwaiter().GetResult();
-
-            ReadySemaphore.Release();
-            return true;
-        }
-
-        t = Manager!.AwaitIfFaulted();
-        if (t.IsCompleted)
-            t.GetAwaiter().GetResult();
-        return false;
-    }
-
-    /// <summary>
-    /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
-    /// </summary>
-    public async ValueTask<bool> WaitUntilReadyAsync(int timeoutMilliseconds)
-    {
-        if (IsReady)
-            return true;
-        if (timeoutMilliseconds > 15)
-        {
-            if (ReadySemaphore.Wait(15))
-            {
-                await Manager!.AwaitIfFaulted();
-                ReadySemaphore.Release();
-                return true;
-            }
-
-            if (await ReadySemaphore.WaitAsync(timeoutMilliseconds - 15))
-            {
-                await Manager!.AwaitIfFaulted();
-                ReadySemaphore.Release();
-                return true;
-            }
-        }
-        if (await ReadySemaphore.WaitAsync(timeoutMilliseconds))
-        {
-            await Manager!.AwaitIfFaulted();
-            ReadySemaphore.Release();
-            return true;
-        }
-        await Manager!.AwaitIfFaulted();
-        return false;
-    }
-
-    /// <summary>
     /// Represents this <see cref="DrawOperation"/>'s preferred priority. May or may not be honored depending on the <see cref="DrawOperationManager"/>
     /// </summary>
     public float PreferredPriority { get; set; }
@@ -335,10 +224,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     internal async ValueTask Register(GraphicsManager manager)
     {
         ThrowIfDisposed();
-#if DEBUG
-        if (!ReferenceEquals(manager, Manager))
-            throw new InvalidOperationException("Cannot register a DrawOperation under a different GraphicsManager than it was first queued to. This is likely a library bug.");
-#endif
+        VerifyManager(manager);
 
         Registering(manager);
         
@@ -359,7 +245,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         }
 
         Registered();
-        IsReady = true;
+        NotifyIsReady();
     }
 
     #endregion
@@ -555,7 +441,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
                 {
                     Device = null;
                     _owner = null!;
-                    Manager = null;
                     @lock.Dispose();
                 }
             }

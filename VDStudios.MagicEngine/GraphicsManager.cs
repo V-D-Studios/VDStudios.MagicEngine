@@ -196,8 +196,7 @@ public class GraphicsManager : GameObject, IDisposable
     {
         if (operation._clga >= CommandListGroups.Length)
             throw new InvalidOperationException($"This GraphicsManager only has {CommandListGroups.Length} CommandList groups [0-{CommandListGroups.Length - 1}], an operation with a CommandListGroupAffinity of {operation._clga} cannot be registered.");
-
-        operation.Manager = this;
+        operation.AssignManager(this);
         lock (DOPRegistrationBuffer)
             DOPRegistrationBuffer.Add(operation);
     }
@@ -209,7 +208,7 @@ public class GraphicsManager : GameObject, IDisposable
     public void RegisterSharedDrawResource(SharedDrawResource resource)
     {
         resource.ThrowIfAlreadyRegistered();
-        resource.Manager = this;
+        resource.AssignManager(this);
         lock (SDRRegistrationBuffer)
             SDRRegistrationBuffer.Add(resource);
     }
@@ -230,14 +229,14 @@ public class GraphicsManager : GameObject, IDisposable
                 {
                     var obj = arr[i];
                     obj.ThrowIfAlreadyRegistered();
-                    obj.Manager = this;
+                    obj.AssignManager(this);
                     SDRRegistrationBuffer.Add(obj);
                 }
             else
                 foreach (var obj in resources)
                 {
                     obj.ThrowIfAlreadyRegistered();
-                    obj.Manager = this;
+                    obj.AssignManager(this);
                     SDRRegistrationBuffer.Add(obj);
                 }
         }
@@ -370,6 +369,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <param name="context">The DataContext to give to <paramref name="element"/>, or null if it's to use its previously set DataContext or inherit it from this <see cref="GUIElement"/></param>
     public void AddElement(GUIElement element, object? context = null)
     {
+        element.AssignManager(this);
         element.RegisterOnto(this, context);
     }
 

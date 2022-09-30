@@ -90,28 +90,30 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     internal void RegisterOnto(GraphicsManager manager, object? context = null)
     {
         ThrowIfDisposed();
+        VerifyManager(manager);
 
         Registering(manager);
 
         DataContext = context ?? DataContext;
-        Manager = manager;
         nodeInParent = manager.GUIElements.Add(this);
 
         Registered();
+        NotifyIsReady();
     }
 
     internal void RegisterOnto(GUIElement parent, GraphicsManager manager, object? context = null)
     {
         ThrowIfDisposed();
+        VerifyManager(manager);
 
         Registering(parent, manager);
 
         DataContext = context ?? DataContext ?? parent.DataContext;
-        Manager = manager;
         Parent = parent;
         nodeInParent = parent.SubElements.Add(this);
 
         Registered();
+        NotifyIsReady();
     }
 
     #endregion
@@ -334,7 +336,6 @@ public abstract class GUIElement : GraphicsObject, IDisposable
                 DataContext = null;
                 DataContextChanged = null;
                 Parent = null;
-                Manager = null;
                 if (root)
                     @lock!.Dispose();
             }
