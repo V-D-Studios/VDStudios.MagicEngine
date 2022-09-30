@@ -90,6 +90,8 @@ public sealed class DrawParameters : SharedDrawResource
 
         var rescDesc = new ResourceSetDescription(ResourceLayout, TransformationBuffer);
         ResourceSet = factory.CreateResourceSet(ref rescDesc);
+
+        device.UpdateBuffer(TransformationBuffer, 0, ref trans);
         return ValueTask.CompletedTask;
     }
 }
