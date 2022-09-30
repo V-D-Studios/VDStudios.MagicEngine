@@ -897,9 +897,11 @@ public class GraphicsManager : GameObject, IDisposable
                             resBuffer = new SharedDrawResource[int.Max(resBuffer.Length * 2, res.Count + 1)];
 
                         foreach (var kv in res) // Iterate through all registered operations
-                            if (kv.Value.TryGetTarget(out var sdr) && !sdr.disposedValue)  // Filter out those that have been disposed or collected
+                            if (kv.Value.TryGetTarget(out var sdr) && !sdr.disposedValue)
+                            {
                                 if (sdr.PendingGpuUpdate)
                                     resBuffer[resBufferFill++] = sdr;
+                            }
                                 else
                                     removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
 
@@ -973,6 +975,7 @@ public class GraphicsManager : GameObject, IDisposable
                                 managercl.End();
                                 gd.SubmitCommands(managercl);
                                 Array.Clear(resBuffer, 0, resBufferFill);
+                                resBufferFill = 0;
                                 for (int i = 0; i < dispatchs; i++)
                                     gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
                                 Array.Clear(activeDispatchs, 0, dispatchs);
@@ -988,6 +991,7 @@ public class GraphicsManager : GameObject, IDisposable
                             managercl.End();
                             gd.SubmitCommands(managercl);
                             Array.Clear(resBuffer, 0, resBufferFill);
+                            resBufferFill = 0;
                             for (int i = 0; i < dispatchs; i++)
                                 gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
                             Array.Clear(activeDispatchs, 0, dispatchs);
