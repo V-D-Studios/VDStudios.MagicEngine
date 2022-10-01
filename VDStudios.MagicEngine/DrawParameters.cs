@@ -13,7 +13,7 @@ public readonly record struct DrawTransformation(Matrix4x4 View, Matrix4x4 Proje
 /// <summary>
 /// Represents the parameters of a <see cref="DrawTransformation"/> and its accompanying data
 /// </summary>
-public sealed class DrawParameters : SharedDrawResource
+public class DrawParameters : SharedDrawResource
 {
     private static BufferDescription buffDesc = new(DataStructuring.FitToUniformBuffer<DrawTransformation, uint>(), BufferUsage.UniformBuffer);
 
