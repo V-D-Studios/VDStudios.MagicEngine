@@ -22,6 +22,11 @@ public static class Interpolation
     public interface IInterpolator
     {
         /// <summary>
+        /// Represents the singleton instance of this <see cref="IInterpolator"/>
+        /// </summary>
+        public static abstract IInterpolator Interpolator { get; }
+
+        /// <summary>
         /// Performs an interpolation between <paramref name="a"/> and <paramref name="b"/> by <paramref name="amount"/>
         /// </summary>
         /// <typeparam name="TValue">The type of values that will be interpolated</typeparam>
@@ -151,15 +156,27 @@ public static class Interpolation
     /// <summary>
     /// An <see cref="IInterpolator"/> that performs linear interpolations between values
     /// </summary>
-    public sealed class LinearInterpolator : IInterpolator
+    public sealed class Linear : IInterpolator
     {
+        private Linear() { }
+
+        /// <summary>
+        /// Represents the singleton instance of this <see cref="IInterpolator"/>
+        /// </summary>
+        public static IInterpolator Interpolator => LinearInterpolator;
+
+        /// <summary>
+        /// Same as <see cref="Interpolator"/>
+        /// </summary>
+        public static Linear LinearInterpolator { get; } = new Linear();
+
         /// <inheritdoc/>
         public TValue Interpolate<TValue>(TValue a, TValue b, TValue amount) where TValue : INumber<TValue>, ILogarithmicFunctions<TValue>, IExponentialFunctions<TValue>, IHyperbolicFunctions<TValue>, IPowerFunctions<TValue>, IRootFunctions<TValue>, ITrigonometricFunctions<TValue>
-            => Interpolation.Linear<TValue>(a, b, amount);
+            => Interpolation.InterpolateLinear<TValue>(a, b, amount);
 
         /// <inheritdoc/>
         public void VectorInterpolate<TValue>(Span<TValue> a, Span<TValue> b, Span<TValue> output, TValue amount) where TValue : INumber<TValue>, ILogarithmicFunctions<TValue>, IExponentialFunctions<TValue>, IHyperbolicFunctions<TValue>, IPowerFunctions<TValue>, IRootFunctions<TValue>, ITrigonometricFunctions<TValue>
-            => Interpolation.Linear<TValue>(a, b, output, amount);
+            => Interpolation.InterpolateLinear<TValue>(a, b, output, amount);
 
         /// <inheritdoc/>
         public Vector2 Interpolate(Vector2 a, Vector2 b, float amount)
@@ -235,7 +252,7 @@ public static class Interpolation
     /// <param name="amount">The inteprolation amount between the values</param>
     /// <returns>The interpolated value</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TValue Linear<TValue>(TValue a, TValue b, TValue amount)
+    public static TValue InterpolateLinear<TValue>(TValue a, TValue b, TValue amount)
         where TValue :
         INumber<TValue>
         => a + amount * (b - a);
@@ -249,7 +266,7 @@ public static class Interpolation
     /// <param name="amount">The inteprolation amount between the values</param>
     /// <param name="output">The buffer wherein to write the output values</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Linear<TValue>(Span<TValue> a, Span<TValue> b, Span<TValue> output, TValue amount)
+    public static void InterpolateLinear<TValue>(Span<TValue> a, Span<TValue> b, Span<TValue> output, TValue amount)
         where TValue :
         INumber<TValue>
     {
