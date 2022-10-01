@@ -37,7 +37,8 @@ public sealed class DrawParameters : SharedDrawResource
         set
         {
             if (trans == value) return;
-            trans = value;
+            lock (sync)
+                trans = value;
             NotifyPendingUpdate();
         }
     }
@@ -63,7 +64,8 @@ public sealed class DrawParameters : SharedDrawResource
     /// <inheritdoc/>
     public override ValueTask Update(GraphicsManager manager, GraphicsDevice device, CommandList commandList)
     {
-        DrawTransformation dtr = trans;
+        DrawTransformation dtr;
+        lock (sync) dtr = trans;
         commandList.UpdateBuffer(TransformationBuffer, 0, ref dtr);
 
         return ValueTask.CompletedTask;
