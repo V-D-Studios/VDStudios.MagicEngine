@@ -236,19 +236,19 @@ public interface IInterpolator
 /// <summary>
 /// An <see cref="IInterpolator"/> that performs linear interpolations between values
 /// </summary>
-public sealed class Linear : IInterpolator
+public sealed class LinearInterpolator : IInterpolator
 {
-    private Linear() { }
+    private LinearInterpolator() { }
 
     /// <summary>
     /// Represents the singleton instance of this <see cref="IInterpolator"/>
     /// </summary>
-    public static IInterpolator Interpolator => LinearInterpolator;
+    public static IInterpolator Interpolator => Instance;
 
     /// <summary>
     /// Same as <see cref="Interpolator"/>
     /// </summary>
-    public static Linear LinearInterpolator { get; } = new Linear();
+    public static LinearInterpolator Instance { get; } = new LinearInterpolator();
 
     /// <inheritdoc/>
     public TValue Interpolate<TValue>(TValue a, TValue b, TValue amount) where TValue : INumber<TValue>, ILogarithmicFunctions<TValue>, IExponentialFunctions<TValue>, IHyperbolicFunctions<TValue>, IPowerFunctions<TValue>, IRootFunctions<TValue>, ITrigonometricFunctions<TValue>
