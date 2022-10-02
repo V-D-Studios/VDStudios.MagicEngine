@@ -62,7 +62,7 @@ public class DrawParameters : SharedDrawResource
     private DeviceBuffer TransformationBuffer { get; set; }
 
     /// <inheritdoc/>
-    public override ValueTask Update(GraphicsManager manager, GraphicsDevice device, CommandList commandList)
+    public override ValueTask Update(TimeSpan delta, GraphicsManager manager, GraphicsDevice device, CommandList commandList)
     {
         DrawTransformation dtr;
         lock (sync) dtr = trans;

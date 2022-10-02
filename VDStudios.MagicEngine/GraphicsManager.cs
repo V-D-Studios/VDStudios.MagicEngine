@@ -987,7 +987,7 @@ public class GraphicsManager : GameObject, IDisposable
                             managercl.Begin();
                             PrepareForDraw(managercl, gd.SwapchainFramebuffer); // Set the base of the frame: clear the background, etc.
                             for (int i = 0; i < resBufferFill; i++)
-                                await resBuffer[i].InternalUpdate(managercl);
+                                await resBuffer[i].InternalUpdate(delta, managercl);
                             managercl.End();
                             gd.SubmitCommands(managercl);
                             Array.Clear(resBuffer, 0, resBufferFill);

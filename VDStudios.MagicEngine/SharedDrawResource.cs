@@ -41,9 +41,10 @@ public abstract class SharedDrawResource : GraphicsObject
     /// <param name="manager"><see cref="GraphicsObject.Manager"/></param>
     /// <param name="device">The <see cref="GraphicsDevice"/> controlled by <paramref name="manager"/></param>
     /// <param name="commandList">The <see cref="CommandList"/> assigned to this SharedDrawResource</param>
-    public abstract ValueTask Update(GraphicsManager manager, GraphicsDevice device, CommandList commandList);
+    /// <param name="delta">The amount of time that has passed since the last frame</param>
+    public abstract ValueTask Update(TimeSpan delta, GraphicsManager manager, GraphicsDevice device, CommandList commandList);
 
-    internal ValueTask InternalUpdate(CommandList cl)
+    internal ValueTask InternalUpdate(TimeSpan delta, CommandList cl)
     {
         ThrowIfDisposed();
 
@@ -53,7 +54,7 @@ public abstract class SharedDrawResource : GraphicsObject
                     PendingGpuUpdate = false;
                 else return ValueTask.CompletedTask;
 
-        return Update(Manager!, Manager!.Device!, cl);
+        return Update(delta, Manager!, Manager!.Device!, cl);
     }
 
     #region Registration
