@@ -21,11 +21,17 @@ public class Camera2D : Node, IDrawableNode
 
         public CameraDrawParameters(Camera2D cam) => Camera = cam;
 
-        public override ValueTask Update(GraphicsManager manager, GraphicsDevice device, CommandList commandList)
+        public override ValueTask Update(TimeSpan delta, GraphicsManager manager, GraphicsDevice device, CommandList commandList)
         {
-            var interp = Camera.Interpolator;
-            Transformation = new(interp.Interpolate(Transformation.View, Camera.ViewMatrix, Camera.RateOfChange), Matrix4x4.Identity);
-            return base.Update(manager, device, commandList);
+            Transformation = new(
+                Camera.Interpolator.Interpolate(
+                    Transformation.View, 
+                    Camera.ViewMatrix, 
+                    float.Min(Camera.RateOfChange * (float)delta.TotalMilliseconds, 1)
+                ),
+                Matrix4x4.Identity
+            );
+            return base.Update(delta, manager, device, commandList);
         }
     }
 
@@ -70,19 +76,18 @@ public class Camera2D : Node, IDrawableNode
         {
             if (viewm is not Matrix4x4 t)
             {
-                var translation = Position;
-                var scl = Scale;
-                var (cpx, cpy, rot) = Rotation;
+                var (scl, scp) = Scale;
+                var (rp, rot) = Rotation;
                 viewm = t =
-                    Matrix4x4.CreateTranslation(new(translation, 1)) *
-                    Matrix4x4.CreateScale(new Vector3(scl, 1)) *
-                    Matrix4x4.CreateRotationZ(rot, new(cpx, cpy, 1));
+                    Matrix4x4.CreateTranslation(new(Position, 0)) *
+                    Matrix4x4.CreateScale(new Vector3(scl, 1), new Vector3(scp, 0)) *
+                    Matrix4x4.CreateRotationZ(rot, new(rp, 0));
             }
             return t;
         }
     }
     private Matrix4x4? viewm = Matrix4x4.Identity;
-    
+
     /// <summary>
     /// Describes the current position setting of this <see cref="Camera2D"/>
     /// </summary>
@@ -104,7 +109,7 @@ public class Camera2D : Node, IDrawableNode
     /// <remarks>
     /// Can also be regarded as the zoom value, if both x and y are the same
     /// </remarks>
-    public Vector2 Scale
+    public (Vector2 scale, Vector2 centerpoint) Scale
     {
         get => __scale;
         set
@@ -114,15 +119,12 @@ public class Camera2D : Node, IDrawableNode
             viewm = null;
         }
     }
-    private Vector2 __scale;
+    private (Vector2 scale, Vector2 centerPoint) __scale;
 
     /// <summary>
     /// Describes the current rotation of this <see cref="Camera2D"/>
     /// </summary>
-    /// <remarks>
-    /// Where <see cref="Vector3.X"/> and <see cref="Vector3.Y"/> are the center point, and <see cref="Vector3.Z"/> is the actual rotation in <c>radians</c>
-    /// </remarks>
-    public Vector3 Rotation
+    public (Vector2 centerPoint, float radians) Rotation
     {
         get => __rotation;
         set
@@ -132,10 +134,10 @@ public class Camera2D : Node, IDrawableNode
             viewm = null;
         }
     }
-    private Vector3 __rotation;
+    private (Vector2 centerPoint, float radians) __rotation;
 
     /// <summary>
-    /// Represents the rate of change for this <see cref="Camera2D"/>, a value from 0.0 (no change) to 1.0 (instant change)
+    /// Represents the rate of change per millisecond for this <see cref="Camera2D"/>, a value from 0.0 (no change) to 1.0 (instant change)
     /// </summary>
     /// <remarks>
     /// Depending on the object <see cref="Interpolator"/> is set to, the effects of this value can vary. By default, <see cref="LinearInterpolator.Instance"/> is used, and higher values result in faster transitions
