@@ -143,7 +143,7 @@ public interface IInterpolator
         ITrigonometricFunctions<TValue>;
 
     /// <summary>
-    /// Interpolates between <paramref name="a"/> and <paramref name="b"/> by <paramref name="amount"/> using this object's <see cref="VectorInterpolate{TValue}(Span{TValue}, Span{TValue}, Span{TValue}, TValue)"/> method
+    /// Interpolates between <paramref name="a"/> and <paramref name="b"/> by <paramref name="amount"/>
     /// </summary>
     /// <param name="a">The value to interpolate to <paramref name="b"/></param>
     /// <param name="b">The value to be interpolated to from <paramref name="a"/></param>
@@ -161,7 +161,7 @@ public interface IInterpolator
     }
 
     /// <summary>
-    /// Interpolates between <paramref name="a"/> and <paramref name="b"/> by <paramref name="amount"/> using this object's <see cref="VectorInterpolate{TValue}(Span{TValue}, Span{TValue}, Span{TValue}, TValue)"/> method
+    /// Interpolates between <paramref name="a"/> and <paramref name="b"/> by <paramref name="amount"/>
     /// </summary>
     /// <param name="a">The value to interpolate to <paramref name="b"/></param>
     /// <param name="b">The value to be interpolated to from <paramref name="a"/></param>
@@ -179,7 +179,7 @@ public interface IInterpolator
     }
 
     /// <summary>
-    /// Interpolates between <paramref name="a"/> and <paramref name="b"/> by <paramref name="amount"/> using this object's <see cref="VectorInterpolate{TValue}(Span{TValue}, Span{TValue}, Span{TValue}, TValue)"/> method
+    /// Interpolates between <paramref name="a"/> and <paramref name="b"/> by <paramref name="amount"/>
     /// </summary>
     /// <param name="a">The value to interpolate to <paramref name="b"/></param>
     /// <param name="b">The value to be interpolated to from <paramref name="a"/></param>
@@ -197,7 +197,7 @@ public interface IInterpolator
     }
 
     /// <summary>
-    /// Interpolates between <paramref name="a"/> and <paramref name="b"/> by <paramref name="amount"/> using this object's <see cref="VectorInterpolate{TValue}(Span{TValue}, Span{TValue}, Span{TValue}, TValue)"/> method
+    /// Interpolates between <paramref name="a"/> and <paramref name="b"/> by <paramref name="amount"/>
     /// </summary>
     /// <param name="a">The value to interpolate to <paramref name="b"/></param>
     /// <param name="b">The value to be interpolated to from <paramref name="a"/></param>
@@ -215,7 +215,7 @@ public interface IInterpolator
     }
 
     /// <summary>
-    /// Interpolates between <paramref name="a"/> and <paramref name="b"/> by <paramref name="amount"/> using this object's <see cref="VectorInterpolate{TValue}(Span{TValue}, Span{TValue}, Span{TValue}, TValue)"/> method
+    /// Interpolates between <paramref name="a"/> and <paramref name="b"/> by <paramref name="amount"/>
     /// </summary>
     /// <param name="a">The value to interpolate to <paramref name="b"/></param>
     /// <param name="b">The value to be interpolated to from <paramref name="a"/></param>
