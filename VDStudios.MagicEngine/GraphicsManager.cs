@@ -634,7 +634,17 @@ public class GraphicsManager : GameObject, IDisposable
         {
             FrameLock.Release();
         }
+
+        WindowSizeChanged(timestamp, newSize);
     }
+
+    /// <summary>
+    /// This method is called automatically when <see cref="Window"/> changes its size
+    /// </summary>
+    /// <remarks>
+    /// This method is called after the frame is unlocked
+    /// </remarks>
+    protected virtual void WindowSizeChanged(TimeSpan timestamp, Size newSize) { }
 
     /// <summary>
     /// This is run from the update thread
