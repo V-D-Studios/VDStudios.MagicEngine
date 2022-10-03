@@ -23,13 +23,14 @@ public class Camera2D : Node, IDrawableNode
 
         public override ValueTask Update(TimeSpan delta, GraphicsManager manager, GraphicsDevice device, CommandList commandList)
         {
+            //wh / (float)ww, 1, 1
             Transformation = new(
                 Camera.Interpolator.Interpolate(
                     Transformation.View, 
                     Camera.ViewMatrix, 
                     float.Min(Camera.RateOfChange * (float)delta.TotalSeconds, 1)
                 ),
-                Matrix4x4.Identity
+                manager.DrawParameters.Transformation.Projection
             );
             return base.Update(delta, manager, device, commandList);
         }
@@ -77,11 +78,12 @@ public class Camera2D : Node, IDrawableNode
             if (viewm is not Matrix4x4 t)
             {
                 var (scl, scp) = Scale;
-                var (rp, rot) = Rotation;
+                //var (rp, rot) = Rotation;
                 viewm = t =
-                    Matrix4x4.CreateTranslation(new(Position, 0)) *
-                    Matrix4x4.CreateScale(new Vector3(scl, 1), new Vector3(scp, 0)) *
-                    Matrix4x4.CreateRotationZ(rot, new(rp, 0));
+                    Matrix4x4.CreateTranslation(new(Position, 0)) 
+                    * Matrix4x4.CreateScale(new Vector3(scl, 1), new Vector3(scp, 0)) 
+                    //* Matrix4x4.CreateRotationZ(rot, new(rp, 0))
+                    ;
             }
             return t;
         }
@@ -121,20 +123,21 @@ public class Camera2D : Node, IDrawableNode
     }
     private (Vector2 scale, Vector2 centerPoint) __scale = (Vector2.One, default);
 
-    /// <summary>
-    /// Describes the current rotation of this <see cref="Camera2D"/>
-    /// </summary>
-    public (Vector2 centerPoint, float radians) Rotation
-    {
-        get => __rotation;
-        set
-        {
-            if (value == __rotation) return;
-            __rotation = value;
-            viewm = null;
-        }
-    }
-    private (Vector2 centerPoint, float radians) __rotation;
+    // // !!!!! Rotation has been disabled, since it's difficult to get it right with the projection
+    ///// <summary>
+    ///// Describes the current rotation of this <see cref="Camera2D"/>
+    ///// </summary>
+    //public (Vector2 centerPoint, float radians) Rotation
+    //{
+    //    get => __rotation;
+    //    set
+    //    {
+    //        if (value == __rotation) return;
+    //        __rotation = value;
+    //        viewm = null;
+    //    }
+    //}
+    //private (Vector2 centerPoint, float radians) __rotation;
 
     /// <summary>
     /// Represents the rate of change per millisecond for this <see cref="Camera2D"/>, a value from 0.0 (no change) to 1.0 (instant change)
