@@ -107,7 +107,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                     null,
                     null,
                     null,
-                    GraphicsManager.AddWindowAspectTransform
+                    null
                 ),
                 new SamplerDescription(
                     SamplerAddressMode.Clamp,
@@ -210,7 +210,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                 ),
                 null,
                 null,
-                GraphicsManager.AddWindowAspectTransform
+                null
             ),
             new ColorVertexGenerator())
             { VertexSkip = ElementSkip.ElementsToMaintain(100) }

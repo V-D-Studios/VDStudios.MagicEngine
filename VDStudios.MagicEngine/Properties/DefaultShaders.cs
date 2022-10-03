@@ -82,15 +82,12 @@ layout(location = 0) out vec4 fragTexCoord;
 
 void main() {
     fragTexCoord = vec4(inTexCoord, 0.0, 1.0);
-    gl_Position = WinTrans * projection * view * opTrans * vec4(Position, 0.0, 1.0);
+    gl_Position = projection * view * opTrans * vec4(Position, 0.0, 1.0);
 }
 
 ",
                 bindings:
 @"
-#binding uniform WindowTransform {
-    layout(offset = 0) mat4 WinTrans;
-};
 #binding uniform Transform {
     layout(offset = 0) mat4 opTrans;
 };
@@ -116,11 +113,9 @@ void main() {
     /// The default vertex shader for <see cref="TexturedShapeRenderer{TVertex}"/>
     /// </summary>
     public const string DefaultTexturedShapeRendererVertexShader = @"#version 450
-layout(set=1,binding=0) uniform WindowTransform{
-    layout(offset = 0) mat4 WinTrans;
-};layout(set=2,binding=0) uniform Transform{
+layout(set=1,binding=0) uniform Transform{
     layout(offset = 0) mat4 opTrans;
-};layout (set=3,binding=0)uniform Parameters {
+};layout (set=2,binding=0)uniform Parameters {
     layout(offset = 0) mat4 view;
     layout(offset = 64) mat4 projection;
 };
@@ -131,7 +126,7 @@ layout(location = 0) out vec4 fragTexCoord;
 
 void main() {
     fragTexCoord = vec4(inTexCoord, 0.0, 1.0);
-    gl_Position = WinTrans * view * projection * opTrans * vec4(Position, 0.0, 1.0);
+    gl_Position = projection * view * opTrans * vec4(Position, 0.0, 1.0);
 }
 ";
 
@@ -189,20 +184,17 @@ void main() {
 layout(location = 0) in vec2 Position;
 layout(location = 1) in vec4 Color;
 layout(location = 0) out vec4 fsin_Color;
-layout(binding = 0) uniform WindowAspectTransform {
-    layout(offset = 0) mat4 WindowScale;
-};
-layout(set=1,binding=0) uniform Transform {
+layout(set=0,binding=0) uniform Transform {
     layout(offset = 0) mat4 opTrans;
 };
-layout(set=2,binding=0) uniform Parameters {
+layout(set=1,binding=0) uniform Parameters {
     layout(offset = 0) mat4 view;
     layout(offset = 64) mat4 projection;
 };
 
 void main() {
     fsin_Color = Color;
-    gl_Position = WindowScale * view * projection * opTrans * vec4(Position, 0.0, 1.0);
+    gl_Position = projection * view * opTrans * vec4(Position, 0.0, 1.0);
 }";
 
     /// <summary>
