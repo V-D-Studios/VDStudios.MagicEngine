@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Numerics;
 using VDStudios.MagicEngine.Demo.Nodes;
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
 using VDStudios.MagicEngine.NodeLibrary;
@@ -61,14 +62,22 @@ public sealed class DemoScene : Scene
     }
 
     private bool next = true;
+    private int ind = -1;
+    private readonly Vector2[] CamPos = new Vector2[]
+    {
+        new(0,0),
+        new(-.5f,.5f),new(-1,1),new(0,0),
+        new(.5f,.5f),new(1,1),new(0,0),
+        new(.5f,-.5f),new(1,-1),new(0,0),
+        new(-.5f,-.5f),new(-1,-1)
+    };
     protected override ValueTask<bool> Updating(TimeSpan delta)
     {
         if (next is true)
         {
-            var x = camera.Rotation.radians;
-            camera.Rotation = (default, (x + float.Tau / 4) % float.Tau);
+            camera.Position = CamPos[ind = (ind + 1) % CamPos.Length];
             next = false;
-            GameDeferredCallSchedule.Schedule(() => next = true, TimeSpan.FromSeconds(5));
+            GameDeferredCallSchedule.Schedule(() => next = true, TimeSpan.FromSeconds(1));
         }
         return new ValueTask<bool>(true);
     }
