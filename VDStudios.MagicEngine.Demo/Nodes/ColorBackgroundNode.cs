@@ -10,15 +10,8 @@ public class ColorBackgroundNode : Node, IDrawableNode
 {
     public ColorBackgroundNode()
     {
-        DrawOperationManager = new DrawOperationManagerDrawQueueDelegate(this, (q, op) =>
-        {
-            if (op is ColorDraw)
-                q.Enqueue(op, 1);
-            else if (op is GradientColorShow)
-                q.Enqueue(op, 2);
-        });
+        DrawOperationManager = new DrawOperationManager(this);
         DrawOperationManager.AddDrawOperation<ColorDraw>();
-        DrawOperationManager.AddDrawOperation<GradientColorShow>();
     }
 
     #region Draw Operations
