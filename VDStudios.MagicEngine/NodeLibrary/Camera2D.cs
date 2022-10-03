@@ -85,7 +85,7 @@ public class Camera2D : Node, IDrawableNode
                     //* Matrix4x4.CreateRotationZ(rot, new(rp, 0))
                     ;
 
-                viewm = !Matrix4x4.Invert(m, out t) ? m : t;
+                viewm = Matrix4x4.Invert(m, out t) ? t : m;
             }
             return t;
         }
