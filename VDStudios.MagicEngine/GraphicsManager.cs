@@ -62,6 +62,7 @@ public class GraphicsManager : GameObject, IDisposable
 
         IsRunningCheck = () => IsRunning;
         IsNotRenderingCheck = () => !IsRendering;
+        DrawParameters = new();
     }
 
     /// <summary>
@@ -787,7 +788,6 @@ public class GraphicsManager : GameObject, IDisposable
         int resBufferFill = 0;
         TimeSpan delta = default;
 
-        DrawParameters = new();
         RegisterSharedDrawResource(DrawParameters);
 
         var gd = Device!;
