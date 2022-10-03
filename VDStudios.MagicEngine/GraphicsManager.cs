@@ -910,22 +910,7 @@ public class GraphicsManager : GameObject, IDisposable
                                     lcld.Start(delta);
                                     activeDispatchs[dispatchs++] = lcld;
                                 }
-#if FORCE_GM_NOPARALLEL
-                                managercl.Begin();
-                                PrepareForDraw(managercl, gd.SwapchainFramebuffer); // Set the base of the frame: clear the background, etc.
-                                for (int i = 0; i < resBufferFill; i++)
-                                    await resBuffer[i].InternalUpdate(managercl);
-                                managercl.End();
-                                gd.SubmitCommands(managercl);
-                                Array.Clear(resBuffer, 0, resBufferFill);
-                                resBufferFill = 0;
-                                for (int i = 0; i < dispatchs; i++)
-                                    gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
-                                Array.Clear(activeDispatchs, 0, dispatchs);
-#endif
                             }
-
-#if !FORCE_GM_NOPARALLEL
 
                             managercl.Begin();
                             PrepareForDraw(managercl, gd.SwapchainFramebuffer); // Set the base of the frame: clear the background, etc.
@@ -938,7 +923,6 @@ public class GraphicsManager : GameObject, IDisposable
                             for (int i = 0; i < dispatchs; i++)
                                 gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
                             Array.Clear(activeDispatchs, 0, dispatchs);
-#endif
                         }
                     }
                     finally

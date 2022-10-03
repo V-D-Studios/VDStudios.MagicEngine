@@ -18,8 +18,10 @@ internal class CommandListDispatch
     private int DopCount = 0;
 
     private readonly CommandList cl;
+#if !FORCE_GM_NOPARALLEL
     private readonly SemaphoreSlim sem;
     private readonly WaitCallback WorkMethod_del;
+#endif
 
     private TimeSpan delta;
     private Exception? Fault;
@@ -30,8 +32,10 @@ internal class CommandListDispatch
     {
         dops = new DrawOperation[expectedDops];
         this.cl = cl;
+#if !FORCE_GM_NOPARALLEL
         WorkMethod_del = WorkMethod;
         sem = new(1, 1);
+#endif
     }
 
     public void Add(DrawOperation dop)
@@ -64,12 +68,15 @@ internal class CommandListDispatch
         {
             ArrayPool<ValueTask>.Shared.Return(tasks, true);
             cl.End();
+#if !FORCE_GM_NOPARALLEL
             sem.Release();
+#endif
         }
     }
 
     public CommandList WaitForEnd()
     {
+#if !FORCE_GM_NOPARALLEL
         sem.Wait();
         try
         {
@@ -92,6 +99,17 @@ internal class CommandListDispatch
         {
             sem.Release();
         }
+#else
+        WorkMethod(null);
+        if (Fault is Exception e)
+        {
+            Fault = null;
+            throw e;
+        }
+        Array.Clear(dops);
+        DopCount = 0;
+        return cl;
+#endif
     }
 
     public void Start(TimeSpan delta)
@@ -99,6 +117,7 @@ internal class CommandListDispatch
         if (DopCount is 0)
             return;
         this.delta = delta;
+#if !FORCE_GM_NOPARALLEL
         sem.Wait();
         try
         {
@@ -114,5 +133,6 @@ internal class CommandListDispatch
             sem.Release();
             throw;
         }
+#endif
     }
 }
