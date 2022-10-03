@@ -376,7 +376,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// The method that will be used to draw the component
     /// </summary>
     /// <remarks>
-    /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock! Remember that <paramref name="commandList"/> is *NOT* thread-safe, but it is owned solely by this <see cref="DrawOperation"/>; and <see cref="GraphicsManager"/> will not use it until this method returns.
+    /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock! Remember that <paramref name="commandList"/> is *NOT* thread-safe, but it is used only one <see cref="DrawOperation"/> at a time, managed externally; and <see cref="GraphicsManager"/> will not use it until this method returns.
     /// </remarks>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
