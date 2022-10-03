@@ -79,11 +79,13 @@ public class Camera2D : Node, IDrawableNode
             {
                 var (scl, scp) = Scale;
                 //var (rp, rot) = Rotation;
-                viewm = t =
-                    Matrix4x4.CreateTranslation(new(Position, 0)) 
-                    * Matrix4x4.CreateScale(new Vector3(scl, 1), new Vector3(scp, 0)) 
+
+                var m = Matrix4x4.CreateTranslation(new(Position, 0))
+                    * Matrix4x4.CreateScale(new Vector3(scl, 1), new Vector3(scp, 0))
                     //* Matrix4x4.CreateRotationZ(rot, new(rp, 0))
                     ;
+
+                viewm = !Matrix4x4.Invert(m, out t) ? m : t;
             }
             return t;
         }
