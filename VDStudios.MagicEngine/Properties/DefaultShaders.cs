@@ -143,7 +143,7 @@ const int opacityMultiplyFx = 1 << 4;
 
 layout(set=0,binding=0) uniform sampler TSamp;
 layout(set=0,binding=1) uniform texture2D Tex;
-layout(set=2,binding=0) uniform Transform {
+layout(set=1,binding=0) uniform Transform {
     layout(offset = 0) mat4 opTrans;
     layout(offset = 64) vec4 tint;
     layout(offset = 80) vec4 overlay;
