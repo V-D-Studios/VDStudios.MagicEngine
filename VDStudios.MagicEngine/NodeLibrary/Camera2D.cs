@@ -142,7 +142,7 @@ public class Camera2D : Node, IDrawableNode
     /// <remarks>
     /// Depending on the object <see cref="Interpolator"/> is set to, the effects of this value can vary. By default, <see cref="LinearInterpolator.Instance"/> is used, and higher values result in faster transitions
     /// </remarks>
-    public float RateOfChange { get; set; } = .5f;
+    public float RateOfChange { get; set; } = 6f;
 
     /// <inheritdoc/>
     protected override ValueTask<bool> Updating(TimeSpan delta)
