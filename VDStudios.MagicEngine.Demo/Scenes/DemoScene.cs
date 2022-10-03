@@ -1,11 +1,13 @@
 ﻿using System.Collections.Concurrent;
 using VDStudios.MagicEngine.Demo.Nodes;
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
+using VDStudios.MagicEngine.NodeLibrary;
 
 namespace VDStudios.MagicEngine.Demo.Scenes;
 
 public sealed class DemoScene : Scene
 {
+    private Camera2D camera;
     public DemoScene()
     {
     }
@@ -15,8 +17,12 @@ public sealed class DemoScene : Scene
         Log.Information("Configuring DemoScene");
 
         Log.Debug("Attaching ColorBackgroundNode");
-        await Attach(new ColorBackgroundNode());
-        await Attach(new FloatingShapesNode());
+
+        camera = new Camera2D();
+        await Attach(camera);
+        await camera.Attach(new ColorBackgroundNode());
+        await camera.Attach(new FloatingShapesNode());
+
         var lagger = new LaggerNode();
         await Attach(lagger);
 
@@ -52,6 +58,19 @@ public sealed class DemoScene : Scene
                 return true;
             }),
         }));
+    }
+
+    private bool next = true;
+    protected override ValueTask<bool> Updating(TimeSpan delta)
+    {
+        if (next is true)
+        {
+            var x = camera.Rotation.radians;
+            camera.Rotation = (default, (x + float.Tau / 4) % float.Tau);
+            next = false;
+            GameDeferredCallSchedule.Schedule(() => next = true, TimeSpan.FromSeconds(5));
+        }
+        return new ValueTask<bool>(true);
     }
 
     private sealed class LaggerNode : Node
