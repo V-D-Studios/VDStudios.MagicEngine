@@ -27,7 +27,7 @@ public class Camera2D : Node, IDrawableNode
                 Camera.Interpolator.Interpolate(
                     Transformation.View, 
                     Camera.ViewMatrix, 
-                    float.Min(Camera.RateOfChange * (float)delta.TotalMilliseconds, 1)
+                    float.Min(Camera.RateOfChange * (float)delta.TotalSeconds, 1)
                 ),
                 Matrix4x4.Identity
             );
@@ -119,7 +119,7 @@ public class Camera2D : Node, IDrawableNode
             viewm = null;
         }
     }
-    private (Vector2 scale, Vector2 centerPoint) __scale;
+    private (Vector2 scale, Vector2 centerPoint) __scale = (Vector2.One, default);
 
     /// <summary>
     /// Describes the current rotation of this <see cref="Camera2D"/>
@@ -142,7 +142,7 @@ public class Camera2D : Node, IDrawableNode
     /// <remarks>
     /// Depending on the object <see cref="Interpolator"/> is set to, the effects of this value can vary. By default, <see cref="LinearInterpolator.Instance"/> is used, and higher values result in faster transitions
     /// </remarks>
-    public float RateOfChange { get; set; }
+    public float RateOfChange { get; set; } = .5f;
 
     /// <inheritdoc/>
     protected override ValueTask<bool> Updating(TimeSpan delta)
