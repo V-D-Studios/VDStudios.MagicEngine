@@ -13,23 +13,18 @@ public readonly record struct DrawTransformation(Matrix4x4 View, Matrix4x4 Proje
 /// <summary>
 /// Represents the parameters of a <see cref="DrawTransformation"/> and its accompanying data
 /// </summary>
-public sealed class DrawParameters
+public class DrawParameters : SharedDrawResource
 {
     private static BufferDescription buffDesc = new(DataStructuring.FitToUniformBuffer<DrawTransformation, uint>(), BufferUsage.UniformBuffer);
 
     private readonly object sync = new();
     private DrawTransformation trans;
-    private bool PendingBufferUpdate = true;
 
-    public DrawParameters(GraphicsManager manager)
+    /// <summary>
+    /// Instances a new object of type <see cref="DrawParameters"/>
+    /// </summary>
+    public DrawParameters()
     {
-        Manager = manager;
-        var factory = manager.Device.ResourceFactory;
-        TransformationBuffer = factory.CreateBuffer(ref buffDesc);
-
-        var rescDesc = new ResourceSetDescription(ResourceLayout, TransformationBuffer);
-        ResourceSet = factory.CreateResourceSet(ref rescDesc);
-
         Transformation = new(Matrix4x4.Identity, Matrix4x4.Identity);
     }
 
@@ -44,6 +39,7 @@ public sealed class DrawParameters
             if (trans == value) return;
             lock (sync)
                 trans = value;
+            NotifyPendingUpdate();
         }
     }
 
@@ -53,36 +49,37 @@ public sealed class DrawParameters
     /// <remarks>
     /// Returns <see cref="GraphicsManager.DrawTransformationLayout"/>
     /// </remarks>
-    public ResourceLayout ResourceLayout => Manager.DrawTransformationLayout;
-
-    /// <summary>
-    /// The <see cref="GraphicsManager"/> this <see cref="DrawParameters"/> instance is tied to
-    /// </summary>
-    public GraphicsManager Manager { get; }
+    public ResourceLayout ResourceLayout => Manager!.DrawTransformationLayout;
 
     /// <summary>
     /// The <see cref="ResourceSet"/> that represents the <see cref="TransformationBuffer"/>
     /// </summary>
-    public ResourceSet ResourceSet { get; }
+    public ResourceSet ResourceSet { get; private set; }
 
     /// <summary>
     /// The Transformation buffer
     /// </summary>
-    private DeviceBuffer TransformationBuffer { get; }
+    private DeviceBuffer TransformationBuffer { get; set; }
 
-    /// <summary>
-    /// Checks if there are pending updates to the transformation buffer and if so, updates it
-    /// </summary>
-    public void UpdateTransformationBuffer()
+    /// <inheritdoc/>
+    public override ValueTask Update(TimeSpan delta, GraphicsManager manager, GraphicsDevice device, CommandList commandList)
     {
         DrawTransformation dtr;
-        if (PendingBufferUpdate) 
-            lock (sync)
-                if (PendingBufferUpdate)
-                {
-                    PendingBufferUpdate = false;
-                    dtr = trans;
-                    Manager.Device.UpdateBuffer(TransformationBuffer, 0, ref dtr);
-                }
+        lock (sync) dtr = trans;
+        commandList.UpdateBuffer(TransformationBuffer, 0, ref dtr);
+
+        return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory)
+    {
+        TransformationBuffer = factory.CreateBuffer(ref buffDesc);
+
+        var rescDesc = new ResourceSetDescription(ResourceLayout, TransformationBuffer);
+        ResourceSet = factory.CreateResourceSet(ref rescDesc);
+
+        device.UpdateBuffer(TransformationBuffer, 0, ref trans);
+        return ValueTask.CompletedTask;
     }
 }

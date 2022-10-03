@@ -56,6 +56,8 @@ public class DrawOperationManager : GameObject
     public void CascadeThroughNode(DrawParameters parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
+        if (parameters.IsReady is false)
+            throw new ArgumentException("parameters must be ready before it can be cascaded", nameof(parameters));
         InternalLog?.Debug("Cascading {typeName} through the owning Node {objName}'s children", nameof(DrawParameters), Owner.Name);
         cascadedParameters = parameters;
         ProcessNewDrawData(parameters);

@@ -1,11 +1,14 @@
 ﻿using System.Collections.Concurrent;
+using System.Numerics;
 using VDStudios.MagicEngine.Demo.Nodes;
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
+using VDStudios.MagicEngine.NodeLibrary;
 
 namespace VDStudios.MagicEngine.Demo.Scenes;
 
 public sealed class DemoScene : Scene
 {
+    private Camera2D camera;
     public DemoScene()
     {
     }
@@ -15,8 +18,12 @@ public sealed class DemoScene : Scene
         Log.Information("Configuring DemoScene");
 
         Log.Debug("Attaching ColorBackgroundNode");
-        await Attach(new ColorBackgroundNode());
-        await Attach(new FloatingShapesNode());
+
+        camera = new Camera2D();
+        await Attach(camera);
+        await camera.Attach(new ColorBackgroundNode());
+        await camera.Attach(new FloatingShapesNode());
+
         var lagger = new LaggerNode();
         await Attach(lagger);
 
@@ -52,6 +59,27 @@ public sealed class DemoScene : Scene
                 return true;
             }),
         }));
+    }
+
+    private bool next = true;
+    private int ind = -1;
+    private readonly Vector2[] CamPos = new Vector2[]
+    {
+        new(0,0),
+        new(-.5f,.5f),new(-1,1),new(0,0),
+        new(.5f,.5f),new(1,1),new(0,0),
+        new(.5f,-.5f),new(1,-1),new(0,0),
+        new(-.5f,-.5f),new(-1,-1)
+    };
+    protected override ValueTask<bool> Updating(TimeSpan delta)
+    {
+        if (next is true)
+        {
+            camera.Position = CamPos[ind = (ind + 1) % CamPos.Length];
+            next = false;
+            GameDeferredCallSchedule.Schedule(() => next = true, TimeSpan.FromSeconds(1));
+        }
+        return new ValueTask<bool>(true);
     }
 
     private sealed class LaggerNode : Node

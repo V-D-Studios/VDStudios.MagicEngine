@@ -31,7 +31,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// </summary>
     public DrawOperation() : base("Drawing")
     {
-        ReadySemaphore = new(0, 1);
     }
 
     #region Transformation
@@ -177,97 +176,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     #endregion
 
     /// <summary>
-    /// <c>true</c> when the node has been added to the scene tree and initialized
-    /// </summary>
-    public bool IsReady
-    {
-        get => _isReady;
-        private set
-        {
-            if (value == _isReady) return;
-            if (value)
-                ReadySemaphore.Release();
-            else
-                ReadySemaphore.Wait();
-            _isReady = value;
-        }
-    }
-    private bool _isReady;
-    private readonly SemaphoreSlim ReadySemaphore;
-
-    /// <summary>
-    /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
-    /// </summary>
-    public async ValueTask WaitUntilReadyAsync()
-    {
-        if (IsReady)
-            return;
-        if (ReadySemaphore.Wait(15))
-        {
-            ReadySemaphore.Release();
-            return;
-        }
-
-        await ReadySemaphore.WaitAsync();
-        ReadySemaphore.Release();
-    }
-
-    /// <summary>
-    /// Waits until the Node has been added to the scene tree and is ready to be used
-    /// </summary>
-    public void WaitUntilReady()
-    {
-        if (IsReady)
-            return;
-        ReadySemaphore.Wait();
-        ReadySemaphore.Release();
-    }
-
-    /// <summary>
-    /// Waits until the Node has been added to the scene tree and is ready to be used
-    /// </summary>
-    public bool WaitUntilReady(int timeoutMilliseconds)
-    {
-        if (IsReady)
-            return true;
-        if (ReadySemaphore.Wait(timeoutMilliseconds))
-        {
-            ReadySemaphore.Release();
-            return true;
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
-    /// </summary>
-    public async ValueTask<bool> WaitUntilReadyAsync(int timeoutMilliseconds)
-    {
-        if (IsReady)
-            return true;
-        if (timeoutMilliseconds > 15)
-        {
-            if (ReadySemaphore.Wait(15))
-            {
-                ReadySemaphore.Release();
-                return true;
-            }
-
-            if (await ReadySemaphore.WaitAsync(timeoutMilliseconds - 15))
-            {
-                ReadySemaphore.Release();
-                return true;
-            }
-        }
-        if (await ReadySemaphore.WaitAsync(timeoutMilliseconds))
-        {
-            ReadySemaphore.Release();
-            return true;
-        }
-        return false;
-    }
-
-    /// <summary>
     /// Represents this <see cref="DrawOperation"/>'s preferred priority. May or may not be honored depending on the <see cref="DrawOperationManager"/>
     /// </summary>
     public float PreferredPriority { get; set; }
@@ -282,12 +190,27 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     internal int _clga => (int)(CommandListGroupAffinity ?? 0);
 
     /// <summary>
-    /// Represents the current reference to <see cref="DrawParameters"/> this <see cref="DrawOperation"/> has
+    /// Represents the current reference to <see cref="DrawParameters"/> this <see cref="DrawOperation"/> has, which has been cascaded through the nodes that own this operation
     /// </summary>
-    /// <remarks>
-    /// Rather than change this manually, it's better to let the owner of this <see cref="DrawOperation"/> assign it in the next cascade assignment
-    /// </remarks>
-    public DrawParameters? ReferenceParameters { get; set; }
+    public DrawParameters? ReferenceParameters
+    {
+        get => RefParams_field;
+        internal set
+        {
+            if (ReferenceEquals(RefParams_field, value)) return;
+            var prev = RefParams_field;
+            RefParams_field = value;
+            ReferenceParametersChanging(prev, value);
+        }
+    }
+    private DrawParameters? RefParams_field;
+
+    /// <summary>
+    /// This method is called automatically when <see cref="ReferenceParameters"/> changes
+    /// </summary>
+    /// <param name="previous">The previous object that <see cref="ReferenceParameters"/> referenced</param>
+    /// <param name="replacement">The object that <see cref="ReferenceParameters"/> now references</param>
+    protected virtual void ReferenceParametersChanging(DrawParameters? previous, DrawParameters? replacement) { }
 
     /// <summary>
     /// Returns either <see cref="ReferenceParameters"/> or <see cref="GraphicsManager.DrawParameters"/> if the former is <c>null</c>
@@ -319,13 +242,13 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     internal async ValueTask Register(GraphicsManager manager)
     {
         ThrowIfDisposed();
+        VerifyManager(manager);
 
         Registering(manager);
         
         var device = manager.Device;
         var factory = device.ResourceFactory;
         Device = device;
-        Manager = manager;
 
         var resb = ResourceSetBuilderPool.Rent();
         try
@@ -340,7 +263,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         }
 
         Registered();
-        IsReady = true;
+        NotifyIsReady();
     }
 
     #endregion
@@ -350,7 +273,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// <summary>
     /// This method is called automatically when this <see cref="DrawOperation"/> is being registered onto <paramref name="manager"/>
     /// </summary>
-    /// <param name="owner">The <see cref="Node"/> that registered this <see cref="DrawOperation"/></param>
     /// <param name="manager">The <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is being registered onto</param>
     protected virtual void Registering(GraphicsManager manager) { }
 
@@ -433,6 +355,8 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         device.UpdateBuffer(TransformationBuffer, VertexTransformationOffset, ref vtrans);
         device.UpdateBuffer(TransformationBuffer, ColorTransformationOffset, ref ctrans);
         builder.InsertLast(TransformationSet, TransformationLayout, out int _, "DrawOperation Base Transformation");
+        builder.InsertLast(Parameters.ResourceSet, Parameters.ResourceLayout, out int _, "Parameters");
+
         return ValueTask.CompletedTask;
     }
 
@@ -452,7 +376,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// The method that will be used to draw the component
     /// </summary>
     /// <remarks>
-    /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock! Remember that <paramref name="commandList"/> is *NOT* thread-safe, but it is owned solely by this <see cref="DrawOperation"/>; and <see cref="GraphicsManager"/> will not use it until this method returns.
+    /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock! Remember that <paramref name="commandList"/> is *NOT* thread-safe, but it is used only one <see cref="DrawOperation"/> at a time, managed externally; and <see cref="GraphicsManager"/> will not use it until this method returns.
     /// </remarks>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
@@ -535,7 +459,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
                 {
                     Device = null;
                     _owner = null!;
-                    Manager = null;
                     @lock.Dispose();
                 }
             }

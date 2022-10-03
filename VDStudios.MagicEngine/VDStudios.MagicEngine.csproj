@@ -65,18 +65,4 @@
 	  <ProjectReference Include="..\dependencies\veldrid\src\Veldrid.ImageSharp\Veldrid.ImageSharp.csproj" />
 	  <ProjectReference Include="..\dependencies\veldrid\src\Veldrid\Veldrid.csproj" />
 	</ItemGroup>
-	<ItemGroup>
-	  <Compile Update="Properties\ImGuiResources.Designer.cs">
-	    <DesignTime>True</DesignTime>
-	    <AutoGen>True</AutoGen>
-	    <DependentUpon>ImGuiResources.resx</DependentUpon>
-	  </Compile>
-	</ItemGroup>
-	<ItemGroup>
-	  <EmbeddedResource Update="Properties\ImGuiResources.resx">
-	    <Generator>PublicResXFileCodeGenerator</Generator>
-	    <LastGenOutput>ImGuiResources.Designer.cs</LastGenOutput>
-	  </EmbeddedResource>
-	</ItemGroup>
-
 </Project>

@@ -367,11 +367,20 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     }
 
     /// <inheritdoc/>
+    protected override void ReferenceParametersChanging(DrawParameters? previous, DrawParameters? replacement)
+    {
+        if (ResourceSets is null || replacement is null) return;
+        ResourceSets[ParametersSetId] = replacement.ResourceSet;
+    }
+
+    int ParametersSetId;
+    /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? resourcesSets, ResourceLayout[]? resourceLayouts)
     {
         Pipeline = CreatePipeline(Manager!, device, factory, resourceLayouts, ShapeRendererDescription);
 
         ResourceSets = resourcesSets!;
+        ParametersSetId = ResourceSets.Select((x, i) => (x, i)).First(x => x.x.Name == "Parameters").i;
         
         NotifyPendingGPUUpdate();
 

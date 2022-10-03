@@ -13,6 +13,10 @@ namespace VDStudios.MagicEngine.Properties;
 /// </summary>
 public static class DefaultShaders
 {
+    #region TexturedShapeRenderer
+
+    #region Builders 
+
     private static readonly Lazy<ShaderBuilder> lazy_dtsrfs
         = new(() =>
         {
@@ -78,17 +82,18 @@ layout(location = 0) out vec4 fragTexCoord;
 
 void main() {
     fragTexCoord = vec4(inTexCoord, 0.0, 1.0);
-    gl_Position = WinTrans * opTrans * vec4(Position, 0.0, 1.0);
+    gl_Position = projection * view * opTrans * vec4(Position, 0.0, 1.0);
 }
 
 ",
                 bindings:
 @"
-#binding uniform WindowTransform {
-    layout(offset = 0) mat4 WinTrans;
-};
 #binding uniform Transform {
     layout(offset = 0) mat4 opTrans;
+};
+#binding uniform Parameters {
+    layout(offset = 0) mat4 view;
+    layout(offset = 64) mat4 projection;
 };
 "
             );
@@ -100,14 +105,19 @@ void main() {
     /// </summary>
     public static ShaderBuilder DefaultTexturedShapeRendererVertexShaderBuilder => lazy_dtsrvs.Value;
 
+    #endregion
+
+    #region Pre-Built
+
     /// <summary>
     /// The default vertex shader for <see cref="TexturedShapeRenderer{TVertex}"/>
     /// </summary>
     public const string DefaultTexturedShapeRendererVertexShader = @"#version 450
-layout(set=1,binding=0) uniform WindowTransform{
-    layout(offset = 0) mat4 WinTrans;
-};layout(set=2,binding=0) uniform Transform{
+layout(set=1,binding=0) uniform Transform{
     layout(offset = 0) mat4 opTrans;
+};layout (set=2,binding=0)uniform Parameters {
+    layout(offset = 0) mat4 view;
+    layout(offset = 64) mat4 projection;
 };
 
 layout(location = 0) in vec2 inTexCoord;
@@ -116,7 +126,7 @@ layout(location = 0) out vec4 fragTexCoord;
 
 void main() {
     fragTexCoord = vec4(inTexCoord, 0.0, 1.0);
-    gl_Position = WinTrans * opTrans * vec4(Position, 0.0, 1.0);
+    gl_Position = projection * view * opTrans * vec4(Position, 0.0, 1.0);
 }
 ";
 
@@ -133,7 +143,7 @@ const int opacityMultiplyFx = 1 << 4;
 
 layout(set=0,binding=0) uniform sampler TSamp;
 layout(set=0,binding=1) uniform texture2D Tex;
-layout(set=2,binding=0) uniform Transform {
+layout(set=1,binding=0) uniform Transform {
     layout(offset = 0) mat4 opTrans;
     layout(offset = 64) vec4 tint;
     layout(offset = 80) vec4 overlay;
@@ -160,6 +170,12 @@ void main() {
     outColor = c;
 }";
 
+    #endregion
+
+    #endregion
+
+    #region ShapeRenderer
+
     /// <summary>
     /// The default vertex shader for <see cref="ShapeRenderer{TVertex}"/>
     /// </summary>
@@ -168,16 +184,17 @@ void main() {
 layout(location = 0) in vec2 Position;
 layout(location = 1) in vec4 Color;
 layout(location = 0) out vec4 fsin_Color;
-layout(binding = 0) uniform WindowAspectTransform {
-    layout(offset = 0) mat4 WindowScale;
-};
-layout(set=1,binding=0) uniform Transform {
+layout(set=0,binding=0) uniform Transform {
     layout(offset = 0) mat4 opTrans;
+};
+layout(set=1,binding=0) uniform Parameters {
+    layout(offset = 0) mat4 view;
+    layout(offset = 64) mat4 projection;
 };
 
 void main() {
     fsin_Color = Color;
-    gl_Position = WindowScale * opTrans * vec4(Position, 0.0, 1.0);
+    gl_Position = projection * view * opTrans * vec4(Position, 0.0, 1.0);
 }";
 
     /// <summary>
@@ -217,4 +234,6 @@ void main() {
     else if ((trans.colorfx & opacityMultiplyFx) != 0) { c.a *= trans.opacity; }
     fsout_Color = c;
 }";
+
+    #endregion
 }

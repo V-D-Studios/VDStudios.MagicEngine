@@ -14,48 +14,6 @@ using Veldrid;
 namespace VDStudios.MagicEngine;
 
 /// <summary>
-/// Represents the data required to define a new CommandListGroup for this GraphicsManager
-/// </summary>
-public readonly struct CommandListGroupDefinition
-{
-    /// <summary>
-    /// The degree of parallelism that this CommandListGroup will have
-    /// </summary>
-    public int Parallelism { get; }
-
-    /// <summary>
-    /// The amount of expected operations each CommandList will have in the group
-    /// </summary>
-    public int ExpectedOperations { get; }
-
-    /// <summary>
-    /// Creates a new instance of type <see cref="CommandListGroupDefinition"/>
-    /// </summary>
-    /// <param name="parallelism">The degree of parallelism that this CommandListGroup will have</param>
-    /// <param name="expectedOperations">The amount of expected operations each CommandList will have in the group</param>
-    public CommandListGroupDefinition(int parallelism, int expectedOperations = 100)
-    {
-        if (parallelism <= 0)
-            throw new ArgumentOutOfRangeException(nameof(parallelism), parallelism, "The degree of parallelism must be larger than 0");
-        if (expectedOperations <= 0)
-            throw new ArgumentOutOfRangeException(nameof(expectedOperations), expectedOperations, "The amount of expected operations must be larger than 0");
-        Parallelism = parallelism;
-        ExpectedOperations = expectedOperations;
-    }
-
-    /// <summary>
-    /// Deconstructs this <see cref="CommandListGroupDefinition"/> in the following order: parallelism, expectedOperations
-    /// </summary>
-    /// <param name="parallelism">The degree of parallelism that this CommandListGroup will have</param>
-    /// <param name="expectedOperations">The amount of expected operations each CommandList will have in the group</param>
-    public void Deconstruct(out int parallelism, out int expectedOperations)
-    {
-        parallelism = Parallelism;
-        expectedOperations = ExpectedOperations;
-    }
-}
-
-/// <summary>
 /// Represents a Thread dedicated solely to handling a specific pair of <see cref="SDL2.NET.Window"/> and <see cref="GraphicsDevice"/>, and managing their respective resources in a thread-safe manner
 /// </summary>
 /// <remarks>
@@ -64,6 +22,15 @@ public readonly struct CommandListGroupDefinition
 public class GraphicsManager : GameObject, IDisposable
 {
     #region Construction
+
+    /// <summary>
+    /// Represents the <see cref="DeferredExecutionSchedule"/> tied to this <see cref="GraphicsManager"/>, and can be used to defer calls that should run under this <see cref="GraphicsManager"/>'s loop. 
+    /// </summary>
+    /// <remarks>
+    /// This schedule is updated every frame, as such, it's subject to the framerate of this <see cref="GraphicsManager"/>, which, depending on configuration, can vary between the <see cref="GraphicsDevice"/> vertical refresh rate, or as fast as it can run. ---- Not to be confused with <see cref="Game.DeferredCallSchedule"/> (or <see cref="GameObject.GameDeferredCallSchedule"/>, which is the same)
+    /// </remarks>
+    public DeferredExecutionSchedule DeferredCallSchedule { get; }
+    private readonly Action DeferredCallScheduleUpdater;
 
     /// <summary>
     /// Instances and constructs a new <see cref="GraphicsManager"/> object
@@ -90,6 +57,12 @@ public class GraphicsManager : GameObject, IDisposable
         CommandListGroups = commandListGroups;
 
         DefaultResourceCache = new(this);
+
+        DeferredCallSchedule = DeferredExecutionSchedule.New(out DeferredCallScheduleUpdater);
+
+        IsRunningCheck = () => IsRunning;
+        IsNotRenderingCheck = () => !IsRendering;
+        DrawParameters = new();
     }
 
     /// <summary>
@@ -141,23 +114,9 @@ public class GraphicsManager : GameObject, IDisposable
     public Size WindowSize { get; private set; }
 
     /// <summary>
-    /// A transformation matrix to transform points in window space so that objects drawn in relative window coordinates (-1f to 1f) maintain their original aspect ratio
-    /// </summary>
-    public WindowTransformation WindowTransform { get; private set; }
-
-    /// <summary>
     /// Represents the <see cref="ResourceLayout"/> that describes the usage of a <see cref="DrawTransformation"/>
     /// </summary>
     public ResourceLayout DrawTransformationLayout { get; private set; }
-
-    /// <summary>
-    /// Represents the buffer that will hold the information for window transformation
-    /// </summary>
-    public DeviceBuffer WindowTransformBuffer { get; private set; }
-
-    private BindableResource[] ManagerResourceBindings;
-
-    private static ResourceLayout? ManagerResourceLayout;
 
     internal ResourceLayout DrawOpTransLayout { get; private set; }
 
@@ -165,38 +124,6 @@ public class GraphicsManager : GameObject, IDisposable
     /// The the default resource cache for this <see cref="GraphicsManager"/>
     /// </summary>
     public DefaultResourceCache DefaultResourceCache { get; }
-
-    /// <summary>
-    /// Gets or instantiates the layout of the resources relevant to this <see cref="GraphicsManager"/>
-    /// </summary>
-    /// <remarks>
-    /// Corresponds to the <see cref="ManagerResourceSet"/> of each instance of <see cref="GraphicsManager"/>
-    /// </remarks>
-    public static ResourceLayout GetManagerResourceLayout(ResourceFactory factory)
-    {
-        if (ManagerResourceLayout is null)
-            lock (typeof(GraphicsManager)) 
-                ManagerResourceLayout ??= factory.CreateResourceLayout(new ResourceLayoutDescription(new ResourceLayoutElementDescription("WindowTransform", ResourceKind.UniformBuffer, ShaderStages.Vertex)));
-        return ManagerResourceLayout;
-    }
-
-    /// <summary>
-    /// Represents the set of the resources relevant to this <see cref="GraphicsManager"/>
-    /// </summary>
-    /// <remarks>
-    /// Corresponds to <see cref="ManagerResourceSet"/>
-    /// </remarks>
-    public ResourceSet ManagerResourceSet { get; private set; }
-    
-    /// <summary>
-    /// Adds the necessary resources to provide the Window aspect transformation buffer as a bound resource to a shader
-    /// </summary>
-    /// <param name="manager"></param>
-    /// <param name="device"></param>
-    /// <param name="factory"></param>
-    /// <param name="builder"></param>
-    public static void AddWindowAspectTransform(GraphicsManager manager, GraphicsDevice device, ResourceFactory factory, ResourceSetBuilder builder)
-        => builder.InsertFirst(manager.ManagerResourceSet, GetManagerResourceLayout(factory), out _);
 
     /// <summary>
     /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager"/> is running
@@ -208,7 +135,8 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region DrawOperation Registration
 
-    private readonly List<DrawOperation> RegistrationBuffer = new();
+    private readonly List<DrawOperation> DOPRegistrationBuffer = new();
+    private readonly List<SharedDrawResource> SDRRegistrationBuffer = new();
 
     #region Public
 
@@ -223,16 +151,58 @@ public class GraphicsManager : GameObject, IDisposable
     {
         if (operation._clga >= CommandListGroups.Length)
             throw new InvalidOperationException($"This GraphicsManager only has {CommandListGroups.Length} CommandList groups [0-{CommandListGroups.Length - 1}], an operation with a CommandListGroupAffinity of {operation._clga} cannot be registered.");
-
-        lock (RegistrationBuffer)
-            RegistrationBuffer.Add(operation);
+        operation.AssignManager(this);
+        lock (DOPRegistrationBuffer)
+            DOPRegistrationBuffer.Add(operation);
     }
 
+    /// <summary>
+    /// Queues <paramref name="resource"/> for registration in this <see cref="GraphicsManager"/>
+    /// </summary>
+    /// <param name="resource">The <see cref="SharedDrawResource"/> that will be registered onto this <see cref="GraphicsManager"/></param>
+    public void RegisterSharedDrawResource(SharedDrawResource resource)
+    {
+        resource.ThrowIfAlreadyRegistered();
+        resource.AssignManager(this);
+        lock (SDRRegistrationBuffer)
+            SDRRegistrationBuffer.Add(resource);
+    }
+
+    /// <summary>
+    /// Queues all of the <see cref="SharedDrawResource"/>s in <paramref name="resources"/> for registration in this <see cref="GraphicsManager"/>
+    /// </summary>
+    /// <param name="resources">The <see cref="SharedDrawResource"/>s that will be registered onto this <see cref="GraphicsManager"/></param>
+    public void RegisterSharedDrawResource(IEnumerable<SharedDrawResource> resources)
+    {
+        lock (SDRRegistrationBuffer)
+        {
+            if (resources is ICollection<SharedDrawResource> coll)
+                SDRRegistrationBuffer.EnsureCapacity(coll.Count + SDRRegistrationBuffer.Count);
+
+            if (resources is SharedDrawResource[] arr)
+                for (int i = 0; i < arr.Length; i++)
+                {
+                    var obj = arr[i];
+                    obj.ThrowIfAlreadyRegistered();
+                    obj.AssignManager(this);
+                    SDRRegistrationBuffer.Add(obj);
+                }
+            else
+                foreach (var obj in resources)
+                {
+                    obj.ThrowIfAlreadyRegistered();
+                    obj.AssignManager(this);
+                    SDRRegistrationBuffer.Add(obj);
+                }
+        }
+    }
+    
     #endregion
 
     #region Fields
 
     private readonly Dictionary<Guid, WeakReference<DrawOperation>> RegisteredOperations = new(10);
+    private readonly Dictionary<Guid, WeakReference<SharedDrawResource>> RegisteredResources = new(10);
 
     #endregion
 
@@ -354,6 +324,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <param name="context">The DataContext to give to <paramref name="element"/>, or null if it's to use its previously set DataContext or inherit it from this <see cref="GUIElement"/></param>
     public void AddElement(GUIElement element, object? context = null)
     {
+        element.AssignManager(this);
         element.RegisterOnto(this, context);
     }
 
@@ -657,12 +628,7 @@ public class GraphicsManager : GameObject, IDisposable
             ImGuiController.WindowResized(ww, wh);
 
             WindowSize = newSize;
-            WindowTransformation wintrans;
-            WindowTransform = wintrans = new WindowTransformation()
-            {
-                WindowScale = Matrix4x4.CreateScale(wh / (float)ww, 1, 1)
-            };
-            Device!.UpdateBuffer(WindowTransformBuffer, 0, ref wintrans);
+            DrawParameters.Transformation = new(Matrix4x4.Identity, Matrix4x4.CreateScale(wh / (float)ww, 1, 1));
         }
         finally
         {
@@ -687,16 +653,21 @@ public class GraphicsManager : GameObject, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static async ValueTask<bool> WaitOn(SemaphoreSlim semaphore, bool condition, int syncWait = 200, int asyncWait = 500)
+    private static async ValueTask<bool> WaitOn(SemaphoreSlim semaphore, Func<bool> condition, int syncWait = 15, int asyncWait = 50, int syncRepeats = 10)
     {
-        if (!semaphore.Wait(syncWait))
-        {
-            if (!condition)
-                return false;
-            while (!await semaphore.WaitAsync(asyncWait))
-                if (!condition)
+        while (syncRepeats-- > 0)
+            if (!semaphore.Wait(syncWait))
+            {
+                if (!condition())
                     return false;
-        }
+            }
+            else //succesfully adquired the lock
+                return true;
+        // ran out of repeats without adquiring the lock
+
+        while (!await semaphore.WaitAsync(asyncWait))
+            if (!condition())
+                return false;
         return true;
     }
 
@@ -705,22 +676,44 @@ public class GraphicsManager : GameObject, IDisposable
     /// </summary>
     protected internal DrawParameters DrawParameters { get; private set; }
 
-    private void UpdateWindowTransformationBuffer(CommandList cl)
+    private async ValueTask ProcessSharedResourceRegistrationBuffer()
     {
-        Span<WindowTransformation> trans = stackalloc WindowTransformation[1] { WindowTransform };
-        cl.UpdateBuffer(WindowTransformBuffer, 0, trans);
+        int count = SDRRegistrationBuffer.Count;
+        SharedDrawResource[] regbuf;
+        lock (SDRRegistrationBuffer)
+        {
+            if (SDRRegistrationBuffer.Count <= 0) return;
+            regbuf = ArrayPool<SharedDrawResource>.Shared.Rent(count);
+            SDRRegistrationBuffer.CopyTo(regbuf);
+            SDRRegistrationBuffer.Clear();
+        }
+
+        try
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var resource = regbuf[i];
+                InternalLog?.Verbose("Registering SharedDrawResource {objName}-{type}", resource.Name ?? "", resource.GetTypeName());
+                await resource.Register(this);
+                RegisteredResources.Add(resource.Identifier, new(resource));
+            }
+        }
+        finally
+        {
+            ArrayPool<SharedDrawResource>.Shared.Return(regbuf);
+        }
     }
 
     private async ValueTask ProcessDrawOpRegistrationBuffer()
     {
-        int count = RegistrationBuffer.Count;
+        int count = DOPRegistrationBuffer.Count;
         DrawOperation[] regbuf;
-        lock (RegistrationBuffer)
+        lock (DOPRegistrationBuffer)
         {
-            if (RegistrationBuffer.Count <= 0) return;
+            if (DOPRegistrationBuffer.Count <= 0) return;
             regbuf = ArrayPool<DrawOperation>.Shared.Rent(count);
-            RegistrationBuffer.CopyTo(regbuf);
-            RegistrationBuffer.Clear();
+            DOPRegistrationBuffer.CopyTo(regbuf);
+            DOPRegistrationBuffer.Clear();
         }
 
         try
@@ -772,6 +765,9 @@ public class GraphicsManager : GameObject, IDisposable
             InternalLog?.Information("Started with {count} CommandList groups", count);
     }
 
+    private readonly Func<bool> IsRunningCheck;
+    private readonly Func<bool> IsNotRenderingCheck;
+
     private async Task Run()
     {
         await Task.Yield();
@@ -781,13 +777,18 @@ public class GraphicsManager : GameObject, IDisposable
         var glock = GUILock;
         var winlock = WindowShownLock;
 
+        var isRunning = IsRunningCheck;
+        var isNotRendering = IsNotRenderingCheck;
+
         var sw = new Stopwatch();
         var drawqueue = new DrawQueue(CommandListGroups);
         var removalQueue = new Queue<Guid>(10);
         CommandListDispatch[] activeDispatchs = Array.Empty<CommandListDispatch>();
+        SharedDrawResource[] resBuffer = Array.Empty<SharedDrawResource>();
+        int resBufferFill = 0;
         TimeSpan delta = default;
 
-        DrawParameters = new(this);
+        RegisterSharedDrawResource(DrawParameters);
 
         var gd = Device!;
         
@@ -813,24 +814,47 @@ public class GraphicsManager : GameObject, IDisposable
             {
                 while (!IsRendering)
                     await Task.Delay(1000);
-                if (await WaitOn(winlock, condition: !IsRendering, syncWait: 500, asyncWait: 1000)) break;
+                if (await WaitOn(winlock, condition: isNotRendering, syncWait: 500, asyncWait: 1000)) break;
             }
-
-            if (RegistrationBuffer.Count > 0)
-                await ProcessDrawOpRegistrationBuffer();
 
             try
             {
-                if (!await WaitOn(framelock, condition: IsRunning)) break; // Frame Render
+                if (!await WaitOn(framelock, condition: isRunning)) break; // Frame Render
                 try
                 {
                     Vector4 winsize = LastReportedWinSize;
 
                     Running();
 
-                    if (!await WaitOn(drawlock, condition: IsRunning)) break; // Frame Render Stage 1: General Drawing
+                    if (!await WaitOn(drawlock, condition: isRunning)) break; // Frame Render Stage 1: General Drawing
                     try
                     {
+                        #region Draw Resources
+
+                        if (SDRRegistrationBuffer.Count > 0)
+                            await ProcessSharedResourceRegistrationBuffer();
+
+                        var res = RegisteredResources;
+
+                        if (resBuffer.Length < res.Count)
+                            resBuffer = new SharedDrawResource[int.Max(resBuffer.Length * 2, res.Count + 1)];
+
+                        foreach (var kv in res) // Iterate through all registered operations
+                            if (kv.Value.TryGetTarget(out var sdr) && !sdr.disposedValue)
+                            {
+                                if (sdr.PendingGpuUpdate)
+                                    resBuffer[resBufferFill++] = sdr;
+                            }
+                                else
+                                    removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
+
+                        while (removalQueue.Count > 0)
+                            res.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
+                        
+                        #endregion
+
+                        #region Draw Operations
+
                         var ops = RegisteredOperations;
 
                         foreach (var kv in ops) // Iterate through all registered operations
@@ -841,11 +865,8 @@ public class GraphicsManager : GameObject, IDisposable
 
                         while (removalQueue.Count > 0)
                             ops.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
-
-                        managercl.Begin();
-                        PrepareForDraw(managercl, gd.SwapchainFramebuffer); // Set the base of the frame: clear the background, etc.
-                        managercl.End();
-                        gd.SubmitCommands(managercl);
+                        
+                        #endregion
 
                         using (drawqueue._lock.Lock())
                         {
@@ -890,6 +911,14 @@ public class GraphicsManager : GameObject, IDisposable
                                     activeDispatchs[dispatchs++] = lcld;
                                 }
 #if FORCE_GM_NOPARALLEL
+                                managercl.Begin();
+                                PrepareForDraw(managercl, gd.SwapchainFramebuffer); // Set the base of the frame: clear the background, etc.
+                                for (int i = 0; i < resBufferFill; i++)
+                                    await resBuffer[i].InternalUpdate(managercl);
+                                managercl.End();
+                                gd.SubmitCommands(managercl);
+                                Array.Clear(resBuffer, 0, resBufferFill);
+                                resBufferFill = 0;
                                 for (int i = 0; i < dispatchs; i++)
                                     gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
                                 Array.Clear(activeDispatchs, 0, dispatchs);
@@ -897,6 +926,15 @@ public class GraphicsManager : GameObject, IDisposable
                             }
 
 #if !FORCE_GM_NOPARALLEL
+
+                            managercl.Begin();
+                            PrepareForDraw(managercl, gd.SwapchainFramebuffer); // Set the base of the frame: clear the background, etc.
+                            for (int i = 0; i < resBufferFill; i++)
+                                await resBuffer[i].InternalUpdate(delta, managercl);
+                            managercl.End();
+                            gd.SubmitCommands(managercl);
+                            Array.Clear(resBuffer, 0, resBufferFill);
+                            resBufferFill = 0;
                             for (int i = 0; i < dispatchs; i++)
                                 gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
                             Array.Clear(activeDispatchs, 0, dispatchs);
@@ -910,7 +948,7 @@ public class GraphicsManager : GameObject, IDisposable
                 
                     if (GUIElements.Count > 0) // There's no need to lock neither glock nor ImGUI lock if there are no elements to render. And if it does change between this check and the second one, then tough luck and it'll have to wait until the next frame
                     {
-                        if (!await WaitOn(glock, condition: IsRunning)) break; // Frame Render Stage 2: GUI Drawing
+                        if (!await WaitOn(glock, condition: isRunning)) break; // Frame Render Stage 2: GUI Drawing
                         try
                         {
                             if (GUIElements.Count > 0) // We check twice, as it may have changed between the first check and the lock being adquired
@@ -934,9 +972,6 @@ public class GraphicsManager : GameObject, IDisposable
                             glock.Release(); // End the GUI drawing stage
                         }
                     }
-
-                    gd.WaitForIdle(); // Wait for operations to finish
-                    gd.SwapBuffers(); // Present
                 }
                 finally
                 {
@@ -947,6 +982,18 @@ public class GraphicsManager : GameObject, IDisposable
             {
                 winlock.Release();
             }
+
+            { 
+                var tdopr = ValueTask.CompletedTask;
+                if (DOPRegistrationBuffer.Count > 0)
+                    tdopr = ProcessDrawOpRegistrationBuffer().Preserve();
+
+                DeferredCallScheduleUpdater();
+                await tdopr;
+            }
+
+            gd.WaitForIdle(); // Wait for operations to finish
+            gd.SwapBuffers(); // Present
 
             // Code that does not require any resources and is not bothered if resources are suddenly released
 
@@ -1022,18 +1069,13 @@ public class GraphicsManager : GameObject, IDisposable
         var (ww, wh) = window.Size;
         ImGuiController = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
 
-        var bufferDesc = new BufferDescription(DataStructuring.FitToUniformBuffer<WindowTransformation, uint>(), BufferUsage.UniformBuffer);
         var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
         var dotransl = new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Transform", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment)
         );
 
-        WindowTransformBuffer = factory.CreateBuffer(ref bufferDesc);
         DrawTransformationLayout = factory.CreateResourceLayout(ref dTransDesc);
         DrawOpTransLayout = factory.CreateResourceLayout(ref dotransl);
-        ManagerResourceBindings = new BindableResource[] { WindowTransformBuffer };
-        ManagerResourceSet = factory.CreateResourceSet(new ResourceSetDescription(GetManagerResourceLayout(factory), WindowTransformBuffer));
-        ManagerResourceSet.Name = $"{(Name is not null ? "->" : null)}GraphicsManagerResources";
 
         Window_SizeChanged(window, Game.TotalTime, window.Size);
 

@@ -62,6 +62,8 @@ public class Game : SDLApplication<Game>
         VideoThread = new(VideoRun);
         UpdateFrameThrottle = TimeSpan.FromMilliseconds(5);
         Random = CreateRNG();
+        DeferredCallSchedule = DeferredExecutionSchedule.New(out var desup);
+        DeferredExecutionScheduleUpdater = desup;
 
 #if FEATURE_INTERNAL_LOGGING
         Log.Debug("Compiled with \"FEATURE_INTERNAL_LOGGING\" enabled");
@@ -108,6 +110,15 @@ public class Game : SDLApplication<Game>
     public GraphicsManager MainGraphicsManager { get; private set; }
 
     /// <summary>
+    /// The Game's <see cref="MagicEngine.DeferredExecutionSchedule"/>, can be used to defer calls in the update thread
+    /// </summary>
+    /// <remarks>
+    /// This schedule is updated every game frame, as such, it's subject to update rate drops and its maximum time resolution is <see cref="UpdateFrameThrottle"/>
+    /// </remarks>
+    public DeferredExecutionSchedule DeferredCallSchedule { get; }
+    private readonly Action DeferredExecutionScheduleUpdater;
+
+    /// <summary>
     /// Represents all <see cref="GraphicsManager"/>s the <see cref="Game"/> currently has available
     /// </summary>
     /// <remarks>
@@ -126,11 +137,7 @@ public class Game : SDLApplication<Game>
     /// <remarks>
     /// This method is called from the Game's constructor, do not assume anything else has been initialized.
     /// </remarks>
-    protected unsafe virtual Random CreateRNG()
-    {
-        var guid = Guid.NewGuid(); // Generates a known cryptographic random number
-        return new Random(((int*)&guid)[1]); // Takes the address of the guid, turns it into an int pointer (As Guids are 128 bits long, they can be used as a 4 element int span), and takes the second element (The second quarter of the Guid) as the seed
-    }
+    protected virtual Random CreateRNG() => Random.Shared;
 
     /// <summary>
     /// The current title of the game
@@ -519,14 +526,15 @@ public class Game : SDLApplication<Game>
 
 #endregion
 
-#region Run
+    #region Run
+
+    internal ulong FrameCount { get; private set; }
 
     private async Task Run(IGameLifetime lifetime)
     {
         var sw = new Stopwatch();
         TimeSpan delta = default;
         uint remaining = default;
-        ulong frameCount = 0;
         Scene scene;
 
         var sceneSetupList = new ValueTask[10];
@@ -567,11 +575,11 @@ public class Game : SDLApplication<Game>
 
             scene = CurrentScene;
 
-            if (frameCount++ % 100 == 0)
+            if (FrameCount++ % 100 == 0)
                 foreach (var manager in ActiveGraphicsManagers)
                     await manager.AwaitIfFaulted();
 #if FEATURE_INTERNAL_LOGGING
-            if (frameCount % 16 == 0)
+            if (FrameCount % 16 == 0)
             {
                 if (_mspup.Average > _warningTicks)
                 {
@@ -620,6 +628,7 @@ public class Game : SDLApplication<Game>
 
             await scene.Update(delta).ConfigureAwait(false);
             await scene.RegisterDrawOperations();
+            DeferredExecutionScheduleUpdater();
 
             {
                 var c = (UpdateFrameThrottle - sw.Elapsed).TotalMilliseconds;
@@ -640,7 +649,7 @@ public class Game : SDLApplication<Game>
 
 #endregion
 
-#region Events
+    #region Events
 
     internal Action? SetupScenes;
     internal Action? StopScenes;
