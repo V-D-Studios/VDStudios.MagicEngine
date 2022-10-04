@@ -11,27 +11,10 @@ namespace VDStudios.MagicEngine;
 public abstract class NodeBase : GameObject, IDisposable
 {
     internal readonly object sync = new();
-
-    #region Dependency Injection
-
-    #region Fields
-
-    #endregion
-
-    #endregion
-
-    #region Service Providers
-
-    #region Fields
-
     /// <summary>
     /// Scene should ignore this, and let it remain null
     /// </summary>
     internal IDrawableNode? DrawableSelf;
-#warning DG: If Scene shouldn't use this, isn't that bloat?
-    #endregion
-
-    #endregion
 
     internal NodeBase(string facility) : base(facility, "Update")
     {

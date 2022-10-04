@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Exceptions;
+using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
 
@@ -367,6 +368,28 @@ public abstract class Node : NodeBase
 
     #endregion
 
+    #region Services and Dependency Injection
+
+    private readonly ServiceCollection _nodeServices = new(null);
+
+    /// <summary>
+    /// The <see cref="ServiceCollection"/> for this <see cref="Node"/>
+    /// </summary>
+    /// <remarks>
+    /// Services to this <see cref="Node"/> will cascade down from the root <see cref="Scene"/>, if not overriden.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown if this node is not attached to a root <see cref="Scene"/>, directly or indirectly</exception>
+    private ServiceCollection Services
+    {
+        get
+        {
+            ThrowIfNotAttachedToScene();
+            return _nodeServices;
+        }
+    }
+
+    #endregion
+
     #region Attachment and Node Tree
 
     #region Public Properties
@@ -469,6 +492,9 @@ public abstract class Node : NodeBase
 
         Root = parent;
         Parent = parent;
+
+        Services.SetPrev(parent.Services);
+
         IsReady = true;
     }
 
@@ -508,6 +534,9 @@ public abstract class Node : NodeBase
         parent.DetachedFromSceneEvent += WhenDetachedFromScene;
         parent.AttachedToSceneEvent += WhenAttachedToScene;
         Parent = parent;
+
+        Services.SetPrev(parent.Services);
+
         IsReady = true;
     }
 
@@ -790,6 +819,16 @@ public abstract class Node : NodeBase
     #endregion
 
     #region Helper Methods
+
+    /// <summary>
+    /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is not attached to a <see cref="Scene"/> directly or indirectly
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected void ThrowIfNotAttachedToScene()
+    {
+        if (Root is null)
+            throw new InvalidOperationException("This Node is not attached to a root scene");
+    }
 
     /// <summary>
     /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is not attached to another <see cref="Node"/> or <see cref="Scene"/>

@@ -6,41 +6,69 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace VDStudios.MagicEngine.Internal;
-internal sealed class ServiceCollection
-{
-    private readonly ServiceCollection? PreviousLayer;
-    private readonly Dictionary<Type, object> ServiceDictionary;
-    private readonly int layer;
 
-    public ServiceCollection(ServiceCollection? previous)
+/// <summary>
+/// Represents a collection of services that, following the Game -> Scene -> Node structure, allows for its services to be overriden, or to provide services not available upwards of the tree
+/// </summary>
+public sealed class ServiceCollection
+{
+    private readonly Dictionary<Type, Func<ServiceCollection, object>> ServiceDictionary;
+    private WeakReference<ServiceCollection>? PreviousLayer;
+    private int layer;
+
+    internal ServiceCollection(ServiceCollection? previous)
     {
-        PreviousLayer = previous;
-        layer = previous is null ? 0 : previous.layer + 1;
+        SetPrev(previous);
         ServiceDictionary = new(previous?.ServiceDictionary.Count ?? 10);
     }
 
     private static void ThrowForNotFound<TService>() 
         => throw new KeyNotFoundException($"Could not find a service for type {typeof(TService)} at any point of the node tree");
 
-    public TService? Get<TService>() where TService : class
+    internal void SetPrev(ServiceCollection? previous)
+    {
+        if (previous is null)
+        {
+            PreviousLayer = null;
+            layer = 0;
+        }
+        else
+        {
+            PreviousLayer = new(previous);
+            layer = previous.layer + 1;
+        }
+    }
+
+    /// <summary>
+    /// Fetches the requested service from this collection or from upwards of the tree
+    /// </summary>
+    /// <typeparam name="TService">The type of the service that is being requested</typeparam>
+    /// <returns>An object representing the requested service</returns>
+    public TService GetService<TService>() where TService : class
     {
         if (!ServiceDictionary.TryGetValue(typeof(TService), out var value))
         {
             if (layer <= 0)
                 ThrowForNotFound<TService>();
             var top = PreviousLayer;
-            while (top is not null)
+            while (top is not null && top.TryGetTarget(out var sd))
             {
-                if (top.ServiceDictionary.TryGetValue(typeof(TService), out value))
-                    return (TService)value;
-                top = top.PreviousLayer;
+                if (sd.ServiceDictionary.TryGetValue(typeof(TService), out value))
+                    return (TService)value(this);
+                top = sd.PreviousLayer;
             }
             ThrowForNotFound<TService>();
         }
-        return (TService)value!;
+        return (TService)value!(this);
     }
 
-    public bool TryGet<TService>([NotNullWhen(true)] out TService? service) where TService : class
+    /// <summary>
+    /// Tries to fetch the requested service from this collection or from upwards of the tree
+    /// </summary>
+    /// <typeparam name="TService">The type of the service that is being requested</typeparam>
+    /// <param name="service">An object representing the requested service</param>
+    /// <returns><see langword="true"/> if the requested service was found somewhere and <paramref name="service"/> is <see langword="not"/> <see langword="null"/>. <see langword="false"/> otherwise.</returns>
+    public bool TryGetService<TService>([NotNullWhen(true)] out TService? service) where TService : class
     {
         if (!ServiceDictionary.TryGetValue(typeof(TService), out var value))
         {
@@ -50,25 +78,86 @@ internal sealed class ServiceCollection
                 return false;
             }
             var top = PreviousLayer;
-            while (top is not null)
+            while (top is not null && top.TryGetTarget(out var sd))
             {
-                if (top.ServiceDictionary.TryGetValue(typeof(TService), out value))
+                if (sd.ServiceDictionary.TryGetValue(typeof(TService), out value))
                 {
-                    service = (TService)value;
+                    service = (TService)value(this);
                     return true;
                 }
-                top = top.PreviousLayer;
+                top = sd.PreviousLayer;
             }
             service = null;
             return false;
         }
-        service = (TService)value;
+        service = (TService)value(this);
         return true;
     }
 
-    public void Set<TService>(TService service) where TService : class
+    #region Register singleton
+
+    /// <summary>
+    /// Registers or overrides a service of type <typeparamref name="TService"/> as a singleton instance
+    /// </summary>
+    /// <typeparam name="TService">The type of service to register</typeparam>
+    /// <param name="service">The service to register</param>
+    public void RegisterService<TService>(TService service) where TService : class
+        => ServiceDictionary[typeof(TService)] = _ => service;
+
+    /// <summary>
+    /// Registers or overrides a service of type <typeparamref name="TService"/> behind <typeparamref name="TInterface"/> as a singleton instance
+    /// </summary>
+    /// <typeparam name="TService">The type of service to register</typeparam>
+    /// <typeparam name="TInterface">The type of service that abstract <paramref name="service"/> away</typeparam>
+    /// <param name="service">The service to register</param>
+    public void RegisterService<TInterface, TService>(TService service) where TInterface : class where TService : class, TInterface
+        => ServiceDictionary[typeof(TInterface)] = _ => service;
+
+    #endregion
+
+    #region Register Factory
+
+    /// <summary>
+    /// Registers or overrides a service of type <typeparamref name="TService"/> that will be constructed on each request
+    /// </summary>
+    /// <typeparam name="TService">The type of service to register</typeparam>
+    /// <param name="service">The factory of the objects that offer the service</param>
+    public void RegisterService<TService>(Func<ServiceCollection, TService> service) where TService : class
         => ServiceDictionary[typeof(TService)] = service;
 
-    public void Set<TInterface, TService>(TService service) where TInterface : class where TService : class
+    /// <summary>
+    /// Registers or overrides a service of type <typeparamref name="TService"/> behind <typeparamref name="TInterface"/> that will be constructed on each request
+    /// </summary>
+    /// <typeparam name="TService">The type of service to register</typeparam>
+    /// <typeparam name="TInterface">The type of service that abstract <paramref name="service"/> away</typeparam>
+    /// <param name="service">The factory of the objects that offer the service</param>
+    public void RegisterService<TInterface, TService>(Func<ServiceCollection, TService> service) where TInterface : class where TService : class, TInterface
         => ServiceDictionary[typeof(TInterface)] = service;
+
+    #endregion
+
+    #region Register Contextualized Factory
+
+    /// <summary>
+    /// Registers or overrides a service of type <typeparamref name="TService"/> that will be constructed on each request
+    /// </summary>
+    /// <typeparam name="TService">The type of service to register</typeparam>
+    /// <typeparam name="TContext">The type of the context to pass to the <typeparamref name="TService"/> object factory</typeparam>
+    /// <param name="service">The factory of the objects that offer the service</param>
+    /// <param name="context">The context to pass to <paramref name="service"/></param>
+    public void RegisterService<TService, TContext>(Func<ServiceCollection, TContext, TService> service, TContext context) where TService : class
+        => ServiceDictionary[typeof(TService)] = col => service(col, context);
+
+    /// <summary>
+    /// Registers or overrides a service of type <typeparamref name="TService"/> behind <typeparamref name="TInterface"/> that will be constructed on each request
+    /// </summary>
+    /// <typeparam name="TService">The type of service to register</typeparam>
+    /// <typeparam name="TInterface">The type of service that abstract <paramref name="service"/> away</typeparam>
+    /// <typeparam name="TContext">The type of the context to pass to the <typeparamref name="TService"/> object factory</typeparam>
+    /// <param name="service">The factory of the objects that offer the service</param>
+    /// <param name="context">The context to pass to <paramref name="service"/></param>
+    public void RegisterService<TInterface, TService, TContext>(Func<ServiceCollection, TContext, TService> service, TContext context) where TInterface : class where TService : class, TInterface
+        => ServiceDictionary[typeof(TInterface)] = col => service(col, context);
+
+    #endregion
 }
