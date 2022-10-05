@@ -824,7 +824,7 @@ public abstract class Node : NodeBase
     /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is not attached to a <see cref="Scene"/> directly or indirectly
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void ThrowIfNotAttachedToScene()
+    protected internal void ThrowIfNotAttachedToScene()
     {
         if (Root is null)
             throw new InvalidOperationException("This Node is not attached to a root scene");
