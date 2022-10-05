@@ -520,7 +520,7 @@ public abstract class Node : NodeBase
             Id = parent.Children.Add(this);
 
         if (DrawableSelf is IDrawableNode ds && parent is IDrawableNode dn && dn.DrawOperationManager.cascadedParameters is DrawParameters p) 
-            ds.DrawOperationManager.CascadeThroughNode(p);
+            ds.DrawOperationManager.CascadeParameters(p);
 
         if (parent.Root is Scene root)
         {

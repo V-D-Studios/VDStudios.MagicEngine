@@ -48,7 +48,7 @@ public class Camera2D : Node, IDrawableNode
         drawParameters = new CameraDrawParameters(this);
         Game.MainGraphicsManager.RegisterSharedDrawResource(drawParameters);
         drawParameters.WaitUntilReady();
-        DrawOperationManager.CascadeThroughNode(drawParameters);
+        DrawOperationManager.CascadeParameters(drawParameters);
     }
 
     /// <summary>

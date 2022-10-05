@@ -53,7 +53,7 @@ public class DrawOperationManager : GameObject
     /// <summary>
     /// Passes <paramref name="parameters"/> down through <see cref="Owner"/>'s children, to replace the <see cref="DataDependencySource{T}"/> they reference
     /// </summary>
-    public void CascadeThroughNode(DrawParameters parameters)
+    public void CascadeParameters(DrawParameters parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         if (parameters.IsReady is false)
@@ -63,7 +63,7 @@ public class DrawOperationManager : GameObject
         ProcessNewDrawData(parameters);
         foreach (var child in ((Node)Owner).Children)
             if (child is IDrawableNode dn) 
-                dn.DrawOperationManager.CascadeThroughNode(parameters); 
+                dn.DrawOperationManager.CascadeParameters(parameters); 
     }
     internal DrawParameters? cascadedParameters;
 
