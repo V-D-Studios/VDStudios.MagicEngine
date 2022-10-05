@@ -379,7 +379,7 @@ public abstract class Node : NodeBase
     /// Services to this <see cref="Node"/> will cascade down from the root <see cref="Scene"/>, if not overriden.
     /// </remarks>
     /// <exception cref="InvalidOperationException">Thrown if this node is not attached to a root <see cref="Scene"/>, directly or indirectly</exception>
-    private ServiceCollection Services
+    public ServiceCollection Services
     {
         get
         {
@@ -493,7 +493,7 @@ public abstract class Node : NodeBase
         Root = parent;
         Parent = parent;
 
-        Services.SetPrev(parent.Services);
+        _nodeServices.SetPrev(parent.Services);
 
         IsReady = true;
     }
@@ -535,7 +535,7 @@ public abstract class Node : NodeBase
         parent.AttachedToSceneEvent += WhenAttachedToScene;
         Parent = parent;
 
-        Services.SetPrev(parent.Services);
+        _nodeServices.SetPrev(parent._nodeServices);
 
         IsReady = true;
     }
