@@ -14,7 +14,6 @@ public sealed class ServiceCollection
 {
     private readonly Dictionary<Type, Func<ServiceCollection, object>> ServiceDictionary;
     private WeakReference<ServiceCollection>? PreviousLayer;
-    private int layer;
 
     internal ServiceCollection(ServiceCollection? previous)
     {
@@ -27,16 +26,7 @@ public sealed class ServiceCollection
 
     internal void SetPrev(ServiceCollection? previous)
     {
-        if (previous is null)
-        {
-            PreviousLayer = null;
-            layer = 0;
-        }
-        else
-        {
-            PreviousLayer = new(previous);
-            layer = previous.layer + 1;
-        }
+        PreviousLayer = previous is null ? null : (new(previous));
     }
 
     /// <summary>
@@ -48,8 +38,6 @@ public sealed class ServiceCollection
     {
         if (!ServiceDictionary.TryGetValue(typeof(TService), out var value))
         {
-            if (layer <= 0)
-                ThrowForNotFound<TService>();
             var top = PreviousLayer;
             while (top is not null && top.TryGetTarget(out var sd))
             {
@@ -72,11 +60,6 @@ public sealed class ServiceCollection
     {
         if (!ServiceDictionary.TryGetValue(typeof(TService), out var value))
         {
-            if (layer <= 0)
-            {
-                service = null;
-                return false;
-            }
             var top = PreviousLayer;
             while (top is not null && top.TryGetTarget(out var sd))
             {
