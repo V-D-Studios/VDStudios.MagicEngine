@@ -370,7 +370,7 @@ public abstract class Node : NodeBase
 
     #region Services and Dependency Injection
 
-    private readonly ServiceCollection _nodeServices = new(null);
+    internal readonly ServiceCollection _nodeServices = new(null);
 
     /// <summary>
     /// The <see cref="ServiceCollection"/> for this <see cref="Node"/>
