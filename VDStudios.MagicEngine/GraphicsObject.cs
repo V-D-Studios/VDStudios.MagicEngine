@@ -108,7 +108,6 @@ public abstract class GraphicsObject : GameObject
         ReadySemaphore.Release();
     }
 
-    
     /// <summary>
     /// Waits until the Node has been added to the scene tree and is ready to be used
     /// </summary>
@@ -166,5 +165,4 @@ public abstract class GraphicsObject : GameObject
         await Manager!.AwaitIfFaulted();
         return false;
     }
-
 }

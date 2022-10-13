@@ -656,10 +656,10 @@ public class GraphicsManager : GameObject, IDisposable
 
         InternalLog?.Information("Setting up Window");
         SetupWindow();
-        initLock.Release();
-
         InternalLog?.Information("Running GraphicsManager");
         graphics_thread = Run();
+
+        initLock.Release();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1169,79 +1169,13 @@ public class GraphicsManager : GameObject, IDisposable
 
 #region Disposal
 
-    private bool disposedValue;
-
-    /// <summary>
-    /// Throws an <see cref="ObjectDisposedException"/> if this object is disposed at the time of this method being called
-    /// </summary>
-    /// <exception cref="ObjectDisposedException"></exception>
-    protected internal void ThrowIfDisposed()
-    {
-        if (disposedValue)
-            throw new ObjectDisposedException(GetType().Name);
-    }
-
-    /// <summary>
-    /// This method is automatically called when this object is being finalized or being disposed. Do NOT call this manually!
-    /// </summary>
-    /// <param name="disposing"><c>true</c> if the method was called from <see cref="Dispose()"/>, <c>false</c> if it was called from the type's finalizer</param>
-    /// <remarks>
-    /// This will be called before the internal (non-overridable) disposal code of <see cref="GraphicsManager"/>, and it will be called inside a try/finally block, so exceptions thrown in it will be rethrown /after/ this type's code is executed. It's your responsibility how you chain these dispose calls together.
-    /// </remarks>
-    protected virtual void Dispose(bool disposing) { }
-
-    private void InternalDispose(bool disposing)
+    internal override void InternalDispose(bool disposing)
     {
         IsRunning = false;
         FrameLock.Wait();
-        try
-        {
-            Dispose(disposing);
-        }
-        finally
-        {
-            Device.Dispose();
-            Window.Dispose();
-            FrameLock.Release();
-        }
-    }
-
-    /// <inheritdoc/>
-    ~GraphicsManager()
-    {
-        InternalDispose(disposing: false);
-    }
-
-    /// <summary>
-    /// <see cref="Dispose()"/> merely schedules the disposal, this actually goes through with it
-    /// </summary>
-    internal void ActuallyDispose()
-    {
-        lock (sync)
-            if (disposedValue)
-            {
-                disposedValue = true;
-                return;
-            }
-
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        InternalDispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Disposes of this <see cref="GraphicsManager"/> and its held resources
-    /// </summary>
-    public void Dispose()
-    {
-        lock (sync)
-            if (disposedValue)
-            {
-                disposedValue = true;
-                return;
-            }
-
-        Game.graphicsManagersAwaitingDestruction.Enqueue(this);
+        Device.Dispose();
+        Window.Dispose();
+        FrameLock.Release();
     }
 
 #endregion

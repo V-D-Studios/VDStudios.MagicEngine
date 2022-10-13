@@ -11,7 +11,7 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// This class cannot be inherited directly by user code
 /// </remarks>
-public abstract class GameObject
+public abstract class GameObject : IDisposable
 {
     private readonly Lazy<ILogger> logSync;
     internal readonly string Facility;
@@ -27,6 +27,8 @@ public abstract class GameObject
     /// </summary>
     internal GameObject(string facility, string area)
     {
+        ArgumentException.ThrowIfNullOrEmpty(area);
+        ArgumentException.ThrowIfNullOrEmpty(facility);
         logSync = new(InternalCreateLogger, LazyThreadSafetyMode.ExecutionAndPublication);
         Game = Game.Instance;
         Facility = facility;
@@ -94,4 +96,71 @@ public abstract class GameObject
 
     private ILogger InternalCreateLogger()
         => CreateLogger(Game.Logger, Area, Facility);
+
+    #region IDisposable
+
+    /// <summary>
+    /// Throws an <see cref="ObjectDisposedException"/> if this object is disposed at the time of this method being called
+    /// </summary>
+    /// <exception cref="ObjectDisposedException"></exception>
+    protected internal void ThrowIfDisposed()
+    {
+        if (IsDisposed)
+            throw new ObjectDisposedException(GetType().Name);
+    }
+
+    /// <summary>
+    /// <see langword="true"/> if this <see cref="GameObject"/> has already been disposed of
+    /// </summary>
+    /// <remarks>
+    /// Inheritors of this class MUST call this method when disposing
+    /// </remarks>
+    protected bool IsDisposed { get; private set; }
+
+    /// <summary>
+    /// Disposes of this <see cref="GameObject"/> and any of its resources
+    /// </summary>
+    public void Dispose() => InternalDispose(disposing: true);
+
+    /// <summary>
+    /// Always call base.Dispose AFTER your own disposal code
+    /// </summary>
+    /// <param name="disposing"></param>
+    internal virtual void InternalDispose(bool disposing)
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        try
+        {
+            AboutToDispose?.Invoke(this, Game.TotalTime);
+        }
+        finally
+        {
+            IsDisposed = true;
+            Dispose(disposing);
+
+            // ...
+            GC.SuppressFinalize(this);
+        }
+    }
+
+    /// <inheritdoc/>
+    ~GameObject()
+    {
+        InternalDispose(false);
+    }
+
+    /// <summary>
+    /// Runs when the object is being disposed. Don't call this! It'll be called automatically! Call <see cref="GameObject.Dispose()"/> instead
+    /// </summary>
+    protected virtual void Dispose(bool disposing) { }
+
+    /// <summary>
+    /// Fired right before this <see cref="GameObject"/> is disposed
+    /// </summary>
+    /// <remarks>
+    /// While .NET allows fire-and-forget async methods in these events (<c>async void</c>), this is *NOT* recommended, as it's almost guaranteed the <see cref="GameObject"/> will be fully disposed before the async portion of your code gets a chance to run
+    /// </remarks>
+    public event GeneralGameEvent<GameObject>? AboutToDispose;
+
+    #endregion
 }

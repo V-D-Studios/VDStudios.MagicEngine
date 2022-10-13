@@ -37,7 +37,6 @@ public class Game : SDLApplication<Game>
     private bool isStarted;
     internal PriorityQueue<Scene, int> scenesAwaitingSetup = new(5, DescendingIntComparer.Comparer);
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingSetup = new();
-    internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingDestruction = new();
 
     static Game()
     {

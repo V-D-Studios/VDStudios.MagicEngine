@@ -20,7 +20,8 @@ public class DrawOperationManager : GameObject
     /// </summary>
     /// <param name="owner">The <see cref="IDrawableNode"/> that owns this <see cref="DrawOperationManager"/></param>
     /// <param name="graphicsManagerSelector">The method that this <see cref="DrawOperationManager"/> will use to select an appropriate <see cref="GraphicsManager"/> to register a new <see cref="DrawOperation"/> onto</param>
-    protected DrawOperationManager(IDrawableNode owner, DrawOperationGraphicsManagerSelector? graphicsManagerSelector, string area) : base("Rendering & Game Scene", area)
+    protected DrawOperationManager(IDrawableNode owner, DrawOperationGraphicsManagerSelector? graphicsManagerSelector, string area)
+        : base("Rendering & Game Scene", area)
     {
         if (owner is not Node n)
             throw new InvalidOperationException($"The owner of a DrawOperationManager must be a node");
@@ -156,8 +157,7 @@ public class DrawOperationManager : GameObject
         try
         {
             AddingDrawOperation(operation);
-            if (operation.disposedValue)
-                throw new ObjectDisposedException(nameof(operation));
+            operation.ThrowIfDisposed();
             DrawOperations.Add(operation);
             DrawOperations.RegistrationSync.Wait();
             try
@@ -179,7 +179,7 @@ public class DrawOperationManager : GameObject
         }
     }
 
-    private void Operation_AboutToDispose(DrawOperation sender, TimeSpan timestamp)
+    private void Operation_AboutToDispose(GameObject sender, TimeSpan timestamp)
     {
         DrawOperations.Remove(sender);
     }
