@@ -117,6 +117,9 @@ public abstract class GameObject : IDisposable
     /// <summary>
     /// Disposes of this <see cref="GameObject"/> and any of its resources
     /// </summary>
+    /// <remarks>
+    /// Child classes looking to override this method should instead refer to <see cref="GameObject.Dispose(bool)"/>
+    /// </remarks>
     public void Dispose()
     {
         InternalDispose(disposing: true);
@@ -158,7 +161,7 @@ public abstract class GameObject : IDisposable
     /// Fired right before this <see cref="GameObject"/> is disposed
     /// </summary>
     /// <remarks>
-    /// While .NET allows fire-and-forget async methods in these events (<c>async void</c>), this is *NOT* recommended, as it's almost guaranteed the <see cref="GameObject"/> will be fully disposed before the async portion of your code gets a chance to run
+    /// While .NET allows fire-and-forget async methods in these events (<c><see langword="async void"/></c>), this is *NOT* recommended, as it's almost guaranteed the <see cref="GameObject"/> will be fully disposed before the async portion of your code gets a chance to run
     /// </remarks>
     public event GeneralGameEvent<GameObject>? AboutToDispose;
 
