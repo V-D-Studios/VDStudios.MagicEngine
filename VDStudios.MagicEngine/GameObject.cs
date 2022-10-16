@@ -120,7 +120,11 @@ public abstract class GameObject : IDisposable
     /// <summary>
     /// Disposes of this <see cref="GameObject"/> and any of its resources
     /// </summary>
-    public void Dispose() => InternalDispose(disposing: true);
+    public void Dispose()
+    {
+        InternalDispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 
     /// <summary>
     /// Always call base.Dispose AFTER your own disposal code
@@ -137,9 +141,6 @@ public abstract class GameObject : IDisposable
         {
             IsDisposed = true;
             Dispose(disposing);
-
-            // ...
-            GC.SuppressFinalize(this);
         }
     }
 
