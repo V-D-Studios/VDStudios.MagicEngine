@@ -11,27 +11,10 @@ namespace VDStudios.MagicEngine;
 public abstract class NodeBase : GameObject, IDisposable
 {
     internal readonly object sync = new();
-
-    #region Dependency Injection
-
-    #region Fields
-
-    #endregion
-
-    #endregion
-
-    #region Service Providers
-
-    #region Fields
-
     /// <summary>
     /// Scene should ignore this, and let it remain null
     /// </summary>
     internal IDrawableNode? DrawableSelf;
-#warning DG: If Scene shouldn't use this, isn't that bloat?
-    #endregion
-
-    #endregion
 
     internal NodeBase(string facility) : base(facility, "Update")
     {
@@ -48,40 +31,14 @@ public abstract class NodeBase : GameObject, IDisposable
 
     #region IDisposable
 
-    private bool disposedValue;
-
-    /// <summary>
-    /// Whether or not this object is disposed
-    /// </summary>
-    protected bool IsDisposed => disposedValue;
-
-    /// <summary>
-    /// Disposes of this <see cref="Node"/> and all of its currently attached children
-    /// </summary>
-    public void Dispose()
+    /// <inheritdoc/>
+    internal override void InternalDispose(bool disposing)
     {
-        ObjectDisposedException.ThrowIf(disposedValue, this);
-        Dispose(disposing: true);
-        InternalDispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Always call base.Dispose AFTER your own disposal code
-    /// </summary>
-    /// <param name="disposing"></param>
-    internal virtual void InternalDispose(bool disposing)
-    {
-        disposedValue = true;
         foreach (var child in Children)
             child.Dispose();
         Children = null!;
+        base.InternalDispose(disposing);
     }
-
-    /// <summary>
-    /// Runs when the object is being disposed. Don't call this! It'll be called automatically! Call <see cref="Dispose()"/> instead
-    /// </summary>
-    protected virtual void Dispose(bool disposing) { }
 
     #endregion
 

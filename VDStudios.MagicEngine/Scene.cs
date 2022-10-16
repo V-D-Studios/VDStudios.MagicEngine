@@ -1,4 +1,6 @@
 ﻿using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
+using VDStudios.MagicEngine.Internal;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace VDStudios.MagicEngine;
@@ -22,6 +24,7 @@ public abstract class Scene : NodeBase
         Game.StopScenes += OnGameStopScenes;
         lock (Game.scenesAwaitingSetup)
             Game.scenesAwaitingSetup.Enqueue(this, (int)QueryConfigurationAsynchronousTendency());
+        Services = new(Game.GameServices);
     }
 
     /// <summary>
@@ -84,6 +87,18 @@ public abstract class Scene : NodeBase
     }
 
     #endregion
+
+    #endregion
+
+    #region Dependency Injection
+
+    /// <summary>
+    /// The <see cref="ServiceCollection"/> for this <see cref="Scene"/>
+    /// </summary>
+    /// <remarks>
+    /// Services to this <see cref="Scene"/> will cascade down from <see cref="Game.GameServices"/>, if not overriden.
+    /// </remarks>
+    public ServiceCollection Services { get; }
 
     #endregion
 

@@ -1,4 +1,6 @@
-﻿namespace VDStudios.MagicEngine;
+﻿using VDStudios.MagicEngine.Internal;
+
+namespace VDStudios.MagicEngine;
 
 /// <summary>
 /// Represents a list of <see cref="DrawOperation"/> objects belonging to a <see cref="IDrawableNode"/> and their general behaviour
@@ -18,13 +20,18 @@ public class DrawOperationManager : GameObject
     /// </summary>
     /// <param name="owner">The <see cref="IDrawableNode"/> that owns this <see cref="DrawOperationManager"/></param>
     /// <param name="graphicsManagerSelector">The method that this <see cref="DrawOperationManager"/> will use to select an appropriate <see cref="GraphicsManager"/> to register a new <see cref="DrawOperation"/> onto</param>
-    protected DrawOperationManager(IDrawableNode owner, DrawOperationGraphicsManagerSelector? graphicsManagerSelector, string area) : base("Rendering & Game Scene", area)
+    protected DrawOperationManager(IDrawableNode owner, DrawOperationGraphicsManagerSelector? graphicsManagerSelector, string area)
+        : base("Rendering & Game Scene", area)
     {
-        if (owner is not Node)
+        if (owner is not Node n)
             throw new InvalidOperationException($"The owner of a DrawOperationManager must be a node");
         Owner = owner;
+        nodeOwner = n;
         GraphicsManagerSelector = graphicsManagerSelector;
+        _serv = new(n._nodeServices);
     }
+
+    private readonly Node nodeOwner;
 
     #region Public Properties
 
@@ -48,12 +55,33 @@ public class DrawOperationManager : GameObject
 
     #endregion
 
+    #region Services and Dependency Injection
+
+    /// <summary>
+    /// The <see cref="ServiceCollection"/> for this <see cref="Node"/>
+    /// </summary>
+    /// <remarks>
+    /// Services to this <see cref="Node"/> will cascade down from the root <see cref="Scene"/>, if not overriden.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown if this node is not attached to a root <see cref="Scene"/>, directly or indirectly</exception>
+    public ServiceCollection Services
+    {
+        get
+        {
+            nodeOwner.ThrowIfNotAttachedToScene();
+            return _serv;
+        }
+    }
+    private readonly ServiceCollection _serv;
+
+    #endregion
+
     #region Public Methods
 
     /// <summary>
     /// Passes <paramref name="parameters"/> down through <see cref="Owner"/>'s children, to replace the <see cref="DataDependencySource{T}"/> they reference
     /// </summary>
-    public void CascadeThroughNode(DrawParameters parameters)
+    public void CascadeParameters(DrawParameters parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         if (parameters.IsReady is false)
@@ -63,7 +91,7 @@ public class DrawOperationManager : GameObject
         ProcessNewDrawData(parameters);
         foreach (var child in ((Node)Owner).Children)
             if (child is IDrawableNode dn) 
-                dn.DrawOperationManager.CascadeThroughNode(parameters); 
+                dn.DrawOperationManager.CascadeParameters(parameters); 
     }
     internal DrawParameters? cascadedParameters;
 
@@ -129,8 +157,7 @@ public class DrawOperationManager : GameObject
         try
         {
             AddingDrawOperation(operation);
-            if (operation.disposedValue)
-                throw new ObjectDisposedException(nameof(operation));
+            operation.ThrowIfDisposed();
             DrawOperations.Add(operation);
             DrawOperations.RegistrationSync.Wait();
             try
@@ -152,7 +179,7 @@ public class DrawOperationManager : GameObject
         }
     }
 
-    private void Operation_AboutToDispose(DrawOperation sender, TimeSpan timestamp)
+    private void Operation_AboutToDispose(GameObject sender, TimeSpan timestamp)
     {
         DrawOperations.Remove(sender);
     }

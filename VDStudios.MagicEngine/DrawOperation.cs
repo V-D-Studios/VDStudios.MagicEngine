@@ -404,50 +404,11 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
 
     #region Disposal
 
-    /// <summary>
-    /// Throws an <see cref="ObjectDisposedException"/> if this <see cref="DrawOperation"/> has already been disposed
-    /// </summary>
-    /// <exception cref="ObjectDisposedException"></exception>
-    /// <remarks>
-    /// Calling this method from <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
-    /// </remarks>
-    protected void ThrowIfDisposed()
+    internal override void InternalDispose(bool disposing)
     {
         sync.Wait();
         try
         {
-            if (disposedValue)
-                throw new ObjectDisposedException(GetType().FullName);
-        }
-        finally
-        {
-            sync.Release();
-        }
-    }
-
-    internal bool disposedValue;
-
-    /// <summary>
-    /// Disposes of this <see cref="DrawOperation"/>'s resources
-    /// </summary>
-    /// <remarks>
-    /// Dispose of any additional resources your subtype allocates. Consider that this method may be called even if <see cref="GraphicsObject.Manager"/> is not set
-    /// </remarks>
-    protected virtual void Dispose(bool disposing) { }
-
-    private void InternalDispose(bool disposing)
-    {
-        AboutToDispose?.Invoke(this, Game.TotalTime);
-        sync.Wait();
-        try
-        {
-            lock (sync)
-            {
-                if (disposedValue)
-                    return;
-                disposedValue = true;
-            }
-
             if(Manager is GraphicsManager manager)
             {
                 var @lock = manager.LockManagerDrawing();
@@ -468,33 +429,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
             sync.Release();
         }
     }
-
-    /// <inheritdoc/>
-    ~DrawOperation()
-    {
-        InternalDispose(disposing: false);
-    }
-
-    /// <summary>
-    /// Disposes of this <see cref="DrawOperation"/>'s resources
-    /// </summary>
-    /// <remarks>
-    /// Calling this method from <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer)"/>, <see cref="UpdateGPUState"/> or <see cref="Dispose(bool)"/> WILL ALWAYS cause a deadlock!
-    /// </remarks>
-    public void Dispose()
-    {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        InternalDispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Fired right before this <see cref="DrawOperation"/> is disposed
-    /// </summary>
-    /// <remarks>
-    /// While .NET allows fire-and-forget async methods in these events (<c>async void</c>), this is *NOT* recommended, as it's almost guaranteed the <see cref="DrawOperation"/> will be fully disposed before the async portion of your code gets a chance to run
-    /// </remarks>
-    public event GeneralGameEvent<DrawOperation>? AboutToDispose;
 
     #endregion
 }

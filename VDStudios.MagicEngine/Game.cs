@@ -4,8 +4,10 @@ using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Intrinsics;
 using VDStudios.MagicEngine.Exceptions;
+using VDStudios.MagicEngine.Internal;
 using VDStudios.MagicEngine.Logging;
 
 namespace VDStudios.MagicEngine;
@@ -35,7 +37,6 @@ public class Game : SDLApplication<Game>
     private bool isStarted;
     internal PriorityQueue<Scene, int> scenesAwaitingSetup = new(5, DescendingIntComparer.Comparer);
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingSetup = new();
-    internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingDestruction = new();
 
     static Game()
     {
@@ -125,6 +126,15 @@ public class Game : SDLApplication<Game>
     /// <see cref="MainGraphicsManager"/> can also be found here
     /// </remarks>
     public GraphicsManagerList ActiveGraphicsManagers { get; }
+
+    #region Dependency Injection
+
+    /// <summary>
+    /// The <see cref="ServiceCollection"/> for the entire game
+    /// </summary>
+    public ServiceCollection GameServices { get; } = new(null);
+
+    #endregion
 
     /// <summary>
     /// A RandomNumberGenerator for this Game
