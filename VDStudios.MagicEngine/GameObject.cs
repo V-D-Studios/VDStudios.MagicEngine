@@ -112,9 +112,6 @@ public abstract class GameObject : IDisposable
     /// <summary>
     /// <see langword="true"/> if this <see cref="GameObject"/> has already been disposed of
     /// </summary>
-    /// <remarks>
-    /// Inheritors of this class MUST call this method when disposing
-    /// </remarks>
     protected bool IsDisposed { get; private set; }
 
     /// <summary>
@@ -135,12 +132,13 @@ public abstract class GameObject : IDisposable
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         try
         {
-            AboutToDispose?.Invoke(this, Game.TotalTime);
+            if (disposing)
+                AboutToDispose?.Invoke(this, Game.TotalTime);
         }
         finally
         {
-            IsDisposed = true;
             Dispose(disposing);
+            IsDisposed = true;
         }
     }
 
@@ -153,6 +151,7 @@ public abstract class GameObject : IDisposable
     /// <summary>
     /// Runs when the object is being disposed. Don't call this! It'll be called automatically! Call <see cref="GameObject.Dispose()"/> instead
     /// </summary>
+    /// <param name="disposing">Whether this method was called through <see cref="IDisposable.Dispose"/> or by the GC calling this object's finalizer</param>
     protected virtual void Dispose(bool disposing) { }
 
     /// <summary>
