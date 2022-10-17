@@ -19,14 +19,6 @@ public sealed class DeferredExecutionSchedule
     private readonly LinkedList<DeferredCallInfo> OneTimeSchedule;
     private ulong CurrentFrame = 1;
 
-    private DeferredExecutionSchedule()
-    {
-        OneTimeSchedule = new();
-        Watch = new();
-        Watch.Start();
-        Updater = Update;
-    }
-
     /// <summary>
     /// Creates a new <see cref="DeferredExecutionSchedule"/>, and grants access to its Update method
     /// </summary>
@@ -34,15 +26,15 @@ public sealed class DeferredExecutionSchedule
     /// <paramref name="updater"/> must be called repeatedly (usually, every frame) in order for this class to function properly, and it must be owned privately, hence the existence of this static method
     /// </remarks>
     /// <param name="updater">The <see cref="Action"/> that represents the update method for the <see cref="DeferredExecutionSchedule"/> returned by this method</param>
-    /// <returns>A new <see cref="DeferredExecutionSchedule"/></returns>
-    public static DeferredExecutionSchedule New(out Action updater)
+    public DeferredExecutionSchedule(out Action updater)
     {
-        var des = new DeferredExecutionSchedule();
-        updater = des.Updater;
-        return des;
+        OneTimeSchedule = new();
+        TimedActionSchedule = new();
+        Watch = new();
+        Watch.Start();
+        updater = Update;
     }
 
-    private readonly Action Updater;
     private void Update()
     {
         lock (Watch) // Ensure only one Update is called at a time
@@ -76,7 +68,7 @@ public sealed class DeferredExecutionSchedule
     /// </remarks>
     /// <param name="action">The action to call</param>
     /// <param name="time">The amount of time to wait before calling <paramref name="action"/></param>
-    public void Schedule(Action action, TimeSpan time)
+    public void DeferCall(UpdateEvent<DeferredExecutionSchedule> action, TimeSpan time)
     {
         ArgumentNullException.ThrowIfNull(action);
         if (time <= TimeSpan.Zero)
@@ -99,7 +91,7 @@ public sealed class DeferredExecutionSchedule
     /// </remarks>
     /// <param name="action">The action to call</param>
     /// <param name="frames">The amount of frames to wait before calling <paramref name="action"/></param>
-    public void Schedule(Action action, ushort frames)
+    public void DeferCall(UpdateEvent<DeferredExecutionSchedule> action, ushort frames)
     {
         ArgumentNullException.ThrowIfNull(action);
         if (frames <= 0)

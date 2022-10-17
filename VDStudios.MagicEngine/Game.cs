@@ -63,8 +63,7 @@ public class Game : SDLApplication<Game>
         VideoThread = new(VideoRun);
         UpdateFrameThrottle = TimeSpan.FromMilliseconds(5);
         Random = CreateRNG();
-        DeferredCallSchedule = DeferredExecutionSchedule.New(out var desup);
-        DeferredExecutionScheduleUpdater = desup;
+        DeferredCallSchedule = new DeferredExecutionSchedule(out DeferredExecutionScheduleUpdater);
 
 #if FEATURE_INTERNAL_LOGGING
         Log.Debug("Compiled with \"FEATURE_INTERNAL_LOGGING\" enabled");

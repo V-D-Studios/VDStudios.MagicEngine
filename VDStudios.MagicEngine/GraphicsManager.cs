@@ -58,7 +58,7 @@ public class GraphicsManager : GameObject, IDisposable
 
         DefaultResourceCache = new(this);
 
-        DeferredCallSchedule = DeferredExecutionSchedule.New(out DeferredCallScheduleUpdater);
+        DeferredCallSchedule = new DeferredExecutionSchedule(out DeferredCallScheduleUpdater);
 
         IsRunningCheck = () => IsRunning;
         IsNotRenderingCheck = () => !IsRendering;

@@ -77,7 +77,7 @@ public sealed class DemoScene : Scene
         {
             camera.Position = CamPos[ind = (ind + 1) % CamPos.Length];
             next = false;
-            GameDeferredCallSchedule.Schedule(() => next = true, TimeSpan.FromSeconds(1));
+            GameDeferredCallSchedule.DeferCall((ex, delta) => next = true, TimeSpan.FromSeconds(1));
         }
         return new ValueTask<bool>(true);
     }
