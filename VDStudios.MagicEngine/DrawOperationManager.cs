@@ -181,7 +181,8 @@ public class DrawOperationManager : GameObject
 
     private void Operation_AboutToDispose(GameObject sender, TimeSpan timestamp)
     {
-        DrawOperations.Remove(sender);
+        if (sender is not DrawOperation dop) throw new InvalidOperationException($"Sender GameObject was not a DrawOperation");
+        DrawOperations.Remove(dop);
     }
 
     #endregion

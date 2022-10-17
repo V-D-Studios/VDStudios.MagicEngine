@@ -312,13 +312,6 @@ public class Game : SDLApplication<Game>
                         ActiveGraphicsManagers.Add(manager);
                     }
 
-                if (!graphicsManagersAwaitingDestruction.IsEmpty)
-                    while (graphicsManagersAwaitingDestruction.TryDequeue(out var manager))
-                    {
-                        ActiveGraphicsManagers.Remove(manager);
-                        manager.ActuallyDispose();
-                    }
-
                 if (!windowActions.IsEmpty)
                     while (windowActions.TryDequeue(out var winact))
                         winact.Action(winact.Window);

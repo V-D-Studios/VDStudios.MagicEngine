@@ -112,7 +112,7 @@ public abstract class GameObject : IDisposable
     /// <summary>
     /// <see langword="true"/> if this <see cref="GameObject"/> has already been disposed of
     /// </summary>
-    protected bool IsDisposed { get; private set; }
+    public bool IsDisposed { get; private set; }
 
     /// <summary>
     /// Disposes of this <see cref="GameObject"/> and any of its resources
