@@ -116,7 +116,7 @@ public class Game : SDLApplication<Game>
     /// This schedule is updated every game frame, as such, it's subject to update rate drops and its maximum time resolution is <see cref="UpdateFrameThrottle"/>
     /// </remarks>
     public DeferredExecutionSchedule DeferredCallSchedule { get; }
-    private readonly Action DeferredExecutionScheduleUpdater;
+    private readonly Func<ValueTask> DeferredExecutionScheduleUpdater;
 
     /// <summary>
     /// Represents all <see cref="GraphicsManager"/>s the <see cref="Game"/> currently has available
@@ -630,7 +630,7 @@ public class Game : SDLApplication<Game>
 
             await scene.Update(delta).ConfigureAwait(false);
             await scene.RegisterDrawOperations();
-            DeferredExecutionScheduleUpdater();
+            await DeferredExecutionScheduleUpdater();
 
             {
                 var c = (UpdateFrameThrottle - sw.Elapsed).TotalMilliseconds;

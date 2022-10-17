@@ -30,7 +30,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// This schedule is updated every frame, as such, it's subject to the framerate of this <see cref="GraphicsManager"/>, which, depending on configuration, can vary between the <see cref="GraphicsDevice"/> vertical refresh rate, or as fast as it can run. ---- Not to be confused with <see cref="Game.DeferredCallSchedule"/> (or <see cref="GameObject.GameDeferredCallSchedule"/>, which is the same)
     /// </remarks>
     public DeferredExecutionSchedule DeferredCallSchedule { get; }
-    private readonly Action DeferredCallScheduleUpdater;
+    private readonly Func<ValueTask> DeferredCallScheduleUpdater;
 
     /// <summary>
     /// Instances and constructs a new <see cref="GraphicsManager"/> object
@@ -982,7 +982,7 @@ public class GraphicsManager : GameObject, IDisposable
                 if (DOPRegistrationBuffer.Count > 0)
                     tdopr = ProcessDrawOpRegistrationBuffer().Preserve();
 
-                DeferredCallScheduleUpdater();
+                await DeferredCallScheduleUpdater();
                 await tdopr;
             }
 
