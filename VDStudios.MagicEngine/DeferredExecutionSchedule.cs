@@ -334,20 +334,9 @@ public sealed class DeferredExecutionSchedule
 
 #region Helpers
 
-#if VALIDATE_USAGE
     /// <summary>
     /// Represents a handle to a specific delegate that has been scheduled as a Recurrent Call in a <see cref="DeferredExecutionSchedule"/>
     /// </summary>
-    /// <remarks>
-    /// 
-    /// </remarks>
-#else
-    /// <summary>
-    /// Represents a handle to a specific delegate that has been scheduled as a Recurrent Call in a <see cref="DeferredExecutionSchedule"/>
-    /// </summary>
-    /// <remarks>
-    /// </remarks>
-#endif
     private sealed class RecurrentCallHandle : IDisposable
     {
 #if VALIDATE_USAGE
