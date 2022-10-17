@@ -15,8 +15,10 @@ namespace VDStudios.MagicEngine;
 /// </summary>
 public sealed class DeferredExecutionSchedule
 {
+    private TimeSpan PrevStamp;
     private readonly Stopwatch Watch;
     private readonly LinkedList<DeferredCallInfo> OneTimeSchedule;
+    private readonly LinkedList<TimedActionInfo> TimedActionSchedule;
     private ulong CurrentFrame = 1;
 
     /// <summary>
@@ -40,24 +42,83 @@ public sealed class DeferredExecutionSchedule
         lock (Watch) // Ensure only one Update is called at a time
         {
             var stamp = Watch.Elapsed;
-            var node = OneTimeSchedule.First;
+            var delta = stamp - PrevStamp;
+            PrevStamp = stamp;
+
+            var otsNode = OneTimeSchedule.First;
             var count = OneTimeSchedule.Count;
-            while (node is not null)
+            while (otsNode is not null)
             {
-                ref var info = ref node.ValueRef;
+                ref var info = ref otsNode.ValueRef;
                 if ((CurrentFrame % info.Frames) == 0 || stamp > info.Time)
                 {
-                    var prevNode = node;
-                    node = prevNode.Next;
+                    var prevNode = otsNode;
+                    otsNode = prevNode.Next;
                     lock (OneTimeSchedule)
                         OneTimeSchedule.Remove(prevNode);
-                    info.Action();
+                    info.Action(this, stamp - info.Registered);
                 }
                 else
-                    node = node.Next;
+                    otsNode = otsNode.Next;
             }
+
+            var tasNode = TimedActionSchedule.First;
+            count = TimedActionSchedule.Count;
+            while (tasNode is not null)
+            {
+                ref var info = ref tasNode.ValueRef;
+                info.Action(this, delta);
+                if ((CurrentFrame % info.Frames) == 0 || stamp > info.Time)
+                {
+                    var prevNode = tasNode;
+                    tasNode = prevNode.Next;
+                    lock (TimedActionSchedule)
+                        TimedActionSchedule.Remove(prevNode);
+                }
+                else
+                    tasNode = tasNode.Next;
+            }
+
             CurrentFrame++;
         }
+    }
+
+    /// <summary>
+    /// Schedules <paramref name="action"/> to run for <paramref name="time"/> amount of time
+    /// </summary>
+    /// <param name="action">The action to call</param>
+    /// <param name="time">The amount of time this call will be repeated (per-frame) for</param>
+    public void CallFor(UpdateEvent<DeferredExecutionSchedule> action, TimeSpan time)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        if (time <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(time), "The amount of time to defer action for must be larger than 0");
+
+        lock (TimedActionSchedule)
+            TimedActionSchedule.AddLast(new TimedActionInfo(
+                Action: action,
+                Frames: AssortedExtensions.PrimeNumberNearestToUInt16MaxValue,
+                Time: time + Watch.Elapsed
+            ));
+    }
+
+    /// <summary>
+    /// Schedules <paramref name="action"/> to run for <paramref name="frames"/> frames
+    /// </summary>
+    /// <param name="action">The action to call</param>
+    /// <param name="frames">The amount of frames this call will be repeated for</param>
+    public void CallFor(UpdateEvent<DeferredExecutionSchedule> action, ushort frames)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        if (frames <= 0)
+            throw new ArgumentOutOfRangeException(nameof(frames), "The amount of frames to defer action for must be larger than 0");
+
+        lock (TimedActionSchedule)
+            TimedActionSchedule.AddLast(new TimedActionInfo(
+                Action: action,
+                Frames: (uint)(CurrentFrame % frames + frames + 1),
+                Time: TimeSpan.MaxValue
+            ));
     }
 
     /// <summary>
@@ -75,12 +136,12 @@ public sealed class DeferredExecutionSchedule
             throw new ArgumentOutOfRangeException(nameof(time), "The amount of time to defer action for must be larger than 0");
 
         lock (OneTimeSchedule)
-            OneTimeSchedule.AddLast(new DeferredCallInfo()
-            {
-                Action = action,
-                Frames = AssortedExtensions.PrimeNumberNearestToUInt16MaxValue,
-                Time = time + Watch.Elapsed
-            });
+            OneTimeSchedule.AddLast(new DeferredCallInfo(
+                Action: action,
+                Frames: AssortedExtensions.PrimeNumberNearestToUInt16MaxValue,
+                Time: time + Watch.Elapsed,
+                Registered: Watch.Elapsed
+            ));
     }
 
     /// <summary>
@@ -98,12 +159,12 @@ public sealed class DeferredExecutionSchedule
             throw new ArgumentOutOfRangeException(nameof(frames), "The amount of frames to defer action for must be larger than 0");
 
         lock (OneTimeSchedule)
-            OneTimeSchedule.AddLast(new DeferredCallInfo()
-            {
-                Action = action,
-                Frames = (uint)(CurrentFrame % frames + frames + 1),
-                Time = TimeSpan.MaxValue
-            });
+            OneTimeSchedule.AddLast(new DeferredCallInfo(
+                Action: action,
+                Frames: (uint)(CurrentFrame % frames + frames + 1),
+                Time: TimeSpan.MaxValue,
+                Registered: Watch.Elapsed
+            ));
     }
 
     // Schedule in the Game thread
@@ -114,12 +175,9 @@ public sealed class DeferredExecutionSchedule
 
     #region Helpers
 
-    private struct DeferredCallInfo
-    {
-        public required Action Action { get; init; }
-        public required TimeSpan Time { get; init; }
-        public required uint Frames { get; init; }
-    }
+    private record struct TimedActionInfo(UpdateEvent<DeferredExecutionSchedule> Action, TimeSpan Time, uint Frames);
+
+    private record struct DeferredCallInfo(UpdateEvent<DeferredExecutionSchedule> Action, TimeSpan Time, uint Frames, TimeSpan Registered);
 
     #endregion
 }
