@@ -1,9 +1,9 @@
 ﻿namespace VDStudios.MagicEngine;
 
 /// <summary>
-/// Represents a Time Keeper for a <see cref="TimedSequence{TState}"/>; rules over the measure of time used to advance the sequence
+/// Represents a Time Keeper for a <see cref="TimedSequence{TState, TTime}"/>; rules over the measure of time used to advance the sequence
 /// </summary>
-public interface ISequenceTimeKeeper
+public interface ISequenceTimeKeeper<TTime> where TTime : struct
 {
     /// <summary>
     /// Queries this keeper about how many frames it should advance
@@ -15,7 +15,7 @@ public interface ISequenceTimeKeeper
     /// <param name="frames">The frames in the sequence</param>
     /// <typeparam name="TState">The type of the state used by a sequence</typeparam>
     /// <returns>The amount of frames to advance the sequence for</returns>
-    public int QueryAdvance<TState>(int currentState, TimedSequence<TState>.Frame[] frames) where TState : notnull;
+    public int QueryAdvance<TState>(int currentState, TimedSequence<TState, TTime>.Frame[] frames) where TState : notnull;
 
     /// <summary>
     /// Stops keeping time
