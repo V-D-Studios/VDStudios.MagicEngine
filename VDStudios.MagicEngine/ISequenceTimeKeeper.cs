@@ -6,11 +6,6 @@
 public interface ISequenceTimeKeeper
 {
     /// <summary>
-    /// The amount of base time each frame is allocated
-    /// </summary>
-    public TimeSpan TimePerFrame { get; }
-
-    /// <summary>
     /// Queries this keeper about how many frames it should advance
     /// </summary>
     /// <remarks>
