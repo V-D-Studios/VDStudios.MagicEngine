@@ -30,7 +30,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// This schedule is updated every frame, as such, it's subject to the framerate of this <see cref="GraphicsManager"/>, which, depending on configuration, can vary between the <see cref="GraphicsDevice"/> vertical refresh rate, or as fast as it can run. ---- Not to be confused with <see cref="Game.DeferredCallSchedule"/> (or <see cref="GameObject.GameDeferredCallSchedule"/>, which is the same)
     /// </remarks>
     public DeferredExecutionSchedule DeferredCallSchedule { get; }
-    private readonly Action DeferredCallScheduleUpdater;
+    private readonly Func<ValueTask> DeferredCallScheduleUpdater;
 
     /// <summary>
     /// Instances and constructs a new <see cref="GraphicsManager"/> object
@@ -58,7 +58,7 @@ public class GraphicsManager : GameObject, IDisposable
 
         DefaultResourceCache = new(this);
 
-        DeferredCallSchedule = DeferredExecutionSchedule.New(out DeferredCallScheduleUpdater);
+        DeferredCallSchedule = new DeferredExecutionSchedule(out DeferredCallScheduleUpdater);
 
         IsRunningCheck = () => IsRunning;
         IsNotRenderingCheck = () => !IsRendering;
@@ -868,7 +868,7 @@ public class GraphicsManager : GameObject, IDisposable
                         var ops = RegisteredOperations;
 
                         foreach (var kv in ops) // Iterate through all registered operations
-                            if (kv.Value.TryGetTarget(out var op) && !op.disposedValue)  // Filter out those that have been disposed or collected
+                            if (kv.Value.TryGetTarget(out var op) && !op.IsDisposed)  // Filter out those that have been disposed or collected
                                 op.Owner.AddToDrawQueue(drawqueue, op); // And query them
                             else
                                 removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
@@ -982,7 +982,7 @@ public class GraphicsManager : GameObject, IDisposable
                 if (DOPRegistrationBuffer.Count > 0)
                     tdopr = ProcessDrawOpRegistrationBuffer().Preserve();
 
-                DeferredCallScheduleUpdater();
+                await DeferredCallScheduleUpdater();
                 await tdopr;
             }
 

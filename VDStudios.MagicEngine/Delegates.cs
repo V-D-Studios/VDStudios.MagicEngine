@@ -27,6 +27,46 @@ public delegate void GeneralGameEvent<TData, in TSender>(TSender sender, TData d
 public delegate void GeneralGameEvent<in TSender>(TSender sender, TimeSpan timestamp)
     where TSender : GameObject;
 
+/// <summary>
+/// Represents a generic event in the game that represents an update of some kind and has a sender of type <typeparamref name="TSender"/> and some data of type <typeparamref name="TData"/>
+/// </summary>
+/// <param name="data">Some data that contains more information about the event</param>
+/// <param name="sender">The object that experienced the event</param>
+/// <param name="delta">The amount of time that has passed since the last time this event was fired</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <typeparam name="TData">The type of the object that contains more information about the event</typeparam>
+/// <typeparam name="TSender">The type of the object that experienced the event</typeparam>
+public delegate void UpdateGameEvent<TData, in TSender>(TSender sender, TData data, TimeSpan delta, TimeSpan timestamp)
+    where TSender : GameObject;
+
+/// <summary>
+/// Represents a generic event in the game that represents an update of some kind and has a sender of type <typeparamref name="TSender"/>
+/// </summary>
+/// <param name="sender">The object that experienced the event</param>
+/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
+/// <param name="delta">The amount of time that has passed since the last time this event was fired</param>
+/// <typeparam name="TSender">The type of the object that experienced the event</typeparam>
+public delegate void UpdateGameEvent<in TSender>(TSender sender, TimeSpan delta, TimeSpan timestamp)
+    where TSender : GameObject;
+
+/// <summary>
+/// Represents a generic event that represents an update of some kind and has a sender of type <typeparamref name="TSender"/> and some data of type <typeparamref name="TData"/>
+/// </summary>
+/// <param name="data">Some data that contains more information about the event</param>
+/// <param name="sender">The object that experienced the event</param>
+/// <param name="delta">The amount of time that has passed since the last time this event was fired</param>
+/// <typeparam name="TData">The type of the object that contains more information about the event</typeparam>
+/// <typeparam name="TSender">The type of the object that experienced the event</typeparam>
+public delegate void UpdateEvent<TData, in TSender>(TSender sender, TData data, TimeSpan delta);
+
+/// <summary>
+/// Represents a generic event that represents an update of some kind and has a sender of type <typeparamref name="TSender"/>
+/// </summary>
+/// <param name="sender">The object that experienced the event</param>
+/// <param name="delta">The amount of time that has passed since the last time this event was fired</param>
+/// <typeparam name="TSender">The type of the object that experienced the event</typeparam>
+public delegate void UpdateEvent<in TSender>(TSender sender, TimeSpan delta);
+
 #endregion
 
 #region Game Delegates
