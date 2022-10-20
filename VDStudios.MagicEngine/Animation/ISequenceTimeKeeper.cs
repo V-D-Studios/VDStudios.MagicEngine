@@ -1,4 +1,4 @@
-﻿namespace VDStudios.MagicEngine;
+﻿namespace VDStudios.MagicEngine.Animation;
 
 /// <summary>
 /// Represents a Time Keeper for a <see cref="TimedSequence{TState, TTime}"/>; rules over the measure of time used to advance the sequence
