@@ -193,7 +193,7 @@ public sealed class DeferredExecutionSchedule
         if (time <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(time), "The amount of time to defer action for must be larger than 0");
 
-        var rch = new RecurrentCallHandle(action, time, AssortedExtensions.PrimeNumberNearestToUInt32MaxValue, this);
+        var rch = new RecurrentCallHandle(action, time, AssortedConstants.PrimeNumberNearestToUInt32MaxValue, this);
 #if VALIDATE_USAGE
         lock (RecurrentCallsSchedule)
             RecurrentCallsSchedule.Add(new(rch));
@@ -256,7 +256,7 @@ public sealed class DeferredExecutionSchedule
         lock (TimedActionSchedule)
             TimedActionSchedule.AddLast(new TimedActionInfo(
                 Action: action,
-                Frames: AssortedExtensions.PrimeNumberNearestToUInt32MaxValue,
+                Frames: AssortedConstants.PrimeNumberNearestToUInt32MaxValue,
                 Time: time + Watch.Elapsed
             ));
     }
@@ -297,7 +297,7 @@ public sealed class DeferredExecutionSchedule
         lock (OneTimeSchedule)
             OneTimeSchedule.AddLast(new DeferredCallInfo(
                 Action: action,
-                Frames: AssortedExtensions.PrimeNumberNearestToUInt32MaxValue,
+                Frames: AssortedConstants.PrimeNumberNearestToUInt32MaxValue,
                 Time: time + Watch.Elapsed,
                 Registered: Watch.Elapsed
             ));

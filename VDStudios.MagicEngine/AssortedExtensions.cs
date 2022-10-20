@@ -6,9 +6,39 @@ using System.Runtime.CompilerServices;
 namespace VDStudios.MagicEngine;
 
 /// <summary>
-/// Represents a set of loosely related extensions
+/// An assortment of exception throw helper methods
 /// </summary>
-public static class AssortedExtensions
+public static class ThrowHelpers
+{
+    /// <summary>
+    /// Throws a new <see cref="ArgumentException"/> if <paramref name="enumerable"/> is empty, or a <see cref="ArgumentNullException"/> if its <see langword="null"/>
+    /// </summary>
+    public static void ThrowIfNullOrEmpty<T>(IEnumerable<T> enumerable, [CallerArgumentExpression(nameof(enumerable))] string? paramName = null)
+    {
+        if (enumerable is null)
+            throw new ArgumentNullException(paramName);
+        if (enumerable is IReadOnlyCollection<T> coll && coll.Count is 0)
+            throw new ArgumentException("Enumerable cannot be empty", paramName);
+        if (!enumerable.Any())
+            throw new ArgumentException("Enumerable cannot be empty", paramName);
+    }
+
+    /// <summary>
+    /// Throws a new <see cref="ArgumentException"/> if <paramref name="array"/> is empty, or a <see cref="ArgumentNullException"/> if its <see langword="null"/>
+    /// </summary>
+    public static void ThrowIfNullOrEmpty<T>(T[] array, [CallerArgumentExpression(nameof(array))] string? paramName = null)
+    {
+        if (array is null)
+            throw new ArgumentNullException(paramName);
+        if (array.Length is 0)
+            throw new ArgumentException("Array cannot be empty", paramName);
+    }
+}
+
+/// <summary>
+/// An assortment of useful, constant values
+/// </summary>
+public static class AssortedConstants
 {
     /// <summary>
     /// Represents the largest prime number that is less than <see cref="uint.MaxValue"/>
@@ -24,7 +54,13 @@ public static class AssortedExtensions
     /// Represents the largest prime number that is less than <see cref="ushort.MaxValue"/>
     /// </summary>
     public const ushort PrimeNumberNearestToUInt16MaxValue = 65521;
+}
 
+/// <summary>
+/// Represents a set of loosely related extensions
+/// </summary>
+public static class AssortedExtensions
+{
     /// <summary>
     /// Deconstructs <paramref name="vec"/> in the following order: <c>X</c>, <c>Y</c>, <c>Z</c>, <c>W</c>
     /// </summary>

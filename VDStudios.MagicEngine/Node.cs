@@ -193,7 +193,7 @@ public abstract class Node : NodeBase
             if (time <= TimeSpan.Zero)
                 throw new ArgumentOutOfRangeException(nameof(time), "Parameter 'time' must be larger than zero");
             SkipChildren = skipChildren;
-            Frames = AssortedExtensions.PrimeNumberNearestToUInt32MaxValue;
+            Frames = AssortedConstants.PrimeNumberNearestToUInt32MaxValue;
             Time = time;
             Enabled = true;
         }
