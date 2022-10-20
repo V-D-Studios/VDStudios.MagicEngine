@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Vortice.Direct3D11;
 
 namespace VDStudios.MagicEngine.Animation;
 
@@ -30,11 +29,26 @@ public enum TimedSequenceMode
 }
 
 /// <summary>
+/// Represents an event in which a <see cref="TimedSequence{TState, TTime}"/> advanced frames
+/// </summary>
+/// <typeparam name="TState">The type of the state that <paramref name="caller"/> will have at any given frame</typeparam>
+/// <typeparam name="TTime">The type of the object representing time</typeparam>
+/// <param name="caller">The object that fired this event</param>
+/// <param name="current">The current state of <paramref name="caller"/></param>
+/// <param name="next">The next state <paramref name="caller"/> will assume</param>
+/// <param name="previous">The previous state <paramref name="caller"/> had</param>
+public delegate void TimedSequenceAdvancementEvent<TState, TTime>(TimedSequence<TState, TTime> caller, TState current, TState next, TState previous)
+    where TState : notnull 
+    where TTime : struct;
+
+/// <summary>
 /// Represents a sequence of <typeparamref name="TState"/> states that moves across time
 /// </summary>
 /// <typeparam name="TState">The type of the state this <see cref="TimedSequence{TState, TTime}"/> will have at any given frame</typeparam>
 /// <typeparam name="TTime">The type of the object representing time</typeparam>
-public class TimedSequence<TState, TTime> : IReadOnlyList<TState> where TState : notnull where TTime : struct
+public class TimedSequence<TState, TTime> : IReadOnlyList<TState>, IReadOnlyList<TimedSequence<TState, TTime>.Frame> 
+    where TState : notnull 
+    where TTime : struct
 {
     #region Helpers
 
@@ -245,6 +259,11 @@ public class TimedSequence<TState, TTime> : IReadOnlyList<TState> where TState :
     #region Work
 
     /// <summary>
+    /// This event is fired whenever this <see cref="TimedSequence{TState, TTime}"/> advances its frames
+    /// </summary>
+    public TimedSequenceAdvancementEvent<TState, TTime>? FrameAdvanced;
+
+    /// <summary>
     /// The <see cref="ISequenceTimeKeeper{TTime}"/> that keeps time for this <see cref="TimedSequence{TState, TTime}"/>
     /// </summary>
     public ISequenceTimeKeeper<TTime> TimeKeeper
@@ -287,6 +306,9 @@ public class TimedSequence<TState, TTime> : IReadOnlyList<TState> where TState :
         }
     }
 
+    /// <summary>
+    /// Updates this <see cref="TimedSequence{TState, TTime}"/>, performing a frame advancement check and selecting its new frames if appropriate
+    /// </summary>
     public void Update()
     {
         var tk = TimeKeeper;
@@ -295,29 +317,85 @@ public class TimedSequence<TState, TTime> : IReadOnlyList<TState> where TState :
         var jumps = tk.QueryAdvance<TState>(CurrentIndex, Frames);
 
         if (jumps-- > 0)
-        {
-            var (p, n, c) = Selector(this, CurrentIndex + jumps, Frames.Length);
-            CurrentIndex = c;
-            NextIndex = n;
-            PreviousIndex = p;
-        }
+            UpdateIndices(Selector(this, CurrentIndex + jumps, Frames.Length));
+
+        Updated(jumps > 0);
     }
 
+    /// <summary>
+    /// This method is called automatically when this <see cref="TimedSequence{TState, TTime}"/> is about to be updated
+    /// </summary>
     protected virtual void Updating() { }
 
-    public int CurrentIndex { get; protected set; }
+    /// <summary>
+    /// This method is called automatically when this <see cref="TimedSequence{TState, TTime}"/> has been updated
+    /// </summary>
+    /// <param name="updatedIndices">Whether the object's indices and current states were updated</param>
+    protected virtual void Updated(bool updatedIndices) { }
+
+    /// <summary>
+    /// The current frame index of this <see cref="TimedSequence{TState, TTime}"/>
+    /// </summary>
+    public int CurrentIndex { get; private set; }
+
+    /// <summary>
+    /// The next frame index of this <see cref="TimedSequence{TState, TTime}"/>
+    /// </summary>
     public int NextIndex { get; private set; }
+
+    /// <summary>
+    /// The previous frame index of this <see cref="TimedSequence{TState, TTime}"/>
+    /// </summary>
     public int PreviousIndex { get; private set; }
+
+    /// <summary>
+    /// The current state of this <see cref="TimedSequence{TState, TTime}"/>
+    /// </summary>
     public TState Current { get; private set; }
+
+    /// <summary>
+    /// The next state this <see cref="TimedSequence{TState, TTime}"/> will assume
+    /// </summary>
     public TState Next { get; private set; }
+
+    /// <summary>
+    /// The previous state this <see cref="TimedSequence{TState, TTime}"/> had
+    /// </summary>
     public TState Previous { get; private set; }
 
-    public TState First { get; }
-    public TState Last { get; }
+    /// <summary>
+    /// The actual previous state this <see cref="TimedSequence{TState, TTime}"/> had
+    /// </summary>
+    /// <remarks>
+    /// Should remain consistently equal to <see cref="Previous"/>, but it may differ from timing errors or intentional advancement jumping
+    /// </remarks>
+    public TState LastState { get; private set; }
 
-    private void UpdateIndices()
+    /// <summary>
+    /// The actual previous state index this <see cref="TimedSequence{TState, TTime}"/> had
+    /// </summary>
+    /// <remarks>
+    /// Should remain consistently equal to <see cref="PreviousIndex"/>, but it may differ from timing errors or intentional advancement jumping
+    /// </remarks>
+    public int LastStateIndex { get; private set; }
+
+    private void UpdateIndices((int p, int n, int c) indices)
     {
+        var fr = Frames;
+        var (prev, next, curr) = indices;
 
+        LastState = Current;
+        LastStateIndex = CurrentIndex;
+
+        CurrentIndex = curr;
+        PreviousIndex = prev;
+        NextIndex = next;
+
+        Current = fr[curr].State;
+        Next = fr[next].State;
+        Previous = fr[prev].State;
+
+        FrameAdvanced?.Invoke(this, Current, Next, Previous);
     }
 
     #endregion
@@ -336,6 +414,33 @@ public class TimedSequence<TState, TTime> : IReadOnlyList<TState> where TState :
         var fr = Frames;
         for (int i = 0; i < fr.Length; i++)
             yield return fr[i].State;
+    }
+
+    /// <inheritdoc/>
+    Frame IReadOnlyList<Frame>.this[int index] => GetFrame(index);
+
+    /// <summary>
+    /// Queries the frame at index <paramref name="index"/> in this <see cref="TimedSequence{TState, TTime}"/>
+    /// </summary>
+    /// <param name="index">The index at which to query the frame</param>
+    /// <returns>The found frame</returns>
+    public Frame GetFrame(int index) => Frames[index];
+
+    /// <summary>
+    /// Gets an enumerable representing this <see cref="TimedSequence{TState, TTime}"/>'s frames
+    /// </summary>
+    /// <remarks>
+    /// This method returns the <see cref="TimedSequence{TState, TTime}"/> itself
+    /// </remarks>
+    /// <returns>An <see cref="IEnumerable{T}"/> that can be used to enumerate this <see cref="TimedSequence{TState, TTime}"/>'s frames</returns>
+    public IEnumerable<Frame> GetFrames() => this;
+
+    /// <inheritdoc/>
+    IEnumerator<Frame> IEnumerable<Frame>.GetEnumerator()
+    {
+        var fr = Frames;
+        for (int i = 0; i < fr.Length; i++)
+            yield return fr[i];
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
