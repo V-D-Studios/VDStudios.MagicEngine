@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
 
@@ -82,35 +83,43 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     public void AddElement(GUIElement element, object? context = null)
     {
         ThrowIfInvalid();
-        element.RegisterOnto(this, Manager!, context);
+        element.RegisterOnto(this, imgui_manager!, context);
     }
 
     #region Internal
 
-    internal void RegisterOnto(GraphicsManager manager, object? context = null)
+    private ImGuiManager? imgui_manager;
+
+    internal void RegisterOnto(ImGuiManager manager, object? context = null)
     {
         ThrowIfDisposed();
-        VerifyManager(manager);
+        ArgumentNullException.ThrowIfNull(manager);
+        VerifyManager(manager.OwnerManager);
 
-        Registering(manager);
+        Registering(manager.OwnerManager);
 
         DataContext = context ?? DataContext;
         nodeInParent = manager.GUIElements.Add(this);
+        imgui_manager = manager;
+        manager.ReportNewElement();
 
         Registered();
         NotifyIsReady();
     }
 
-    internal void RegisterOnto(GUIElement parent, GraphicsManager manager, object? context = null)
+    internal void RegisterOnto(GUIElement parent, ImGuiManager manager, object? context = null)
     {
         ThrowIfDisposed();
-        VerifyManager(manager);
+        ArgumentNullException.ThrowIfNull(manager.OwnerManager);
+        VerifyManager(manager.OwnerManager);
 
-        Registering(parent, manager);
+        Registering(parent, manager.OwnerManager);
 
         DataContext = context ?? DataContext ?? parent.DataContext;
         Parent = parent;
         nodeInParent = parent.SubElements.Add(this);
+        imgui_manager = manager;
+        manager.ReportNewElement();
 
         Registered();
         NotifyIsReady();
@@ -277,7 +286,7 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     private void ThrowIfInvalid()
     {
         ThrowIfDisposed();
-        if (Manager is null)
+        if (Manager is null || imgui_manager is null)
             throw new InvalidOperationException($"Cannot utilize a GUIElement that is not registered onto a GraphicsManager at somepoint in its tree");
     }
 
@@ -322,8 +331,9 @@ public abstract class GUIElement : GraphicsObject, IDisposable
             }
             finally
             {
-                var next = SubElements.elements.First!;
-                while (SubElements.Count > 0)
+                imgui_manager?.ReportDeadElement();
+                var next = SubElements.elements.First;
+                while (next is not null)
                 {
                     var current = next;
                     next = next.Next;

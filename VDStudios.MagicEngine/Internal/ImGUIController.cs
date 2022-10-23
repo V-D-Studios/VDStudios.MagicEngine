@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Internal;
+
 /// <summary>
 /// A modified version of Veldrid.ImGui's ImGuiRenderer.
 /// Manages input for ImGui and handles rendering ImGui's DrawLists with Veldrid.

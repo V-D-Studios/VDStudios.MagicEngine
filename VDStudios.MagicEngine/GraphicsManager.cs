@@ -307,7 +307,7 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region ImGUI
 
-    private ImGuiController ImGuiController;
+    private ImGuiManager ImGuiManager;
 
     /// <summary>
     /// Represents the <see cref="GUIElement"/>s currently held by this <see cref="GraphicsManager"/>
@@ -315,7 +315,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <remarks>
     /// A <see cref="GraphicsManager"/>
     /// </remarks>
-    public GUIElementList GUIElements { get; } = new();
+    public GUIElementList GUIElements => ImGuiManager.GUIElements;
 
     /// <summary>
     /// Adds a <see cref="GUIElement"/> <paramref name="element"/> to this <see cref="GraphicsManager"/>
@@ -323,10 +323,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <param name="element">The <see cref="GUIElement"/> to add as an element of this <see cref="GraphicsManager"/></param>
     /// <param name="context">The DataContext to give to <paramref name="element"/>, or null if it's to use its previously set DataContext or inherit it from this <see cref="GUIElement"/></param>
     public void AddElement(GUIElement element, object? context = null)
-    {
-        element.AssignManager(this);
-        element.RegisterOnto(this, context);
-    }
+        => ImGuiManager.AddElement(element, context);
 
     #endregion
 
@@ -625,7 +622,7 @@ public class GraphicsManager : GameObject, IDisposable
             Device.MainSwapchain.Resize((uint)ww, (uint)wh);
 
             InternalLog?.Verbose("Resizing ImGuiController");
-            ImGuiController.WindowResized(ww, wh);
+            ImGuiManager.Controller.WindowResized(ww, wh);
 
             WindowSize = newSize;
             DrawParameters.Transformation = new(Matrix4x4.Identity, Matrix4x4.CreateScale(wh / (float)ww, 1, 1));
@@ -945,21 +942,9 @@ public class GraphicsManager : GameObject, IDisposable
                         if (!await WaitOn(glock, condition: isRunning)) break; // Frame Render Stage 2: GUI Drawing
                         try
                         {
-                            if (GUIElements.Count > 0) // We check twice, as it may have changed between the first check and the lock being adquired
-                            {
-                                managercl.Begin();
-                                managercl.SetFramebuffer(gd.SwapchainFramebuffer); // Prepare for ImGUI
-                                using (ImGuiController.Begin()) // Lock ImGUI from other GraphicsManagers
-                                {
-                                    foreach (var element in GUIElements)
-                                        element.InternalSubmitUI(delta); // Submit UIs
-                                    using (var snapshot = FetchSnapshot())
-                                        ImGuiController.Update(1 / 60f, snapshot);
-                                    ImGuiController.Render(gd, managercl); // Render
-                                }
-                                managercl.End();
-                                gd.SubmitCommands(managercl);
-                            }
+                            using var snapshot = FetchSnapshot();
+                            ImGuiManager.BeginDraw(snapshot, gd, delta);
+                            gd.SubmitCommands(ImGuiManager.EndDraw());
                         }
                         finally
                         {
@@ -1061,7 +1046,7 @@ public class GraphicsManager : GameObject, IDisposable
         var factory = gd.ResourceFactory;
 
         var (ww, wh) = window.Size;
-        ImGuiController = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
+        ImGuiManager = new(new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh), factory.CreateCommandList(), this);
 
         var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
         var dotransl = new ResourceLayoutDescription(

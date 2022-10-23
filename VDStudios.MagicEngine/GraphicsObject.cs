@@ -1,4 +1,6 @@
-﻿namespace VDStudios.MagicEngine;
+﻿using VDStudios.MagicEngine.Internal;
+
+namespace VDStudios.MagicEngine;
 
 /// <summary>
 /// Represents the base class for graphical operations, such as <see cref="DrawOperation"/>, <see cref="GUIElement"/>
@@ -30,7 +32,7 @@ public abstract class GraphicsObject : GameObject
 
     private bool isRegistered = false;
 
-    internal void AssignManager(GraphicsManager manager)
+    internal virtual void AssignManager(GraphicsManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
         lock (ReadySemaphore)
