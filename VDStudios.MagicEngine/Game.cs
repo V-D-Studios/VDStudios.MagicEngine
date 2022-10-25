@@ -43,8 +43,17 @@ public abstract class Game
     /// <remarks>
     /// Only one object of type (or sub-type) <see cref="Game"/> can be instanced in the lifetime of a program
     /// </remarks>
-    public static Game NewGame<TGame>() where TGame : Game, new()
-        => new TGame();
+    public static TGame NewGame<TGame>() where TGame : Game, new()
+        => new();
+
+    /// <summary>
+    /// Creates a new game of type <see cref="SDLGame"/>
+    /// </summary>
+    /// <returns>A reference to the created game, that has been assigned to <see cref="Game.Instance"/></returns>
+    /// <remarks>
+    /// Only one object of type (or sub-type) <see cref="Game"/> can be instanced in the lifetime of a program
+    /// </remarks>
+    public static SDLGame NewSDLGame() => NewGame<SDLGame>();
 
     /// <summary>
     /// Fetches the singleton instance of this <see cref="Game"/>
