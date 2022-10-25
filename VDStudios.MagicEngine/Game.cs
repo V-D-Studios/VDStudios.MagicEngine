@@ -15,10 +15,7 @@ namespace VDStudios.MagicEngine;
 /// <summary>
 /// The class that contains the most important aspects of MagicEngine's functionality
 /// </summary>
-/// <remarks>
-/// This class takes control of most of SDL's processes. And should be allowed to do so. Follow the docs on how to initialize your <see cref="Game"/>
-/// </remarks>
-public class Game : SDLApplication<Game>
+public abstract class Game 
 {
     #region (Standalone) Fields
 
@@ -38,21 +35,40 @@ public class Game : SDLApplication<Game>
     internal PriorityQueue<Scene, int> scenesAwaitingSetup = new(5, DescendingIntComparer.Comparer);
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingSetup = new();
 
-    static Game()
-    {
-        SDLAppBuilder.CreateInstance<Game>();
-    }
+    /// <summary>
+    /// Creates a new game of type <typeparamref name="TGame"/>
+    /// </summary>
+    /// <typeparam name="TGame">The type of <see cref="Game"/> to create</typeparam>
+    /// <returns>A reference to the created game, that has been assigned to <see cref="Game.Instance"/></returns>
+    /// <remarks>
+    /// Only one object of type (or sub-type) <see cref="Game"/> can be instanced in the lifetime of a program
+    /// </remarks>
+    public static Game NewGame<TGame>() where TGame : Game, new()
+        => new TGame();
 
     /// <summary>
     /// Fetches the singleton instance of this <see cref="Game"/>
     /// </summary>
-    public static new Game Instance => SDLApplication<Game>.Instance;
+    public static Game Instance
+    {
+        get => _inst ?? throw new InvalidOperationException("There is currently no game loaded");
+        private set
+        {
+            lock (typeof(Game))
+                _inst = _inst is null
+                    ? value ?? throw new ArgumentNullException(nameof(value))
+                    : throw new InvalidOperationException("Cannot instance multiple objects of type Game");
+        }
+    }
+    private static Game? _inst;
 
     /// <summary>
     /// Instances a new <see cref="Game"/>
     /// </summary>
     public Game()
     {
+        Instance = this;
+
         Logger = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
 #if FEATURE_INTERNAL_LOGGING
         InternalLogger = ConfigureInternalLogger(new LoggerConfiguration()).CreateLogger();
@@ -102,7 +118,7 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Gets the total amount of time that has elapsed from the time SDL2 was initialized
     /// </summary>
-    public static new TimeSpan TotalTime => TimeSpan.FromTicks(SDL2.Bindings.SDL.SDL_GetTicks());
+    public static TimeSpan TotalTime => TimeSpan.FromTicks(SDL2.Bindings.SDL.SDL_GetTicks());
 
     /// <summary>
     /// Represents the Main <see cref="GraphicsManager"/> used by the game
@@ -290,6 +306,15 @@ public class Game : SDLApplication<Game>
 
     #endregion
 
+    #region Virtual Methods
+
+    /// <summary>
+    /// This method is called automatically by the game to update the system's events. For example, SDL's event loops
+    /// </summary>
+    protected abstract void UpdateSystemEvents();
+
+    #endregion
+
     #region Internal
 
     private void VideoRun()
@@ -316,7 +341,7 @@ public class Game : SDLApplication<Game>
                     while (windowActions.TryDequeue(out var winact))
                         winact.Action(winact.Window);
 
-                UpdateEvents();
+                UpdateSystemEvents();
 
                 Thread.Sleep(sleep);
             }
@@ -731,4 +756,16 @@ public class Game : SDLApplication<Game>
     public event GameMainWindowCreatedEvent? WindowObtained;
 
 #endregion
+}
+
+/// <summary>
+/// A <see cref="Game"/> that is backed by SDL
+/// </summary>
+public class SDLGame : Game
+{
+    /// <inheritdoc/>
+    protected override void UpdateSystemEvents()
+    {
+        SDLApplication.UpdateEvents();
+    }
 }
