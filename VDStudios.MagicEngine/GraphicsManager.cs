@@ -31,13 +31,17 @@ public class GraphicsManager : GameObject, IDisposable
     /// </remarks>
     public DeferredExecutionSchedule DeferredCallSchedule { get; }
     private readonly Func<ValueTask> DeferredCallScheduleUpdater;
+    private readonly bool AsyncImGui;
 
     /// <summary>
     /// Instances and constructs a new <see cref="GraphicsManager"/> object
     /// </summary>
     /// <param name="commandListGroups">The CommandList group definitions for this <see cref="GraphicsManager"/></param>
-    public GraphicsManager(ImmutableArray<CommandListGroupDefinition> commandListGroups) : base("Graphics & Input", "Rendering")
+    /// <param name="asyncImGui"><see langword="true"/> if ImGui should be handled in a background thread while the rest of the drawing takes place; <see langword="false"/> otherwise</param>
+    public GraphicsManager(ImmutableArray<CommandListGroupDefinition> commandListGroups, bool asyncImGui = false) 
+        : base("Graphics & Input", "Rendering")
     {
+        AsyncImGui = asyncImGui;
         if (commandListGroups.Length <= 0)
             throw new ArgumentException("The array of CommandListGroups cannot be empty", nameof(commandListGroups));
         for (int i = 0; i < commandListGroups.Length; i++)
@@ -69,13 +73,17 @@ public class GraphicsManager : GameObject, IDisposable
     /// Instances and constructs a new <see cref="GraphicsManager"/> object
     /// </summary>
     /// <param name="commandListGroups">The CommandList group definitions for this <see cref="GraphicsManager"/>. This array will be copied and turned into an <see cref="ImmutableArray{T}"/></param>
-    public GraphicsManager(params CommandListGroupDefinition[] commandListGroups) : this(ImmutableArray.Create(commandListGroups)) { }
+    /// <param name="asyncImGui"><see langword="true"/> if ImGui should be handled in a background thread while the rest of the drawing takes place; <see langword="false"/> otherwise</param>
+    public GraphicsManager(bool asyncImGui = false, params CommandListGroupDefinition[] commandListGroups) 
+        : this(ImmutableArray.Create(commandListGroups), asyncImGui) { }
 
     /// <summary>
     /// Instances and constructs a new <see cref="GraphicsManager"/> object
     /// </summary>
     /// <param name="parallelism">The degree of parallelism to assign to the single <see cref="CommandListGroupDefinition"/> this constructor will create</param>
-    public GraphicsManager(int parallelism) : this(ImmutableArray.Create(new CommandListGroupDefinition(parallelism))) { }
+    /// <param name="asyncImGui"><see langword="true"/> if ImGui should be handled in a background thread while the rest of the drawing takes place; <see langword="false"/> otherwise</param>
+    public GraphicsManager(int parallelism, bool asyncImGui = false) 
+        : this(ImmutableArray.Create(new CommandListGroupDefinition(parallelism)), asyncImGui) { }
 
     private readonly SemaphoreSlim initLock = new(1, 1);
 
@@ -942,9 +950,8 @@ public class GraphicsManager : GameObject, IDisposable
                         if (!await WaitOn(glock, condition: isRunning)) break; // Frame Render Stage 2: GUI Drawing
                         try
                         {
-                            using var snapshot = FetchSnapshot();
-                            ImGuiManager.BeginDraw(snapshot, gd, delta);
-                            gd.SubmitCommands(ImGuiManager.EndDraw());
+                            ImGuiManager.BeginDraw(FetchSnapshot(), gd, delta);
+                            gd.SubmitCommands(await ImGuiManager.EndDraw());
                         }
                         finally
                         {
@@ -1046,7 +1053,12 @@ public class GraphicsManager : GameObject, IDisposable
         var factory = gd.ResourceFactory;
 
         var (ww, wh) = window.Size;
-        ImGuiManager = new(new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh), factory.CreateCommandList(), this);
+
+        ImGuiController img = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
+        //ImGuiManager = !AsyncImGui
+        //    ? new BackgroundThreadImGuiManager(img, factory.CreateCommandList(), this)
+        //    : new ForegroundImGuiManager(img, factory.CreateCommandList(), this); // BackgroundThreadImGuiManager is disabled
+        ImGuiManager = new ForegroundImGuiManager(img, factory.CreateCommandList(), this);
 
         var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
         var dotransl = new ResourceLayoutDescription(
