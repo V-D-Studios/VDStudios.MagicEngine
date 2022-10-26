@@ -710,14 +710,6 @@ public abstract class Game
     public event GameSceneChangedEvent? SceneChanged;
 
     /// <summary>
-    /// Fired when the first <see cref="CurrentScene"/> of the <see cref="Game"/> is set
-    /// </summary>
-    /// <remarks>
-    /// If you <see cref="Stop"/> and <see cref="Start"/> the game again, this event will be fired again along with it
-    /// </remarks>
-    public event GameSceneEvent? FirstSceneSet;
-
-    /// <summary>
     /// Fired when the game is being loaded
     /// </summary>
     /// <remarks>
