@@ -487,7 +487,7 @@ public abstract class Game
     /// This method forces concurrency by locking, and will throw if called twice before calling the game is stopped. Still a good idea to call it from the thread that initialized SDL
     /// </remarks>
     public Task StartGame<TScene>() where TScene : Scene, new()
-        => StartGame<TScene>(new TScene());
+        => StartGame(new TScene());
 
     /// <summary>
     /// Initiates the process of starting the game. Launches the main Renderer and Window if not already created. This method will not return until the <see cref="Game"/>'s <see cref="IGameLifetime"/> ends
@@ -513,7 +513,7 @@ public abstract class Game
         
         GameLoaded?.Invoke(this, TotalTime);
 
-        currentScene = scene;
+        nextScene = scene;
 
         SetupScenes?.Invoke();
 
@@ -608,14 +608,14 @@ public abstract class Game
 
             if (nextScene is not null)
             {
-                var prev = currentScene!;
+                var prev = currentScene;
 
-                await prev.End(nextScene).ConfigureAwait(false);
+                await (prev?.End(nextScene).ConfigureAwait(false) ?? default);
                 await nextScene.Begin().ConfigureAwait(false);
 
                 currentScene = nextScene;
                 nextScene = null;
-                SceneChanged?.Invoke(this, TotalTime, currentScene, prev!);
+                SceneChanged?.Invoke(this, TotalTime, currentScene, prev);
             }
 
             scene = CurrentScene;
