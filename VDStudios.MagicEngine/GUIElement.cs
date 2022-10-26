@@ -353,6 +353,7 @@ public abstract class GUIElement : GraphicsObject, IDisposable
                     @lock!.Dispose();
             }
         }
+        base.InternalDispose(disposing);
     }
 
     /// <inheritdoc/>
