@@ -175,15 +175,18 @@ public abstract class Scene : NodeBase
     protected virtual ValueTask Transitioning(Scene previous) => ValueTask.CompletedTask;
 
     /// <summary>
-    /// This method is called automatically when the <see cref="Scene"/> is ending, and it's not being replaced by another <see cref="Scene"/>
+    /// This method is called automatically when the <see cref="Scene"/> is ending, whether or not it's being replaced by another <see cref="Scene"/>
     /// </summary>
+    /// <remarks>
+    /// If the <see cref="Scene"/> is being replaced by another <see cref="Scene"/>, <see cref="Ending(Scene)"/> will be called first, and THEN this one
+    /// </remarks>
     protected virtual ValueTask Ending() => ValueTask.CompletedTask;
 
     /// <summary>
     /// This method is called automatically when the <see cref="Scene"/> is ending and the next one is being prepared
     /// </summary>
     /// <remarks>
-    /// This method is called before <paramref name="next"/>'s <see cref="Transitioning(Scene)"/>
+    /// This method is called before <paramref name="next"/>'s <see cref="Transitioning(Scene)"/>, and <see cref="Ending()"/>
     /// </remarks>
     /// <param name="next">The <see cref="Scene"/> that will begin next</param>
     protected virtual ValueTask Ending(Scene next) => ValueTask.CompletedTask;
