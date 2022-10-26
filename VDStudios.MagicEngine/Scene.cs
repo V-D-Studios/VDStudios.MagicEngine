@@ -132,6 +132,7 @@ public abstract class Scene : NodeBase
     {
         InternalLog?.Information("Ending scene, to make way for {name}-{type}", next.Name, next.GetTypeName());
         await Ending(next);
+        await Ending();
         SceneEnded?.Invoke(this, Game.TotalTime);
         await next.Transitioning(this);
     }
