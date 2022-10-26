@@ -341,7 +341,10 @@ public abstract class GUIElement : GraphicsObject, IDisposable
                 }
 
                 if (nodeInParent is LinkedListNode<GUIElement> el)
-                    Parent!.SubElements.Remove(el);
+                    if (Parent is GUIElement p)
+                        p.SubElements.Remove(el);
+                    else
+                        imgui_manager!.GUIElements.Remove(el);
 
                 DataContext = null;
                 DataContextChanged = null;
