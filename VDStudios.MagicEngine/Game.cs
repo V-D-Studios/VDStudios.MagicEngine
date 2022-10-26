@@ -609,12 +609,13 @@ public abstract class Game
             if (nextScene is not null)
             {
                 var prev = currentScene;
-
-                await (prev?.End(nextScene).ConfigureAwait(false) ?? default);
-                await nextScene.Begin().ConfigureAwait(false);
-
+                var next = nextScene;
                 currentScene = nextScene;
                 nextScene = null;
+
+                await (prev?.End(next).ConfigureAwait(false) ?? default);
+                await next.Begin().ConfigureAwait(false);
+
                 SceneChanged?.Invoke(this, TotalTime, currentScene, prev);
             }
 
