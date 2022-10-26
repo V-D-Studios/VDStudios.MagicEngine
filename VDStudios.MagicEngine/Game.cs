@@ -482,11 +482,21 @@ public abstract class Game
     /// <summary>
     /// Initiates the process of starting the game. Launches the main Renderer and Window if not already created. This method will not return until the <see cref="Game"/>'s <see cref="IGameLifetime"/> ends
     /// </summary>
-    /// <typeparam name="TScene">The first scene of the game. It must have a parameterless constructor, and it must be constructed by the <see cref="Game"/>. Later <see cref="Scene"/>s can be constructed manually after the game has started</typeparam>
+    /// <typeparam name="TScene">It must have a parameterless constructor, and it must be constructed by the <see cref="Game"/>. Later <see cref="Scene"/>s can be constructed manually after the game has started</typeparam>
     /// <remarks>
     /// This method forces concurrency by locking, and will throw if called twice before calling the game is stopped. Still a good idea to call it from the thread that initialized SDL
     /// </remarks>
-    public async Task StartGame<TScene>() where TScene : Scene, new()
+    public Task StartGame<TScene>() where TScene : Scene, new()
+        => StartGame<TScene>(new TScene());
+
+    /// <summary>
+    /// Initiates the process of starting the game. Launches the main Renderer and Window if not already created. This method will not return until the <see cref="Game"/>'s <see cref="IGameLifetime"/> ends
+    /// </summary>
+    /// <typeparam name="TScene">The first scene of the game.</typeparam>
+    /// <remarks>
+    /// This method forces concurrency by locking, and will throw if called twice before calling the game is stopped. Still a good idea to call it from the thread that initialized SDL
+    /// </remarks>
+    public async Task StartGame<TScene>(TScene scene) where TScene : Scene
     {
         lock (_lock)
         {
@@ -503,8 +513,7 @@ public abstract class Game
         
         GameLoaded?.Invoke(this, TotalTime);
 
-        var firstScene = new TScene();
-        currentScene = firstScene;
+        currentScene = scene;
 
         SetupScenes?.Invoke();
 
@@ -526,7 +535,7 @@ public abstract class Game
 
         GameStarting?.Invoke(this, TotalTime);
 
-        Start(firstScene);
+        Start(scene);
 
         GameStarted?.Invoke(this, TotalTime);
 
