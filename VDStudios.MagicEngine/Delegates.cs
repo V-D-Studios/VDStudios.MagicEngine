@@ -84,7 +84,7 @@ public delegate void WindowAction(Window window);
 /// <param name="newScene">The scene that was just set</param>
 /// <param name="oldScene">The scene that was previously set</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-public delegate void GameSceneChangedEvent(Game game, TimeSpan timestamp, Scene newScene, Scene oldScene);
+public delegate void GameSceneChangedEvent(Game game, TimeSpan timestamp, Scene newScene, Scene? oldScene);
 
 /// <summary>
 /// Represents an event in the <see cref="Game"/> regarding a scene
