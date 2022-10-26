@@ -148,7 +148,7 @@ public static class AssortedExtensions
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe Span<float> AsSpan(Vector3* vector)
-        => new(vector, 2);
+        => new(vector, 3);
 
     /// <summary>
     /// Takes the <see cref="Vector3"/> pointer and converts it into a span of 3 <see cref="float"/>s
@@ -160,7 +160,7 @@ public static class AssortedExtensions
     public static unsafe Span<float> AsSpan(this ref Vector3 vector)
     {
         fixed (void* ptr = &vector)
-            return new((float*)ptr, 2);
+            return new((float*)ptr, 3);
     }
 
     /// <summary>
@@ -168,7 +168,7 @@ public static class AssortedExtensions
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe Span<float> AsSpan(Vector4* vector)
-        => new(vector, 2);
+        => new(vector, 4);
 
     /// <summary>
     /// Takes the <see cref="Vector4"/> pointer and converts it into a span of 4 <see cref="float"/>s
@@ -180,6 +180,6 @@ public static class AssortedExtensions
     public static unsafe Span<float> AsSpan(this ref Vector4 vector)
     {
         fixed (void* ptr = &vector)
-            return new((float*)ptr, 2);
+            return new((float*)ptr, 4);
     }
 }
