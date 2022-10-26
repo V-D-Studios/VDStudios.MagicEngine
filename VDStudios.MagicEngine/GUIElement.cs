@@ -56,7 +56,7 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     /// <summary>
     /// 
     /// </summary>
-    public GUIElementDataContextChangedEvent? DataContextChanged;
+    public event GUIElementDataContextChangedEvent? DataContextChanged;
 
     #endregion
 
@@ -244,7 +244,7 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     /// <summary>
     /// Fired when <see cref="IsActive"/> changes
     /// </summary>
-    public GUIElementActiveChanged? IsActiveChanged;
+    public event GUIElementActiveChanged? IsActiveChanged;
 
     #endregion
 
