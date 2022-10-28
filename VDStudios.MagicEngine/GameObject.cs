@@ -20,7 +20,12 @@ public abstract class GameObject : IDisposable
     /// <summary>
     /// An optional name for debugging purposes
     /// </summary>
-    public string? Name { get; init; }
+    public string Name
+    {
+        get => _name ??= GetHashCode().ToString("X4");
+        init => _name = value;
+    }
+    private string? _name;
 
     /// <summary>
     /// Instances a new GameObject
