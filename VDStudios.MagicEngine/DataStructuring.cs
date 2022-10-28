@@ -54,4 +54,15 @@ public static class DataStructuring
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TNumber FitToSize<TStruct, TNumber>(TNumber multipleOf) where TStruct : unmanaged where TNumber : IBinaryInteger<TNumber>
         => multipleOf * (TNumber.CreateSaturating(Unsafe.SizeOf<TStruct>()) / multipleOf + TNumber.One);
+
+    /// <summary>
+    /// Fits <paramref name="size"/> to the smallest possible size in bytes that is a multiple of <paramref name="multipleOf"/>
+    /// </summary>
+    /// <typeparam name="TNumber">The type of the numeric representing the size</typeparam>
+    /// <param name="multipleOf">The value to fit <paramref name="size"/> into</param>
+    /// <param name="size">The actual size being tested</param>
+    /// <returns>The appropriate buffer size necessary to fit the struct</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TNumber FitToSize<TNumber>(TNumber size, TNumber multipleOf) where TNumber : IBinaryInteger<TNumber>
+        => multipleOf * (TNumber.CreateSaturating(size) / multipleOf + TNumber.One);
 }
