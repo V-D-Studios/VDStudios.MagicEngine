@@ -1,0 +1,3 @@
+[submodule "dependencies\\Veldrid.TextRendering"]
+	path = dependencies\\Veldrid.TextRendering
+	url = https://github.com/mellinoe/Veldrid.TextRendering.git
