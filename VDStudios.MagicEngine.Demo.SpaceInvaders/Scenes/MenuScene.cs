@@ -1,4 +1,5 @@
 ﻿using ImGuiNET;
+using Veldrid;
 
 namespace VDStudios.MagicEngine.Demo.SpaceInvaders.Scenes;
 
@@ -10,7 +11,9 @@ public class MenuScene : Scene
     {
         Menu = new();
         Game.MainGraphicsManager.AddElement(Menu);
+        Game.MainGraphicsManager.BackgroundColor = RgbaFloat.Black;
         Menu.MainWindowOpen = true;
+        Menu.WaitUntilReady();
         return base.Beginning();
     }
 
@@ -27,10 +30,10 @@ public class MenuImGuiWindow : ImGuiElement
 
     protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<ImGuiElement> subElements)
     {
-        ImGui.Begin("Main Menu", ref MainWindowOpen);
-        if (ImGui.Button("View High Scores", new(5, 5)))
+        ImGui.Begin("Main Menu", ref MainWindowOpen, ImGuiWindowFlags.DockNodeHost);
+        if (ImGui.Button("View High Scores"))
             Game.SetScene(Program.HighScoreScene);
-        if (ImGui.Button("Start Game", new(5, 5)))
+        if (ImGui.Button("Start Game"))
             Game.SetScene(Program.GameScene);
         ImGui.End();
     }
