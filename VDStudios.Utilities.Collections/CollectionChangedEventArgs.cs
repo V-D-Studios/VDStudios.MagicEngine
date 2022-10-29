@@ -178,7 +178,7 @@ public readonly struct CollectionChangedEventArgs<TItem>
     /// <param name="action">Can only be a Replace action.</param>
     /// <param name="newItems">The new items replacing the original items.</param>
     /// <param name="oldItems">The original items that are replaced.</param>
-    public CollectionChangedEventArgs(NotifyCollectionChangedAction action, TItem[] newItems, TItem[] oldItems) :
+    public CollectionChangedEventArgs(NotifyCollectionChangedAction action, ImmutableArray<TItem> newItems, ImmutableArray<TItem> oldItems) :
         this(action, newItems, oldItems, -1)
     {
     }
@@ -190,7 +190,7 @@ public readonly struct CollectionChangedEventArgs<TItem>
     /// <param name="newItems">The new items replacing the original items.</param>
     /// <param name="oldItems">The original items that are replaced.</param>
     /// <param name="startingIndex">The starting index of the items being replaced.</param>
-    public CollectionChangedEventArgs(NotifyCollectionChangedAction action, TItem[] newItems, TItem[] oldItems, int startingIndex)
+    public CollectionChangedEventArgs(NotifyCollectionChangedAction action, ImmutableArray<TItem> newItems, ImmutableArray<TItem> oldItems, int startingIndex)
     {
         if (action != NotifyCollectionChangedAction.Replace)
         {
@@ -206,8 +206,8 @@ public readonly struct CollectionChangedEventArgs<TItem>
         }
 
         _action = action;
-        _newItems = ImmutableArray.Create(newItems);
-        _oldItems = ImmutableArray.Create(oldItems);
+        _newItems = newItems;
+        _oldItems = oldItems;
         _newStartingIndex = _oldStartingIndex = startingIndex;
     }
 
@@ -243,7 +243,7 @@ public readonly struct CollectionChangedEventArgs<TItem>
     /// <param name="changedItems">The items affected by the change.</param>
     /// <param name="index">The new index for the changed items.</param>
     /// <param name="oldIndex">The old index for the changed items.</param>
-    public CollectionChangedEventArgs(NotifyCollectionChangedAction action, TItem[] changedItems, int index, int oldIndex)
+    public CollectionChangedEventArgs(NotifyCollectionChangedAction action, ImmutableArray<TItem> changedItems, int index, int oldIndex)
     {
         if (action != NotifyCollectionChangedAction.Move)
         {
@@ -255,7 +255,7 @@ public readonly struct CollectionChangedEventArgs<TItem>
         }
 
         _action = action;
-        _newItems = _oldItems = changedItems is not null ? ImmutableArray.Create(changedItems) : default;
+        _newItems = _oldItems = changedItems.Length is not 0 ? changedItems : default;
         _newStartingIndex = index;
         _oldStartingIndex = oldIndex;
     }
