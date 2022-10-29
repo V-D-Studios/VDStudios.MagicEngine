@@ -39,6 +39,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.Utilities.Grids",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.MagicEngine.Demo.SpaceInvaders", "VDStudios.MagicEngine.Demo.SpaceInvaders\VDStudios.MagicEngine.Demo.SpaceInvaders.csproj", "{5621D581-87AC-4B13-B985-C2A3DDDE89D6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VDStudios.Utilities.Collections", "VDStudios.Utilities.Collections\VDStudios.Utilities.Collections.csproj", "{1600C86D-1A88-49E3-9C86-DE0B2A5A4837}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -101,6 +103,10 @@ Global
 		{5621D581-87AC-4B13-B985-C2A3DDDE89D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5621D581-87AC-4B13-B985-C2A3DDDE89D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5621D581-87AC-4B13-B985-C2A3DDDE89D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1600C86D-1A88-49E3-9C86-DE0B2A5A4837}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1600C86D-1A88-49E3-9C86-DE0B2A5A4837}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1600C86D-1A88-49E3-9C86-DE0B2A5A4837}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1600C86D-1A88-49E3-9C86-DE0B2A5A4837}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -118,6 +124,7 @@ Global
 		{930ECFC5-352F-4D22-B9D7-5D199CC82988} = {F4C16EA8-E050-4051-9E4E-1BA3FCE3FC36}
 		{DFFD84BF-5A56-4E28-A97C-30B93A5E5758} = {F4C16EA8-E050-4051-9E4E-1BA3FCE3FC36}
 		{1C49FECD-CBF5-4F6A-B797-832C4CF61A50} = {A84F36FA-B02D-496C-8A9F-62D433E1A69D}
+		{1600C86D-1A88-49E3-9C86-DE0B2A5A4837} = {A84F36FA-B02D-496C-8A9F-62D433E1A69D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6D4206DF-0B60-4CA8-978E-45BF879850A9}

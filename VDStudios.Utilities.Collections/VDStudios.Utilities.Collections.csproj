@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+	  <Nullable>enable</Nullable>
+	  <GenerateDocumentationFile>True</GenerateDocumentationFile>
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	  <SignAssembly>False</SignAssembly>
+	  <Authors>Diego Garcia</Authors>
+	  <Company>VDStudios</Company>
+	  <Copyright>MIT</Copyright>
+	  <RepositoryType>git</RepositoryType>
+	  <RepositoryUrl>https://github.com/V-D-Studios/VDStudios.MagicEngine</RepositoryUrl>
+	  <PackageTags>collection, interface, collection-changed, observable, changed</PackageTags>
+	  <NeutralLanguage>en</NeutralLanguage>
+	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
+	  <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+	  <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+
+</Project>
