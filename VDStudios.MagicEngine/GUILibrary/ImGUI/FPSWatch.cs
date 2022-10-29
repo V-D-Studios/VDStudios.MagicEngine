@@ -6,7 +6,7 @@ namespace VDStudios.MagicEngine.GUILibrary.ImGUI;
 /// <summary>
 /// An ImGUI window that shows Frame related metrics about the <see cref="GraphicsManager"/> its currently under
 /// </summary>
-public sealed class FPSWatch : GUIElement
+public sealed class FPSWatch : ImGuiElement
 {
     private static readonly WeakReference<ConcurrentDictionary<long, string>> strings = new(CreateDict());
     private static ConcurrentDictionary<long, string> CreateDict()
@@ -33,7 +33,7 @@ public sealed class FPSWatch : GUIElement
     }
 
     /// <inheritdoc/>
-    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements)
+    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<ImGuiElement> subElements)
     {
         var fps = (long)Manager!.FramesPerSecond;
         ImGui.Begin("Frames Per Second");

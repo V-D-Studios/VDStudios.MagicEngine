@@ -9,14 +9,14 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// This object is removed from the GUI tree when disposed
 /// </remarks>
-public abstract class GUIElement : GraphicsObject, IDisposable
+public abstract class ImGuiElement : GraphicsObject, IDisposable
 {
     #region Construction
 
     /// <summary>
-    /// Constructs this <see cref="GUIElement"/>
+    /// Constructs this <see cref="ImGuiElement"/>
     /// </summary>
-    public GUIElement() : base("ImGUI")
+    public ImGuiElement() : base("ImGUI")
     {
     }
 
@@ -25,7 +25,7 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     #region Public Properties
 
     /// <summary>
-    /// The data context currently tied to this <see cref="GUIElement"/>
+    /// The data context currently tied to this <see cref="ImGuiElement"/>
     /// </summary>
     /// <remarks>
     /// Defaults to its parent's <see cref="DataContext"/>, or null
@@ -47,9 +47,9 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     private object? _dc;
 
     /// <summary>
-    /// The parent <see cref="GUIElement"/> of this <see cref="GUIElement"/>, or null, if attached directly onto a <see cref="GraphicsManager"/>
+    /// The parent <see cref="ImGuiElement"/> of this <see cref="ImGuiElement"/>, or null, if attached directly onto a <see cref="GraphicsManager"/>
     /// </summary>
-    public GUIElement? Parent { get; private set; }
+    public ImGuiElement? Parent { get; private set; }
 
     #region Events
 
@@ -65,8 +65,8 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     /// <summary>
     /// This method is called right before <see cref="DataContextChanged"/> is fired
     /// </summary>
-    /// <param name="oldContext">The old DataContext this <see cref="GUIElement"/> previously had, if any</param>
-    /// <param name="newContext">The old DataContext this <see cref="GUIElement"/> will not have, if any</param>
+    /// <param name="oldContext">The old DataContext this <see cref="ImGuiElement"/> previously had, if any</param>
+    /// <param name="newContext">The old DataContext this <see cref="ImGuiElement"/> will not have, if any</param>
     protected virtual void DataContextChanging(object? oldContext, object? newContext) { }
 
     #endregion
@@ -76,11 +76,11 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     #region Registration
 
     /// <summary>
-    /// Adds Sub Element <paramref name="element"/> to this <see cref="GUIElement"/>
+    /// Adds Sub Element <paramref name="element"/> to this <see cref="ImGuiElement"/>
     /// </summary>
-    /// <param name="element">The <see cref="GUIElement"/> to add as a sub element of this <see cref="GUIElement"/></param>
-    /// <param name="context">The DataContext to give to <paramref name="element"/>, or null if it's to use its previously set DataContext or inherit it from this <see cref="GUIElement"/></param>
-    public void AddElement(GUIElement element, object? context = null)
+    /// <param name="element">The <see cref="ImGuiElement"/> to add as a sub element of this <see cref="ImGuiElement"/></param>
+    /// <param name="context">The DataContext to give to <paramref name="element"/>, or null if it's to use its previously set DataContext or inherit it from this <see cref="ImGuiElement"/></param>
+    public void AddElement(ImGuiElement element, object? context = null)
     {
         ThrowIfInvalid();
         element.RegisterOnto(this, imgui_manager!, context);
@@ -107,7 +107,7 @@ public abstract class GUIElement : GraphicsObject, IDisposable
         NotifyIsReady();
     }
 
-    internal void RegisterOnto(GUIElement parent, ImGuiManager manager, object? context = null)
+    internal void RegisterOnto(ImGuiElement parent, ImGuiManager manager, object? context = null)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(manager.OwnerManager);
@@ -130,20 +130,20 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     #region Reaction Methods
 
     /// <summary>
-    /// This method is called automatically when this <see cref="GUIElement"/> is being registered onto <paramref name="manager"/>
+    /// This method is called automatically when this <see cref="ImGuiElement"/> is being registered onto <paramref name="manager"/>
     /// </summary>
-    /// <param name="manager">The <see cref="GraphicsManager"/> this <see cref="GUIElement"/> is being registered onto</param>
+    /// <param name="manager">The <see cref="GraphicsManager"/> this <see cref="ImGuiElement"/> is being registered onto</param>
     protected virtual void Registering(GraphicsManager manager) { }
 
     /// <summary>
-    /// This method is called automatically when this <see cref="GUIElement"/> is being registered onto <paramref name="manager"/>, under <paramref name="parent"/>
+    /// This method is called automatically when this <see cref="ImGuiElement"/> is being registered onto <paramref name="manager"/>, under <paramref name="parent"/>
     /// </summary>
-    /// <param name="manager">The <see cref="GraphicsManager"/> this <see cref="GUIElement"/> is being registered onto</param>
-    /// <param name="parent">The <see cref="GUIElement"/> that is the parent of this <see cref="GUIElement"/></param>
-    protected virtual void Registering(GUIElement parent, GraphicsManager manager) { }
+    /// <param name="manager">The <see cref="GraphicsManager"/> this <see cref="ImGuiElement"/> is being registered onto</param>
+    /// <param name="parent">The <see cref="ImGuiElement"/> that is the parent of this <see cref="ImGuiElement"/></param>
+    protected virtual void Registering(ImGuiElement parent, GraphicsManager manager) { }
 
     /// <summary>
-    /// This method is called automatically when this <see cref="GUIElement"/> has been registered
+    /// This method is called automatically when this <see cref="ImGuiElement"/> has been registered
     /// </summary>
     protected virtual void Registered() { }
 
@@ -156,7 +156,7 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     #region Public Properties
 
     /// <summary>
-    /// Represents all of this <see cref="GUIElement"/>'s sub elements, or children
+    /// Represents all of this <see cref="ImGuiElement"/>'s sub elements, or children
     /// </summary>
     public GUIElementList SubElements { get; } = new();
 
@@ -164,7 +164,7 @@ public abstract class GUIElement : GraphicsObject, IDisposable
 
     #region Internal
 
-    private LinkedListNode<GUIElement>? nodeInParent;
+    private LinkedListNode<ImGuiElement>? nodeInParent;
 
     #endregion
 
@@ -190,10 +190,10 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     #region Properties
 
     /// <summary>
-    /// Whether or not this <see cref="GUIElement"/> is active. Defaults to <c>true</c>
+    /// Whether or not this <see cref="ImGuiElement"/> is active. Defaults to <c>true</c>
     /// </summary>
     /// <remarks>
-    /// If <c>true</c>, this <see cref="GUIElement"/>'s UI will be submitted along with its sub elements. If <c>false</c>, this <see cref="GUIElement"/> will be skipped altogether
+    /// If <c>true</c>, this <see cref="ImGuiElement"/>'s UI will be submitted along with its sub elements. If <c>false</c>, this <see cref="ImGuiElement"/> will be skipped altogether
     /// </remarks>
     public bool IsActive
     {
@@ -211,10 +211,10 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     private bool isActive = true;
 
     /// <summary>
-    /// Whether this element should be skipped when being enumerated during a call to <see cref="SubmitUI(TimeSpan, IEnumerator{GUIElement}, int)"/>. Defaults to <c>false</c>
+    /// Whether this element should be skipped when being enumerated during a call to <see cref="SubmitUI(TimeSpan, IEnumerator{ImGuiElement}, int)"/>. Defaults to <c>false</c>
     /// </summary>
     /// <remarks>
-    /// If this element is skipped from enumeration, the parent <see cref="GUIElement"/> will be entirely responsible for submiting its UI; be very careful with this property. GUIElements that are not registered, or are directly attached to a <see cref="GraphicsManager"/> cannot have this property modified
+    /// If this element is skipped from enumeration, the parent <see cref="ImGuiElement"/> will be entirely responsible for submiting its UI; be very careful with this property. GUIElements that are not registered, or are directly attached to a <see cref="GraphicsManager"/> cannot have this property modified
     /// </remarks>
     protected internal bool SkipInEnumeration
     {
@@ -253,12 +253,12 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     #region Helper Methods
 
     /// <summary>
-    /// Submits the UI of the passed <see cref="GUIElement"/>
+    /// Submits the UI of the passed <see cref="ImGuiElement"/>
     /// </summary>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
     /// <param name="subElement">The element to submit</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static void Submit(TimeSpan delta, GUIElement subElement)
+    protected static void Submit(TimeSpan delta, ImGuiElement subElement)
     {
         subElement.InternalSubmitUI(delta);
     }
@@ -271,11 +271,11 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     /// The method that will be used to draw the component
     /// </summary>
     /// <remarks>
-    /// Unfinished calls and general uncarefulness with ImGUI WILL bleed into other <see cref="GUIElement"/>s
+    /// Unfinished calls and general uncarefulness with ImGUI WILL bleed into other <see cref="ImGuiElement"/>s
     /// </remarks>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
-    /// <param name="subElements">An IReadOnlyCollection containing all of this <see cref="GUIElement"/>'s sub elements in sequence</param>
-    protected abstract void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements);
+    /// <param name="subElements">An IReadOnlyCollection containing all of this <see cref="ImGuiElement"/>'s sub elements in sequence</param>
+    protected abstract void SubmitUI(TimeSpan delta, IReadOnlyCollection<ImGuiElement> subElements);
 
     #endregion
 
@@ -291,7 +291,7 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     }
 
     /// <summary>
-    /// Throws an <see cref="ObjectDisposedException"/> if this <see cref="GUIElement"/> has already been disposed
+    /// Throws an <see cref="ObjectDisposedException"/> if this <see cref="ImGuiElement"/> has already been disposed
     /// </summary>
     /// <exception cref="ObjectDisposedException"></exception>
     protected void ThrowIfDisposed()
@@ -303,7 +303,7 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     internal bool disposedValue;
 
     /// <summary>
-    /// Disposes of this <see cref="GUIElement"/>'s resources
+    /// Disposes of this <see cref="ImGuiElement"/>'s resources
     /// </summary>
     /// <remarks>
     /// Dispose of any additional resources your subtype allocates
@@ -340,8 +340,8 @@ public abstract class GUIElement : GraphicsObject, IDisposable
                     current!.Value.InternalDispose(disposing, false);
                 }
 
-                if (nodeInParent is LinkedListNode<GUIElement> el)
-                    if (Parent is GUIElement p)
+                if (nodeInParent is LinkedListNode<ImGuiElement> el)
+                    if (Parent is ImGuiElement p)
                         p.SubElements.Remove(el);
                     else
                         imgui_manager!.GUIElements.Remove(el);
@@ -357,7 +357,7 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     }
 
     /// <inheritdoc/>
-    ~GUIElement()
+    ~ImGuiElement()
     {
         InternalDispose(disposing: false, true);
     }
@@ -370,7 +370,7 @@ public abstract class GUIElement : GraphicsObject, IDisposable
     }
 
     /// <summary>
-    /// Disposes of this <see cref="GUIElement"/>'s resources
+    /// Disposes of this <see cref="ImGuiElement"/>'s resources
     /// </summary>
     public void Dispose() => InternalDispose(true);
 

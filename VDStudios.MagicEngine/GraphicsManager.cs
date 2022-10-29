@@ -318,7 +318,7 @@ public class GraphicsManager : GameObject, IDisposable
     private ImGuiManager ImGuiManager;
 
     /// <summary>
-    /// Represents the <see cref="GUIElement"/>s currently held by this <see cref="GraphicsManager"/>
+    /// Represents the <see cref="ImGuiElement"/>s currently held by this <see cref="GraphicsManager"/>
     /// </summary>
     /// <remarks>
     /// A <see cref="GraphicsManager"/>
@@ -326,11 +326,11 @@ public class GraphicsManager : GameObject, IDisposable
     public GUIElementList GUIElements => ImGuiManager.GUIElements;
 
     /// <summary>
-    /// Adds a <see cref="GUIElement"/> <paramref name="element"/> to this <see cref="GraphicsManager"/>
+    /// Adds a <see cref="ImGuiElement"/> <paramref name="element"/> to this <see cref="GraphicsManager"/>
     /// </summary>
-    /// <param name="element">The <see cref="GUIElement"/> to add as an element of this <see cref="GraphicsManager"/></param>
-    /// <param name="context">The DataContext to give to <paramref name="element"/>, or null if it's to use its previously set DataContext or inherit it from this <see cref="GUIElement"/></param>
-    public void AddElement(GUIElement element, object? context = null)
+    /// <param name="element">The <see cref="ImGuiElement"/> to add as an element of this <see cref="GraphicsManager"/></param>
+    /// <param name="context">The DataContext to give to <paramref name="element"/>, or null if it's to use its previously set DataContext or inherit it from this <see cref="ImGuiElement"/></param>
+    public void AddElement(ImGuiElement element, object? context = null)
         => ImGuiManager.AddElement(element, context);
 
     #endregion
@@ -372,7 +372,7 @@ public class GraphicsManager : GameObject, IDisposable
     private readonly idleWaiter guilockWaiter;
 
     /// <summary>
-    /// Waits until the Manager finishes drawing its <see cref="GUIElement"/>s and locks it
+    /// Waits until the Manager finishes drawing its <see cref="ImGuiElement"/>s and locks it
     /// </summary>
     /// <remarks>
     /// *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
@@ -385,7 +385,7 @@ public class GraphicsManager : GameObject, IDisposable
     }
 
     /// <summary>
-    /// Asynchronously waits until the Manager finishes drawing its <see cref="GUIElement"/>s and locks it
+    /// Asynchronously waits until the Manager finishes drawing its <see cref="ImGuiElement"/>s and locks it
     /// </summary>
     /// <remarks>
     /// *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of

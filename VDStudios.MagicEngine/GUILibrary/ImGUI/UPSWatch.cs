@@ -6,7 +6,7 @@ namespace VDStudios.MagicEngine.GUILibrary.ImGUI;
 /// <summary>
 /// An ImGUI window that shows update related metrics about the <see cref="Game"/>
 /// </summary>
-public sealed class UPSWatch : GUIElement
+public sealed class UPSWatch : ImGuiElement
 {
     private static readonly ConcurrentDictionary<long, string> tickStrings;
     private static readonly ConcurrentDictionary<double, string> msStrings;
@@ -25,7 +25,7 @@ public sealed class UPSWatch : GUIElement
     }
 
     /// <inheritdoc/>
-    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements)
+    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<ImGuiElement> subElements)
     {
         var tpu = Game.AverageDelta.Ticks;
         var mspu = Game.AverageDelta.TotalMilliseconds;

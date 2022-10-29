@@ -1,7 +1,7 @@
 ﻿namespace VDStudios.MagicEngine.Templates;
 
 /// <summary>
-/// Represents a <see cref="GUIElement"/> that has been templated with a given set of configurations and tree structure
+/// Represents a <see cref="ImGuiElement"/> that has been templated with a given set of configurations and tree structure
 /// </summary>
 public sealed class TemplatedGUIElement
 {
@@ -10,11 +10,11 @@ public sealed class TemplatedGUIElement
     /// <summary>
     /// Creates a new <see cref="TemplatedGUIElement"/> with its target element set to <typeparamref name="TElement"/>
     /// </summary>
-    /// <typeparam name="TElement">The type of the target <see cref="GUIElement"/></typeparam>
+    /// <typeparam name="TElement">The type of the target <see cref="ImGuiElement"/></typeparam>
     /// <param name="configurator">The configurator method for this <see cref="TemplatedGUIElement"/></param>
     /// <returns>The new <see cref="TemplatedGUIElement"/></returns>
     public static TemplatedGUIElement New<TElement>(TemplatedGUIElementConfigurator? configurator = null)
-        where TElement : GUIElement, new()
+        where TElement : ImGuiElement, new()
     {
         var n = new TemplatedGUIElement();
         n.SetTargetElement<TElement>();
@@ -29,7 +29,7 @@ public sealed class TemplatedGUIElement
     private readonly HashSet<Thread> Syncs = new();
 
     /// <summary>
-    /// Instantiates and adds a new <see cref="GUIElement"/> tree on <paramref name="manager"/> following this <see cref="TemplatedGUIElement"/>
+    /// Instantiates and adds a new <see cref="ImGuiElement"/> tree on <paramref name="manager"/> following this <see cref="TemplatedGUIElement"/>
     /// </summary>
     /// <param name="manager">The <see cref="GraphicsManager"/> to build the tree on</param>
     public void Instance(GraphicsManager manager)
@@ -45,7 +45,7 @@ public sealed class TemplatedGUIElement
             Syncs.Add(thread);
         }
 
-        GUIElement el = ActivateAndConfigure(out var dc);
+        ImGuiElement el = ActivateAndConfigure(out var dc);
         manager.AddElement(el, dc);
 
         foreach (var child in SubElements)
@@ -55,7 +55,7 @@ public sealed class TemplatedGUIElement
             Syncs.Remove(thread);
     }
 
-    private GUIElement SubElementInstance(Thread thread, GUIElement parent)
+    private ImGuiElement SubElementInstance(Thread thread, ImGuiElement parent)
     {
         lock (Syncs)
         {
@@ -67,7 +67,7 @@ public sealed class TemplatedGUIElement
             Syncs.Add(thread);
         }
 
-        GUIElement el = ActivateAndConfigure(out var dc);
+        ImGuiElement el = ActivateAndConfigure(out var dc);
         parent.AddElement(el, dc);
 
         foreach (var child in SubElements)
@@ -79,9 +79,9 @@ public sealed class TemplatedGUIElement
         return el;
     }
 
-    private GUIElement ActivateAndConfigure(out object? dc)
+    private ImGuiElement ActivateAndConfigure(out object? dc)
     {
-        var el = (GUIElement)Activator.CreateInstance(typeCache ??= TargetGUIElement.FetchType())!;
+        var el = (ImGuiElement)Activator.CreateInstance(typeCache ??= TargetGUIElement.FetchType())!;
         dc = ConfigurationMethod is SerializableMethodDescription mdesc
             ? (configuratorCache ??= mdesc.FetchMethod<TemplatedGUIElementConfigurator>(null)).Invoke(el)
             : null;
@@ -93,7 +93,7 @@ public sealed class TemplatedGUIElement
     #region Public Properties
 
     /// <summary>
-    /// The description of the type of the target <see cref="GUIElement"/>
+    /// The description of the type of the target <see cref="ImGuiElement"/>
     /// </summary>
     public SerializableTypeDescription TargetGUIElement
     {
@@ -126,10 +126,10 @@ public sealed class TemplatedGUIElement
     /// <summary>
     /// Adds a new <see cref="TemplatedGUIElement"/> as a sub element of this one
     /// </summary>
-    /// <typeparam name="TElement">The type of the target sub <see cref="GUIElement"/></typeparam>
-    /// <param name="configurator">The configuration method for the sub <see cref="GUIElement"/></param>
+    /// <typeparam name="TElement">The type of the target sub <see cref="ImGuiElement"/></typeparam>
+    /// <param name="configurator">The configuration method for the sub <see cref="ImGuiElement"/></param>
     /// <returns>This very same <see cref="TemplatedGUIElement"/> for the purposes of method call chaining</returns>
-    public TemplatedGUIElement AddSubElement<TElement>(TemplatedGUIElementConfigurator? configurator = null) where TElement : GUIElement, new()
+    public TemplatedGUIElement AddSubElement<TElement>(TemplatedGUIElementConfigurator? configurator = null) where TElement : ImGuiElement, new()
     {
         SubElements.AddLast(New<TElement>(configurator));
         return this;
@@ -138,11 +138,11 @@ public sealed class TemplatedGUIElement
     /// <summary>
     /// Adds a new <see cref="TemplatedGUIElement"/> as a sub element of this one
     /// </summary>
-    /// <typeparam name="TElement">The type of the target sub <see cref="GUIElement"/></typeparam>
-    /// <param name="configurator">The configuration method for the sub <see cref="GUIElement"/></param>
+    /// <typeparam name="TElement">The type of the target sub <see cref="ImGuiElement"/></typeparam>
+    /// <param name="configurator">The configuration method for the sub <see cref="ImGuiElement"/></param>
     /// <param name="newTemplated">The newly created and added <see cref="TemplatedGUIElement"/></param>
     /// <returns>This very same <see cref="TemplatedGUIElement"/> for the purposes of method call chaining</returns>
-    public TemplatedGUIElement AddSubElement<TElement>(out TemplatedGUIElement newTemplated, TemplatedGUIElementConfigurator? configurator = null) where TElement : GUIElement, new()
+    public TemplatedGUIElement AddSubElement<TElement>(out TemplatedGUIElement newTemplated, TemplatedGUIElementConfigurator? configurator = null) where TElement : ImGuiElement, new()
     {
         SubElements.AddLast(newTemplated = New<TElement>(configurator));
         return this;
@@ -172,8 +172,8 @@ public sealed class TemplatedGUIElement
     /// <summary>
     /// Sets the <see cref="TargetGUIElement"/> property of this <see cref="TemplatedGUIElement"/>
     /// </summary>
-    /// <typeparam name="TElement">The type of the target <see cref="GUIElement"/></typeparam>
-    public void SetTargetElement<TElement>() where TElement : GUIElement, new()
+    /// <typeparam name="TElement">The type of the target <see cref="ImGuiElement"/></typeparam>
+    public void SetTargetElement<TElement>() where TElement : ImGuiElement, new()
     {
         typeCache = null;
         var t = typeof(TElement);

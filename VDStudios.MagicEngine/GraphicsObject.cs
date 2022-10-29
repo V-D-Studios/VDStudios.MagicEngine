@@ -3,7 +3,7 @@
 namespace VDStudios.MagicEngine;
 
 /// <summary>
-/// Represents the base class for graphical operations, such as <see cref="DrawOperation"/>, <see cref="GUIElement"/>
+/// Represents the base class for graphical operations, such as <see cref="DrawOperation"/>, <see cref="ImGuiElement"/>
 /// </summary>
 /// <remarks>
 /// This class cannot be instanced or inherited by user code

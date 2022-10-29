@@ -267,28 +267,28 @@ public delegate void GraphicsManagerRunStateChanged(GraphicsManager graphicsMana
 #region GUIElement Delegates
 
 /// <summary>
-/// Represents an event in the game regarding a <see cref="GUIElement"/>'s <see cref="GUIElement.DataContext"/>
+/// Represents an event in the game regarding a <see cref="ImGuiElement"/>'s <see cref="ImGuiElement.DataContext"/>
 /// </summary>
-/// <param name="element">The <see cref="GUIElement"/> that experienced the change</param>
+/// <param name="element">The <see cref="ImGuiElement"/> that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 /// <param name="oldContext">The data context <paramref name="element"/> previously had, if any</param>
 /// <param name="newContext">The data context <paramref name="element"/> now has, if any</param>
-public delegate void GUIElementDataContextChangedEvent(GUIElement element, TimeSpan timestamp, object? oldContext, object? newContext);
+public delegate void GUIElementDataContextChangedEvent(ImGuiElement element, TimeSpan timestamp, object? oldContext, object? newContext);
 
 /// <summary>
-/// Represents an event in the game regarding a <see cref="GUIElement"/>'s <see cref="GUIElement.IsActive"/> property
+/// Represents an event in the game regarding a <see cref="ImGuiElement"/>'s <see cref="ImGuiElement.IsActive"/> property
 /// </summary>
-/// <param name="element">The <see cref="GUIElement"/> that experienced the change</param>
+/// <param name="element">The <see cref="ImGuiElement"/> that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-/// <param name="isActive">The value that <paramref name="element"/>'s <see cref="GUIElement.IsActive"/> changed into</param>
-public delegate void GUIElementActiveChanged(GUIElement element, TimeSpan timestamp, bool isActive);
+/// <param name="isActive">The value that <paramref name="element"/>'s <see cref="ImGuiElement.IsActive"/> changed into</param>
+public delegate void GUIElementActiveChanged(ImGuiElement element, TimeSpan timestamp, bool isActive);
 
 /// <summary>
-/// Represents a method that configures a <see cref="GUIElement"/> that has been instanced from a <see cref="TemplatedGUIElement"/>
+/// Represents a method that configures a <see cref="ImGuiElement"/> that has been instanced from a <see cref="TemplatedGUIElement"/>
 /// </summary>
-/// <param name="element">The newly instanced <see cref="GUIElement"/> from the template</param>
-/// <returns>An object representing the <see cref="GUIElement.DataContext"/> of the element, or <c>null</c> if it's not meant to have one</returns>
-public delegate object? TemplatedGUIElementConfigurator(GUIElement element);
+/// <param name="element">The newly instanced <see cref="ImGuiElement"/> from the template</param>
+/// <returns>An object representing the <see cref="ImGuiElement.DataContext"/> of the element, or <c>null</c> if it's not meant to have one</returns>
+public delegate object? TemplatedGUIElementConfigurator(ImGuiElement element);
 
 #endregion
 

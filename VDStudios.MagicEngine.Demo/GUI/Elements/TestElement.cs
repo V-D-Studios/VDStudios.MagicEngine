@@ -1,12 +1,12 @@
 ﻿using ImGuiNET;
 
 namespace VDStudios.MagicEngine.Demo.GUI.Elements;
-public class TestElement : GUIElement
+public class TestElement : ImGuiElement
 {
     private int clicks = 0;
     private uint cid;
 
-    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements)
+    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<ImGuiElement> subElements)
     {
         cid = 0;
         if (Parent is null)

@@ -3,16 +3,16 @@
 namespace VDStudios.MagicEngine;
 
 /// <summary>
-/// Represents a list of elements in a <see cref="GUIElement"/> or <see cref="GraphicsManager"/>
+/// Represents a list of elements in a <see cref="ImGuiElement"/> or <see cref="GraphicsManager"/>
 /// </summary>
 /// <remarks>
 /// This class cannot be inherited. This class cannot be instanced by user code. ALL reads into this <see cref="GUIElementList"/> are locked and thread safe.
 /// </remarks>
-public sealed class GUIElementList : IReadOnlyCollection<GUIElement>
+public sealed class GUIElementList : IReadOnlyCollection<ImGuiElement>
 {
     private readonly object sync = new();
 
-    internal readonly LinkedList<GUIElement> elements;
+    internal readonly LinkedList<ImGuiElement> elements;
 
     internal GUIElementList()
     {
@@ -20,17 +20,17 @@ public sealed class GUIElementList : IReadOnlyCollection<GUIElement>
     }
     
     /// <summary>
-    /// The amount of <see cref="GUIElement"/>s currently registered in this <see cref="GUIElementList"/>
+    /// The amount of <see cref="ImGuiElement"/>s currently registered in this <see cref="GUIElementList"/>
     /// </summary>
     public int Count => elements.Count;
 
     /// <summary>
-    /// Enumerates the <see cref="GUIElement"/>s in this <see cref="GUIElementList"/>
+    /// Enumerates the <see cref="ImGuiElement"/>s in this <see cref="GUIElementList"/>
     /// </summary>
     /// <remarks>
-    /// This does not include child <see cref="GUIElement"/>s. Adquiring an enumerator locks the collection and the owner <see cref="GUIElement"/>
+    /// This does not include child <see cref="ImGuiElement"/>s. Adquiring an enumerator locks the collection and the owner <see cref="ImGuiElement"/>
     /// </remarks>
-    public IEnumerator<GUIElement> GetEnumerator()
+    public IEnumerator<ImGuiElement> GetEnumerator()
     {
         var node = elements.First;
         while (node is not null)
@@ -45,31 +45,31 @@ public sealed class GUIElementList : IReadOnlyCollection<GUIElement>
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>
-    /// Returns an <see cref="IEnumerable{T}"/> that enumerates through ALL the <see cref="GUIElement"/>s accessible from this list. 
+    /// Returns an <see cref="IEnumerable{T}"/> that enumerates through ALL the <see cref="ImGuiElement"/>s accessible from this list. 
     /// </summary>
     /// <remarks>
-    /// This includes the entire node tree starting from this point: Every <see cref="GUIElement"/>'s children, and their children as well. Since <see cref="GUIElement"/>'s are protected against circular references, this <see cref="IEnumerable"/> will eventually finish. How long that takes is your responsibility.
+    /// This includes the entire node tree starting from this point: Every <see cref="ImGuiElement"/>'s children, and their children as well. Since <see cref="ImGuiElement"/>'s are protected against circular references, this <see cref="IEnumerable"/> will eventually finish. How long that takes is your responsibility.
     /// </remarks>
-    public IEnumerable<GUIElement> Flatten() => elements.SelectMany(x => x.SubElements);
+    public IEnumerable<ImGuiElement> Flatten() => elements.SelectMany(x => x.SubElements);
 
-    internal void Remove(GUIElement el)
+    internal void Remove(ImGuiElement el)
     {
         lock (sync)
             elements.Remove(el);
     }
 
-    internal void Remove(LinkedListNode<GUIElement> el)
+    internal void Remove(LinkedListNode<ImGuiElement> el)
     {
         lock (sync)
             elements.Remove(el);
     }
 
     /// <summary>
-    /// Adding to the collection locks the collection and the owner <see cref="GUIElement"/>
+    /// Adding to the collection locks the collection and the owner <see cref="ImGuiElement"/>
     /// </summary>
     /// <param name="item"></param>
     /// <returns>The given Id for the node</returns>
-    internal LinkedListNode<GUIElement> Add(GUIElement item)
+    internal LinkedListNode<ImGuiElement> Add(ImGuiElement item)
     {
         lock (sync)
             return elements.AddLast(item);

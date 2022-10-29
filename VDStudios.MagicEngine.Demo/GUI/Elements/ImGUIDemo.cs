@@ -2,7 +2,7 @@
 using System.Numerics;
 
 namespace VDStudios.MagicEngine.Demo.GUI.Elements;
-public class ImGUIDemo : GUIElement
+public class ImGUIDemo : ImGuiElement
 {
     private static float _f = 0.0f;
     private static int _counter = 0;
@@ -15,7 +15,7 @@ public class ImGUIDemo : GUIElement
 
     private static void SetThing(out float i, float val) { i = val; }
 
-    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements)
+    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<ImGuiElement> subElements)
     {
         {
             ImGui.Text("Hello, world!"); // Display some text (you can use a format string too)

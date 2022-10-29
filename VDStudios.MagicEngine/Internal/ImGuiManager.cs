@@ -13,7 +13,7 @@ internal abstract class ImGuiManager : IDisposable
     private int widgCount;
     public int WidgetCount => widgCount;
 
-    public void AddElement(GUIElement element, object? context = null)
+    public void AddElement(ImGuiElement element, object? context = null)
     {
         element.AssignManager(OwnerManager);
         element.RegisterOnto(this, context);

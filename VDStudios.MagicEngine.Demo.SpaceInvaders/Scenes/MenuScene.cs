@@ -21,11 +21,11 @@ public class MenuScene : Scene
     }
 }
 
-public class MenuImGuiWindow : GUIElement
+public class MenuImGuiWindow : ImGuiElement
 {
     public bool MainWindowOpen;
 
-    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements)
+    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<ImGuiElement> subElements)
     {
         ImGui.Begin("Main Menu", ref MainWindowOpen);
         if (ImGui.Button("View High Scores", new(5, 5)))

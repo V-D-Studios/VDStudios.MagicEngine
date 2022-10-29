@@ -95,5 +95,5 @@ public sealed class DemoScene : Scene
     }
 
     public static void configuratorNode(Node e) { }
-    public static object? configuratorElement(GUIElement e) => null;
+    public static object? configuratorElement(ImGuiElement e) => null;
 }
