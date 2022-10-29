@@ -211,7 +211,7 @@ public abstract class ImGuiElement : GraphicsObject, IDisposable
     private bool isActive = true;
 
     /// <summary>
-    /// Whether this element should be skipped when being enumerated during a call to <see cref="SubmitUI(TimeSpan, IEnumerator{ImGuiElement}, int)"/>. Defaults to <c>false</c>
+    /// Whether this element should be skipped when being enumerated during a call to <see cref="SubmitUI(TimeSpan, IReadOnlyCollection{ImGuiElement})"/>. Defaults to <c>false</c>
     /// </summary>
     /// <remarks>
     /// If this element is skipped from enumeration, the parent <see cref="ImGuiElement"/> will be entirely responsible for submiting its UI; be very careful with this property. GUIElements that are not registered, or are directly attached to a <see cref="GraphicsManager"/> cannot have this property modified
@@ -290,25 +290,7 @@ public abstract class ImGuiElement : GraphicsObject, IDisposable
             throw new InvalidOperationException($"Cannot utilize a GUIElement that is not registered onto a GraphicsManager at somepoint in its tree");
     }
 
-    /// <summary>
-    /// Throws an <see cref="ObjectDisposedException"/> if this <see cref="ImGuiElement"/> has already been disposed
-    /// </summary>
-    /// <exception cref="ObjectDisposedException"></exception>
-    protected void ThrowIfDisposed()
-    {
-        if (disposedValue)
-            throw new ObjectDisposedException(GetType().FullName);
-    }
-
     internal bool disposedValue;
-
-    /// <summary>
-    /// Disposes of this <see cref="ImGuiElement"/>'s resources
-    /// </summary>
-    /// <remarks>
-    /// Dispose of any additional resources your subtype allocates
-    /// </remarks>
-    protected virtual void Dispose(bool disposing) { }
 
     private readonly object disposedValueLock = new();
     private void InternalDispose(bool disposing, bool root)
@@ -356,23 +338,11 @@ public abstract class ImGuiElement : GraphicsObject, IDisposable
         base.InternalDispose(disposing);
     }
 
-    /// <inheritdoc/>
-    ~ImGuiElement()
+    internal override void InternalDispose(bool disposing)
     {
-        InternalDispose(disposing: false, true);
+        InternalDispose(disposing, Parent is null);
+        base.InternalDispose(disposing);
     }
-
-    private void InternalDispose(bool root)
-    {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        InternalDispose(disposing: true, root);
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Disposes of this <see cref="ImGuiElement"/>'s resources
-    /// </summary>
-    public void Dispose() => InternalDispose(true);
 
     #endregion
 }
