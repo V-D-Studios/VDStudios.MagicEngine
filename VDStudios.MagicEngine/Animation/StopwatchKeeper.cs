@@ -7,10 +7,7 @@ namespace VDStudios.MagicEngine.Animation;
 /// </summary>
 public class StopwatchSequenceTimeKeeper : ISequenceTimeKeeper<TimeSpan>
 {
-    /// <summary>
-    /// The <see cref="Stopwatch"/> backing the functionality of this object
-    /// </summary>
-    public Stopwatch Watch { get; } = new();
+    private readonly Stopwatch Watch = new();
 
     /// <summary>
     /// The amount of time each frame can be allocated
