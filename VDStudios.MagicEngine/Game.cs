@@ -241,7 +241,12 @@ public abstract class Game
         ArgumentNullException.ThrowIfNull(newScene);
         if (isStarted is false)
             throw new InvalidOperationException("The game has not been started; set the scene with Game.Start");
+        if (ReferenceEquals(newScene, nextScene))
+            throw new ArgumentException($"Scene {newScene.Name}-{newScene.GetTypeName()} is already queued to be the next Scene", nameof(newScene));
+        if (ReferenceEquals(newScene, CurrentScene))
+            throw new ArgumentException("Cannot set a new Scene if the previous Scene is the same instance", nameof(newScene));
 
+        newScene.IsNext = true;
         nextScene = newScene;
     }
     private Scene? nextScene;

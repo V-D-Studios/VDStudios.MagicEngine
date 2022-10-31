@@ -119,12 +119,27 @@ public abstract class Scene : NodeBase
 
     #region Scene Processing
 
+    /// <summary>
+    /// <see langword="true"/> when this <see cref="Scene"/> is begun and currently active; <see langword="false"/> otherwise
+    /// </summary>
+    public bool IsBegun { get; private set; }
+
+    /// <summary>
+    /// <see langword="true"/> when this <see cref="Scene"/> is slated to begin as the next scene; <see langword="false"/> otherwise
+    /// </summary>
+    /// <remarks>
+    /// If this <see cref="Scene"/> is not queued, this property will be <see langword="false"/>. This means that when the <see cref="Scene"/> is currently active (<see cref="IsBegun"/> is <see langword="true"/>), <see cref="IsNext"/> will be <see langword="false"/>, since the <see cref="Scene"/> is not queued to be the next <see cref="Scene"/>
+    /// </remarks>
+    public bool IsNext { get; internal set; }
+
     #region Internal
 
     internal async ValueTask Begin()
     {
         InternalLog?.Information("Beginning Scene");
+        IsNext = false;
         await Beginning();
+        IsBegun = true;
         SceneBegan?.Invoke(this, Game.TotalTime);
     }
 
@@ -133,6 +148,7 @@ public abstract class Scene : NodeBase
         InternalLog?.Information("Ending scene, to make way for {name}-{type}", next.Name, next.GetTypeName());
         await Ending(next);
         await Ending();
+        IsBegun = false;
         SceneEnded?.Invoke(this, Game.TotalTime);
         await next.Transitioning(this);
     }
@@ -141,6 +157,7 @@ public abstract class Scene : NodeBase
     {
         InternalLog?.Information("Ending scene");
         await Ending();
+        IsBegun = false;
         SceneEnded?.Invoke(this, Game.TotalTime);
     }
 
