@@ -10,11 +10,21 @@ namespace VDStudios.MagicEngine.DrawLibrary;
 /// </summary>
 public class TextureVertexGeneratorFill : IShape2DRendererVertexGenerator<TextureVertex<Vector2>> 
 {
-    /// <inheritdoc/>
-    public void Start(ShapeRenderer<TextureVertex<Vector2>> renderer, IEnumerable<ShapeDefinition2D> allShapes, int regenCount, ref object? context) { }
+    /// <summary>
+    /// This constructor is empty, and serves only to allow child classes to inherit the type
+    /// </summary>
+    protected TextureVertexGeneratorFill() { }
+
+    /// <summary>
+    /// The singleton instance of this type
+    /// </summary>
+    public static TextureVertexGeneratorFill Instance { get; } = new();
 
     /// <inheritdoc/>
-    public void Generate(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<TextureVertex<Vector2>> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, uint vertexStart, uint vertexSize, out bool useDeviceBuffer, ref object? context)
+    public virtual void Start(ShapeRenderer<TextureVertex<Vector2>> renderer, IEnumerable<ShapeDefinition2D> allShapes, int regenCount, ref object? context) { }
+
+    /// <inheritdoc/>
+    public virtual void Generate(ShapeDefinition2D shape, IEnumerable<ShapeDefinition2D> allShapes, Span<TextureVertex<Vector2>> vertices, CommandList commandList, DeviceBuffer vertexBuffer, int index, uint vertexStart, uint vertexSize, out bool useDeviceBuffer, ref object? context)
     {
         Vector2 distant = default;
         for (int i = 0; i < vertices.Length; i++)
@@ -28,5 +38,5 @@ public class TextureVertexGeneratorFill : IShape2DRendererVertexGenerator<Textur
     }
 
     /// <inheritdoc/>
-    public void Stop(ShapeRenderer<TextureVertex<Vector2>> renderer, ref object? context) { }
+    public virtual void Stop(ShapeRenderer<TextureVertex<Vector2>> renderer, ref object? context) { }
 }
