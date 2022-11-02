@@ -81,7 +81,7 @@ layout(location = 1) in vec2 Position;
 layout(location = 0) out vec4 fragTexCoord;
 
 void main() {
-    fragTexCoord = vec4(inTexCoord, 0.0, 1.0);
+    fragTexCoord = vec4(inTexCoord, 0.0, 1.0) * texTrans;
     gl_Position = projection * view * opTrans * vec4(Position, 0.0, 1.0);
 }
 
@@ -94,6 +94,9 @@ void main() {
 #binding uniform Parameters {
     layout(offset = 0) mat4 view;
     layout(offset = 64) mat4 projection;
+};
+#binding uniform TexView {
+    layout(offset = 0) mat4 texTrans;
 };
 "
             );
@@ -115,9 +118,11 @@ void main() {
     public const string DefaultTexturedShapeRendererVertexShader = @"#version 450
 layout(set=1,binding=0) uniform Transform{
     layout(offset = 0) mat4 opTrans;
-};layout (set=2,binding=0)uniform Parameters {
+};layout(set=2,binding=0) uniform Parameters{
     layout(offset = 0) mat4 view;
     layout(offset = 64) mat4 projection;
+};layout(set=0,binding=2) uniform TexView{
+    layout(offset = 0) mat4 texTrans;
 };
 
 layout(location = 0) in vec2 inTexCoord;
@@ -125,10 +130,9 @@ layout(location = 1) in vec2 Position;
 layout(location = 0) out vec4 fragTexCoord;
 
 void main() {
-    fragTexCoord = vec4(inTexCoord, 0.0, 1.0);
+    fragTexCoord = vec4(inTexCoord, 0.0, 1.0) * texTrans;
     gl_Position = projection * view * opTrans * vec4(Position, 0.0, 1.0);
-}
-";
+}";
 
     /// <summary>
     /// The default fragment shader for <see cref="TexturedShapeRenderer{TVertex}"/>
@@ -143,7 +147,7 @@ const int opacityMultiplyFx = 1 << 4;
 
 layout(set=0,binding=0) uniform sampler TSamp;
 layout(set=0,binding=1) uniform texture2D Tex;
-layout(set=1,binding=0) uniform Transform {
+layout(set=2,binding=0) uniform Transform {
     layout(offset = 0) mat4 opTrans;
     layout(offset = 64) vec4 tint;
     layout(offset = 80) vec4 overlay;
