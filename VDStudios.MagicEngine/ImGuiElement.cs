@@ -293,8 +293,10 @@ public abstract class ImGuiElement : GraphicsObject, IDisposable
     internal bool disposedValue;
 
     private readonly object disposedValueLock = new();
-    private void InternalDispose(bool disposing, bool root)
+    internal override void InternalDispose(bool disposing)
     {
+        var root = Parent is null;
+
         lock (disposedValueLock)
         {
             IDisposable? @lock = null;
@@ -319,7 +321,7 @@ public abstract class ImGuiElement : GraphicsObject, IDisposable
                 {
                     var current = next;
                     next = next.Next;
-                    current!.Value.InternalDispose(disposing, false);
+                    current!.Value.InternalDispose(disposing);
                 }
 
                 if (nodeInParent is LinkedListNode<ImGuiElement> el)
@@ -335,12 +337,7 @@ public abstract class ImGuiElement : GraphicsObject, IDisposable
                     @lock!.Dispose();
             }
         }
-        base.InternalDispose(disposing);
-    }
 
-    internal override void InternalDispose(bool disposing)
-    {
-        InternalDispose(disposing, Parent is null);
         base.InternalDispose(disposing);
     }
 
