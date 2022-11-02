@@ -1060,7 +1060,7 @@ public class GraphicsManager : GameObject, IDisposable
         //    : new ForegroundImGuiManager(img, factory.CreateCommandList(), this); // BackgroundThreadImGuiManager is disabled
         ImGuiManager = new ForegroundImGuiManager(img, factory.CreateCommandList(), this);
 
-        var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
+        var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("Parameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
         var dotransl = new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("Transform", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment)
         );
