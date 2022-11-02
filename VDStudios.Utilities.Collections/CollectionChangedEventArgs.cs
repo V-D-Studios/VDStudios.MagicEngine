@@ -100,13 +100,13 @@ public readonly struct CollectionChangedEventArgs<TItem>
         switch (action)
         {
             case NotifyCollectionChangedAction.Reset:
-                if (changedItems != null)
+                if (changedItems.IsDefaultOrEmpty is false)
                 {
-                    throw new ArgumentException("A 'Reset' action requires the item to be null", nameof(action));
+                    throw new ArgumentException("A 'Reset' action requires the item array to be empty", nameof(action));
                 }
                 if (startingIndex != -1)
                 {
-                    throw new ArgumentException("A 'Reset' action requires the index to be null", nameof(action));
+                    throw new ArgumentException("A 'Reset' action requires the index to be -1", nameof(action));
                 }
                 break;
 
