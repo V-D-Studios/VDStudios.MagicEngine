@@ -22,7 +22,7 @@ public abstract class GameObject : IDisposable
     /// </summary>
     public string Name
     {
-        get => _name ??= GetHashCode().ToString("X4");
+        get => _name ??= GetHashCode().ToString("X8");
         init => _name = value;
     }
     private string? _name;
