@@ -69,16 +69,8 @@ public class HighScoreList : IList<HighScore>, INotifyCollectionChanged<HighScor
     public void Clear()
     {
         var ev = CollectionChanged;
-        if (ev is not null)
-        {
-            var prev = _scores.ToImmutableArray();
-            _scores.Clear();
-            CollectionChanged?.Invoke(this, new(NotifyCollectionChangedAction.Reset, default, prev));
-            return;
-        }
-        // If there are no subscribers, we save ourselves the trouble of having to create a new array for no reason
-
         _scores.Clear();
+        CollectionChanged?.Invoke(this, new(NotifyCollectionChangedAction.Reset, default(ImmutableArray<HighScore>), -1));
     }
 
     public bool Contains(HighScore item)

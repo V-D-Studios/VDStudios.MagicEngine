@@ -1,5 +1,12 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
+using VDStudios.MagicEngine.Animation;
+using VDStudios.MagicEngine.Demo.SpaceInvaders.Resources;
+using VDStudios.MagicEngine.DrawLibrary;
+using VDStudios.MagicEngine.DrawLibrary.Geometry;
+using VDStudios.MagicEngine.Geometry;
+using Veldrid;
 
 namespace VDStudios.MagicEngine.Demo.SpaceInvaders;
 
@@ -21,13 +28,78 @@ public class InvaderNode : CharacterNode
         Row = row;
         ScoreReturn = scoreReturn;
         Type = type;
+
+        Matrix4x4 view0;
+        Matrix4x4 view1;
+        ShapeDefinition2D shape;
+
+        var texture = ResourceCache.EntitySpritesheet.GetResource(Game.MainGraphicsManager);
+        switch (type)
+        {
+            case InvaderType.Squid:
+                view0 = Matrix4x4.Identity;//GeometryMath.Create2DView(texture, new(8, 8, 20, 8));
+                view1 = Matrix4x4.Identity;//GeometryMath.Create2DView(texture, new(8, 8, 12, 8));
+                shape = PolygonDefinition.Rectangle(default, new(8, 8));
+                break;
+            case InvaderType.Crab:
+                view0 = Matrix4x4.Identity;//GeometryMath.Create2DView(texture, new(11, 8, 28, 8));
+                view1 = Matrix4x4.Identity;//GeometryMath.Create2DView(texture, new(11, 8, 28, 0));
+                shape = PolygonDefinition.Rectangle(default, new(11, 8));
+                break;
+            case InvaderType.Octopus:
+                view0 = Matrix4x4.Identity;//GeometryMath.Create2DView(texture, new(12, 8, 0, 8));
+                view1 = Matrix4x4.Identity;//GeometryMath.Create2DView(texture, new(12, 8, 0, 0));
+                shape = PolygonDefinition.Rectangle(default, new(12, 8));
+                break;
+            default:
+                throw new ArgumentException($"Invalid InvaderType {type}", nameof(type));
+        }
+
+        CharacterSprite = new TexturedShapeRenderer(
+            (gd, rf) => texture,
+            new ShapeDefinition2D[] { shape },
+            new(
+                new(
+                    BlendStateDescription.SingleAlphaBlend,
+                    DepthStencilStateDescription.DepthOnlyLessEqual,
+                    FaceCullMode.Front,
+                    FrontFace.Clockwise,
+                    true,
+                    false,
+                    PolygonRenderMode.TriangulatedWireframe,
+                    null,
+                    null,
+                    null,
+                    null
+                ),
+                new SamplerDescription(
+                    SamplerAddressMode.Clamp,
+                    SamplerAddressMode.Clamp,
+                    SamplerAddressMode.Clamp,
+                    SamplerFilter.MinPoint_MagPoint_MipPoint,
+                    null,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SamplerBorderColor.TransparentBlack
+                ),
+                default(TextureViewDescription)
+            ),
+            TextureVertexGeneratorFill.Instance
+        );
+
+        DrawOperationManager.AddDrawOperation(CharacterSprite);
+
+        ViewAnim = new(
+            AnimTimer = new ManualTimeUpdateKeeper(TimeSpan.FromSeconds(.3)),
+            TimedSequenceMode.Loop, 
+            view0, view1
+        );
     }
 
     public MothershipNode Mothership => mothership ?? throw new InvalidOperationException("This InvaderNode is not attached to a MothershipNode");
-    public InvaderNode PriorInvader => invader ?? throw new InvalidOperationException("This InvaderNode is not attached to an InvaderNode");
-
     private MothershipNode? mothership;
-    private InvaderNode? invader;
 
     public int Column { get; }
 
@@ -37,16 +109,26 @@ public class InvaderNode : CharacterNode
 
     public InvaderType Type { get; }
 
+    protected readonly TimedSequence<Matrix4x4, TimeSpan> ViewAnim;
+    private readonly ManualTimeUpdateKeeper AnimTimer;
+
+#if DEBUG
+    internal TimeSpan TimePerFrame;
+#endif
+
+    protected override ValueTask<bool> Updating(TimeSpan delta)
+    {
+#if DEBUG
+        AnimTimer.TimePerFrame = TimePerFrame;
+#endif
+        AnimTimer.Add(delta);
+        ViewAnim.Update();
+        ((TexturedShapeRenderer)CharacterSprite).TextureView = ViewAnim.Current;
+        return base.Updating(delta);
+    }
+
     protected override bool FilterParentNode(Node parent, [NotNullWhen(false)] [MaybeNullWhen(true)] out string? reasonForDenial)
     {
-        if (parent is InvaderNode inv)
-        {
-            invader = inv;
-            mothership = inv.Mothership;
-            reasonForDenial = null;
-            return true;
-        }
-
         if (parent is MothershipNode m)
         {
             mothership = m;
@@ -54,49 +136,7 @@ public class InvaderNode : CharacterNode
             return true;
         }
 
-        reasonForDenial = "InvaderNodes can only be attached to other InvaderNodes or a MothershipNode";
+        reasonForDenial = "InvaderNodes can only be attached to a MothershipNode";
         return false;
-    }
-
-    public static async IAsyncEnumerable<InvaderNode> GenerateInvaders(MothershipNode mothership, int columns = 11, int rows = 5)
-    {
-        ArgumentNullException.ThrowIfNull(mothership);
-        if (columns is not > 0)
-            throw new ArgumentOutOfRangeException(nameof(columns), columns, "The amount of columns must be larger than 0");
-        if (rows is not > 0)
-            throw new ArgumentOutOfRangeException(nameof(rows), rows, "The amount of rows must be larger than 0");
-
-        var (splitThr, q) = int.DivRem(rows, 3);
-        splitThr += q > 0 ? 1 : 0; // The split threshold to shift the invader type
-        var thr = 1; // The threshold counter, to know when to shift the invader type
-        var type = InvaderType.Squid; // The currently selected type
-        InvaderNode? prevRow; // The invader node the next invader in the next row
-
-        for (int col = 0; col < columns; col++)
-        {
-            prevRow = null;
-            for (int row = 0; row < rows; row++)
-            {
-                if (thr > splitThr)
-                {
-                    thr = 0;
-                    type++;
-                }
-                else
-                    thr++;
-
-                var inv = new InvaderNode(col, row, type switch
-                {
-                    InvaderType.Squid => 30,
-                    InvaderType.Crab => 20,
-                    InvaderType.Octopus => 10,
-                    _ => throw new InvalidProgramException("The internal code that generates invaders overshot the invader type, this is a library bug"),
-                }, type);
-
-                await inv.Attach(prevRow ?? (Node)mothership);
-                prevRow = inv;
-                yield return inv;
-            }
-        }
     }
 }

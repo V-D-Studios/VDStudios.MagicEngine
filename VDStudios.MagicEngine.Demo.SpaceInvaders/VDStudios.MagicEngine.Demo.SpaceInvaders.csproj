@@ -8,7 +8,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\dependencies\veldrid\src\Veldrid.Utilities\Veldrid.Utilities.csproj" />
     <ProjectReference Include="..\VDStudios.MagicEngine\VDStudios.MagicEngine.csproj" />
+    <ProjectReference Include="..\VDStudios.Utilities.Collections\VDStudios.Utilities.Collections.csproj" />
   </ItemGroup>
+
+
+	<ItemGroup>
+		<ContentWithTargetPath Include="Resources\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>Resources\%(Filename)%(Extension)</TargetPath>
+		</ContentWithTargetPath>
+		<None Include="Resources\*" />
+	</ItemGroup>
 
 </Project>
