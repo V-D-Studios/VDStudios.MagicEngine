@@ -132,7 +132,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                 donut
             },
             shapeRendererDesc,
-            new TextureVertexGeneratorFill()) { PreferredPriority = -2 }
+            TextureVertexGeneratorFill.Instance) { PreferredPriority = -2 }
         );
 
         TexturedRenderer.WaitUntilReady();
