@@ -14,7 +14,7 @@ internal sealed class GameLogger : ILogger
     /// <summary>
     /// The default template
     /// </summary>
-    public const string Template = "{{{Area} -> {Facility}, {ObjName}-{Author}}}[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}";
+    public const string Template = "[{Timestamp:HH:mm:ss} {Level:u3}]{{{Area} -> {Facility}, {ObjName}-{Author}}}{NewLine} > {Message:lj}{NewLine}{Exception}";
 
     private readonly ILogger Logger;
     private readonly string Facility;
