@@ -18,7 +18,7 @@ public class TestElement : GUIElement
 
         if (subElements.Count > 0)
         {
-            ImGui.TreePush();
+            ImGui.TreePush("Test");
             foreach (var el in subElements)
             {
                 ImGui.TreeNode($"Sub Element #{cid++}");
