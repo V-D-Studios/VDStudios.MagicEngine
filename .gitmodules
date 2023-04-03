@@ -1,0 +1,3 @@
+[submodule "dependencies/FreeTypeSharp"]
+	path = dependencies/FreeTypeSharp
+	url = https://github.com/DiegoG1019/FreeTypeSharp.git
