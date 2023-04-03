@@ -8,7 +8,6 @@ public class TestElement : GUIElement
 
     protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements)
     {
-        cid = 0;
         if (Parent is null)
             ImGui.Begin("Test Window");
         ImGui.Text("This is some generic text!");

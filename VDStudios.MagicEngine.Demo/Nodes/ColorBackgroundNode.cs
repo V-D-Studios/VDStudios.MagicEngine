@@ -1,8 +1,11 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using SDL2.NET;
+using SDL2.NET.SDLFont;
 using VDStudios.MagicEngine.DrawLibrary;
 using Veldrid;
+using Veldrid.MetalBindings;
 using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.Demo.Nodes;
