@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+	<TargetFramework>net7.0</TargetFramework>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+	<GenerateDocumentationFile>True</GenerateDocumentationFile>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	<SignAssembly>False</SignAssembly>
 	<Title>Game Engine: Magic Engine</Title>
@@ -21,13 +21,13 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DebugType>embedded</DebugType>
-    <DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
+	<DebugType>embedded</DebugType>
+	<DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DebugType>embedded</DebugType>
-    <DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
+	<DebugType>embedded</DebugType>
+	<DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
   </PropertyGroup>
 
 	<!-- This copies all .dll files from the lib folder to the project output root folder -->
@@ -48,11 +48,14 @@
 		<None Include="lib\*.txt" />
 	</ItemGroup>
 	<ItemGroup>
+	  <PackageReference Include="ConfigureAwait.Fody" Version="3.3.2">
+		<PrivateAssets>all</PrivateAssets>
+	  </PackageReference>
 	  <PackageReference Include="ImGui.NET" Version="1.89.4" />
 	  <PackageReference Include="MessagePack" Version="2.5.108" />
 	  <PackageReference Include="MessagePackAnalyzer" Version="2.5.108">
-	    <PrivateAssets>all</PrivateAssets>
-	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		<PrivateAssets>all</PrivateAssets>
+		<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 	  </PackageReference>
 	  <PackageReference Include="Nito.AsyncEx.Coordination" Version="5.1.2" />
 	  <PackageReference Include="SDL2.Bindings" Version="1.1.0" />
@@ -67,15 +70,15 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <Compile Update="Properties\ImGuiResources.Designer.cs">
-	    <DesignTime>True</DesignTime>
-	    <AutoGen>True</AutoGen>
-	    <DependentUpon>ImGuiResources.resx</DependentUpon>
+		<DesignTime>True</DesignTime>
+		<AutoGen>True</AutoGen>
+		<DependentUpon>ImGuiResources.resx</DependentUpon>
 	  </Compile>
 	</ItemGroup>
 	<ItemGroup>
 	  <EmbeddedResource Update="Properties\ImGuiResources.resx">
-	    <Generator>PublicResXFileCodeGenerator</Generator>
-	    <LastGenOutput>ImGuiResources.Designer.cs</LastGenOutput>
+		<Generator>PublicResXFileCodeGenerator</Generator>
+		<LastGenOutput>ImGuiResources.Designer.cs</LastGenOutput>
 	  </EmbeddedResource>
 	</ItemGroup>
 </Project>
