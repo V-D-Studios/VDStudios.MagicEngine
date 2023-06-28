@@ -2,14 +2,12 @@
 using System.Numerics;
 using VDStudios.MagicEngine.Demo.GUI.Elements;
 using VDStudios.MagicEngine.Demo.Nodes;
-using VDStudios.MagicEngine.Extensions.NodeLibrary;
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
 
 namespace VDStudios.MagicEngine.Demo.Scenes;
 
 public sealed class DemoScene : Scene
 {
-    private Camera2D camera;
     public DemoScene()
     {
     }
@@ -20,10 +18,8 @@ public sealed class DemoScene : Scene
 
         Log.Debug("Attaching ColorBackgroundNode");
 
-        camera = new Camera2D();
-        await Attach(camera);
-        await camera.Attach(new ColorBackgroundNode());
-        await camera.Attach(new FloatingShapesNode());
+        await Attach(new ColorBackgroundNode());
+        await Attach(new FloatingShapesNode());
 
         var lagger = new LaggerNode();
         await Attach(lagger);
@@ -76,7 +72,7 @@ public sealed class DemoScene : Scene
     {
         if (next is true)
         {
-            camera.Position = CamPos[ind = (ind + 1) % CamPos.Length];
+            //camera.Position = CamPos[ind = (ind + 1) % CamPos.Length];
             next = false;
             GameDeferredCallSchedule.ScheduleDeferredCall((ex, delta) => next = true, TimeSpan.FromSeconds(1));
         }
