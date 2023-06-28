@@ -12,14 +12,14 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// A <see cref="Node"/> can be an entity, a bullet, code to update another <see cref="Node"/>'s values, or any kind of active game object that is not a <see cref="FunctionalComponent"/>. To make a <see cref="Node"/> drawable, have it implement one of <see cref="IDrawableNode"/>. A <see cref="Node"/> is responsible for updating its own <see cref="FunctionalComponent"/>s
 /// </remarks>
-public abstract class Node : NodeBase
+public abstract class Node : GameObject, IDisposable
 {
     #region Constructors
 
     /// <summary>
     /// Initializes basic properties and fields to give a <see cref="Node"/> its default functionality
     /// </summary>
-    protected Node() : base("Game Node Tree")
+    protected Node() : base("Game Node Tree", "Update")
     {
         DrawableSelf = this as IDrawableNode;
         ReadySemaphore = new(0, 1);
@@ -177,22 +177,19 @@ public abstract class Node : NodeBase
     internal readonly struct SkipData
     {
         public readonly bool Enabled;
-        public readonly bool SkipChildren;
         public readonly uint Frames;
         public readonly TimeSpan? Time;
 
-        public SkipData(bool skipChildren, uint frames) : this()
+        public SkipData(uint frames) : this()
         {
-            SkipChildren = skipChildren;
             Frames = frames;
             Enabled = true;
         }
 
-        public SkipData(bool skipChildren, TimeSpan time) : this()
+        public SkipData(TimeSpan time) : this()
         {
             if (time <= TimeSpan.Zero)
                 throw new ArgumentOutOfRangeException(nameof(time), "Parameter 'time' must be larger than zero");
-            SkipChildren = skipChildren;
             Frames = AssortedExtensions.PrimeNumberNearestToUInt32MaxValue;
             Time = time;
             Enabled = true;
@@ -395,71 +392,29 @@ public abstract class Node : NodeBase
     #region Public Properties
 
     /// <summary>
-    /// This <see cref="Node"/>'s identifier when attached as the child of another <see cref="Node"/> or <see cref="Scene"/>
+    /// This <see cref="Node"/>'s identifier when attached to a <see cref="Scene"/>
     /// </summary>
     public int Id { get; private set; }
 
     /// <summary>
-    /// This <see cref="Node"/>'s parent <see cref="Node"/> or <see cref="Scene"/>
+    /// This <see cref="Node"/>'s root <see cref="Scene"/>
     /// </summary>
     /// <remarks>
-    /// Valid as long as this <see cref="Node"/> is attached to a parent <see cref="Node"/> or <see cref="Scene"/>. Otherwise, null
+    /// Valid as long as this <see cref="Node"/> is attached to a <see cref="Scene"/>
     /// </remarks>
-    public NodeBase? Parent
+    public Scene? ParentScene
     {
-        get => parent;
-        private set
-        {
-            ObjectDisposedException.ThrowIf(IsDisposed, this);
-            if (ReferenceEquals(parent, value))
-                return;
-            parent = value;
-            NodeParentChanged?.Invoke(this, Game.TotalTime, value);
-        }
-    }
-    private NodeBase? parent;
-
-    /// <summary>
-    /// Attempts to get the parent of this <see cref="Node"/> as a <see cref="Scene"/>
-    /// </summary>
-    /// <param name="parent">The parent of this <see cref="Scene"/>, or null if it's a <see cref="Node"/>, or null instead</param>
-    /// <returns>Whether the parent is, indeed, a <see cref="Scene"/></returns>
-    public bool TryGetParentScene([NotNullWhen(true)] out Scene? parent)
-    {
-        parent = Parent as Scene;
-        return parent != null;
-    }
-
-    /// <summary>
-    /// Attempts to get the parent of this <see cref="Node"/> as a <see cref="Node"/>
-    /// </summary>
-    /// <param name="parent">The parent of this <see cref="Node"/>, or null if it's a <see cref="Scene"/>, or null instead</param>
-    /// <returns>Whether the parent is, indeed, a <see cref="Node"/></returns>
-    public bool TryGetParentNode([NotNullWhen(true)] out Node? parent)
-    {
-        parent = Parent as Node;
-        return parent != null;
-    }
-
-    /// <summary>
-    /// This <see cref="Node"/>'s root <see cref="Scene"/>, where this <see cref="Node"/>'s parents, or this <see cref="Node"/> itself is ultimately attached to
-    /// </summary>
-    /// <remarks>
-    /// Valid as long as this <see cref="Node"/> is attached to a parent <see cref="Node"/>, its parents are eventually attached to a <see cref="Scene"/>, or this is directly attached to a <see cref="Scene"/>. Otherwise, null
-    /// </remarks>
-    public Scene? Root
-    {
-        get => root;
+        get => scene;
         set
         {
             ObjectDisposedException.ThrowIf(IsDisposed, this);
-            if (ReferenceEquals(root, value))
+            if (ReferenceEquals(scene, value))
                 return;
-            root = value;
-            NodeTreeSceneChanged?.Invoke(this, Game.TotalTime, value);
+            scene = value;
+            NodeSceneChanged?.Invoke(this, Game.TotalTime, value);
         }
     }
-    private Scene? root;
+    private Scene? scene;
 
     #endregion
 
@@ -468,84 +423,33 @@ public abstract class Node : NodeBase
     /// <summary>
     /// Attaches this <see cref="Node"/> into the given <see cref="Scene"/>
     /// </summary>
-    /// <param name="parent">The <see cref="Scene"/> to attach into</param>
-    public async ValueTask AttachTo(Scene parent)
+    /// <param name="rootScene">The <see cref="Scene"/> to attach into</param>
+    public async ValueTask AttachTo(Scene rootScene)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfAttached();
 
-        InternalLog?.Information("Attaching to Scene {name}-{type}", parent.Name ?? "", parent.GetTypeName());
-        if (!parent.FilterChildNode(this, out var reason))
-            throw new ChildNodeRejectedException(reason, parent, this);
+        InternalLog?.Information("Attaching to Scene {name}-{type}", rootScene.Name ?? "", rootScene.GetTypeName());
+        if (!rootScene.FilterChildNode(this, out var reason))
+            throw new ChildNodeRejectedException(reason, rootScene, this);
 
-        await Attaching(parent);
-        AttachedToSceneEvent?.Invoke(parent, true);
+        await Attaching(rootScene);
         
-        lock (parent.sync)
-            Id = parent.Children.Add(this);
+        lock (rootScene.Sync)
+            Id = rootScene.Children.Add(this);
 
-        updater = await parent.AssignUpdater(this);
+        updater = await rootScene.AssignUpdater(this);
         if (DrawableSelf is IDrawableNode dn)
-            drawer = await parent.AssignDrawer(dn);
+            drawer = await rootScene.AssignDrawer(dn);
 
-        parent.AssignToUpdateBatch(this);
+        rootScene.AssignToUpdateBatch(this);
 
-        Root = parent;
-        Parent = parent;
+        ParentScene = rootScene;
 
-        _nodeServices.SetPrev(parent.Services);
-
-        IsReady = true;
-    }
-
-    /// <summary>
-    /// Attaches this <see cref="Node"/> into a parent <see cref="Node"/>
-    /// </summary>
-    /// <param name="parent">The parent <see cref="Node"/> to attach this into</param>
-    public async ValueTask AttachTo(Node parent)
-    {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
-        ThrowIfAttached();
-
-        InternalLog?.Information("Attaching to Node {name}-{type}", parent.Name ?? "", parent.GetTypeName());
-        if (!parent.FilterChildNode(this, out var reason))
-            throw new ChildNodeRejectedException(reason, parent, this);
-        
-        if (!FilterParentNode(parent, out reason))
-            throw new ParentNodeRejectedException(reason, this, parent);
-
-        await Attaching(parent);
-
-        lock (parent.sync)
-            Id = parent.Children.Add(this);
-
-        if (DrawableSelf is IDrawableNode ds && parent is IDrawableNode dn && dn.DrawOperationManager.cascadedParameters is DrawParameters p) 
-            ds.DrawOperationManager.CascadeParameters(p);
-
-        if (parent.Root is Scene root)
-        {
-            AttachingToRoot(root, false);
-            foreach (var comp in Components)
-                comp.NodeAttachedToScene(root);
-        }
-
-        parent.AssignToUpdateBatch(this);
-
-        parent.DetachedFromSceneEvent += WhenDetachedFromScene;
-        parent.AttachedToSceneEvent += WhenAttachedToScene;
-        Parent = parent;
-
-        _nodeServices.SetPrev(parent._nodeServices);
+        _nodeServices.SetPrev(rootScene.Services);
 
         IsReady = true;
     }
-
-    /// <summary>
-    /// Attaches a Child <see cref="Node"/> to this <see cref="Node"/>
-    /// </summary>
-    /// <param name="child">The child <see cref="Node"/> to attach</param>
-    public ValueTask Attach(Node child)
-        => child.AttachTo(this);
 
     /// <summary>
     /// Detaches this <see cref="Node"/> from its parent <see cref="Scene"/> or <see cref="Node"/>
@@ -555,10 +459,12 @@ public abstract class Node : NodeBase
     /// </remarks>
     public async ValueTask Detach()
     {
+        if (ParentScene is not Scene ps) return;
+
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfNotAttached();
         IsReady = false;
-        InternalLog?.Information("Detaching from {name}-{type}", Parent!.Name, Parent.GetTypeName());
+        InternalLog?.Information("Detaching from {name}-{type}", ps!.Name, ps.GetTypeName());
 
         await Detaching();
         drawer = null;
@@ -567,85 +473,24 @@ public abstract class Node : NodeBase
         foreach (var comp in Components)
             comp.NodeDetachedFromScene();
 
-        if (TryGetParentNode(out var pn))
-        {
-            pn.ExtractFromUpdateBatch(this);
-            pn.Children.Remove(Id);
-            Id = -1;
-            pn.AttachedToSceneEvent -= WhenAttachedToScene;
-            pn.DetachedFromSceneEvent -= WhenDetachedFromScene;
-        }
-        else if (TryGetParentScene(out var ps))
-        {
-            ps.ExtractFromUpdateBatch(this);
-            ps.Children.Remove(Id);
-            Id = -1;
-            DetachedFromSceneEvent?.Invoke(ps, true);
-        }
+        ps.ExtractFromUpdateBatch(this);
+        ps.Children.Remove(Id);
+        Id = -1;
 
-        Root = null;
-        Parent = null;
+        ParentScene = null;
     }
-
-    #endregion
-
-    #region Internal
-
-    #region To Scene Root
-
-    private void WhenAttachedToScene(Scene scene, bool isDirectlyAttached)
-    {
-        if (!FilterSceneRoot(scene, isDirectlyAttached, out var reason)) 
-            throw new ParentNodeRejectedException(reason, this, scene);
-
-        AttachingToRoot(scene, isDirectlyAttached);
-        foreach (var comp in Components)
-            comp.NodeAttachedToScene(scene);
-        Root = scene;
-        NodeTreeSceneChanged?.Invoke(this, Game.TotalTime, scene);
-        AttachedToSceneEvent?.Invoke(scene, false);
-    }
-
-    private void WhenDetachedFromScene(Scene scene, bool wasDirectlyAttached)
-    {
-        DetachingFromRoot(scene, wasDirectlyAttached);
-        foreach (var comp in Components)
-            comp.NodeDetachedFromScene();
-        Root = null;
-        NodeTreeSceneChanged?.Invoke(this, Game.TotalTime, null);
-        DetachedFromSceneEvent?.Invoke(scene, false);
-    }
-
-    internal event Action<Scene, bool>? AttachedToSceneEvent;
-
-    internal event Action<Scene, bool>? DetachedFromSceneEvent;
-
-    #endregion
 
     #endregion
 
     #region Filters
 
     /// <summary>
-    /// This method is automatically called when this node is about to be attached to a parent, and should be used to filter what Nodes are allowed to be parents of this <see cref="Node"/>
-    /// </summary>
-    /// <param name="parent">The node this is about to be attached into</param>
-    /// <param name="reasonForDenial">The optional reason for the denial of <paramref name="parent"/></param>
-    /// <returns><c>true</c> if this node allows itself to be attached into <paramref name="parent"/>. <c>false</c> otherwise, along with an optional reason string in <paramref name="reasonForDenial"/></returns>
-    protected virtual bool FilterParentNode(Node parent, [NotNullWhen(false)] out string? reasonForDenial)
-    {
-        reasonForDenial = null;
-        return true;
-    }
-
-    /// <summary>
-    /// This method is automatically called when this node is about to be attached to a parent <see cref="Scene"/>, or the tree it belongs to has been attached to a <see cref="Scene"/>, and should be used to filter what <see cref="Scene"/>s are allowed to be <see cref="Root"/> to this <see cref="Node"/>
+    /// This method is automatically called when this node is about to be attached to <see cref="Scene"/>
     /// </summary>
     /// <param name="scene">The <see cref="Scene"/> in question</param>
-    /// <param name="isDirectlyAttached">Whether this <see cref="Node"/> is the direct child of <paramref name="scene"/></param>
     /// <param name="reasonForDenial">The optional reason for the denial of <paramref name="scene"/></param>
     /// <returns><c>true</c> if this node allows itself to have <paramref name="scene"/> as root. <c>false</c> otherwise, along with an optional reason string in <paramref name="reasonForDenial"/></returns>
-    protected virtual bool FilterSceneRoot(Scene scene, bool isDirectlyAttached, [NotNullWhen(false)] out string? reasonForDenial)
+    protected virtual bool FilterScene(Scene scene, [NotNullWhen(false)] out string? reasonForDenial)
     {
         reasonForDenial = null;
         return true;
@@ -656,50 +501,20 @@ public abstract class Node : NodeBase
     #region Reaction Methods
 
     /// <summary>
-    /// This method is called automatically when a <see cref="Node"/>'s tree is attaching onto a <see cref="Scene"/>
+    /// This method is called automatically when a <see cref="Node"/> is attaching onto a <see cref="Scene"/>
     /// </summary>
     /// <remarks>
-    /// Called before <see cref="NodeTreeSceneChanged"/> is fired. A <see cref="Node"/>'s tree is considered attached if this <see cref="Node"/>, or one of this <see cref="Node"/>'s parents is attached to a <see cref="Scene"/>
+    /// Called before <see cref="NodeSceneChanged"/>, or <see cref="NodeSceneChanged"/> are fired
     /// </remarks>
-    /// <param name="root">The <see cref="Scene"/> this tree was attached into</param>
-    /// <param name="isDirectlyAttached">Whether this <see cref="Node"/> was directly attached to the <see cref="Scene"/></param>
-    protected virtual void AttachingToRoot(Scene root, bool isDirectlyAttached) { }
-
-    /// <summary>
-    /// This method is called automatically when a <see cref="Node"/>'s tree is detaching from a <see cref="Scene"/>
-    /// </summary>
-    /// <remarks>
-    /// Called before <see cref="NodeTreeSceneChanged"/> is fired. A <see cref="Node"/>'s tree is considered attached if this <see cref="Node"/>, or one of this <see cref="Node"/>'s parents is attached to a <see cref="Scene"/>
-    /// </remarks>
-    /// <param name="root">The <see cref="Scene"/> this tree was attached into</param>
-    /// <param name="wasDirectlyAttached">Whether this <see cref="Node"/> was directly attached to the <see cref="Scene"/></param>
-    protected virtual void DetachingFromRoot(Scene root, bool wasDirectlyAttached) { }
-
-    /// <summary>
-    /// This method is called automatically when a <see cref="Node"/> is attaching onto another <see cref="Node"/>
-    /// </summary>
-    /// <remarks>
-    /// Called before <see cref="NodeParentChanged"/> is fired
-    /// </remarks>
-    /// <param name="parent">The <see cref="Node"/> this <see cref="Node"/> was attached into</param>
+    /// <param name="scene">The <see cref="Scene"/> this <see cref="Node"/> was attached into</param>
     /// <returns>Nothing if async, <see cref="ValueTask.CompletedTask"/> otherwise</returns>
-    protected virtual ValueTask Attaching(Node parent) => ValueTask.CompletedTask;
+    protected virtual ValueTask Attaching(Scene scene) => ValueTask.CompletedTask;
 
     /// <summary>
-    /// This method is called automatically when a <see cref="Node"/> is attaching directly onto a <see cref="Scene"/>
+    /// This method is called automatically when a <see cref="Node"/> is detaching from its scene
     /// </summary>
     /// <remarks>
-    /// Called before <see cref="NodeParentChanged"/>, or <see cref="NodeTreeSceneChanged"/> are fired
-    /// </remarks>
-    /// <param name="parent">The <see cref="Scene"/> this <see cref="Node"/> was attached into</param>
-    /// <returns>Nothing if async, <see cref="ValueTask.CompletedTask"/> otherwise</returns>
-    protected virtual ValueTask Attaching(Scene parent) => ValueTask.CompletedTask;
-
-    /// <summary>
-    /// This method is called automatically when a <see cref="Node"/> is detaching from its parent
-    /// </summary>
-    /// <remarks>
-    /// Called before <see cref="NodeParentChanged"/>, or <see cref="NodeTreeSceneChanged"/>
+    /// Called before <see cref="NodeSceneChanged"/>, or <see cref="NodeSceneChanged"/>
     /// </remarks>
     protected virtual ValueTask Detaching() => ValueTask.CompletedTask;
 
@@ -708,17 +523,12 @@ public abstract class Node : NodeBase
     #region Events
 
     /// <summary>
-    /// Fired when this <see cref="Node"/> is attached to, detached from, or attached into different parent <see cref="Node"/> or <see cref="Scene"/>
-    /// </summary>
-    public event NodeParentEvent? NodeParentChanged;
-
-    /// <summary>
     /// Fired when the tree this <see cref="Node"/> belongs to is attached to, detached from, or attached into a different a <see cref="Scene"/>
     /// </summary>
     /// <remarks>
     /// A <see cref="Node"/>'s tree is considered attached if this <see cref="Node"/>, or one of this <see cref="Node"/>'s parents is attached to a <see cref="Scene"/>
     /// </remarks>
-    public event NodeSceneEvent? NodeTreeSceneChanged;
+    public event NodeSceneEvent? NodeSceneChanged;
 
     #endregion
 
@@ -726,15 +536,15 @@ public abstract class Node : NodeBase
 
     #region Child Nodes
 
-    #region Handler Cache (This is only to be used by the parent node)
+    #region Handler Cache (This is only to be used by the parent scene)
 
     /// <summary>
-    /// This belongs to this <see cref="Node"/>'s parent
+    /// This belongs to this <see cref="Node"/>'s scene
     /// </summary>
     internal NodeUpdater? updater;
 
     /// <summary>
-    /// This belongs to this <see cref="Node"/>'s parent
+    /// This belongs to this <see cref="Node"/>'s scene
     /// </summary>
     internal NodeDrawRegistrar? drawer;
 
@@ -744,7 +554,7 @@ public abstract class Node : NodeBase
 
     #region Update
 
-    internal async ValueTask PropagateUpdate(TimeSpan delta)
+    internal async ValueTask InternalUpdate(TimeSpan delta)
     {
         if (!await Updating(delta))
             return;
@@ -761,7 +571,7 @@ public abstract class Node : NodeBase
                 for (int i = 0; i < comps; i++)
                 {
                     FunctionalComponent comp = Components.Get(i);
-                    if (comp.IsReady && await ComponentUpdating(comp, delta)) 
+                    if (comp.IsReady && await ComponentUpdating(comp, delta))
                         compTasks[ind++] = comp.InternalUpdate(delta);
                 }
                 for (int i = 0; i < ind; i++)
@@ -772,8 +582,6 @@ public abstract class Node : NodeBase
                 pool.Return(compTasks, true);
             }
         }
-
-        await InternalPropagateChildUpdate(delta);
 #pragma warning restore CA2012
     }
 
@@ -781,20 +589,23 @@ public abstract class Node : NodeBase
 
     #region Draw
 
+    /// <summary>
+    /// Scene should ignore this, and let it remain null
+    /// </summary>
+    internal IDrawableNode? DrawableSelf;
+
     internal async ValueTask PropagateDrawRegistration()
     {
         if (DrawableSelf is not IDrawableNode ds) 
             return;
-        if (ds.SkipDrawPropagation)
-            return;
 
         var pool = ArrayPool<ValueTask>.Shared;
-        int toUpdate = Children.Count;
+
         ValueTask[] tasks = pool.Rent(toUpdate);
         try
         {
             int ind = 0;
-            lock (sync)
+            lock (Sync)
             {
                 for (int i = 0; i < toUpdate; i++)
                 {
@@ -862,7 +673,7 @@ public abstract class Node : NodeBase
         drawer = null;
         DrawableSelf = null;
         AttachedToSceneEvent = null;
-        NodeTreeSceneChanged = null;
+        NodeSceneChanged = null;
         NodeParentChanged = null;
         base.InternalDispose(disposing);
     }

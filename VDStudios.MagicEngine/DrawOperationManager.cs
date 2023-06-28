@@ -78,6 +78,7 @@ public class DrawOperationManager : GameObject
 
     #region Public Methods
 
+#warning take another look at this
     /// <summary>
     /// Passes <paramref name="parameters"/> down through <see cref="Owner"/>'s children, to replace the <see cref="DataDependencySource{T}"/> they reference
     /// </summary>
