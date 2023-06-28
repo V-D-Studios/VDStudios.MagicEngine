@@ -68,7 +68,7 @@ public class DrawOperationManager : GameObject
     {
         get
         {
-            nodeOwner.ThrowIfNotAttachedToScene();
+            nodeOwner.ThrowIfNotAttached();
             return _serv;
         }
     }

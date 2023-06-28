@@ -5,7 +5,7 @@ using Veldrid;
 using System.Diagnostics.CodeAnalysis;
 using MessagePack.Formatters;
 
-namespace VDStudios.MagicEngine.NodeLibrary;
+namespace VDStudios.MagicEngine.Extensions.NodeLibrary;
 
 /// <summary>
 /// Represents a 2D camera in the node structure
@@ -26,8 +26,8 @@ public class Camera2D : Node, IDrawableNode
             //wh / (float)ww, 1, 1
             Transformation = new(
                 Camera.Interpolator.Interpolate(
-                    Transformation.View, 
-                    Camera.ViewMatrix, 
+                    Transformation.View,
+                    Camera.ViewMatrix,
                     float.Min(Camera.RateOfChange * (float)delta.TotalSeconds, 1)
                 ),
                 manager.DrawParameters.Transformation.Projection
@@ -171,7 +171,7 @@ public class Camera2D : Node, IDrawableNode
 
     /// <inheritdoc/>
     public DrawOperationManager DrawOperationManager { get; }
-    
+
     /// <inheritdoc/>
     public bool SkipDrawPropagation { get; }
 }

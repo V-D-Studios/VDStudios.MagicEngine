@@ -599,7 +599,7 @@ public abstract class Node : GameObject, IDisposable
     /// <summary>
     /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is not attached to a <see cref="Scene"/>
     /// </summary>
-    protected void ThrowIfNotAttached()
+    protected internal void ThrowIfNotAttached()
     {
         if (ParentScene is null)
             throw new InvalidOperationException("This Node is not attached to a scene");
@@ -608,7 +608,7 @@ public abstract class Node : GameObject, IDisposable
     /// <summary>
     /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is attached to a <see cref="Scene"/>
     /// </summary>
-    protected void ThrowIfAttached()
+    protected internal void ThrowIfAttached()
     {
         if (ParentScene is not null)
             throw new InvalidOperationException("This Node is already attached to a scene");

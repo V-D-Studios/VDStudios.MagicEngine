@@ -2,8 +2,8 @@
 using System.Numerics;
 using VDStudios.MagicEngine.Demo.GUI.Elements;
 using VDStudios.MagicEngine.Demo.Nodes;
+using VDStudios.MagicEngine.Extensions.NodeLibrary;
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
-using VDStudios.MagicEngine.NodeLibrary;
 
 namespace VDStudios.MagicEngine.Demo.Scenes;
 
