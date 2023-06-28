@@ -153,14 +153,6 @@ public delegate void GameLifetimeEvent(IGameLifetime lifetime, bool shouldRun);
 public delegate void NodeReadinessChangedEvent(Node node, TimeSpan timestamp, bool isReady);
 
 /// <summary>
-/// Represents an event in the game regading a <see cref="Node"/> and its parent
-/// </summary>
-/// <param name="node">The Node that that experienced the change</param>
-/// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-/// <param name="parent">The parent of <paramref name="node"/> if it has one. Can be either a <see cref="Node"/> or a <see cref="Scene"/></param>
-public delegate void NodeParentEvent(Node node, TimeSpan timestamp, NodeBase? parent);
-
-/// <summary>
 /// Represents an event in the game regarding a <see cref="Node"/>
 /// </summary>
 /// <param name="node">The Node that that experienced the change</param>
@@ -170,7 +162,7 @@ public delegate void NodeEvent(Node node, TimeSpan timestamp);
 /// <summary>
 /// Represents an event in the game regarding a <see cref="Node"/> interacting with a <see cref="Scene"/>
 /// </summary>
-/// <param name="node">The Node that that experienced the change</param>
+/// <param name="node">The Node that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 /// <param name="scene">The Scene in question</param>
 public delegate void NodeSceneEvent(Node node, TimeSpan timestamp, Scene? scene);
@@ -199,7 +191,7 @@ public delegate Node NodeFactory();
 /// Represents a method that creates a new <typeparamref name="TNode"/>
 /// </summary>
 /// <returns>The newly created <typeparamref name="TNode"/></returns>
-public delegate TNode NodeFactory<TNode>();
+public delegate TNode NodeFactory<TNode>() where TNode : Node;
 
 #endregion
 

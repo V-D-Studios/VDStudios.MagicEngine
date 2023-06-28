@@ -684,7 +684,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <summary>
     /// The default <see cref="DataDependencySource{T}"/> containing <see cref="DrawTransformation"/> for all <see cref="DrawOperation"/>s that don't already have one
     /// </summary>
-    protected internal DrawParameters DrawParameters { get; private set; }
+    public DrawParameters DrawParameters { get; private set; }
 
     private async ValueTask ProcessSharedResourceRegistrationBuffer()
     {

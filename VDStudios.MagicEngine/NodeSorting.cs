@@ -12,7 +12,7 @@ public abstract class NodeUpdater
 {
     internal NodeUpdater() { }
 
-    internal abstract ValueTask<bool> PerformUpdate();
+    internal abstract ValueTask PerformUpdate();
 }
 
 /// <summary>
@@ -35,7 +35,7 @@ public sealed class NodeUpdater<TNode> : NodeUpdater where TNode : Node
         HandledNode = node;
     }
 
-    internal override ValueTask<bool> PerformUpdate() => Handler(HandledNode);
+    internal override ValueTask PerformUpdate() => Handler(HandledNode);
 }
 
 /// <summary>
@@ -44,7 +44,7 @@ public sealed class NodeUpdater<TNode> : NodeUpdater where TNode : Node
 /// <typeparam name="TNode">The type of <see cref="Node"/> this method expects</typeparam>
 /// <param name="node">The node in question</param>
 /// <returns><c>true</c> if the update sequence should be propagated into <paramref name="node"/>, <c>false</c> otherwise</returns>
-public delegate ValueTask<bool> NodeUpdateHandler<TNode>(TNode node) where TNode : Node;
+public delegate ValueTask NodeUpdateHandler<TNode>(TNode node) where TNode : Node;
 
 #endregion
 
@@ -60,7 +60,7 @@ public abstract class NodeDrawRegistrar
 {
     internal NodeDrawRegistrar() { }
 
-    internal abstract ValueTask<bool> PerformDrawRegistration();
+    internal abstract ValueTask PerformDrawRegistration();
 }
 
 /// <summary>
@@ -86,7 +86,7 @@ public sealed class NodeDrawer<TNode> : NodeDrawRegistrar where TNode : Node, ID
         HandledNode = node;
     }
 
-    internal override ValueTask<bool> PerformDrawRegistration() => Handler(HandledNode);
+    internal override ValueTask PerformDrawRegistration() => Handler(HandledNode);
 }
 
 /// <summary>
@@ -95,6 +95,6 @@ public sealed class NodeDrawer<TNode> : NodeDrawRegistrar where TNode : Node, ID
 /// <typeparam name="TNode">The type of <see cref="Node"/> this method expects</typeparam>
 /// <param name="node">The node in question</param>
 /// <returns><c>true</c> if the draw sequence should be propagated into <paramref name="node"/>, <c>false</c> otherwise</returns>
-public delegate ValueTask<bool> NodeDrawHandler<TNode>(TNode node) where TNode : Node, IDrawableNode;
+public delegate ValueTask NodeDrawHandler<TNode>(TNode node) where TNode : Node, IDrawableNode;
 
 #endregion

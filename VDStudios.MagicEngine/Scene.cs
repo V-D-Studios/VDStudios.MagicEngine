@@ -11,15 +11,16 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// A scene can be the MainMenu, a Room, a Dungeon, and any number of things. It is a self-contained state of the <see cref="Game"/>. It's allowed to share states across <see cref="Scene"/>s, but doing so and managing it is your responsibility
 /// </remarks>
-public abstract class Scene : NodeBase
+public abstract class Scene : GameObject, IDisposable
 {
     #region Construction
 
     /// <summary>
     /// Instances and Initializes the current <see cref="Scene"/>
     /// </summary>
-    public Scene() : base("Game Scene")
+    public Scene() : base("Game Scene", "Update")
     {
+        Children = NodeList.Empty.Clone();
         Game.SetupScenes += OnGameSetupScenes;
         Game.StopScenes += OnGameStopScenes;
         lock (Game.scenesAwaitingSetup)
@@ -102,7 +103,15 @@ public abstract class Scene : NodeBase
 
     #endregion
 
-    #region Nodes and Node Tree
+    #region Child Nodes
+
+    /// <summary>
+    /// Represents the Children or Subnodes of this <see cref="Scene"/>
+    /// </summary>
+    /// <remarks>
+    /// Due to thread safety concerns, the list is locked during reads
+    /// </remarks>
+    public NodeList Children { get; internal set; }
 
     #region Attachment
 
@@ -112,6 +121,143 @@ public abstract class Scene : NodeBase
     /// <param name="child">The child <see cref="Node"/> to attach into this <see cref="Scene"/></param>
     public ValueTask Attach(Node child)
         => child.AttachTo(this);
+
+    #endregion
+
+    #region Filters
+
+    /// <summary>
+    /// This method is automatically called when a Child node is about to be attached, and should be used to filter what Nodes are allowed to be children of this <see cref="Scene"/>
+    /// </summary>
+    /// <param name="child">The node about to be attached</param>
+    /// <param name="reasonForDenial">The optional reason for the denial of <paramref name="child"/></param>
+    /// <returns><c>true</c> if the child node is allowed to be attached into this <see cref="Scene"/>. <c>false</c> otherwise, along with an optional reason string in <paramref name="reasonForDenial"/></returns>
+    protected internal virtual bool FilterChildNode(Node child, [NotNullWhen(false)] out string? reasonForDenial)
+    {
+        reasonForDenial = null;
+        return true;
+    }
+
+    #endregion
+
+    #region Sorters
+
+    /// <summary>
+    /// This method is automatically called when a Child node is being attached. It assigns a custom updater to the child node, or <c>null</c> to use <see cref="HandleChildUpdate(Node)"/> instead
+    /// </summary>
+    /// <param name="node">The <see cref="Node"/> that is being attached, and should be assigned an Updater</param>
+    /// <returns>The <see cref="NodeUpdater"/> specific to <paramref name="node"/>, or <c>null</c> to use <see cref="HandleChildUpdate(Node)"/> instead</returns>
+    protected internal virtual ValueTask<NodeUpdater?> AssignUpdater(Node node) => ValueTask.FromResult<NodeUpdater?>(null);
+
+    /// <summary>
+    /// This method is automatically called when a Child node is being attached. It assigns a custom drawer to the child node, or <c>null</c> to use <see cref="HandleChildRegisterDrawOperations(IDrawableNode)"/> instead
+    /// </summary>
+    /// <param name="node">The <see cref="Node"/> that is being attached, and should be assigned a drawer</param>
+    /// <returns>The <see cref="NodeDrawRegistrar"/> specific to <paramref name="node"/>, or <c>null</c> to use <see cref="HandleChildRegisterDrawOperations(IDrawableNode)"/> instead</returns>
+    protected internal virtual ValueTask<NodeDrawRegistrar?> AssignDrawer(IDrawableNode node) => ValueTask.FromResult<NodeDrawRegistrar?>(null);
+
+    #endregion
+
+    #region Default Handlers
+
+    /// <summary>
+    /// This method is automatically called when a Child node is about to be updated, and it has no custom handler set
+    /// </summary>
+    /// <param name="node">The node about to be updated</param>
+    protected virtual ValueTask HandleChildUpdate(Node node) => ValueTask.CompletedTask;
+
+    /// <summary>
+    /// This method is automatically called when a Child node is about to be queried for <see cref="DrawOperation"/>s to register, and it has no custom handler set
+    /// </summary>
+    /// <param name="node">The node about to be queried</param>
+    protected virtual ValueTask HandleChildRegisterDrawOperations(IDrawableNode node) => ValueTask.CompletedTask;
+
+    #endregion
+
+    #region Update Batching
+
+    #region Fields
+
+    internal UpdateBatchCollection UpdateBatches = new();
+
+    #endregion
+
+    #region Sorters
+
+    /// <summary>
+    /// This method is called automatically when a child node is attached and being registered in an update batch. It can be used to override <see cref="Node.UpdateBatch"/>
+    /// </summary>
+    /// <remarks>
+    /// Use this with care, as no attempts are made by the framework to notify <paramref name="node"/> if its preferred <see cref="UpdateBatch"/> is overriden. You may break something.
+    /// </remarks>
+    /// <param name="node"></param>
+    /// <returns>The <see cref="UpdateBatch"/> <paramref name="node"/> is going to be registered into</returns>
+    protected virtual UpdateBatch AssigningToUpdateBatch(Node node) => node.UpdateBatch;
+
+    #endregion
+
+    #region Internal
+
+    internal ValueTask InternalHandleChildDrawRegistration(Node node)
+        => node.drawer is NodeDrawRegistrar drawer
+            ? drawer.PerformDrawRegistration()
+            : node.DrawableSelf is IDrawableNode n ? HandleChildRegisterDrawOperations(n) : ValueTask.CompletedTask;
+
+    internal void AssignToUpdateBatch(Node node)
+    {
+        var ub = AssigningToUpdateBatch(node);
+        node.UpdateAssignation = ub;
+        UpdateBatches.Add(node, ub, node.AsynchronousUpdateTendency);
+    }
+
+    internal void ExtractFromUpdateBatch(Node node)
+    {
+        UpdateBatches.Remove(node, node.UpdateAssignation, node.AsynchronousUpdateTendency);
+        node.UpdateAssignation = (UpdateBatch)(-1);
+    }
+
+    internal async ValueTask InternalHandleChildUpdate(Node node, TimeSpan delta)
+    {
+        var sd = node.SkipDat;
+        // This could potentially cause a state where the node never-endingly skips
+        // Protections against such cases are built into the Node.Skip methods; any new instance methods that don't use methods that already have those protections, should include such protections.
+        if (sd.MarkedForSkip && (sd.Time is TimeSpan t && t > Game.TotalTime || sd.Frames > 0 && Game.FrameCount % sd.Frames != 0)) 
+            return;
+        node.SkipDat = default;
+        await node.InternalUpdate(delta);
+        await (node.updater is NodeUpdater updater ? updater.PerformUpdate() : HandleChildUpdate(node));
+    }
+
+    internal async ValueTask InternalPropagateChildUpdate(TimeSpan delta)
+    {
+        var pool = ArrayPool<ValueTask>.Shared;
+        int toUpdate = Children.Count;
+        ValueTask[] tasks = pool.Rent(toUpdate);
+        try
+        {
+            int ind = 0;
+            lock (Sync)
+            {
+                for (int bi = 0; bi < UpdateBatchCollection.BatchCount; bi++)
+                    for (int ti = UpdateSynchronicityBatch.BatchCount - 1; ti >= 0; ti--)
+                    {
+                        var batch = UpdateBatches[(UpdateBatch)bi, (AsynchronousTendency)ti];
+                        if (batch is not null and { Count: > 0 })
+                            foreach (var child in batch)
+                                if (child.IsActive)
+                                    tasks[ind++] = InternalHandleChildUpdate(child, delta).Preserve();
+                    }
+            }
+            for (int i = 0; i < ind; i++)
+                await tasks[i];
+        }
+        finally
+        {
+            pool.Return(tasks, true);
+        }
+    }
+
+    #endregion
 
     #endregion
 
@@ -220,7 +366,7 @@ public abstract class Scene : NodeBase
         try
         {
             int ind = 0;
-            lock (sync)
+            lock (Sync)
             {
                 for (int i = 0; i < toUpdate; i++)
                 {
@@ -266,6 +412,11 @@ public abstract class Scene : NodeBase
     {
         Game.SetupScenes -= OnGameSetupScenes;
         Game.StopScenes -= OnGameStopScenes;
+
+        foreach (var child in Children)
+            child.Dispose();
+        Children = null!;
+
         base.InternalDispose(disposing);
     }
 

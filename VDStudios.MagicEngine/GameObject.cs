@@ -13,9 +13,12 @@ namespace VDStudios.MagicEngine;
 /// </remarks>
 public abstract class GameObject : IDisposable
 {
+    private object? ____sync;
     private readonly Lazy<ILogger> logSync;
     internal readonly string Facility;
     internal readonly string Area;
+
+    internal object Sync => ____sync ??= new();
 
     /// <summary>
     /// An optional name for debugging purposes

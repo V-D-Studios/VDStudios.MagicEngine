@@ -64,14 +64,6 @@ public sealed class NodeList : IReadOnlyList<Node>
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    /// <summary>
-    /// Returns an <see cref="IEnumerable{T}"/> that enumerates through ALL the <see cref="Node"/>s accessible from this list. 
-    /// </summary>
-    /// <remarks>
-    /// This includes the entire node tree starting from this point: Every <see cref="Node"/>'s children, and their children as well. Since <see cref="Node"/>'s are protected against circular references, this <see cref="IEnumerable"/> will eventually finish. How long that takes is your responsibility.
-    /// </remarks>
-    public IEnumerable<Node> Flatten() => nodes.SelectMany(x => x.Value.Children);
-
     internal void Remove(int id)
         => nodes.Remove(id);
 
