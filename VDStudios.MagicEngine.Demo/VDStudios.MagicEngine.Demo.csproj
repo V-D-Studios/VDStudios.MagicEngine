@@ -11,6 +11,7 @@
 	<!-- This makes sure that all the resources get copied to the project output resoruces folder -->
 	
   <ItemGroup>
+    <ProjectReference Include="..\VDStudios.MagicEngine.Extensions\VDStudios.MagicEngine.Extensions.csproj" />
     <ProjectReference Include="..\VDStudios.MagicEngine\VDStudios.MagicEngine.csproj" />
   </ItemGroup>
 
