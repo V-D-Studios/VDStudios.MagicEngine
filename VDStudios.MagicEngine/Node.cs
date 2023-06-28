@@ -176,14 +176,14 @@ public abstract class Node : GameObject, IDisposable
 
     internal readonly struct SkipData
     {
-        public readonly bool Enabled;
+        public readonly bool MarkedForSkip;
         public readonly uint Frames;
         public readonly TimeSpan? Time;
 
         public SkipData(uint frames) : this()
         {
             Frames = frames;
-            Enabled = true;
+            MarkedForSkip = true;
         }
 
         public SkipData(TimeSpan time) : this()
@@ -192,7 +192,7 @@ public abstract class Node : GameObject, IDisposable
                 throw new ArgumentOutOfRangeException(nameof(time), "Parameter 'time' must be larger than zero");
             Frames = AssortedExtensions.PrimeNumberNearestToUInt32MaxValue;
             Time = time;
-            Enabled = true;
+            MarkedForSkip = true;
         }
     }
 
@@ -216,7 +216,7 @@ public abstract class Node : GameObject, IDisposable
     /// <param name="time">The amount of frames this node will be skipped for after this method is called</param>
     public void Skip(TimeSpan? time)
     {
-        SkipDat = time is not TimeSpan t ? default : new(Game.TotalTime + t);
+        SkipDat = time is not TimeSpan t || t <= TimeSpan.Zero ? default : new(Game.TotalTime + t);
     }
 
     #endregion

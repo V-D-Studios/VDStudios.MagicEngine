@@ -219,11 +219,11 @@ public abstract class Scene : GameObject, IDisposable
     internal async ValueTask InternalHandleChildUpdate(Node node, TimeSpan delta)
     {
         var sd = node.SkipDat;
-
-        if (sd.Enabled is false && (sd.Time is not TimeSpan t || t > Game.TotalTime) && Game.FrameCount % sd.Frames != 0)
+        // This could potentially cause a state where the node never-endingly skips
+        // Protections against such cases are built into the Node.Skip methods; any new instance methods that don't use methods that already have those protections, should include such protections.
+        if (sd.MarkedForSkip && (sd.Time is TimeSpan t && t > Game.TotalTime || sd.Frames > 0 && Game.FrameCount % sd.Frames != 0)) 
             return;
         node.SkipDat = default;
-
         await node.InternalUpdate(delta);
         await (node.updater is NodeUpdater updater ? updater.PerformUpdate() : HandleChildUpdate(node));
     }
