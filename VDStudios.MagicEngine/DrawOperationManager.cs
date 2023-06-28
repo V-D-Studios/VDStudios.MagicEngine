@@ -78,24 +78,6 @@ public class DrawOperationManager : GameObject
 
     #region Public Methods
 
-#warning take another look at this
-    /// <summary>
-    /// Passes <paramref name="parameters"/> down through <see cref="Owner"/>'s children, to replace the <see cref="DataDependencySource{T}"/> they reference
-    /// </summary>
-    public void CascadeParameters(DrawParameters parameters)
-    {
-        ArgumentNullException.ThrowIfNull(parameters);
-        if (parameters.IsReady is false)
-            throw new ArgumentException("parameters must be ready before it can be cascaded", nameof(parameters));
-        InternalLog?.Debug("Cascading {typeName} through the owning Node {objName}'s children", nameof(DrawParameters), Owner.Name);
-        cascadedParameters = parameters;
-        ProcessNewDrawData(parameters);
-        foreach (var child in ((Node)Owner).Children)
-            if (child is IDrawableNode dn) 
-                dn.DrawOperationManager.CascadeParameters(parameters); 
-    }
-    internal DrawParameters? cascadedParameters;
-
     /// <summary>
     /// Adds a new <see cref="DrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
     /// </summary>
