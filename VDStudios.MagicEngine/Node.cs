@@ -205,20 +205,18 @@ public abstract class Node : GameObject, IDisposable
     /// Reminder: This is NOT the same as the Game's FPS! <see cref="GraphicsManager.FramesPerSecond"/> are different from the update thread's <see cref="Game.AverageDelta"/>
     /// </remarks>
     /// <param name="updateFrames">The amount of frames this node will be skipped for after this method is called</param>
-    /// <param name="skipChildren">Whether to also skip this <see cref="Node"/>'s children. If <see langword="true"/>, this node and all its children will be skipped. Otherwise, if <see langword="false"/>, only this node, but not its children will be skipped</param>
-    public void Skip(ushort updateFrames, bool skipChildren = true)
+    public void Skip(ushort updateFrames)
     {
-        SkipDat = updateFrames is 0 ? default : (new(skipChildren, (uint)(Game.FrameCount % updateFrames + updateFrames + 1)));
+        SkipDat = updateFrames is 0 ? default : (new((uint)(Game.FrameCount % updateFrames + updateFrames + 1)));
     }
 
     /// <summary>
     /// Schedules this Node to skip updating for <paramref name="time"/> starting after the frame after this method is called
     /// </summary>
     /// <param name="time">The amount of frames this node will be skipped for after this method is called</param>
-    /// <param name="skipChildren">Whether to also skip this <see cref="Node"/>'s children. If <see langword="true"/>, this node and all its children will be skipped. Otherwise, if <see langword="false"/>, only this node, but not its children will be skipped</param>
-    public void Skip(TimeSpan? time, bool skipChildren = true)
+    public void Skip(TimeSpan? time)
     {
-        SkipDat = time is not TimeSpan t ? default : new(skipChildren, Game.TotalTime + t);
+        SkipDat = time is not TimeSpan t ? default : new(Game.TotalTime + t);
     }
 
     #endregion
@@ -380,7 +378,7 @@ public abstract class Node : GameObject, IDisposable
     {
         get
         {
-            ThrowIfNotAttachedToScene();
+            ThrowIfNotAttached();
             return _nodeServices;
         }
     }
@@ -534,7 +532,7 @@ public abstract class Node : GameObject, IDisposable
 
     #endregion
 
-    #region Child Nodes
+    #region Processing
 
     #region Handler Cache (This is only to be used by the parent scene)
 
@@ -549,8 +547,6 @@ public abstract class Node : GameObject, IDisposable
     internal NodeDrawRegistrar? drawer;
 
     #endregion
-
-    #region Propagation
 
     #region Update
 
@@ -594,37 +590,6 @@ public abstract class Node : GameObject, IDisposable
     /// </summary>
     internal IDrawableNode? DrawableSelf;
 
-    internal async ValueTask PropagateDrawRegistration()
-    {
-        if (DrawableSelf is not IDrawableNode ds) 
-            return;
-
-        var pool = ArrayPool<ValueTask>.Shared;
-
-        ValueTask[] tasks = pool.Rent(toUpdate);
-        try
-        {
-            int ind = 0;
-            lock (Sync)
-            {
-                for (int i = 0; i < toUpdate; i++)
-                {
-                    var child = Children.Get(i);
-                    if (child.IsActive)
-                        tasks[ind++] = InternalHandleChildDrawRegistration(child).Preserve();
-                }
-            }
-            for (int i = 0; i < ind; i++)
-                await tasks[i];
-        }
-        finally
-        {
-            pool.Return(tasks, true);
-        }
-    }
-
-    #endregion
-
     #endregion
 
     #endregion
@@ -632,33 +597,21 @@ public abstract class Node : GameObject, IDisposable
     #region Helper Methods
 
     /// <summary>
-    /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is not attached to a <see cref="Scene"/> directly or indirectly
+    /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is not attached to a <see cref="Scene"/>
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected internal void ThrowIfNotAttachedToScene()
-    {
-        if (Root is null)
-            throw new InvalidOperationException("This Node is not attached to a root scene");
-    }
-
-    /// <summary>
-    /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is not attached to another <see cref="Node"/> or <see cref="Scene"/>
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void ThrowIfNotAttached()
     {
-        if (Parent is null)
-            throw new InvalidOperationException("This Node is not attached to anything");
+        if (ParentScene is null)
+            throw new InvalidOperationException("This Node is not attached to a scene");
     }
 
     /// <summary>
-    /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is attached to another <see cref="Node"/> or <see cref="Scene"/>
+    /// Throws a new <see cref="InvalidOperationException"/> if this <see cref="Node"/> is attached to a <see cref="Scene"/>
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void ThrowIfAttached()
     {
-        if (Parent is not null)
-            throw new InvalidOperationException("This Node is already attached");
+        if (ParentScene is not null)
+            throw new InvalidOperationException("This Node is already attached to a scene");
     }
 
     #endregion
@@ -672,9 +625,7 @@ public abstract class Node : GameObject, IDisposable
         updater = null;
         drawer = null;
         DrawableSelf = null;
-        AttachedToSceneEvent = null;
         NodeSceneChanged = null;
-        NodeParentChanged = null;
         base.InternalDispose(disposing);
     }
 

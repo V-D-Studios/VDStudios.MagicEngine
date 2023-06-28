@@ -168,7 +168,7 @@ public abstract class FunctionalComponent : GameObject
 
     #region Internal
 
-    private Stopwatch stopwatch = new();
+    private readonly Stopwatch stopwatch = new();
 
     internal async ValueTask InternalUpdate(TimeSpan delta)
     {
@@ -177,55 +177,6 @@ public abstract class FunctionalComponent : GameObject
     }
 
     #endregion
-
-    #endregion
-
-    #region IDisposable
-
-    /// <summary>
-    /// Throws a new <see cref="ObjectDisposedException"/> if this <see cref="Node"/> has already been disposed of
-    /// </summary>
-    protected internal void ThrowIfDisposed()
-    {
-        if (disposedValue)
-            throw new ObjectDisposedException(GetType().FullName);
-    }
-
-    private bool disposedValue;
-
-    /// <summary>
-    /// Disposes this <see cref="FunctionalComponent"/>'s resources. FunctionalComponents don't explicitly implement <see cref="IDisposable"/> due to the fact that they are automatically disposed when uninstalled from their <see cref="Node"/>
-    /// </summary>
-    /// <param name="disposing"></param>
-    protected virtual void Dispose(bool disposing)
-    {
-    }
-
-    private void IntDispose(bool disposing)
-    {
-        if (!disposedValue)
-        {
-            stopwatch = null;
-            disposedValue = true;
-
-            Dispose(disposing);
-        }
-    }
-
-    /// <inheritdoc/>
-    ~FunctionalComponent()
-    {
-        IntDispose(false);
-    }
-
-    /// <summary>
-    /// Disposes this <see cref="FunctionalComponent"/>'s resources
-    /// </summary>
-    internal void Dispose()
-    {
-        IntDispose(true);
-        GC.SuppressFinalize(this);
-    }
 
     #endregion
 }
