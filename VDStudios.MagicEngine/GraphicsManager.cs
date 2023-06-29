@@ -64,7 +64,6 @@ public class GraphicsManager : GameObject, IDisposable
 
         IsRunningCheck = () => IsRunning;
         IsNotRenderingCheck = () => !IsRendering;
-        DrawParameters = new();
     }
 
     /// <summary>
@@ -635,7 +634,7 @@ public class GraphicsManager : GameObject, IDisposable
             ImGuiController.WindowResized(ww, wh);
 
             WindowSize = newSize;
-            DrawParameters.Transformation = new(Matrix4x4.Identity, Matrix4x4.CreateScale(wh / (float)ww, 1, 1));
+            WindowView = Matrix4x4.CreateScale(wh / (float)ww, 1, 1);
         }
         finally
         {
@@ -689,9 +688,9 @@ public class GraphicsManager : GameObject, IDisposable
     }
 
     /// <summary>
-    /// The default <see cref="DataDependencySource{T}"/> containing <see cref="DrawTransformation"/> for all <see cref="DrawOperation"/>s that don't already have one
+    /// A transformation Matrix that represents the current Window's dimensions
     /// </summary>
-    public DrawParameters DrawParameters { get; private set; }
+    public Matrix4x4 WindowView { get; private set; }
 
     private async ValueTask ProcessSharedResourceRegistrationBuffer()
     {
@@ -808,8 +807,6 @@ public class GraphicsManager : GameObject, IDisposable
         int targetcount;
         IRenderTarget[] activeTargets = Array.Empty<IRenderTarget>();
         RenderTargetState[] activeTargetBuffers = Array.Empty<RenderTargetState>();
-
-        RegisterSharedDrawResource(DrawParameters);
 
         var gd = Device!;
         
