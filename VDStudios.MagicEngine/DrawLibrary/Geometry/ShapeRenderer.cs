@@ -367,13 +367,6 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         return pipeline;
     }
 
-    /// <inheritdoc/>
-    protected override void ReferenceParametersChanging(DrawParameters? previous, DrawParameters? replacement)
-    {
-        if (ResourceSets is null || replacement is null) return;
-        ResourceSets[ParametersSetId] = replacement.ResourceSet;
-    }
-
     int ParametersSetId;
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? resourcesSets, ResourceLayout[]? resourceLayouts)

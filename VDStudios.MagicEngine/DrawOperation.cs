@@ -190,34 +190,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     public uint? CommandListGroupAffinity { get; init; }
     internal int _clga => (int)(CommandListGroupAffinity ?? 0);
 
-    /// <summary>
-    /// Represents the current reference to <see cref="DrawParameters"/> this <see cref="DrawOperation"/> has, which has been cascaded through the nodes that own this operation
-    /// </summary>
-    public DrawParameters? ReferenceParameters
-    {
-        get => RefParams_field;
-        internal set
-        {
-            if (ReferenceEquals(RefParams_field, value)) return;
-            var prev = RefParams_field;
-            RefParams_field = value;
-            ReferenceParametersChanging(prev, value);
-        }
-    }
-    private DrawParameters? RefParams_field;
-
-    /// <summary>
-    /// This method is called automatically when <see cref="ReferenceParameters"/> changes
-    /// </summary>
-    /// <param name="previous">The previous object that <see cref="ReferenceParameters"/> referenced</param>
-    /// <param name="replacement">The object that <see cref="ReferenceParameters"/> now references</param>
-    protected virtual void ReferenceParametersChanging(DrawParameters? previous, DrawParameters? replacement) { }
-
-    /// <summary>
-    /// Returns either <see cref="ReferenceParameters"/> or <see cref="GraphicsManager.DrawParameters"/> if the former is <c>null</c>
-    /// </summary>
-    public DrawParameters Parameters => ReferenceParameters ?? Manager!.DrawParameters;
-
+    
     /// <summary>
     /// The owner <see cref="DrawOperationManager"/> of this <see cref="DrawOperation"/>
     /// </summary>
@@ -357,7 +330,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         device.UpdateBuffer(TransformationBuffer, VertexTransformationOffset, ref vtrans);
         device.UpdateBuffer(TransformationBuffer, ColorTransformationOffset, ref ctrans);
         builder.InsertLast(TransformationSet, TransformationLayout, out int _, "DrawOperation Base Transformation");
-        builder.InsertLast(Parameters.ResourceSet, Parameters.ResourceLayout, out int _, "Parameters");
 
         return ValueTask.CompletedTask;
     }
