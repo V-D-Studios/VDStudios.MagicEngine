@@ -410,10 +410,10 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, FramebufferTargetInfo target)
     {
         QueryForChange();
-        cl.SetFramebuffer(mainBuffer);
+        cl.SetFramebuffer(target.Target);
         var sbl = CollectionsMarshal.AsSpan(ShapeBufferList);
         for (int i = 0; i < sbl.Length; i++)
-            DrawShape(delta, in sbl[i], cl, device, mainBuffer);
+            DrawShape(delta, in sbl[i], cl, device, target.Target);
         return ValueTask.CompletedTask;
     }
 
