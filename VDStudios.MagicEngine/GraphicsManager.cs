@@ -703,7 +703,7 @@ public class GraphicsManager : GameObject, IDisposable
             for (int i = 0; i < count; i++)
             {
                 var resource = regbuf[i];
-                InternalLog?.Verbose("Registering SharedDrawResource {objName}-{type}", resource.Name ?? "", resource.GetTypeName());
+                InternalLog?.Verbose("Registering SharedDrawResource {objName}-{type}", resource.Name ?? "(noname)", resource.GetTypeName());
                 await resource.Register(this);
                 RegisteredResources.Add(resource.Identifier, new(resource));
             }
@@ -731,7 +731,7 @@ public class GraphicsManager : GameObject, IDisposable
             for (int i = 0; i < count; i++)
             {
                 var operation = regbuf[i];
-                InternalLog?.Verbose("Registering DrawOperation {objName}-{type}", operation.Name ?? "", operation.GetTypeName());
+                InternalLog?.Verbose("Registering DrawOperation {objName}-{type}", operation.Name ?? "(noname)", operation.GetTypeName());
                 await operation.Register(this);
                 if (!DrawOperationRegistering(operation, out var reason))
                 {
