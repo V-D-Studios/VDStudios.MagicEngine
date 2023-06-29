@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using SDL2.NET;
 using SDL2.NET.SDLFont;
-using VDStudios.MagicEngine.DrawLibrary;
 using Veldrid;
 using Veldrid.MetalBindings;
 using Veldrid.SPIRV;
@@ -113,9 +112,9 @@ void main()
             return ValueTask.CompletedTask;
         }
 
-        protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice gd, Framebuffer mainBuffer)
+        protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice gd, FramebufferTargetInfo target)
         {
-            cl.SetFramebuffer(mainBuffer);
+            cl.SetFramebuffer(target.Target);
             cl.SetVertexBuffer(0, VertexBuffer);
             cl.SetIndexBuffer(IndexBuffer, IndexFormat.UInt16);
             cl.SetPipeline(Pipeline);

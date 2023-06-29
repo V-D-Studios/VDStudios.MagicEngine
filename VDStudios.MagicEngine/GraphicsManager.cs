@@ -47,6 +47,8 @@ public class GraphicsManager : GameObject, IDisposable
         initLock.Wait();
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
 
+        RenderTargets = new(this);
+
         CurrentSnapshot = new(this);
         snapshotBuffer = new(this);
         
@@ -124,6 +126,11 @@ public class GraphicsManager : GameObject, IDisposable
     /// The the default resource cache for this <see cref="GraphicsManager"/>
     /// </summary>
     public DefaultResourceCache DefaultResourceCache { get; }
+
+    /// <summary>
+    /// This <see cref="GraphicsManager"/>'s render targets
+    /// </summary>
+    public RenderTargetList RenderTargets { get; }
 
     /// <summary>
     /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager"/> is running
@@ -798,6 +805,10 @@ public class GraphicsManager : GameObject, IDisposable
         int resBufferFill = 0;
         TimeSpan delta = default;
 
+        int targetcount;
+        IRenderTarget[] activeTargets = Array.Empty<IRenderTarget>();
+        Framebuffer[] activeTargetBuffers = Array.Empty<Framebuffer>();
+
         RegisterSharedDrawResource(DrawParameters);
 
         var gd = Device!;
@@ -839,6 +850,29 @@ public class GraphicsManager : GameObject, IDisposable
                     if (!await WaitOn(drawlock, condition: isRunning)) break; // Frame Render Stage 1: General Drawing
                     try
                     {
+                        #region Render Targets
+
+                        if (RenderTargets.Count > 0)
+                        {
+                            InternalLog?.Warning("This GraphicsManager has no render targets");
+                            continue;
+                        }
+
+                        if (activeTargets.Length < RenderTargets.Count)
+                        {
+                            activeTargets = new IRenderTarget[int.Max(RenderTargets.Count, activeTargets.Length * 2)];
+                            activeTargetBuffers = new Framebuffer[int.Max(RenderTargets.Count, activeTargetBuffers.Length * 2)];
+                        }
+
+                        targetcount = 0;
+                        foreach (var target in RenderTargets)
+                        {
+                            activeTargets[targetcount] = target;
+                            activeTargetBuffers[targetcount++] = target.GetTarget(gd);
+                        }
+
+                        #endregion
+
                         #region Draw Resources
 
                         if (SDRRegistrationBuffer.Count > 0)
@@ -875,7 +909,7 @@ public class GraphicsManager : GameObject, IDisposable
 
                         while (removalQueue.Count > 0)
                             ops.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
-                        
+
                         #endregion
 
                         using (drawqueue._lock.Lock())
@@ -898,6 +932,7 @@ public class GraphicsManager : GameObject, IDisposable
                                     for (; i < dqc; i++)
                                     {
                                         var cld = cld_g[i];
+                                        cld.SetTargets(new(activeTargetBuffers, 0, targetcount));
                                         cld.Add(queue.Dequeue());
                                         cld.Start(delta);
                                         activeDispatchs[dispatchs++] = cld;
@@ -909,12 +944,14 @@ public class GraphicsManager : GameObject, IDisposable
                                     for (; i < cld_g.Length - 1; i++)
                                     {
                                         var cld = cld_g[i];
+                                        cld.SetTargets(new(activeTargetBuffers, 0, targetcount));
                                         for (int x = 0; x < perCL; x++)
                                             cld.Add(queue.Dequeue());
                                         cld.Start(delta);
                                         activeDispatchs[dispatchs++] = cld;
                                     }
                                     var lcld = cld_g[i];
+                                    lcld.SetTargets(new(activeTargetBuffers, 0, targetcount));
                                     while (queue.Count > 0)
                                         lcld.Add(queue.Dequeue());
                                     lcld.Start(delta);
@@ -923,15 +960,44 @@ public class GraphicsManager : GameObject, IDisposable
                             }
 
                             managercl.Begin();
-                            PrepareForDraw(managercl, gd.SwapchainFramebuffer); // Set the base of the frame: clear the background, etc.
+                            
+                            for (int tari = 0; tari < targetcount; tari++)
+                                activeTargets[tari].PrepareForDraw(managercl);
+                            PrepareForDraw(managercl, gd.SwapchainFramebuffer);
+
                             for (int i = 0; i < resBufferFill; i++)
                                 await resBuffer[i].InternalUpdate(delta, managercl);
                             managercl.End();
+                            
                             gd.SubmitCommands(managercl);
                             Array.Clear(resBuffer, 0, resBufferFill);
                             resBufferFill = 0;
                             for (int i = 0; i < dispatchs; i++)
                                 gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
+
+                            bool clbegun = false;
+                            for (int tari = 0; tari < targetcount; tari++)
+                            {
+                                if (activeTargets[tari].QueryCopyToScreenRequired(gd))
+                                {
+                                    if (clbegun is false)
+                                    {
+                                        managercl.Begin();
+                                        clbegun = true;
+                                    }
+                                }
+                                else
+                                    continue;
+
+                                activeTargets[tari].CopyToScreen(managercl, activeTargetBuffers[tari], gd);
+                            }
+
+                            if (clbegun)
+                            {
+                                managercl.End();
+                                gd.SubmitCommands(managercl);
+                            }
+
                             Array.Clear(activeDispatchs, 0, dispatchs);
                         }
                     }
@@ -1002,6 +1068,8 @@ public class GraphicsManager : GameObject, IDisposable
             fak.Push(1000 / (sw.ElapsedMilliseconds + 0.0000001f));
             sw.Restart();
         }
+        
+        Debug.Assert(IsRunning is false, "The main rendering loop broke even though the GraphicsManager is still supposed to be running");
         InternalLog?.Information("Exiting main rendering loop and disposing");
 
         Dispose();

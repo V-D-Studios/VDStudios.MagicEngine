@@ -4,6 +4,7 @@ using System.Collections;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using VDStudios.MagicEngine;
 using VDStudios.MagicEngine.Geometry;
 using Veldrid;
 using Veldrid.MetalBindings;
@@ -406,7 +407,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     }
 
     /// <inheritdoc/>
-    protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer)
+    protected override ValueTask Draw(TimeSpan delta, CommandList cl, GraphicsDevice device, FramebufferTargetInfo target)
     {
         QueryForChange();
         cl.SetFramebuffer(mainBuffer);
