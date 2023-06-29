@@ -16,7 +16,7 @@ namespace VDStudios.MagicEngine.Internal;
 internal class CommandListDispatch
 {
     private DrawOperation[] dops;
-    private ArraySegment<Framebuffer>? Targets;
+    private ArraySegment<RenderTargetState>? Targets;
     private int DopCount = 0;
 
     private readonly CommandList cl;
@@ -44,10 +44,10 @@ internal class CommandListDispatch
     /// Sets the targets for the upcoming draw operations
     /// </summary>
     /// <param name="targets">The framebuffer targets the draw operation will be rendered to</param>
-    public void SetTargets(ArraySegment<Framebuffer> targets)
+    public void SetTargets(ArraySegment<RenderTargetState> targets)
     {
         Debug.Assert(targets.Count > 0, "no targets were passed to the CommandListDispatch");
-        Debug.Assert(targets.All(x => x is not null), "some framebuffer targets are null");
+        Debug.Assert(targets.All(x => x.ActiveBuffer is not null && x.Target is not null), "some framebuffer targets are null");
         Targets = targets;
     }
 
@@ -60,7 +60,7 @@ internal class CommandListDispatch
 
     private void WorkMethod(object? state)
     {
-        if (Targets is not ArraySegment<Framebuffer> targets)
+        if (Targets is not ArraySegment<RenderTargetState> targets)
             throw new InvalidOperationException("Cannot begin dispatching CommandLists without targets. Was SetTargets called this frame?");
 
         var l_dops = dops;
@@ -72,7 +72,7 @@ internal class CommandListDispatch
 
             for (int i = 0; i < DopCount; i++)
                 for (int t = 0; t < targets.Count; t++)
-                    tasks[i] = l_dops[i].InternalDraw(delta, cl, new FramebufferTargetInfo(t, targets.Count, targets[t])).Preserve();
+                    tasks[i] = l_dops[i].InternalDraw(delta, cl, new FramebufferTargetInfo(t, targets.Count, targets[t].ActiveBuffer, targets[i].Parameters)).Preserve();
 
             for (int ti = 0; ti < taskCount; ti++)
                 tasks[ti].GetAwaiter().GetResult();

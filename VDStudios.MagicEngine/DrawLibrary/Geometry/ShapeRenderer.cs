@@ -315,9 +315,12 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         GraphicsManager manager, 
         GraphicsDevice device,
         ResourceFactory factory,
-        ResourceLayout[]? resourceLayouts, 
+        ResourceLayout[] resourceLayouts,
         ShapeRendererDescription description)
     {
+        Array.Resize(ref resourceLayouts, resourceLayouts.Length + 1);
+        resourceLayouts[^1] = manager.DrawParametersLayout;
+
         Shader[] shaders = description.Shaders is null
             ? description.VertexShaderSpirv is null && description.FragmentShaderSpirv is null
                 ? manager.DefaultResourceCache.DefaultShapeRendererShaders
@@ -367,14 +370,12 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         return pipeline;
     }
 
-    int ParametersSetId;
     /// <inheritdoc/>
     protected override ValueTask CreateResources(GraphicsDevice device, ResourceFactory factory, ResourceSet[]? resourcesSets, ResourceLayout[]? resourceLayouts)
     {
         Pipeline = CreatePipeline(Manager!, device, factory, resourceLayouts, ShapeRendererDescription);
 
         ResourceSets = resourcesSets!;
-        ParametersSetId = ResourceSets.Select((x, i) => (x, i)).First(x => x.x.Name == "Parameters").i;
         
         NotifyPendingGPUUpdate();
 
@@ -388,14 +389,16 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     /// <param name="cl">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
-    /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
-    protected virtual void DrawShape(TimeSpan delta, in ShapeDat shape, CommandList cl, GraphicsDevice device, Framebuffer mainBuffer)
+    /// <param name="target">Information about the target <see cref="Framebuffer"/> that this draw operation is being directed into</param>
+    protected virtual void DrawShape(TimeSpan delta, in ShapeDat shape, CommandList cl, GraphicsDevice device, FramebufferTargetInfo target)
     {
         cl.SetVertexBuffer(0, shape.Buffer, shape.VertexStart);
         cl.SetIndexBuffer(shape.Buffer!, IndexFormat.UInt16, shape.IndexStart);
         cl.SetPipeline(Pipeline);
-        for (uint index = 0; index < ResourceSets.Length; index++)
+        uint index = 0;
+        for (; index < ResourceSets.Length; index++)
             cl.SetGraphicsResourceSet(index, ResourceSets[index]);
+        cl.SetGraphicsResourceSet(index, target.Parameters.ResourceSet);
         cl.DrawIndexed(shape.IndexCount, 1, 0, 0, 0);
     }
 
@@ -406,7 +409,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
         cl.SetFramebuffer(target.Target);
         var sbl = CollectionsMarshal.AsSpan(ShapeBufferList);
         for (int i = 0; i < sbl.Length; i++)
-            DrawShape(delta, in sbl[i], cl, device, target.Target);
+            DrawShape(delta, in sbl[i], cl, device, target);
         return ValueTask.CompletedTask;
     }
 

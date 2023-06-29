@@ -13,4 +13,5 @@ namespace VDStudios.MagicEngine;
 /// <param name="TargetIndex">Represents the index of <paramref name="Target"/></param>
 /// <param name="TargetCount">The amount of targets this operation will be rendered to</param>
 /// <param name="Target">The framebuffer being targeted</param>
-public readonly record struct FramebufferTargetInfo(int TargetIndex, int TargetCount, Framebuffer Target);
+/// <param name="Parameters">The parameters that are to be used in the operation</param>
+public readonly record struct FramebufferTargetInfo(int TargetIndex, int TargetCount, Framebuffer Target, DrawParameters Parameters);

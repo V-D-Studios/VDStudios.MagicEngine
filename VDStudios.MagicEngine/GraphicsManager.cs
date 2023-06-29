@@ -118,7 +118,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <summary>
     /// Represents the <see cref="ResourceLayout"/> that describes the usage of a <see cref="DrawTransformation"/>
     /// </summary>
-    public ResourceLayout DrawTransformationLayout { get; private set; }
+    public ResourceLayout DrawParametersLayout { get; private set; }
 
     internal ResourceLayout DrawOpTransLayout { get; private set; }
 
@@ -807,7 +807,7 @@ public class GraphicsManager : GameObject, IDisposable
 
         int targetcount;
         IRenderTarget[] activeTargets = Array.Empty<IRenderTarget>();
-        Framebuffer[] activeTargetBuffers = Array.Empty<Framebuffer>();
+        RenderTargetState[] activeTargetBuffers = Array.Empty<RenderTargetState>();
 
         RegisterSharedDrawResource(DrawParameters);
 
@@ -861,14 +861,15 @@ public class GraphicsManager : GameObject, IDisposable
                         if (activeTargets.Length < RenderTargets.Count)
                         {
                             activeTargets = new IRenderTarget[int.Max(RenderTargets.Count, activeTargets.Length * 2)];
-                            activeTargetBuffers = new Framebuffer[int.Max(RenderTargets.Count, activeTargetBuffers.Length * 2)];
+                            activeTargetBuffers = new RenderTargetState[int.Max(RenderTargets.Count, activeTargetBuffers.Length * 2)];
                         }
 
                         targetcount = 0;
                         foreach (var target in RenderTargets)
                         {
                             activeTargets[targetcount] = target;
-                            activeTargetBuffers[targetcount++] = target.GetTarget(gd);
+                            target.GetTarget(gd, out var tb, out var tp);
+                            activeTargetBuffers[targetcount++] = new(target, tb, tp);
                         }
 
                         #endregion
@@ -989,7 +990,7 @@ public class GraphicsManager : GameObject, IDisposable
                                 else
                                     continue;
 
-                                activeTargets[tari].CopyToScreen(managercl, activeTargetBuffers[tari], gd);
+                                activeTargets[tari].CopyToScreen(managercl, activeTargetBuffers[tari].ActiveBuffer, gd);
                             }
 
                             if (clbegun)
@@ -1136,7 +1137,7 @@ public class GraphicsManager : GameObject, IDisposable
             new ResourceLayoutElementDescription("Transform", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment)
         );
 
-        DrawTransformationLayout = factory.CreateResourceLayout(ref dTransDesc);
+        DrawParametersLayout = factory.CreateResourceLayout(ref dTransDesc);
         DrawOpTransLayout = factory.CreateResourceLayout(ref dotransl);
 
         Window_SizeChanged(window, Game.TotalTime, window.Size);

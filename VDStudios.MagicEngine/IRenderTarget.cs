@@ -21,8 +21,9 @@ public interface IRenderTarget
     /// Obtains the <see cref="Framebuffer"/> that will be used to render into this <see cref="IRenderTarget"/>
     /// </summary>
     /// <param name="device">The device managed by <see cref="Owner"/></param>
-    /// <returns></returns>
-    public Framebuffer GetTarget(GraphicsDevice device);
+    /// <param name="targetBuffer">The resulting Framebuffer that is to be targeted</param>
+    /// <param name="targetParameters">The draw parameters to be used</param>
+    public void GetTarget(GraphicsDevice device, out Framebuffer targetBuffer, out DrawParameters targetParameters);
 
     /// <summary>
     /// Copies the previously obtained <see cref="Framebuffer"/> from this <see cref="IRenderTarget"/> into the screen using <see cref="GraphicsDevice.SwapchainFramebuffer"/> through <paramref name="device"/>
