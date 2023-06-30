@@ -865,7 +865,7 @@ public class GraphicsManager : GameObject, IDisposable
                         foreach (var target in RenderTargets)
                         {
                             activeTargets[targetcount] = target;
-                            target.GetTarget(gd, out var tb, out var tp);
+                            target.GetTarget(gd, delta, out var tb, out var tp);
                             activeTargetBuffers[targetcount++] = new(target, tb, tp);
                         }
 
