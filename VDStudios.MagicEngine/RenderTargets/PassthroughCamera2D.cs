@@ -28,7 +28,6 @@ public class PassthroughCamera2D : Camera2D
         UpdateProjection(delta);
         targetBuffer = device.SwapchainFramebuffer;
         targetParameters = drawParameters;
-        targetParameters.Transformation = new DrawTransformation(Owner.WindowView, Matrix4x4.Identity);
     }
 
     /// <inheritdoc/>

@@ -20,6 +20,16 @@ public abstract class Camera2D : IRenderTarget
     /// <inheritdoc/>
     public GraphicsManager Owner { get; }
 
+    /// <inheritdoc/>
+    public Camera2D(GraphicsManager owner, IInterpolator? interpolator)
+    {
+        Owner = owner ?? throw new ArgumentNullException(nameof(owner));
+        drawParameters = new();
+        Owner.RegisterSharedDrawResource(drawParameters);
+        drawParameters.Transformation = new(Matrix4x4.Identity, Matrix4x4.Identity);
+        Interpolator = interpolator;
+    }
+
     /// <summary>
     /// An <see cref="IInterpolator"/> object that interpolates the projection between its current state and its destined state
     /// </summary>
@@ -157,6 +167,7 @@ public abstract class Camera2D : IRenderTarget
                 prj = interpolator.Interpolate(drawParameters.Transformation.Projection, prj, (float)delta.TotalMilliseconds);
             drawParameters.Transformation = drawParameters.Transformation with { Projection = prj };
             projectionUpToDate = true;
+            drawParameters.Transformation = new(Owner.WindowView, prj);
         }
     }
 
