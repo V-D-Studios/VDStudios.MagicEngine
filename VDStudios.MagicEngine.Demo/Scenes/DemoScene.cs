@@ -13,10 +13,23 @@ public sealed class DemoScene : Scene
     {
     }
 
+    private PassthroughCamera2D Camera;
+
     protected override async ValueTask ConfigureScene()
     {
         Log.Information("Configuring DemoScene");
-        Game.MainGraphicsManager.RenderTargets.Add(new PassthroughCamera2D(Game.MainGraphicsManager));
+
+        Log.Debug("Configuring Camera");
+
+        Log.Verbose("Creating camera");
+        Camera = new PassthroughCamera2D(Game.MainGraphicsManager, LinearInterpolator.Interpolator);
+        Camera.CameraSpeedMultiplier = 2;
+
+        Log.Verbose("Clearing cameras from MainGraphicsManager");
+        Game.MainGraphicsManager.RenderTargets.Clear();
+
+        Log.Verbose("Attaching camera to MainGraphicsManager");
+        Game.MainGraphicsManager.RenderTargets.Add(Camera);
 
         Log.Debug("Attaching ColorBackgroundNode");
 
@@ -70,11 +83,21 @@ public sealed class DemoScene : Scene
         new(.5f,-.5f),new(1,-1),new(0,0),
         new(-.5f,-.5f),new(-1,-1)
     };
+
+    private readonly float[] CamRots = new float[]
+    {
+        0, .1f, .2f, .5f, .7f, 1f,
+        -.1f, -.2f, -.5f, -.7f, -1f,
+    };
+
     protected override ValueTask<bool> Updating(TimeSpan delta)
     {
         if (next is true)
         {
-            //camera.Position = CamPos[ind = (ind + 1) % CamPos.Length];
+            //Camera.Position = CamPos[ind = (ind + 1) % CamPos.Length];
+
+            Camera.Rotation = CamRots[ind = (ind + 1) % CamRots.Length];
+
             next = false;
             GameDeferredCallSchedule.ScheduleDeferredCall((ex, delta) => next = true, TimeSpan.FromSeconds(1));
         }
