@@ -849,7 +849,7 @@ public class GraphicsManager : GameObject, IDisposable
                     {
                         #region Render Targets
 
-                        if (RenderTargets.Count > 0)
+                        if (RenderTargets.Count <= 0)
                         {
                             InternalLog?.Warning("This GraphicsManager has no render targets");
                             continue;
