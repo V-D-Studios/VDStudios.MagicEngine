@@ -47,9 +47,9 @@ public class DrawParameters : SharedDrawResource
     /// The <see cref="ResourceLayout"/> that describes the resources all <see cref="DrawParameters"/> instances tied to <see cref="Manager"/>
     /// </summary>
     /// <remarks>
-    /// Returns <see cref="GraphicsManager.DrawTransformationLayout"/>
+    /// Returns <see cref="GraphicsManager.DrawParametersLayout"/>
     /// </remarks>
-    public ResourceLayout ResourceLayout => Manager!.DrawTransformationLayout;
+    public ResourceLayout ResourceLayout => Manager!.DrawParametersLayout;
 
     /// <summary>
     /// The <see cref="ResourceSet"/> that represents the <see cref="TransformationBuffer"/>

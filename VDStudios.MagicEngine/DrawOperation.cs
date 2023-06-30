@@ -1,4 +1,5 @@
 ﻿using SDL2.Bindings;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -189,34 +190,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     public uint? CommandListGroupAffinity { get; init; }
     internal int _clga => (int)(CommandListGroupAffinity ?? 0);
 
-    /// <summary>
-    /// Represents the current reference to <see cref="DrawParameters"/> this <see cref="DrawOperation"/> has, which has been cascaded through the nodes that own this operation
-    /// </summary>
-    public DrawParameters? ReferenceParameters
-    {
-        get => RefParams_field;
-        internal set
-        {
-            if (ReferenceEquals(RefParams_field, value)) return;
-            var prev = RefParams_field;
-            RefParams_field = value;
-            ReferenceParametersChanging(prev, value);
-        }
-    }
-    private DrawParameters? RefParams_field;
-
-    /// <summary>
-    /// This method is called automatically when <see cref="ReferenceParameters"/> changes
-    /// </summary>
-    /// <param name="previous">The previous object that <see cref="ReferenceParameters"/> referenced</param>
-    /// <param name="replacement">The object that <see cref="ReferenceParameters"/> now references</param>
-    protected virtual void ReferenceParametersChanging(DrawParameters? previous, DrawParameters? replacement) { }
-
-    /// <summary>
-    /// Returns either <see cref="ReferenceParameters"/> or <see cref="GraphicsManager.DrawParameters"/> if the former is <c>null</c>
-    /// </summary>
-    public DrawParameters Parameters => ReferenceParameters ?? Manager!.DrawParameters;
-
+    
     /// <summary>
     /// The owner <see cref="DrawOperationManager"/> of this <see cref="DrawOperation"/>
     /// </summary>
@@ -292,15 +266,16 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     private bool pendingGpuUpdate = true;
 
     /// <summary>
-    /// Flags this <see cref="DrawOperation"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer)"/> call
+    /// Flags this <see cref="DrawOperation"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, FramebufferTargetInfo)"/> call
     /// </summary>
     /// <remarks>
     /// Multiple calls to this method will not result in <see cref="UpdateGPUState(GraphicsDevice, CommandList)"/> being called multiple times
     /// </remarks>
     protected void NotifyPendingGPUUpdate() => pendingGpuUpdate = true;
 
-    internal async ValueTask InternalDraw(TimeSpan delta, CommandList cl)
+    internal async ValueTask InternalDraw(TimeSpan delta, CommandList cl, FramebufferTargetInfo target)
     {
+        Debug.Assert(target.Target is not null, "The target info does not contain a valid Framebuffer");
         ThrowIfDisposed();
         sync.Wait();
         try
@@ -312,7 +287,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
                 pendingGpuUpdate = false;
                 await UpdateGPUState(device, cl);
             }
-            await Draw(delta, cl, device, device.SwapchainFramebuffer).ConfigureAwait(false);
+            await Draw(delta, cl, device, target).ConfigureAwait(false);
         }
         finally
         {
@@ -355,7 +330,6 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
         device.UpdateBuffer(TransformationBuffer, VertexTransformationOffset, ref vtrans);
         device.UpdateBuffer(TransformationBuffer, ColorTransformationOffset, ref ctrans);
         builder.InsertLast(TransformationSet, TransformationLayout, out int _, "DrawOperation Base Transformation");
-        builder.InsertLast(Parameters.ResourceSet, Parameters.ResourceLayout, out int _, "Parameters");
 
         return ValueTask.CompletedTask;
     }
@@ -376,19 +350,19 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// The method that will be used to draw the component
     /// </summary>
     /// <remarks>
-    /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock! Remember that <paramref name="commandList"/> is *NOT* thread-safe, but it is used only one <see cref="DrawOperation"/> at a time, managed externally; and <see cref="GraphicsManager"/> will not use it until this method returns.
+    /// Calling <see cref="GameObject.ThrowIfDisposed()"/> or <see cref="GameObject.Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock! Remember that <paramref name="commandList"/> is *NOT* thread-safe, but it is used only one <see cref="DrawOperation"/> at a time, managed externally; and <see cref="GraphicsManager"/> will not use it until this method returns.
     /// </remarks>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
     /// <param name="commandList">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
-    /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
-    protected abstract ValueTask Draw(TimeSpan delta, CommandList commandList, GraphicsDevice device, Framebuffer mainBuffer);
+    /// <param name="target">Information about the <see cref="Framebuffer"/> that this specific call should be rendered to. Use <see cref="FramebufferTargetInfo.Target"/> with to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"</param>
+    protected abstract ValueTask Draw(TimeSpan delta, CommandList commandList, GraphicsDevice device, FramebufferTargetInfo target);
 
     /// <summary>
-    /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, Framebuffer)"/>
+    /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, FramebufferTargetInfo)"/>
     /// </summary>
     /// <remarks>
-    /// Calling <see cref="ThrowIfDisposed()"/> or <see cref="Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock!
+    /// Calling <see cref="GameObject.ThrowIfDisposed()"/> or <see cref="GameObject.Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock!
     /// </remarks>
     /// <param name="commandList">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
     /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
