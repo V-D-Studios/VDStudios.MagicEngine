@@ -4,47 +4,40 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine.Internal;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.RenderTargets;
 
 /// <summary>
-/// Represents a simple 2D Camera that passes the main <see cref="Framebuffer"/> from its <see cref="Owner"/> 
+/// Represents a simple 2D Camera that passes the main <see cref="Framebuffer"/> from its <see cref="Camera2D.Owner"/> 
 /// </summary>
-public class PassthroughCamera2D : IRenderTarget
+public class PassthroughCamera2D : Camera2D
 {
-    private readonly DrawParameters drawParameters;
-
-    /// <inheritdoc/>
-    public GraphicsManager Owner { get; }
-
     /// <summary>
     /// Instances a new <see cref="PassthroughCamera2D"/> object
     /// </summary>
     /// <param name="owner">The <see cref="GraphicsManager"/> that owns this camera</param>
+    /// <param name="interpolator">An <see cref="IInterpolator"/> object that interpolates the projection between its current state and its destined state</param>
     /// <exception cref="ArgumentNullException"></exception>
-    public PassthroughCamera2D(GraphicsManager owner)
-    {
-        Owner = owner ?? throw new ArgumentNullException(nameof(owner));
-        drawParameters = new();
-        Owner.RegisterSharedDrawResource(drawParameters);
-    }
+    public PassthroughCamera2D(GraphicsManager owner, IInterpolator? interpolator) : base(owner, interpolator) { }
 
     /// <inheritdoc/>
-    public void GetTarget(GraphicsDevice device, out Framebuffer targetBuffer, out DrawParameters targetParameters)
+    public override void GetTarget(GraphicsDevice device, TimeSpan delta, out Framebuffer targetBuffer, out DrawParameters targetParameters)
     {
+        UpdateProjection(delta);
         targetBuffer = device.SwapchainFramebuffer;
         targetParameters = drawParameters;
         targetParameters.Transformation = new DrawTransformation(Owner.WindowView, Matrix4x4.Identity);
     }
 
     /// <inheritdoc/>
-    public void CopyToScreen(CommandList managerCommandList, Framebuffer framebuffer, GraphicsDevice device) { }
+    public override void CopyToScreen(CommandList managerCommandList, Framebuffer framebuffer, GraphicsDevice device) { }
 
     /// <inheritdoc/>
-    public bool QueryCopyToScreenRequired(GraphicsDevice device)
+    public override bool QueryCopyToScreenRequired(GraphicsDevice device)
         => false;
 
     /// <inheritdoc/>
-    public void PrepareForDraw(CommandList managerCommandList) { }
+    public override void PrepareForDraw(CommandList managerCommandList) { }
 }
