@@ -20,7 +20,7 @@ public class PassthroughCamera2D : Camera2D
     /// <param name="owner">The <see cref="GraphicsManager"/> that owns this camera</param>
     /// <param name="interpolator">An <see cref="IInterpolator"/> object that interpolates the projection between its current state and its destined state</param>
     /// <exception cref="ArgumentNullException"></exception>
-    public PassthroughCamera2D(GraphicsManager owner, IInterpolator? interpolator) : base(owner, interpolator) { }
+    public PassthroughCamera2D(GraphicsManager owner, IInterpolator? interpolator = null) : base(owner, interpolator) { }
 
     /// <inheritdoc/>
     public override void GetTarget(GraphicsDevice device, TimeSpan delta, out Framebuffer targetBuffer, out DrawParameters targetParameters)
