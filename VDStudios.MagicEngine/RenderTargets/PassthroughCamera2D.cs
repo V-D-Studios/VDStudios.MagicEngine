@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using Veldrid;
@@ -34,6 +35,7 @@ public class PassthroughCamera2D : IRenderTarget
     {
         targetBuffer = device.SwapchainFramebuffer;
         targetParameters = drawParameters;
+        targetParameters.Transformation = new DrawTransformation(Owner.WindowView, Matrix4x4.Identity);
     }
 
     /// <inheritdoc/>
