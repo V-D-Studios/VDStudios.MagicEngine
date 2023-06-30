@@ -43,44 +43,18 @@ public abstract class Camera2D : IRenderTarget
     /// </summary>
     public float Rotation
     {
-        get => TotalRotation.X;
-        set => TotalRotation = TotalRotation with { X = value };
-    }
-
-    /// <summary>
-    /// The skew of the camera along the X axis
-    /// </summary>
-    public float SkewX
-    {
-        get => TotalRotation.Z;
-        set => TotalRotation = TotalRotation with { Z = value };
-    }
-
-    /// <summary>
-    /// The skew of the camera along the Y axis
-    /// </summary>
-    public float SkewY 
-    {
-        get => TotalRotation.Y;
-        set => TotalRotation = TotalRotation with { Y = value };
-    }
-
-    /// <summary>
-    /// The total rotation of the camera, includes: <see cref="Rotation"/>, <see cref="SkewX"/> and <see cref="SkewY"/>
-    /// </summary>
-    public Vector3 TotalRotation
-    {
-        get => _totalRotation;
+        get => _rotation;
         set
         {
-            if (_totalRotation != value)
+            if (_rotation != value)
             {
-                _totalRotation = value;
+                _rotation = value;
                 InvalidateProjection();
             }
         }
     }
-    private Vector3 _totalRotation;
+    private float _rotation;
+#warning Does weird things with scale?
 
     /// <summary>
     /// The current zoom level of the camera, or scale
@@ -100,7 +74,12 @@ public abstract class Camera2D : IRenderTarget
             }
         }
     }
-    private float _zoom;
+    private float _zoom = 1;
+
+    /// <summary>
+    /// A multiplier for the speed at which the camera transitions
+    /// </summary>
+    public float CameraSpeedMultiplier { get; set; } = 1;
 
     /// <summary>
     /// The current position of the camera relative to 0,0
@@ -123,15 +102,6 @@ public abstract class Camera2D : IRenderTarget
     private Vector2 _pos;
 
     /// <inheritdoc/>
-    public Camera2D(GraphicsManager owner, IInterpolator? interpolator)
-    {
-        Owner = owner ?? throw new ArgumentNullException(nameof(owner));
-        drawParameters = new();
-        Owner.RegisterSharedDrawResource(drawParameters);
-        Interpolator = interpolator;
-    }
-
-    /// <inheritdoc/>
     public abstract void GetTarget(GraphicsDevice device, TimeSpan delta, out Framebuffer targetBuffer, out DrawParameters targetParameters);
 
     /// <inheritdoc/>
@@ -148,9 +118,9 @@ public abstract class Camera2D : IRenderTarget
     /// </summary>
     protected virtual Matrix4x4 CreateProjection()
     {
-        return Matrix4x4.CreateRotationX(Rotation) *
-                    Matrix4x4.CreateTranslation(Position.X, Position.Y, 0) *
-                    Matrix4x4.CreateScale(Zoom);
+        return Matrix4x4.CreateRotationZ(Rotation) *
+               Matrix4x4.CreateTranslation(Position.X, Position.Y, 0) *
+               Matrix4x4.CreateScale(Zoom);
     }
 
     /// <summary>
@@ -163,10 +133,15 @@ public abstract class Camera2D : IRenderTarget
         if (projectionUpToDate is false)
         {
             var prj = CreateProjection();
-            if (Interpolator is IInterpolator interpolator) 
-                prj = interpolator.Interpolate(drawParameters.Transformation.Projection, prj, (float)delta.TotalMilliseconds);
-            drawParameters.Transformation = drawParameters.Transformation with { Projection = prj };
-            projectionUpToDate = true;
+            if (Interpolator is IInterpolator interpolator)
+            {
+                if (drawParameters.Transformation.Projection == prj)
+                    projectionUpToDate = true;
+                else
+                    prj = interpolator.Interpolate(drawParameters.Transformation.Projection, prj, (float)delta.TotalSeconds * CameraSpeedMultiplier);
+            }
+            else
+                projectionUpToDate = true;
             drawParameters.Transformation = new(Owner.WindowView, prj);
         }
     }
