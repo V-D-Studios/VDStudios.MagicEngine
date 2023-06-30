@@ -9,7 +9,6 @@ using Veldrid;
 using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.Internal;
-
 /// <summary>
 /// Provides a means of caching default resources for a specific <see cref="GraphicsManager"/>
 /// </summary>

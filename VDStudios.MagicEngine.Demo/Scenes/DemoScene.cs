@@ -3,6 +3,7 @@ using System.Numerics;
 using VDStudios.MagicEngine.Demo.GUI.Elements;
 using VDStudios.MagicEngine.Demo.Nodes;
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
+using VDStudios.MagicEngine.RenderTargets;
 
 namespace VDStudios.MagicEngine.Demo.Scenes;
 
@@ -15,6 +16,7 @@ public sealed class DemoScene : Scene
     protected override async ValueTask ConfigureScene()
     {
         Log.Information("Configuring DemoScene");
+        Game.MainGraphicsManager.RenderTargets.Add(new PassthroughCamera2D(Game.MainGraphicsManager));
 
         Log.Debug("Attaching ColorBackgroundNode");
 

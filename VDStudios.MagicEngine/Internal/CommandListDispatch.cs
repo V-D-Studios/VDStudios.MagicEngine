@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -15,6 +16,7 @@ namespace VDStudios.MagicEngine.Internal;
 internal class CommandListDispatch
 {
     private DrawOperation[] dops;
+    private ArraySegment<RenderTargetState>? Targets;
     private int DopCount = 0;
 
     private readonly CommandList cl;
@@ -38,6 +40,17 @@ internal class CommandListDispatch
 #endif
     }
 
+    /// <summary>
+    /// Sets the targets for the upcoming draw operations
+    /// </summary>
+    /// <param name="targets">The framebuffer targets the draw operation will be rendered to</param>
+    public void SetTargets(ArraySegment<RenderTargetState> targets)
+    {
+        Debug.Assert(targets.Count > 0, "no targets were passed to the CommandListDispatch");
+        Debug.Assert(targets.All(x => x.ActiveBuffer is not null && x.Target is not null), "some framebuffer targets are null");
+        Targets = targets;
+    }
+
     public void Add(DrawOperation dop)
     {
         if (DopCount + 1 >= dops.Length)
@@ -47,17 +60,22 @@ internal class CommandListDispatch
 
     private void WorkMethod(object? state)
     {
+        if (Targets is not ArraySegment<RenderTargetState> targets)
+            throw new InvalidOperationException("Cannot begin dispatching CommandLists without targets. Was SetTargets called this frame?");
+
         var l_dops = dops;
-        int taskCount = DopCount;
+        int taskCount = DopCount * targets.Count;
         var tasks = ArrayPool<ValueTask>.Shared.Rent(taskCount);
         try
         {
             cl.Begin();
-            int i = 0;
-            for (; i < DopCount && i < tasks.Length; i++)
-                tasks[i] = l_dops[i].InternalDraw(delta, cl).Preserve();
-            while (i-- > 0)
-                tasks[i].GetAwaiter().GetResult();
+
+            for (int i = 0; i < DopCount; i++)
+                for (int t = 0; t < targets.Count; t++)
+                    tasks[i] = l_dops[i].InternalDraw(delta, cl, new FramebufferTargetInfo(t, targets.Count, targets[t].ActiveBuffer, targets[i].Parameters)).Preserve();
+
+            for (int ti = 0; ti < taskCount; ti++)
+                tasks[ti].GetAwaiter().GetResult();
         }
         catch(Exception e)
         {
@@ -68,6 +86,7 @@ internal class CommandListDispatch
         {
             ArrayPool<ValueTask>.Shared.Return(tasks, true);
             cl.End();
+            Targets = null;
 #if !FORCE_GM_NOPARALLEL
             sem.Release();
 #endif

@@ -126,13 +126,7 @@ public class DrawOperationManager : GameObject
     #endregion
 
     #region Internal
-
-    internal void ProcessNewDrawData(DrawParameters parameters)
-    {
-        foreach (var dop in DrawOperations)
-            UpdateOperationDrawParameters(parameters, dop);
-    }
-
+    
     private void InternalAddDrawOperation(DrawOperation operation)
     {
         InternalLog?.Debug("Adding a new DrawOperation {objName}-{type}", operation.Name ?? "", operation.GetTypeName());
@@ -171,16 +165,6 @@ public class DrawOperationManager : GameObject
     #endregion
 
     #region Reaction Methods
-
-    /// <summary>
-    /// This method is called automatically when this <see cref="DrawOperationManager"/> is receiving new <see cref="DrawTransformation"/> for its <see cref="DrawOperation"/>s
-    /// </summary>
-    /// <param name="drawParameters">The parameters received</param>
-    /// <param name="operation">The operation to assign the parameters into</param>
-    protected virtual void UpdateOperationDrawParameters(DrawParameters drawParameters, DrawOperation operation)
-    {
-        operation.ReferenceParameters = drawParameters;
-    }
 
     /// <summary>
     /// This method is called automatically when a new <see cref="DrawOperation"/> is being added onto this <see cref="DrawOperationManager"/>
