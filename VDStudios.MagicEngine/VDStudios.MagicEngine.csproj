@@ -7,10 +7,6 @@
 	<GenerateDocumentationFile>True</GenerateDocumentationFile>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	<SignAssembly>False</SignAssembly>
-	<Title>Game Engine: Magic Engine</Title>
-	<Authors>Diego Garcia</Authors>
-	<Company>VDStudios</Company>
-	<Copyright>MIT</Copyright>
 	<RepositoryType>git</RepositoryType>
 	<RepositoryUrl>https://github.com/V-D-Studios/VDStudios.MagicEngine</RepositoryUrl>
 	<PackageTags>game-development; game; gaming; game-dev; gamedev; sdl2; sdl; veldrid; graphics; engine; graphics-engine; rendering; renderer</PackageTags>
@@ -18,16 +14,27 @@
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 	<ErrorReport>prompt</ErrorReport>
+
+	<Title>Game Engine: Magic Engine</Title>
+	<Authors>Diego Garcia</Authors>
+	<Company>V%26D Studios</Company>
+	<Copyright>V%26D Studios ️©️ 2023</Copyright>
+	<Version>$(AssemblyVersion)</Version>
+	<FileVersion>$(AssemblyVersion)</FileVersion>
+	<AssemblyVersion>1.0.*</AssemblyVersion>
+	  
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 	<DebugType>embedded</DebugType>
 	<DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
+	<Deterministic>False</Deterministic>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
 	<DebugType>embedded</DebugType>
 	<DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
+	<Deterministic>False</Deterministic>
   </PropertyGroup>
 
 	<!-- This copies all .dll files from the lib folder to the project output root folder -->
