@@ -37,7 +37,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Utilities", "Utilities", "{
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.Utilities.Grids", "VDStudios.Utilities.Grids\VDStudios.Utilities.Grids.csproj", "{1C49FECD-CBF5-4F6A-B797-832C4CF61A50}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VDStudios.MagicEngine.Extensions", "VDStudios.MagicEngine.Extensions\VDStudios.MagicEngine.Extensions.csproj", "{DB72A474-D4AB-478B-97B0-7AD69891D300}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.MagicEngine.Extensions", "VDStudios.MagicEngine.Extensions\VDStudios.MagicEngine.Extensions.csproj", "{DB72A474-D4AB-478B-97B0-7AD69891D300}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VDStudios.MagicEngine.Tests", "VDStudios.MagicEngine.Tests\VDStudios.MagicEngine.Tests.csproj", "{D57699F4-52A6-418D-8A1F-4D6D416061CF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -101,6 +103,10 @@ Global
 		{DB72A474-D4AB-478B-97B0-7AD69891D300}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DB72A474-D4AB-478B-97B0-7AD69891D300}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DB72A474-D4AB-478B-97B0-7AD69891D300}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D57699F4-52A6-418D-8A1F-4D6D416061CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D57699F4-52A6-418D-8A1F-4D6D416061CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D57699F4-52A6-418D-8A1F-4D6D416061CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D57699F4-52A6-418D-8A1F-4D6D416061CF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
