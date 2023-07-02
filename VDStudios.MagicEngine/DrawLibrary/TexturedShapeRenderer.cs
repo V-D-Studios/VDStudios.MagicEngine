@@ -10,7 +10,7 @@ namespace VDStudios.MagicEngine.DrawLibrary;
 /// <summary>
 /// Represents a vertex for a Textured Shape
 /// </summary>
-public struct TextureVertex<TVertex> where TVertex : unmanaged
+public readonly struct TextureVertex<TVertex> where TVertex : unmanaged
 {
     /// <summary>
     /// The position of the actual vertex in relation to the Texture
