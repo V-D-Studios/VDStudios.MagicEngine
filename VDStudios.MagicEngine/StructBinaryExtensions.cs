@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using SharpGen.Runtime;
 using VDStudios.MagicEngine.DrawLibrary;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace VDStudios.MagicEngine;
 
@@ -17,6 +21,63 @@ namespace VDStudios.MagicEngine;
 public static class StructBytes
 {
     #region Generic
+
+    /// <summary>
+    /// Reads the bytes that make up every element of <paramref name="array"/> and writes them into <paramref name="output"/>
+    /// </summary>
+    /// <typeparam name="T">The <b><see langword="unmanaged"/></b> type of the elements in <paramref name="array"/></typeparam>
+    /// <param name="array">The array containing the objects whose bytes will be read</param>
+    /// <param name="output">The stream into which the bytes will be written</param>
+    public static unsafe void WriteBytesInto<T>(T[] array, Stream output) where T : unmanaged
+    {
+        var handle = GCHandle.Alloc(array, GCHandleType.Pinned);
+        try
+        {
+            T* dptr = (T*)Unsafe.AsPointer(ref array[0]);
+            Span<byte> dbytes = new(dptr, sizeof(T) * array.Length);
+            output.Write(dbytes);
+        }
+        finally
+        {
+            handle.Free();
+        }
+    }
+
+    /// <summary>
+    /// Reads the bytes that make up every element of <paramref name="array"/> into <paramref name="output"/>
+    /// </summary>
+    /// <typeparam name="T">The <b><see langword="unmanaged"/></b> type of the elements in <paramref name="array"/></typeparam>
+    /// <param name="array">The array containing the objects whose bytes will be read</param>
+    /// <param name="output">The span into which the output bytes will be written</param>
+    /// <returns>The amount of bytes written into <paramref name="output"/></returns>
+    public static unsafe int TryWriteBytesInto<T>(T[] array, Span<byte> output) where T : unmanaged
+    {
+        var handle = GCHandle.Alloc(array, GCHandleType.Pinned);
+        try
+        {
+            T* dptr = (T*)Unsafe.AsPointer(ref array[0]);
+            int i = 0;
+            if (sizeof(T) % sizeof(nint) == 0 && output.Length % sizeof(nint) == 0)
+            {
+                Span<nint> dbytes = new(dptr, (sizeof(T) / sizeof(nint)) * array.Length);
+                Span<nint> outp = new(Unsafe.AsPointer(ref output[0]), output.Length / sizeof(nint));
+                for (; i < int.Min(output.Length, dbytes.Length); i++)
+                    outp[i] = dbytes[i];
+                i *= sizeof(nint);
+            }
+            else
+            {
+                Span<byte> dbytes = new(dptr, sizeof(T) * array.Length);
+                for (; i < int.Min(output.Length, dbytes.Length); i++)
+                    output[i] = dbytes[i];
+            }
+            return i;
+        }
+        finally
+        {
+            handle.Free();
+        }
+    }
 
     /// <summary>
     /// Reads the bytes that make up <paramref name="obj"/> and writes them into <paramref name="output"/>
@@ -44,9 +105,21 @@ public static class StructBytes
     {
         fixed (T* dptr = &obj)
         {
-            Span<byte> dbytes = new(dptr, sizeof(T));
             int i = 0;
-            for (; i < int.Min(output.Length, dbytes.Length); i++) output[i] = dbytes[i];
+            if (sizeof(T) % sizeof(nint) == 0 && output.Length % sizeof(nint) == 0)
+            {
+                Span<nint> dbytes = new(dptr, sizeof(T) / sizeof(nint));
+                Span<nint> outp = new(Unsafe.AsPointer(ref output[0]), output.Length / sizeof(nint));
+                for (; i < int.Min(output.Length, dbytes.Length); i++)
+                    outp[i] = dbytes[i];
+                i *= sizeof(nint);
+            }
+            else
+            {
+                Span<byte> dbytes = new(dptr, sizeof(T));
+                for (; i < int.Min(output.Length, dbytes.Length); i++)
+                    output[i] = dbytes[i];
+            }
             return i;
         }
     }
@@ -68,8 +141,61 @@ public static class StructBytes
 
         fixed (T* dptr = &result)
         {
-            Span<byte> dbytes = new(dptr, sizeof(T));
-            for (int i = 0; i < sizeof(T); i++) dbytes[i] = input[i];
+            if (sizeof(T) % sizeof(nint) == 0 && input.Length % sizeof(nint) == 0)
+            {
+                Span<nint> dbytes = new(dptr, sizeof(T) / sizeof(nint));
+                Span<nint> inp = new(Unsafe.AsPointer(ref Unsafe.AsRef(input[0])), input.Length / sizeof(nint));
+                for (int i = 0; i < dbytes.Length; i++)
+                    dbytes[i] = inp[i];
+            }
+            else
+            {
+                Span<byte> dbytes = new(dptr, sizeof(T));
+                for (int i = 0; i < int.Min(input.Length, dbytes.Length); i++)
+                    dbytes[i] = input[i];
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to read the bytes in <paramref name="input"/> into new instances of <typeparamref name="T"/>
+    /// </summary>
+    /// <typeparam name="T">The <b><see langword="unmanaged"/></b> type of the elements in<paramref name="output"/></typeparam>
+    /// <param name="input">The span from which the bytes will be read to be written into the new instance of <typeparamref name="T"/></param>
+    /// <param name="output">The array containing the resulting elements</param>
+    /// <returns><see langword="true"/> if the operation is succesful, i.e. <paramref name="input"/> has exactly enough bytes to construct one or more objects of type <typeparamref name="T"/></returns>
+    public static unsafe bool TryReadBytesFrom<T>(ReadOnlySpan<byte> input, T[] output) where T : unmanaged
+        => TryReadBytesFrom(input, output.AsSpan());
+
+    /// <summary>
+    /// Attempts to read the bytes in <paramref name="input"/> into new instances of <typeparamref name="T"/>
+    /// </summary>
+    /// <typeparam name="T">The <b><see langword="unmanaged"/></b> type of the elements in<paramref name="output"/></typeparam>
+    /// <param name="input">The span from which the bytes will be read to be written into the new instance of <typeparamref name="T"/></param>
+    /// <param name="output">The span containing the resulting elements</param>
+    /// <returns><see langword="true"/> if the operation is succesful, i.e. <paramref name="input"/> has exactly enough bytes to construct one or more objects of type <typeparamref name="T"/></returns>
+    public static unsafe bool TryReadBytesFrom<T>(ReadOnlySpan<byte> input, Span<T> output) where T : unmanaged
+    {
+        if (input.Length % sizeof(T) != 0)
+            return false;
+
+        fixed (T* dptr = &output[0])
+        {
+            if (sizeof(T) % sizeof(nint) == 0 && input.Length % sizeof(nint) == 0)
+            {
+                Span<nint> dbytes = new(dptr, (sizeof(T) / sizeof(nint)) * output.Length);
+                Span<nint> inp = new(Unsafe.AsPointer(ref Unsafe.AsRef(input[0])), input.Length / sizeof(nint));
+                for (int i = 0; i < dbytes.Length; i++)
+                    dbytes[i] = inp[i];
+            }
+            else
+            {
+                Span<byte> dbytes = new(dptr, sizeof(T) * output.Length);
+                for (int i = 0; i < int.Min(input.Length, dbytes.Length); i++)
+                    dbytes[i] = input[i];
+            }
         }
 
         return true;
@@ -88,33 +214,6 @@ public static class StructBytes
         input.Read(dbytes);
         return result;
     }
-
-    #endregion
-
-    #region VarisizeGlyphAtlasTextRenderer.GlyphDefinition
-
-    /// <summary>
-    /// Reads the bytes that make up <paramref name="definition"/> and writes them into <paramref name="output"/>
-    /// </summary>
-    /// <remarks>
-    /// Use <see cref="ReadBytesFrom{T}(Stream)"/> to read the information back into an object
-    /// </remarks>
-    /// <param name="definition">The object whose bytes will be read</param>
-    /// <param name="output">The stream into which the bytes will be written</param>
-    public static unsafe void WriteBytesInto(in this VarisizeGlyphAtlasTextRenderer.GlyphDefinition definition, Stream output)
-        => WriteBytesInto<VarisizeGlyphAtlasTextRenderer.GlyphDefinition>(definition, output);
-
-    /// <summary>
-    /// Reads the bytes that make up <paramref name="definition"/> and writes them into <paramref name="output"/>
-    /// </summary>
-    /// <remarks>
-    /// Use <see cref="TryReadBytesFrom{T}(ReadOnlySpan{byte}, out T)"/> to read the information back into an object
-    /// </remarks>
-    /// <param name="definition">The object whose bytes will be read</param>
-    /// <param name="output">The span into which the output bytes will be written</param>
-    /// <returns>The amount of bytes written into <paramref name="output"/></returns>
-    public static unsafe int TryWriteBytesInto(in this VarisizeGlyphAtlasTextRenderer.GlyphDefinition definition, Span<byte> output)
-        => TryWriteBytesInto<VarisizeGlyphAtlasTextRenderer.GlyphDefinition>(definition, output);
 
     #endregion
 }

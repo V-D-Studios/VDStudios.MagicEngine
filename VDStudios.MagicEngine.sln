@@ -39,11 +39,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.Utilities.Grids",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.MagicEngine.Extensions", "VDStudios.MagicEngine.Extensions\VDStudios.MagicEngine.Extensions.csproj", "{DB72A474-D4AB-478B-97B0-7AD69891D300}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VDStudios.MagicEngine.Tests", "VDStudios.MagicEngine.Tests\VDStudios.MagicEngine.Tests.csproj", "{D57699F4-52A6-418D-8A1F-4D6D416061CF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.MagicEngine.Tests", "VDStudios.MagicEngine.Tests\VDStudios.MagicEngine.Tests.csproj", "{D57699F4-52A6-418D-8A1F-4D6D416061CF}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{509D0DC1-9D10-4867-A343-DBF7511335DC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VDStudios.MagicEngine.ResourceTool.GUI", "VDStudios.MagicEngine.ResourceTool.GUI\VDStudios.MagicEngine.ResourceTool.GUI.csproj", "{FBC6A05E-56FF-4403-BAC8-67B95270743A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.MagicEngine.ResourceTool.GUI", "VDStudios.MagicEngine.ResourceTool.GUI\VDStudios.MagicEngine.ResourceTool.GUI.csproj", "{FBC6A05E-56FF-4403-BAC8-67B95270743A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -120,6 +120,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{84EC3D01-2881-402F-BB7E-DA77745F58D7} = {509D0DC1-9D10-4867-A343-DBF7511335DC}
 		{17B474C4-2A6D-429A-841B-41B7B21E4CF6} = {156563DF-0E13-497A-B6DB-F38B0939C1F7}
 		{156563DF-0E13-497A-B6DB-F38B0939C1F7} = {DB5DB420-84D9-4657-AEAB-8C4E161833DC}
 		{EF31FF8C-78C7-496E-85BD-1D677A0CEDA2} = {156563DF-0E13-497A-B6DB-F38B0939C1F7}

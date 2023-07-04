@@ -31,7 +31,7 @@ public class GlyphDefinitionTests
         using (var output = File.Open(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "out.glyphs"), FileMode.Create))
         {
             for (var i = 0; i < glyphs.Length; i++)
-                glyphs[i].WriteBytesInto(output);
+                StructBytes.WriteBytesInto(glyphs[i], output);
         }
 
         VarisizeGlyphAtlasTextRenderer.GlyphDefinition[] otherglyphs = new VarisizeGlyphAtlasTextRenderer.GlyphDefinition[300];
@@ -46,6 +46,32 @@ public class GlyphDefinitionTests
     }
 
     private unsafe readonly int GlyphDefSize = sizeof(VarisizeGlyphAtlasTextRenderer.GlyphDefinition);
+
+    [TestMethod]
+    public unsafe void ReadWriteFromArray()
+    {
+        VarisizeGlyphAtlasTextRenderer.GlyphDefinition[] glyphs = new VarisizeGlyphAtlasTextRenderer.GlyphDefinition[300];
+        VarisizeGlyphAtlasTextRenderer.GlyphDefinition[] writebufferarray = new VarisizeGlyphAtlasTextRenderer.GlyphDefinition[300];
+        VarisizeGlyphAtlasTextRenderer.GlyphDefinition[] readbufferarray = new VarisizeGlyphAtlasTextRenderer.GlyphDefinition[300];
+
+        fixed (VarisizeGlyphAtlasTextRenderer.GlyphDefinition* gstart = &glyphs[0])
+        fixed (VarisizeGlyphAtlasTextRenderer.GlyphDefinition* wbufferstart = &writebufferarray[0])
+        {
+            var dbytes = new Span<byte>(gstart, GlyphDefSize * glyphs.Length);
+            var writebuffer = new Span<byte>(wbufferstart, GlyphDefSize * writebufferarray.Length);
+
+            Random.Shared.NextBytes(dbytes);
+
+            StructBytes.TryWriteBytesInto(glyphs, writebuffer);
+            StructBytes.TryReadBytesFrom(writebuffer, readbufferarray);
+        }
+
+        for (int i = 0; i < glyphs.Length; i++)
+            Debug.Assert(glyphs[i] == writebufferarray[i], $"Glyph mismatch between glyphs and writebuffer at index {i}; {glyphs[i]} != {writebufferarray[i]}");
+
+        for (int i = 0; i < glyphs.Length; i++)
+            Debug.Assert(writebufferarray[i] == readbufferarray[i], $"Glyph mismatch between readbuffer and writebuffer at index {i}; {writebufferarray[i]} != {readbufferarray[i]}");
+    }
 
     [TestMethod]
     public unsafe void ReadWriteToMemorySpan()
@@ -63,11 +89,16 @@ public class GlyphDefinitionTests
             Random.Shared.NextBytes(dbytes);
 
             for (var i = 0; i < glyphs.Length; i++)
-                glyphs[i].TryWriteBytesInto(writebuffer.Slice(i * GlyphDefSize, GlyphDefSize));
+                StructBytes.TryWriteBytesInto(glyphs[i], writebuffer.Slice(i * GlyphDefSize, GlyphDefSize));
 
             for (var i = 0; i < readbufferarray.Length; i++)
             {
-                Debug.Assert(StructBytes.TryReadBytesFrom<VarisizeGlyphAtlasTextRenderer.GlyphDefinition>(writebuffer.Slice(i * GlyphDefSize, GlyphDefSize), out var result), "Glyph read error");
+                if (StructBytes.TryReadBytesFrom<VarisizeGlyphAtlasTextRenderer.GlyphDefinition>(writebuffer.Slice(i * GlyphDefSize, GlyphDefSize), out var result) is false)
+                {
+                    Debug.Fail("Glyph read error");
+                    throw new InvalidOperationException("Glyph read error");
+                } 
+
                 readbufferarray[i] = result;
             }
         }
