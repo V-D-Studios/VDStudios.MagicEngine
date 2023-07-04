@@ -204,7 +204,7 @@ public class VarisizeGlyphAtlasTextRenderer : TextRenderer
             if (GlyphMap.TryGetValue(c, out var glyph) is false) continue;
 
             commandList.CopyTexture(
-                Atlas, 
+                atlas, 
                 glyph.Offset.X, glyph.Offset.Y, 0, 0, 0,
 
                 target,
