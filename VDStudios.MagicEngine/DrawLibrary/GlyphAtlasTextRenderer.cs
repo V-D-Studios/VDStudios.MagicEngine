@@ -15,9 +15,10 @@ public class GlyphAtlasTextRenderer : TextRenderer
     /// Creates a new object of type <see cref="GlyphAtlasTextRenderer"/>
     /// </summary>
     /// <param name="charset">The glyphs in the atlas in the order that they appear in</param>
+    /// <param name="comparer">The comparer that will be used when fetching character-glyph relations -- This can be used, for example, to create a text renderer that uses the same glyphs for upper and lowercase letters by using <see cref="char.ToUpper(char)"/></param>
     /// <param name="glyphSize">The size of each glyph in the atlas -- <b>MUST be evenly divisible by the size of the atlas!</b></param>
     /// <param name="atlasFactory">A factory that creates the texture that contains the ordered glyphs -- Vertical brakes are fine as long as the spacing is even, avoid empty characters unless at the end</param>
-    public GlyphAtlasTextRenderer(string charset, USize glyphSize, TextureFactory atlasFactory)
+    public GlyphAtlasTextRenderer(string charset, USize glyphSize, TextureFactory atlasFactory, IEqualityComparer<char>? comparer = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(charset);
         if (glyphSize.Height == 0 || glyphSize.Width == 0)
@@ -25,11 +26,16 @@ public class GlyphAtlasTextRenderer : TextRenderer
         CharacterSet = charset;
         AtlasFactory = atlasFactory ?? throw new ArgumentNullException(nameof(atlasFactory));
 
-        Indexes = new Dictionary<char, uint>();
+        Indexes = new Dictionary<char, uint>(CharEqualityComparer = comparer ?? EqualityComparer<char>.Default);
         for (int i = 0; i < charset.Length; i++)
             if (charset[i] is not '\t' and not '\n' and not ' ')
                 Indexes[charset[i]] = (uint)i;
     }
+
+    /// <summary>
+    /// The comparer that will be used when fetching character-glyph relations
+    /// </summary>
+    public IEqualityComparer<char> CharEqualityComparer { get; }
 
     /// <summary>
     /// The default amount of pixels to space each character by

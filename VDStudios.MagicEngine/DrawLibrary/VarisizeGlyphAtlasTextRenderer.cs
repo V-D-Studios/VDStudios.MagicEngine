@@ -24,14 +24,15 @@ public class VarisizeGlyphAtlasTextRenderer : TextRenderer
     /// </summary>
     /// <param name="glyphs">Information about the glyphs stored in the atlas</param>
     /// <param name="spaceSize">The size of a ' ' character</param>
+    /// <param name="comparer">The comparer that will be used when fetching character-glyph relations -- This can be used, for example, to create a text renderer that uses the same glyphs for upper and lowercase letters by using <see cref="char.ToUpper(char)"/></param>
     /// <param name="variableLineHeight"><see langword="true"/> if the line height should be dependent on the tallest glyph being rendered, <see langword="false"/> to have it set to the tallest defined glyph</param>
     /// <param name="atlasFactory">A factory that creates the texture that contains the ordered glyphs -- Vertical brakes are fine as long as the spacing is even, avoid empty characters unless at the end</param>
-    public VarisizeGlyphAtlasTextRenderer(IEnumerable<GlyphDefinition> glyphs, USize spaceSize, TextureFactory atlasFactory, bool variableLineHeight = false)
+    public VarisizeGlyphAtlasTextRenderer(IEnumerable<GlyphDefinition> glyphs, USize spaceSize, TextureFactory atlasFactory, IEqualityComparer<char>? comparer = null, bool variableLineHeight = false)
     {
         ArgumentNullException.ThrowIfNull(glyphs);
         AtlasFactory = atlasFactory ?? throw new ArgumentNullException(nameof(atlasFactory));
 
-        GlyphMap = new Dictionary<char, GlyphDefinition>();
+        GlyphMap = new Dictionary<char, GlyphDefinition>(CharEqualityComparer = comparer ?? EqualityComparer<char>.Default);
         GlyphInformation = glyphs.ToImmutableArray();
 
         if (GlyphInformation.Length <= 0)
@@ -67,6 +68,11 @@ public class VarisizeGlyphAtlasTextRenderer : TextRenderer
             LineHeight = uint.Max(spaceSize.Height, lheight);
         }
     }
+
+    /// <summary>
+    /// The comparer that will be used when fetching character-glyph relations
+    /// </summary>
+    public IEqualityComparer<char> CharEqualityComparer { get; }
 
     /// <summary>
     /// The default amount of pixels to space each character by
