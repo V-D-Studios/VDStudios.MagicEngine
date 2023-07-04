@@ -25,6 +25,14 @@
 	  
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Deterministic>False</Deterministic>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <Deterministic>False</Deterministic>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\VDStudios.MagicEngine\VDStudios.MagicEngine.csproj" />
   </ItemGroup>
