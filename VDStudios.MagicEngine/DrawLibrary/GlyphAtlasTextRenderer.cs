@@ -32,6 +32,11 @@ public class GlyphAtlasTextRenderer : TextRenderer
     }
 
     /// <summary>
+    /// The default amount of pixels to space each character by
+    /// </summary>
+    public uint DefaultCharacterSpacing { get; set; }
+
+    /// <summary>
     /// The size of each glyph in the atlas
     /// </summary>
     public USize GlyphSize { get; }
@@ -98,6 +103,7 @@ public class GlyphAtlasTextRenderer : TextRenderer
             throw new InvalidOperationException("Cannot render text with a null atlas");
 
         var gs = GlyphSize;
+        uint charspacing = DefaultCharacterSpacing;
 
         uint maxlen = 0;
         uint lines = 0;
@@ -119,7 +125,7 @@ public class GlyphAtlasTextRenderer : TextRenderer
                 len++;
         }
 
-        uint tw = (uint)float.Ceiling(maxlen * gs.Width);
+        uint tw = (maxlen * gs.Width) + (maxlen * charspacing) - charspacing;
         uint th = (uint)float.Ceiling(lines * gs.Height * lineSeparation);
 
         textureDescription.Width = tw;
@@ -155,7 +161,7 @@ public class GlyphAtlasTextRenderer : TextRenderer
             uint x = (index * gs.Width) % atlas.Width; // We wrap around the width of the atlas, and we already know the GlyphSize is evenly divisible by the Atlas's Width
             uint y = ((index * gs.Width) / atlas.Width) * gs.Height; // We know the height is also evenly divisible, so if the index is beyond the width's, it must be on the next row
 
-            commandList.CopyTexture(Atlas, x, y, 0, 0, 0, target, cchar * gs.Width, (uint)(cline * gs.Height * lineSeparation), 0, 0, 0, gs.Width, gs.Height, 0, 0);
+            commandList.CopyTexture(Atlas, x, y, 0, 0, 0, target, cchar * gs.Width + cchar * charspacing, (uint)(cline * gs.Height * lineSeparation), 0, 0, 0, gs.Width, gs.Height, 0, 0);
             cchar++;
         }
 

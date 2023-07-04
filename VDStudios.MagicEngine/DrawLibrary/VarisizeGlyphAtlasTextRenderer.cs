@@ -69,6 +69,11 @@ public class VarisizeGlyphAtlasTextRenderer : TextRenderer
     }
 
     /// <summary>
+    /// The default amount of pixels to space each character by
+    /// </summary>
+    public uint DefaultCharacterSpacing { get; set; }
+
+    /// <summary>
     /// The size of a single ' ' character
     /// </summary>
     public USize SpaceSize { get; }
@@ -118,6 +123,8 @@ public class VarisizeGlyphAtlasTextRenderer : TextRenderer
         if (Atlas is not Texture atlas)
             throw new InvalidOperationException("Cannot render text with a null atlas");
 
+        uint charspacing = DefaultCharacterSpacing;
+
         uint maxlen = 0;
         uint lines = 0;
         uint len = 0;
@@ -129,12 +136,12 @@ public class VarisizeGlyphAtlasTextRenderer : TextRenderer
                 char c = text[i];
                 if (c == '\t')
                 {
-                    len += SpaceSize.Width * 2;
+                    len += SpaceSize.Width * 2 + charspacing;
                     lheight = uint.Max(lheight, SpaceSize.Height);
                 }
                 else if (c == ' ')
                 {
-                    len += SpaceSize.Width;
+                    len += SpaceSize.Width + charspacing;
                     lheight = uint.Max(lheight, SpaceSize.Height);
                 }
                 else if (c == '\n')
@@ -145,10 +152,11 @@ public class VarisizeGlyphAtlasTextRenderer : TextRenderer
                 }
                 else if (GlyphMap.TryGetValue(c, out var gl))
                 {
-                    len += gl.Size.Width;
+                    len += gl.Size.Width + charspacing;
                     lheight = uint.Max(lheight, gl.Size.Height);
                 }
             }
+            maxlen -= charspacing;
         }
         else
         {
@@ -156,9 +164,9 @@ public class VarisizeGlyphAtlasTextRenderer : TextRenderer
             {
                 char c = text[i];
                 if (c == '\t')
-                    len += SpaceSize.Width * 2;
+                    len += SpaceSize.Width * 2 + charspacing;
                 else if (c == ' ')
-                    len += SpaceSize.Width;
+                    len += SpaceSize.Width + charspacing;
                 else if (c == '\n')
                 {
                     maxlen = uint.Max(maxlen, len);
@@ -166,8 +174,9 @@ public class VarisizeGlyphAtlasTextRenderer : TextRenderer
                     len = 0;
                 }
                 else if (GlyphMap.TryGetValue(c, out var gl))
-                    len += gl.Size.Width;
+                    len += gl.Size.Width + charspacing;
             }
+            maxlen -= charspacing;
         }
 
         uint tw = maxlen;
@@ -186,12 +195,12 @@ public class VarisizeGlyphAtlasTextRenderer : TextRenderer
 
             if (c is '\t')
             {
-                chpos += SpaceSize.Width * 2;
+                chpos += SpaceSize.Width * 2 + charspacing;
                 continue;
             }
             else if (c is ' ')
             {
-                chpos += SpaceSize.Width;
+                chpos += SpaceSize.Width + charspacing;
                 continue;
             }
             else if (c is '\n')
@@ -213,7 +222,7 @@ public class VarisizeGlyphAtlasTextRenderer : TextRenderer
                 glyph.Size.Width, glyph.Size.Height, 0, 0
             );
 
-            chpos += glyph.Size.Width;
+            chpos += glyph.Size.Width + charspacing;
         }
 
         return target;
