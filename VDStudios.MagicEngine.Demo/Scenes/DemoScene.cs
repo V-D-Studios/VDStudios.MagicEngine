@@ -1,9 +1,11 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Collections;
+using System.Collections.Concurrent;
 using System.Numerics;
 using VDStudios.MagicEngine.Demo.GUI.Elements;
 using VDStudios.MagicEngine.Demo.Nodes;
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
 using VDStudios.MagicEngine.RenderTargets;
+using System.Linq;
 
 namespace VDStudios.MagicEngine.Demo.Scenes;
 
@@ -94,9 +96,11 @@ public sealed class DemoScene : Scene
     {
         if (next is true)
         {
-            //Camera.Position = CamPos[ind = (ind + 1) % CamPos.Length];
+            if (Environment.GetCommandLineArgs().Contains("no-move-cam") is false)
+                Camera.Position = CamPos[ind = (ind + 1) % CamPos.Length];
 
-            Camera.Rotation = CamRots[ind = (ind + 1) % CamRots.Length];
+            if (Environment.GetCommandLineArgs().Contains("no-rot-cam") is false)
+                Camera.Rotation = CamRots[ind = (ind + 1) % CamRots.Length];
 
             next = false;
             GameDeferredCallSchedule.ScheduleDeferredCall((ex, delta) => next = true, TimeSpan.FromSeconds(1));
