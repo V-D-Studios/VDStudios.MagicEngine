@@ -234,6 +234,81 @@ public interface IInterpolator
 }
 
 /// <summary>
+/// An <see cref="IInterpolator"/> that interpolates two values with a blend factor that considers an exponential aspect of an expression
+/// </summary>
+public sealed class ExponentialInterpolator : IInterpolator
+{
+    /// <summary>
+    /// The interpolation speed when calculating blend
+    /// </summary>
+    /// <remarks>
+    /// <see cref="IPowerFunctions{TSelf}.Pow(TSelf, TSelf)"/> (<see cref="BlendBase"/>, amount * <b><see cref="Speed"/></b>
+    /// </remarks>
+    public float Speed { get; set; }
+
+    /// <summary>
+    /// The blend base value when interpolating
+    /// </summary>
+    /// <remarks>
+    /// <see cref="IPowerFunctions{TSelf}.Pow(TSelf, TSelf)"/> (<b><see cref="BlendBase"/></b>, amount * <see cref="Speed"/>
+    /// </remarks>
+    public float BlendBase { get; set; }
+
+    /// <summary>
+    /// Creates a new object of type <see cref="ExponentialInterpolator"/> with the given starting parameters
+    /// </summary>
+    /// <param name="speed">The interpolation speed when calculating blend</param>
+    /// <param name="blendbase">The blend base value when interpolating</param>
+    public ExponentialInterpolator(float speed, float blendbase = .5f) { }
+
+    /// <inheritdoc/>
+    public static IInterpolator Interpolator { get; } = new ExponentialInterpolator(1);
+
+    /// <summary>
+    /// Calculates the exponential blend value for the linear interpolation
+    /// </summary>
+    /// <typeparam name="TValue">The type of value to be blended</typeparam>
+    /// <param name="amount">The interpolation amount</param>
+    public TValue CalculateExponentialLerpBlend<TValue>(TValue amount) where TValue : INumber<TValue>, ILogarithmicFunctions<TValue>, IExponentialFunctions<TValue>, IHyperbolicFunctions<TValue>, IPowerFunctions<TValue>, IRootFunctions<TValue>, ITrigonometricFunctions<TValue>
+        => TValue.Pow(TValue.CreateTruncating(BlendBase), amount * TValue.CreateTruncating(Speed));
+
+    /// <summary>
+    /// Calculates the exponential blend value for the linear interpolation
+    /// </summary>
+    /// <param name="amount">The interpolation amount</param>
+    public float CalculateExponentialLerpBlend(float amount)
+        => float.Pow(BlendBase, amount * Speed);
+
+    /// <inheritdoc/>
+    public TValue Interpolate<TValue>(TValue a, TValue b, TValue amount) where TValue : INumber<TValue>, ILogarithmicFunctions<TValue>, IExponentialFunctions<TValue>, IHyperbolicFunctions<TValue>, IPowerFunctions<TValue>, IRootFunctions<TValue>, ITrigonometricFunctions<TValue>
+        => LinearInterpolator.Instance.Interpolate(a, b, CalculateExponentialLerpBlend(amount));
+
+    /// <inheritdoc/>
+    public void VectorInterpolate<TValue>(Span<TValue> a, Span<TValue> b, Span<TValue> output, TValue amount) where TValue : INumber<TValue>, ILogarithmicFunctions<TValue>, IExponentialFunctions<TValue>, IHyperbolicFunctions<TValue>, IPowerFunctions<TValue>, IRootFunctions<TValue>, ITrigonometricFunctions<TValue>
+        => LinearInterpolator.Instance.VectorInterpolate(a, b, output, CalculateExponentialLerpBlend(amount));
+
+    /// <inheritdoc/>
+    public Vector2 Interpolate(Vector2 a, Vector2 b, float amount)
+        => Vector2.Lerp(a, b, CalculateExponentialLerpBlend(amount));
+
+    /// <inheritdoc/>
+    public Vector3 Interpolate(Vector3 a, Vector3 b, float amount)
+        => Vector3.Lerp(a, b, CalculateExponentialLerpBlend(amount));
+
+    /// <inheritdoc/>
+    public Vector4 Interpolate(Vector4 a, Vector4 b, float amount)
+        => Vector4.Lerp(a, b, CalculateExponentialLerpBlend(amount));
+
+    /// <inheritdoc/>
+    public Matrix3x2 Interpolate(Matrix3x2 a, Matrix3x2 b, float amount)
+        => Matrix3x2.Lerp(a, b, CalculateExponentialLerpBlend(amount));
+
+    /// <inheritdoc/>
+    public Matrix4x4 Interpolate(Matrix4x4 a, Matrix4x4 b, float amount)
+        => Matrix4x4.Lerp(a, b, CalculateExponentialLerpBlend(amount));
+}
+
+/// <summary>
 /// An <see cref="IInterpolator"/> that performs linear interpolations between values
 /// </summary>
 public sealed class LinearInterpolator : IInterpolator
@@ -263,19 +338,19 @@ public sealed class LinearInterpolator : IInterpolator
         => Vector2.Lerp(a, b, amount);
 
     /// <inheritdoc/>
-    public unsafe Vector3 Interpolate(Vector3 a, Vector3 b, float amount)
+    public Vector3 Interpolate(Vector3 a, Vector3 b, float amount)
         => Vector3.Lerp(a, b, amount);
 
     /// <inheritdoc/>
-    public unsafe Vector4 Interpolate(Vector4 a, Vector4 b, float amount)
+    public Vector4 Interpolate(Vector4 a, Vector4 b, float amount)
         => Vector4.Lerp(a, b, amount);
 
     /// <inheritdoc/>
-    public unsafe Matrix3x2 Interpolate(Matrix3x2 a, Matrix3x2 b, float amount)
+    public Matrix3x2 Interpolate(Matrix3x2 a, Matrix3x2 b, float amount)
         => Matrix3x2.Lerp(a, b, amount);
 
     /// <inheritdoc/>
-    public unsafe Matrix4x4 Interpolate(Matrix4x4 a, Matrix4x4 b, float amount)
+    public Matrix4x4 Interpolate(Matrix4x4 a, Matrix4x4 b, float amount)
         => Matrix4x4.Lerp(a, b, amount);
 }
 

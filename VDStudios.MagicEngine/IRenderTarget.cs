@@ -23,7 +23,8 @@ public interface IRenderTarget
     /// <param name="device">The device managed by <see cref="Owner"/></param>
     /// <param name="targetBuffer">The resulting Framebuffer that is to be targeted</param>
     /// <param name="targetParameters">The draw parameters to be used</param>
-    public void GetTarget(GraphicsDevice device, out Framebuffer targetBuffer, out DrawParameters targetParameters);
+    /// <param name="delta">The amount of time elapsed since the last frame</param>
+    public void GetTarget(GraphicsDevice device, TimeSpan delta, out Framebuffer targetBuffer, out DrawParameters targetParameters);
 
     /// <summary>
     /// Copies the previously obtained <see cref="Framebuffer"/> from this <see cref="IRenderTarget"/> into the screen using <see cref="GraphicsDevice.SwapchainFramebuffer"/> through <paramref name="device"/>
