@@ -1203,14 +1203,90 @@ public class GraphicsManager : GameObject, IDisposable
     {
         mainWindow = new Window(Game.GameTitle, 800, 600, WindowConfig.Default);
 
-        graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
-            mainWindow,
+        var gdoptions =
 #if !DEBUG
-            new GraphicsDeviceOptions(true, null, true, ResourceBindingModel.Improved, false, false)
+            new GraphicsDeviceOptions(true, null, true, ResourceBindingModel.Improved, false, false);
 #else
-            new GraphicsDeviceOptions(false, null, true, ResourceBindingModel.Improved, false, false)
+            new GraphicsDeviceOptions(false, null, true, ResourceBindingModel.Improved, false, false);
 #endif
-        );
+
+        try
+        {
+            graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
+                mainWindow,
+                gdoptions
+            );
+        }
+        catch(Exception e)
+        {
+            InternalLog?.Error(e, "Failed to create a GraphicDevice using the default platform backend, retrying with Vulkan");
+
+            try
+            {
+                graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
+                    mainWindow,
+                    gdoptions,
+                    GraphicsBackend.Vulkan
+                );
+            }
+            catch(Exception e1)
+            {
+                InternalLog?.Error(e1, "Failed to create a GraphicDevice using Vulkan, retrying with OpenGLES");
+
+                try
+                {
+                    graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
+                        mainWindow,
+                        gdoptions,
+                        GraphicsBackend.OpenGLES
+                    );
+                }
+                catch (Exception e2)
+                {
+                    InternalLog?.Error(e2, "Failed to create a GraphicDevice using OpenGLES, retrying with OpenGL");
+
+                    try
+                    {
+                        graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
+                            mainWindow,
+                            gdoptions,
+                            GraphicsBackend.OpenGL
+                        );
+                    }
+                    catch (Exception e3)
+                    {
+                        InternalLog?.Error(e3, "Failed to create a GraphicDevice using Vulkan, retrying with Direct3D11");
+
+                        try
+                        {
+                            graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
+                                mainWindow,
+                                gdoptions,
+                                GraphicsBackend.Direct3D11
+                            );
+                        }
+                        catch (Exception e4)
+                        {
+                            InternalLog?.Error(e4, "Failed to create a GraphicDevice using Direct3D11, retrying with Metal");
+
+                            try
+                            {
+                                graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
+                                    mainWindow,
+                                    gdoptions,
+                                    GraphicsBackend.Metal
+                                );
+                            }
+                            catch(Exception e5)
+                            {
+                                InternalLog?.Error(e5, "Failed to create a GraphicDevice using Metal");
+                                throw new VeldridException("Could not create a GraphicsDevice with any of the supported Graphics Backends");
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
 #endregion
