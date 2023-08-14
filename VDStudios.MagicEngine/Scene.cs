@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 using static System.Net.Mime.MediaTypeNames;
 

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 using Veldrid;
 

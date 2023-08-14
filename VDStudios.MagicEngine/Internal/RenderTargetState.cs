@@ -1,4 +1,5 @@
-﻿using Veldrid;
+﻿using VDStudios.MagicEngine.Graphics;
+using Veldrid;
 
 namespace VDStudios.MagicEngine.Internal;
 

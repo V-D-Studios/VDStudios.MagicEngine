@@ -1,13 +1,14 @@
 ﻿using ImGuiNET;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using VDStudios.MagicEngine.Graphics;
 
 namespace VDStudios.MagicEngine.GUILibrary.ImGUI;
 
 /// <summary>
 /// Represents a list of delegates that return strings to be submitted into the UI
 /// </summary>
-public class Watch : GUIElement
+public class Watch : ImGUIElement
 {
     /// <summary>
     /// An object that polls for data to be viewed on the watch
@@ -88,7 +89,7 @@ public class Watch : GUIElement
     private readonly Queue<int> LoggerRemovals = new();
 
     /// <inheritdoc/>
-    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements)
+    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<ImGUIElement> subElements)
     {
         ImGui.Begin(Title);
         var viewers = CollectionsMarshal.AsSpan(Viewers);

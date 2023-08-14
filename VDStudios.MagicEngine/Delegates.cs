@@ -1,5 +1,6 @@
 ﻿using SDL2.NET;
 using VDStudios.MagicEngine.DrawLibrary;
+using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Templates;
 using Veldrid;
 
@@ -259,43 +260,28 @@ public delegate void GraphicsManagerRunStateChanged(GraphicsManager graphicsMana
 #region GUIElement Delegates
 
 /// <summary>
-/// Represents an event in the game regarding a <see cref="GUIElement"/>'s <see cref="GUIElement.DataContext"/>
+/// Represents an event in the game regarding a <see cref="ImGUIElement"/>'s <see cref="ImGUIElement.DataContext"/>
 /// </summary>
-/// <param name="element">The <see cref="GUIElement"/> that experienced the change</param>
+/// <param name="element">The <see cref="ImGUIElement"/> that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
 /// <param name="oldContext">The data context <paramref name="element"/> previously had, if any</param>
 /// <param name="newContext">The data context <paramref name="element"/> now has, if any</param>
-public delegate void GUIElementDataContextChangedEvent(GUIElement element, TimeSpan timestamp, object? oldContext, object? newContext);
+public delegate void GUIElementDataContextChangedEvent(ImGUIElement element, TimeSpan timestamp, object? oldContext, object? newContext);
 
 /// <summary>
-/// Represents an event in the game regarding a <see cref="GUIElement"/>'s <see cref="GUIElement.IsActive"/> property
+/// Represents an event in the game regarding a <see cref="ImGUIElement"/>'s <see cref="ImGUIElement.IsActive"/> property
 /// </summary>
-/// <param name="element">The <see cref="GUIElement"/> that experienced the change</param>
+/// <param name="element">The <see cref="ImGUIElement"/> that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since SDL's initialization and this event firing</param>
-/// <param name="isActive">The value that <paramref name="element"/>'s <see cref="GUIElement.IsActive"/> changed into</param>
-public delegate void GUIElementActiveChanged(GUIElement element, TimeSpan timestamp, bool isActive);
+/// <param name="isActive">The value that <paramref name="element"/>'s <see cref="ImGUIElement.IsActive"/> changed into</param>
+public delegate void GUIElementActiveChanged(ImGUIElement element, TimeSpan timestamp, bool isActive);
 
 /// <summary>
-/// Represents a method that configures a <see cref="GUIElement"/> that has been instanced from a <see cref="TemplatedGUIElement"/>
+/// Represents a method that configures a <see cref="ImGUIElement"/> that has been instanced from a <see cref="TemplatedGUIElement"/>
 /// </summary>
-/// <param name="element">The newly instanced <see cref="GUIElement"/> from the template</param>
-/// <returns>An object representing the <see cref="GUIElement.DataContext"/> of the element, or <c>null</c> if it's not meant to have one</returns>
-public delegate object? TemplatedGUIElementConfigurator(GUIElement element);
-
-#endregion
-
-#region DrawOperationManager Delegates
-
-/// <summary>
-/// Represents a method that picks the correct <see cref="GraphicsManager"/> to register a given <see cref="DrawOperation"/> onto
-/// </summary>
-/// <param name="operation">The <see cref="DrawOperation"/> awaiting to be registered</param>
-/// <param name="node">The <see cref="IDrawableNode"/> that owns <paramref name="manager"/></param>
-/// <param name="manager">The <see cref="DrawOperationManager"/> that oversees <paramref name="operation"/></param>
-/// <param name="main">Represents <see cref="Game.MainGraphicsManager"/></param>
-/// <param name="allManagers">A list of active <see cref="GraphicsManager"/> that operations can be registered onto</param>
-/// <returns>The <see cref="GraphicsManager"/> to register <paramref name="operation"/> onto</returns>
-public delegate GraphicsManager DrawOperationGraphicsManagerSelector(GraphicsManager main, IReadOnlyList<GraphicsManager> allManagers,  DrawOperation operation, IDrawableNode node, DrawOperationManager manager);
+/// <param name="element">The newly instanced <see cref="ImGUIElement"/> from the template</param>
+/// <returns>An object representing the <see cref="ImGUIElement.DataContext"/> of the element, or <c>null</c> if it's not meant to have one</returns>
+public delegate object? TemplatedGUIElementConfigurator(ImGUIElement element);
 
 #endregion
 

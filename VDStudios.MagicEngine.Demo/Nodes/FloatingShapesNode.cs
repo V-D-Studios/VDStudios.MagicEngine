@@ -4,6 +4,7 @@ using VDStudios.MagicEngine.Demo.Properties;
 using VDStudios.MagicEngine.DrawLibrary;
 using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
+using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
 using VDStudios.MagicEngine.Utility;
 using Veldrid;

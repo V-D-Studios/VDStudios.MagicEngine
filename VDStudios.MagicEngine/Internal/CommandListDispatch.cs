@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine.Graphics;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Internal;

@@ -2,6 +2,7 @@
 using SDL2.NET;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using VDStudios.MagicEngine.Graphics;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Internal;

@@ -1,6 +1,7 @@
 ﻿using SDL2.NET;
 using SDL2.NET.Input;
 using System.Numerics;
+using VDStudios.MagicEngine.Graphics;
 
 namespace VDStudios.MagicEngine;
 

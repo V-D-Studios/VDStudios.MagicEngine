@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using VDStudios.MagicEngine.DrawLibrary.Geometry;
+using VDStudios.MagicEngine.Graphics;
 using Veldrid;
 using Veldrid.SPIRV;
 

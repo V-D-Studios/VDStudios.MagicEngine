@@ -28,6 +28,8 @@ public abstract class GameObject : IDisposable
     /// <summary>
     /// Instances a new GameObject
     /// </summary>
+    /// <param name="area">Logging information. The area the GameObject belongs to</param>
+    /// <param name="facility">Logging information. The facility the GameObject operates for</param>
     internal GameObject(string facility, string area)
     {
         ArgumentException.ThrowIfNullOrEmpty(area);

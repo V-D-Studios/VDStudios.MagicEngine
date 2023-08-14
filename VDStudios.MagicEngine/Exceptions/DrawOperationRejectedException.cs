@@ -1,4 +1,6 @@
-﻿namespace VDStudios.MagicEngine.Exceptions;
+﻿using VDStudios.MagicEngine.Graphics;
+
+namespace VDStudios.MagicEngine.Exceptions;
 
 /// <summary>
 /// An exception that is thrown when a <see cref="DrawOperation"/> rejects being registered on a <see cref="GraphicsManager"/>

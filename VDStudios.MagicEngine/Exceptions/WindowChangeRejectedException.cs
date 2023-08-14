@@ -1,4 +1,5 @@
 ﻿using SDL2.NET;
+using VDStudios.MagicEngine.Graphics;
 
 namespace VDStudios.MagicEngine.Exceptions;
 

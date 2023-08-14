@@ -6,6 +6,7 @@ using VDStudios.MagicEngine.Demo.Nodes;
 using VDStudios.MagicEngine.GUILibrary.ImGUI;
 using VDStudios.MagicEngine.RenderTargets;
 using System.Linq;
+using VDStudios.MagicEngine.Graphics;
 
 namespace VDStudios.MagicEngine.Demo.Scenes;
 
@@ -121,5 +122,5 @@ public sealed class DemoScene : Scene
     }
 
     public static void configuratorNode(Node e) { }
-    public static object? configuratorElement(GUIElement e) => null;
+    public static object? configuratorElement(ImGUIElement e) => null;
 }

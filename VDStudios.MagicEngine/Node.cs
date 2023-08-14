@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Exceptions;
+using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;

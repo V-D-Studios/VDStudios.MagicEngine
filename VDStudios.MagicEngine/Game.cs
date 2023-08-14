@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Intrinsics;
 using VDStudios.MagicEngine.Exceptions;
+using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 using VDStudios.MagicEngine.Logging;
 

@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using VDStudios.MagicEngine.Graphics;
 using Veldrid;
 
 namespace VDStudios.MagicEngine;
