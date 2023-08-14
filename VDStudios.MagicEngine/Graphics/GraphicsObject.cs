@@ -7,7 +7,7 @@
 /// This class cannot be instanced or inherited by user code
 /// </remarks>
 public abstract class GraphicsObject<TGraphicsContext> : GameObject
-    where TGraphicsContext : IGraphicsContext
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     internal GraphicsObject(string facility) : base(facility, "Rendering")
     {

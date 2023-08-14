@@ -13,7 +13,7 @@ namespace VDStudios.MagicEngine.Graphics;
 /// Try to keep an object created from this class cached somewhere in a node, as they incur a number of allocations that should be avoided in a HotPath like the rendering sequence
 /// </remarks>
 public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphicsContext>, IDisposable
-    where TGraphicsContext : IGraphicsContext
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     private readonly SemaphoreSlim sync = new(1, 1);
 

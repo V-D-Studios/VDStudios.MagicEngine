@@ -9,7 +9,7 @@ namespace VDStudios.MagicEngine.Graphics;
 /// This class cannot be inherited. This class cannot be instanced by user code. <see cref="GraphicsManagerList{TGraphicsContext}"/> is not very performant, and should not be used in hot paths
 /// </remarks>
 public sealed class GraphicsManagerList<TGraphicsContext> : IReadOnlyList<GraphicsManager<TGraphicsContext>>
-    where TGraphicsContext : IGraphicsContext
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     private readonly LinkedList<GraphicsManager<TGraphicsContext>> Managers = new();
 

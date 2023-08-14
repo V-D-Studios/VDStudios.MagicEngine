@@ -4,7 +4,7 @@
 /// The engine's Draw Queue
 /// </summary>
 public interface IDrawQueue<TGraphicsContext, T> where T : GraphicsObject<TGraphicsContext>
-    where TGraphicsContext : IGraphicsContext
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     /// <summary>
     /// Enqueues a ready-to-draw object into the Draw Queue asynchronously

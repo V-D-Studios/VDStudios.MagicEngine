@@ -18,7 +18,7 @@ namespace VDStudios.MagicEngine.Graphics;
 /// *ALL* Graphics Managers are automatically managed by <see cref="Game"/>, registered at the time of construction
 /// </remarks>
 public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
-    where TGraphicsContext : IGraphicsContext
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     #region Construction
 

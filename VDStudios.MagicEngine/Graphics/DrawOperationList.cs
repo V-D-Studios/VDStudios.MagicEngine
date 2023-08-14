@@ -10,7 +10,7 @@ namespace VDStudios.MagicEngine.Graphics;
 /// This class cannot be inherited. This class cannot be instanced by user code. <see cref="DrawOperationList{TGraphicsContext}"/> is not very performant, and should not be used in hot paths
 /// </remarks>
 public sealed class DrawOperationList<TGraphicsContext> : IReadOnlyCollection<DrawOperation<TGraphicsContext>>
-    where TGraphicsContext : IGraphicsContext
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     private readonly Dictionary<Guid, DrawOperation<TGraphicsContext>> Ops = new();
     internal readonly SemaphoreSlim RegistrationSync = new(1, 1);

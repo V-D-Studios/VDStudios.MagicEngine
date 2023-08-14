@@ -6,7 +6,7 @@ namespace VDStudios.MagicEngine.Graphics;
 /// Represents a list of <see cref="DrawOperation{TGraphicsContext}"/> objects belonging to a <see cref="IDrawableNode{TGraphicsContext}"/> and their general behaviour
 /// </summary>
 public class DrawOperationManager<TGraphicsContext> : GameObject
-    where TGraphicsContext : IGraphicsContext
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     /// <summary>
     /// Instantiates a new object of type <see cref="DrawOperationManager{TGraphicsContext}"/>
@@ -98,14 +98,14 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     }
 
     /// <summary>
-    /// Adds an object representing the <see cref="Node"/>'s drawing operations into the <see cref="IDrawQueue{TOp}"/>. This method will be called from the respective <see cref="GraphicsManager{TGraphicsContext}"/>'s thread
+    /// Adds an object representing the <see cref="Node"/>'s drawing operations into the <see cref="IDrawQueue{TGraphicsContext, TOp}"/>. This method will be called from the respective <see cref="GraphicsManager{TGraphicsContext}"/>'s thread
     /// </summary>
     /// <remarks>
     /// By default, this method will enqueue <paramref name="operation"/> onto <paramref name="queue"/> with a priority of <c>1</c>
     /// </remarks>
     /// <param name="queue">The queue associated with <paramref name="operation"/> into which to add the draw operations</param>
     /// <param name="operation">A specific registered <see cref="DrawOperation{TGraphicsContext}"/></param>
-    public virtual void AddToDrawQueue(IDrawQueue<DrawOperation<TGraphicsContext>> queue, DrawOperation<TGraphicsContext> operation)
+    public virtual void AddToDrawQueue(IDrawQueue<TGraphicsContext, DrawOperation<TGraphicsContext>> queue, DrawOperation<TGraphicsContext> operation)
     {
         queue.Enqueue(operation, operation.PreferredPriority);
     }
@@ -168,14 +168,14 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
 /// Represents a <see cref="DrawOperationManager{TGraphicsContext}"/> that accepts a <see cref="DrawQueueSelector"/> delegate method to act in place of inheriting and overriding <see cref="DrawOperationManager{TGraphicsContext}.AddToDrawQueue(IDrawQueue{DrawOperation{TGraphicsContext}}, DrawOperation{TGraphicsContext})"/>
 /// </summary>
 public sealed class DrawOperationManagerDrawQueueDelegate<TGraphicsContext>  : DrawOperationManager<TGraphicsContext>
-    where TGraphicsContext : IGraphicsContext
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     /// <summary>
     /// Represents a method that can add <paramref name="operation"/> appropriately into <paramref name="queue"/>
     /// </summary>
-    /// <param name="queue">The <see cref="IDrawQueue{T}"/> into which to add <paramref name="operation"/></param>
+    /// <param name="queue">The <see cref="IDrawQueue{TGraphicsContext, T}"/> into which to add <paramref name="operation"/></param>
     /// <param name="operation">The operation in question</param>
-    public delegate void DrawQueueSelector(IDrawQueue<DrawOperation<TGraphicsContext>> queue, DrawOperation<TGraphicsContext> operation);
+    public delegate void DrawQueueSelector(IDrawQueue<TGraphicsContext, DrawOperation<TGraphicsContext>> queue, DrawOperation<TGraphicsContext> operation);
 
     private readonly DrawQueueSelector _drawQueueSelector;
 
@@ -187,6 +187,6 @@ public sealed class DrawOperationManagerDrawQueueDelegate<TGraphicsContext>  : D
     }
 
     /// <inheritdoc/>
-    public override void AddToDrawQueue(IDrawQueue<DrawOperation<TGraphicsContext>> queue, DrawOperation<TGraphicsContext> operation)
+    public override void AddToDrawQueue(IDrawQueue<TGraphicsContext, DrawOperation<TGraphicsContext>> queue, DrawOperation<TGraphicsContext> operation)
         => _drawQueueSelector.Invoke(queue, operation);
 }
