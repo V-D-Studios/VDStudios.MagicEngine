@@ -3,6 +3,7 @@ using SDL2.NET;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Graphics;
+using VDStudios.MagicEngine.Input;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Internal;

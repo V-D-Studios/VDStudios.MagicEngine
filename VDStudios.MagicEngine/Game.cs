@@ -17,9 +17,9 @@ namespace VDStudios.MagicEngine;
 /// The class that contains the most important aspects of MagicEngine's functionality
 /// </summary>
 /// <remarks>
-/// This class takes control of most of SDL's processes. And should be allowed to do so. Follow the docs on how to initialize your <see cref="Game"/>
+/// This class should take control of most, if not all, of any underlying graphics library. And should be allowed to do so. Follow the docs on how to initialize your <see cref="Game"/>
 /// </remarks>
-public class Game : SDLApplication<Game>
+public class Game
 {
     #region (Standalone) Fields
 
@@ -729,7 +729,7 @@ public class Game : SDLApplication<Game>
     /// <remarks>
     /// The <see cref="Game"/> checks if the <see cref="Window"/> and <see cref="Renderer"/> are created when calling <see cref="StartGame{TScene}"/>, and if so, fires this event. If not, creates them first and then fires this event
     /// </remarks>
-    public event GameMainWindowCreatedEvent? WindowObtained;
+    public event GameMainGraphicsManagerCreatedEvent? WindowObtained;
 
 #endregion
 }

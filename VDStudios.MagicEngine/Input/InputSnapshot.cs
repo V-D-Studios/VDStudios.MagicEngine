@@ -1,9 +1,27 @@
-﻿using SDL2.NET;
-using SDL2.NET.Input;
-using System.Numerics;
+﻿using System.Numerics;
 using VDStudios.MagicEngine.Graphics;
 
-namespace VDStudios.MagicEngine;
+namespace VDStudios.MagicEngine.Input;
+
+public enum Scancode
+{
+
+}
+
+public enum Keycode
+{
+
+}
+
+public enum KeyModifier
+{
+
+}
+
+public enum MouseButton
+{
+
+}
 
 /// <summary>
 /// Represents a recording of a Key Event

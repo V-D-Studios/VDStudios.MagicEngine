@@ -9,11 +9,12 @@ namespace VDStudios.MagicEngine.Graphics;
 /// This object is removed from the GUI tree when disposed
 /// </remarks>
 public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsContext>, IDisposable
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     #region Construction
 
     /// <summary>
-    /// Constructs this <see cref="ImGUIElement"/>
+    /// Constructs this <see cref="ImGUIElement{TGraphicsContext}"/>
     /// </summary>
     public ImGUIElement() : base("ImGUI")
     {
@@ -24,7 +25,7 @@ public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsC
     #region Public Properties
 
     /// <summary>
-    /// The data context currently tied to this <see cref="ImGUIElement"/>
+    /// The data context currently tied to this <see cref="ImGUIElement{TGraphicsContext}"/>
     /// </summary>
     /// <remarks>
     /// Defaults to its parent's <see cref="DataContext"/>, or null
@@ -45,11 +46,6 @@ public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsC
     }
     private object? _dc;
 
-    /// <summary>
-    /// The parent <see cref="ImGUIElement"/> of this <see cref="ImGUIElement"/>, or null, if attached directly onto a <see cref="GraphicsManager"/>
-    /// </summary>
-    public ImGUIElement? Parent { get; private set; }
-
     #region Events
 
     /// <summary>
@@ -64,8 +60,8 @@ public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsC
     /// <summary>
     /// This method is called right before <see cref="DataContextChanged"/> is fired
     /// </summary>
-    /// <param name="oldContext">The old DataContext this <see cref="ImGUIElement"/> previously had, if any</param>
-    /// <param name="newContext">The old DataContext this <see cref="ImGUIElement"/> will not have, if any</param>
+    /// <param name="oldContext">The old DataContext this <see cref="ImGUIElement{TGraphicsContext}"/> previously had, if any</param>
+    /// <param name="newContext">The old DataContext this <see cref="ImGUIElement{TGraphicsContext}"/> will not have, if any</param>
     protected virtual void DataContextChanging(object? oldContext, object? newContext) { }
 
     #endregion
@@ -74,20 +70,9 @@ public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsC
 
     #region Registration
 
-    /// <summary>
-    /// Adds Sub Element <paramref name="element"/> to this <see cref="ImGUIElement"/>
-    /// </summary>
-    /// <param name="element">The <see cref="ImGUIElement"/> to add as a sub element of this <see cref="ImGUIElement"/></param>
-    /// <param name="context">The DataContext to give to <paramref name="element"/>, or null if it's to use its previously set DataContext or inherit it from this <see cref="ImGUIElement"/></param>
-    public void AddElement(ImGUIElement element, object? context = null)
-    {
-        ThrowIfInvalid();
-        element.RegisterOnto(this, Manager!, context);
-    }
-
     #region Internal
 
-    internal void RegisterOnto(GraphicsManager manager, object? context = null)
+    internal void RegisterOnto(GraphicsManager<TGraphicsContext> manager, object? context = null)
     {
         ThrowIfDisposed();
         VerifyManager(manager);
@@ -101,65 +86,20 @@ public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsC
         NotifyIsReady();
     }
 
-    internal void RegisterOnto(ImGUIElement parent, GraphicsManager manager, object? context = null)
-    {
-        ThrowIfDisposed();
-        VerifyManager(manager);
-
-        Registering(parent, manager);
-
-        DataContext = context ?? DataContext ?? parent.DataContext;
-        Parent = parent;
-        nodeInParent = parent.SubElements.Add(this);
-
-        Registered();
-        NotifyIsReady();
-    }
-
     #endregion
 
     #region Reaction Methods
 
     /// <summary>
-    /// This method is called automatically when this <see cref="ImGUIElement"/> is being registered onto <paramref name="manager"/>
+    /// This method is called automatically when this <see cref="ImGUIElement{TGraphicsContext}"/> is being registered onto <paramref name="manager"/>
     /// </summary>
-    /// <param name="manager">The <see cref="GraphicsManager"/> this <see cref="ImGUIElement"/> is being registered onto</param>
-    protected virtual void Registering(GraphicsManager manager) { }
+    /// <param name="manager">The <see cref="GraphicsManager{TGraphicsContext}"/> this <see cref="ImGUIElement{TGraphicsContext}"/> is being registered onto</param>
+    protected virtual void Registering(GraphicsManager<TGraphicsContext> manager) { }
 
     /// <summary>
-    /// This method is called automatically when this <see cref="ImGUIElement"/> is being registered onto <paramref name="manager"/>, under <paramref name="parent"/>
-    /// </summary>
-    /// <param name="manager">The <see cref="GraphicsManager"/> this <see cref="ImGUIElement"/> is being registered onto</param>
-    /// <param name="parent">The <see cref="ImGUIElement"/> that is the parent of this <see cref="ImGUIElement"/></param>
-    protected virtual void Registering(ImGUIElement parent, GraphicsManager manager) { }
-
-    /// <summary>
-    /// This method is called automatically when this <see cref="ImGUIElement"/> has been registered
+    /// This method is called automatically when this <see cref="ImGUIElement{TGraphicsContext}"/> has been registered
     /// </summary>
     protected virtual void Registered() { }
-
-    #endregion
-
-    #endregion
-
-    #region Children
-
-    #region Public Properties
-
-    /// <summary>
-    /// Represents all of this <see cref="ImGUIElement"/>'s sub elements, or children
-    /// </summary>
-    public GUIElementList SubElements { get; } = new();
-
-    #endregion
-
-    #region Internal
-
-    private LinkedListNode<ImGUIElement>? nodeInParent;
-
-    #endregion
-
-    #region Reaction Methods
 
     #endregion
 
@@ -173,7 +113,7 @@ public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsC
     {
         ThrowIfInvalid();
         if (IsActive)
-            SubmitUI(delta, SubElements);
+            SubmitUI(delta);
     }
 
     #endregion
@@ -181,10 +121,10 @@ public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsC
     #region Properties
 
     /// <summary>
-    /// Whether or not this <see cref="ImGUIElement"/> is active. Defaults to <c>true</c>
+    /// Whether or not this <see cref="ImGUIElement{TGraphicsContext}"/> is active. Defaults to <c>true</c>
     /// </summary>
     /// <remarks>
-    /// If <c>true</c>, this <see cref="ImGUIElement"/>'s UI will be submitted along with its sub elements. If <c>false</c>, this <see cref="ImGUIElement"/> will be skipped altogether
+    /// If <c>true</c>, this <see cref="ImGUIElement{TGraphicsContext}"/>'s UI will be submitted along with its sub elements. If <c>false</c>, this <see cref="ImGUIElement{TGraphicsContext}"/> will be skipped altogether
     /// </remarks>
     public bool IsActive
     {
@@ -205,7 +145,7 @@ public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsC
     /// Whether this element should be skipped when being enumerated during a call to <see cref="SubmitUI(TimeSpan, IEnumerator{ImGUIElement}, int)"/>. Defaults to <c>false</c>
     /// </summary>
     /// <remarks>
-    /// If this element is skipped from enumeration, the parent <see cref="ImGUIElement"/> will be entirely responsible for submiting its UI; be very careful with this property. GUIElements that are not registered, or are directly attached to a <see cref="GraphicsManager"/> cannot have this property modified
+    /// If this element is skipped from enumeration, the parent <see cref="ImGUIElement{TGraphicsContext}"/> will be entirely responsible for submiting its UI; be very careful with this property. GUIElements that are not registered, or are directly attached to a <see cref="GraphicsManager"/> cannot have this property modified
     /// </remarks>
     protected internal bool SkipInEnumeration
     {
@@ -244,7 +184,7 @@ public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsC
     #region Helper Methods
 
     /// <summary>
-    /// Submits the UI of the passed <see cref="ImGUIElement"/>
+    /// Submits the UI of the passed <see cref="ImGUIElement{TGraphicsContext}"/>
     /// </summary>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
     /// <param name="subElement">The element to submit</param>
@@ -262,10 +202,10 @@ public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsC
     /// The method that will be used to draw the component
     /// </summary>
     /// <remarks>
-    /// Unfinished calls and general uncarefulness with ImGUI WILL bleed into other <see cref="ImGUIElement"/>s
+    /// Unfinished calls and general uncarefulness with ImGUI WILL bleed into other <see cref="ImGUIElement{TGraphicsContext}"/>s
     /// </remarks>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
-    /// <param name="subElements">An IReadOnlyCollection containing all of this <see cref="ImGUIElement"/>'s sub elements in sequence</param>
+    /// <param name="subElements">An IReadOnlyCollection containing all of this <see cref="ImGUIElement{TGraphicsContext}"/>'s sub elements in sequence</param>
     protected abstract void SubmitUI(TimeSpan delta, IReadOnlyCollection<ImGUIElement> subElements);
 
     #endregion
@@ -281,25 +221,7 @@ public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsC
             throw new InvalidOperationException($"Cannot utilize a GUIElement that is not registered onto a GraphicsManager at somepoint in its tree");
     }
 
-    /// <summary>
-    /// Throws an <see cref="ObjectDisposedException"/> if this <see cref="ImGUIElement"/> has already been disposed
-    /// </summary>
-    /// <exception cref="ObjectDisposedException"></exception>
-    protected void ThrowIfDisposed()
-    {
-        if (disposedValue)
-            throw new ObjectDisposedException(GetType().FullName);
-    }
-
     internal bool disposedValue;
-
-    /// <summary>
-    /// Disposes of this <see cref="ImGUIElement"/>'s resources
-    /// </summary>
-    /// <remarks>
-    /// Dispose of any additional resources your subtype allocates
-    /// </remarks>
-    protected virtual void Dispose(bool disposing) { }
 
     private readonly object disposedValueLock = new();
     private void InternalDispose(bool disposing, bool root)
@@ -356,7 +278,7 @@ public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsC
     }
 
     /// <summary>
-    /// Disposes of this <see cref="ImGUIElement"/>'s resources
+    /// Disposes of this <see cref="ImGUIElement{TGraphicsContext}"/>'s resources
     /// </summary>
     public void Dispose() => InternalDispose(true);
 

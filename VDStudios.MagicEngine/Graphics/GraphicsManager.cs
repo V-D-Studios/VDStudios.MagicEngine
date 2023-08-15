@@ -1,18 +1,17 @@
-﻿using SDL2.NET;
-using SDL2.NET.Input;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Exceptions;
+using VDStudios.MagicEngine.Input;
 using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Graphics;
 
 /// <summary>
-/// Represents a Thread dedicated solely to handling a specific pair of <see cref="SDL2.NET.Window"/> and <see cref="GraphicsDevice"/>, and managing their respective resources in a thread-safe manner
+/// Represents a Thread dedicated solely to handling a window or equivalent, and managing their respective resources in a thread-safe manner
 /// </summary>
 /// <remarks>
 /// *ALL* Graphics Managers are automatically managed by <see cref="Game"/>, registered at the time of construction
@@ -23,18 +22,18 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     #region Construction
 
     /// <summary>
-    /// Represents the <see cref="DeferredExecutionSchedule"/> tied to this <see cref="GraphicsManager"/>, and can be used to defer calls that should run under this <see cref="GraphicsManager"/>'s loop. 
+    /// Represents the <see cref="DeferredExecutionSchedule"/> tied to this <see cref="GraphicsManager{TGraphicsContext}"/>, and can be used to defer calls that should run under this <see cref="GraphicsManager{TGraphicsContext}"/>'s loop. 
     /// </summary>
     /// <remarks>
-    /// This schedule is updated every frame, as such, it's subject to the framerate of this <see cref="GraphicsManager"/>, which, depending on configuration, can vary between the <see cref="GraphicsDevice"/> vertical refresh rate, or as fast as it can run. ---- Not to be confused with <see cref="Game.DeferredCallSchedule"/> (or <see cref="GameObject.GameDeferredCallSchedule"/>, which is the same)
+    /// This schedule is updated every frame, as such, it's subject to the framerate of this <see cref="GraphicsManager{TGraphicsContext}"/>, which, depending on configuration, can vary between the <see cref="GraphicsDevice"/> vertical refresh rate, or as fast as it can run. ---- Not to be confused with <see cref="Game.DeferredCallSchedule"/> (or <see cref="GameObject.GameDeferredCallSchedule"/>, which is the same)
     /// </remarks>
     public DeferredExecutionSchedule DeferredCallSchedule { get; }
     private readonly Func<ValueTask> DeferredCallScheduleUpdater;
 
     /// <summary>
-    /// Instances and constructs a new <see cref="GraphicsManager"/> object
+    /// Instances and constructs a new <see cref="GraphicsManager{TGraphicsContext}"/> object
     /// </summary>
-    /// <param name="commandListGroups">The CommandList group definitions for this <see cref="GraphicsManager"/></param>
+    /// <param name="commandListGroups">The CommandList group definitions for this <see cref="GraphicsManager{TGraphicsContext}"/></param>
     public GraphicsManager(ImmutableArray<CommandListGroupDefinition> commandListGroups) : base("Graphics & Input", "Rendering")
     {
         if (commandListGroups.Length <= 0)
@@ -66,16 +65,16 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     }
 
     /// <summary>
-    /// Instances and constructs a new <see cref="GraphicsManager"/> object
+    /// Instances and constructs a new <see cref="GraphicsManager{TGraphicsContext}"/> object
     /// </summary>
-    /// <param name="commandListGroups">The CommandList group definitions for this <see cref="GraphicsManager"/>. This array will be copied and turned into an <see cref="ImmutableArray{T}"/></param>
-    public GraphicsManager(params CommandListGroupDefinition[] commandListGroups) : this(ImmutableArray.Create(commandListGroups)) { }
+    /// <param name="commandListGroups">The CommandList group definitions for this <see cref="GraphicsManager{TGraphicsContext}"/>. This array will be copied and turned into an <see cref="ImmutableArray{T}"/></param>
+    public GraphicsManager<TGraphicsContext>(params CommandListGroupDefinition[] commandListGroups) : this(ImmutableArray.Create(commandListGroups)) { }
 
     /// <summary>
-    /// Instances and constructs a new <see cref="GraphicsManager"/> object
+    /// Instances and constructs a new <see cref="GraphicsManager{TGraphicsContext}"/> object
     /// </summary>
     /// <param name="parallelism">The degree of parallelism to assign to the single <see cref="CommandListGroupDefinition"/> this constructor will create</param>
-    public GraphicsManager(int parallelism) : this(ImmutableArray.Create(new CommandListGroupDefinition(parallelism))) { }
+    public GraphicsManager<TGraphicsContext>(int parallelism) : this(ImmutableArray.Create(new CommandListGroupDefinition(parallelism))) { }
 
     private readonly SemaphoreSlim initLock = new(1, 1);
 
@@ -90,7 +89,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     #region Parallel Rendering
 
     /// <summary>
-    /// The maximum degree of parallel rendering to use for this <see cref="GraphicsManager"/>
+    /// The maximum degree of parallel rendering to use for this <see cref="GraphicsManager{TGraphicsContext}"/>
     /// </summary>
     public ImmutableArray<CommandListGroupDefinition> CommandListGroups { get; }
 
@@ -101,7 +100,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     #region Public Properties
 
     /// <summary>
-    /// Whether the <see cref="GraphicsManager"/> should stop rendering when it loses input focus
+    /// Whether the <see cref="GraphicsManager{TGraphicsContext}"/> should stop rendering when it loses input focus
     /// </summary>
     public bool PauseOnInputLoss { get; set; }
 
@@ -121,17 +120,17 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     internal ResourceLayout DrawOpTransLayout { get; private set; }
 
     /// <summary>
-    /// The the default resource cache for this <see cref="GraphicsManager"/>
+    /// The the default resource cache for this <see cref="GraphicsManager{TGraphicsContext}"/>
     /// </summary>
     public DefaultResourceCache DefaultResourceCache { get; }
 
     /// <summary>
-    /// This <see cref="GraphicsManager"/>'s render targets
+    /// This <see cref="GraphicsManager{TGraphicsContext}"/>'s render targets
     /// </summary>
     public RenderTargetList RenderTargets { get; }
 
     /// <summary>
-    /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager"/> is running
+    /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager{TGraphicsContext}"/> is running
     /// </summary>
     public float FramesPerSecond => fak.Average;
     private readonly FloatAverageKeeper fak = new(10);
@@ -146,25 +145,25 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     #region Public
 
     /// <summary>
-    /// Register <paramref name="operation"/> into this <see cref="GraphicsManager"/> to be drawn
+    /// Register <paramref name="operation"/> into this <see cref="GraphicsManager{TGraphicsContext}"/> to be drawn
     /// </summary>
     /// <remarks>
-    /// Remember than any single <see cref="DrawOperation"/> can only be assigned to one <see cref="GraphicsManager"/>, and can only be deregistered after disposing. <see cref="DrawOperation"/>s should not be dropped, as <see cref="GraphicsManager"/>s only keep <see cref="WeakReference"/>s to them
+    /// Remember than any single <see cref="DrawOperation"/> can only be assigned to one <see cref="GraphicsManager{TGraphicsContext}"/>, and can only be deregistered after disposing. <see cref="DrawOperation"/>s should not be dropped, as <see cref="GraphicsManager{TGraphicsContext}"/>s only keep <see cref="WeakReference"/>s to them
     /// </remarks>
-    /// <param name="operation">The <see cref="DrawOperation"/> that will be drawn in this <see cref="GraphicsManager"/></param>
+    /// <param name="operation">The <see cref="DrawOperation"/> that will be drawn in this <see cref="GraphicsManager{TGraphicsContext}"/></param>
     internal void QueueOperationRegistration(DrawOperation operation)
     {
         if (operation._clga >= CommandListGroups.Length)
-            throw new InvalidOperationException($"This GraphicsManager only has {CommandListGroups.Length} CommandList groups [0-{CommandListGroups.Length - 1}], an operation with a CommandListGroupAffinity of {operation._clga} cannot be registered.");
+            throw new InvalidOperationException($"This GraphicsManager<TGraphicsContext> only has {CommandListGroups.Length} CommandList groups [0-{CommandListGroups.Length - 1}], an operation with a CommandListGroupAffinity of {operation._clga} cannot be registered.");
         operation.AssignManager(this);
         lock (DOPRegistrationBuffer)
             DOPRegistrationBuffer.Add(operation);
     }
 
     /// <summary>
-    /// Queues <paramref name="resource"/> for registration in this <see cref="GraphicsManager"/>
+    /// Queues <paramref name="resource"/> for registration in this <see cref="GraphicsManager{TGraphicsContext}"/>
     /// </summary>
-    /// <param name="resource">The <see cref="SharedDrawResource"/> that will be registered onto this <see cref="GraphicsManager"/></param>
+    /// <param name="resource">The <see cref="SharedDrawResource"/> that will be registered onto this <see cref="GraphicsManager{TGraphicsContext}"/></param>
     public void RegisterSharedDrawResource(SharedDrawResource resource)
     {
         resource.ThrowIfAlreadyRegistered();
@@ -174,9 +173,9 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     }
 
     /// <summary>
-    /// Queues all of the <see cref="SharedDrawResource"/>s in <paramref name="resources"/> for registration in this <see cref="GraphicsManager"/>
+    /// Queues all of the <see cref="SharedDrawResource"/>s in <paramref name="resources"/> for registration in this <see cref="GraphicsManager{TGraphicsContext}"/>
     /// </summary>
-    /// <param name="resources">The <see cref="SharedDrawResource"/>s that will be registered onto this <see cref="GraphicsManager"/></param>
+    /// <param name="resources">The <see cref="SharedDrawResource"/>s that will be registered onto this <see cref="GraphicsManager{TGraphicsContext}"/></param>
     public void RegisterSharedDrawResource(IEnumerable<SharedDrawResource> resources)
     {
         lock (SDRRegistrationBuffer)
@@ -315,17 +314,17 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     private ImGuiController ImGuiController;
 
     /// <summary>
-    /// Represents the <see cref="ImGUIElement"/>s currently held by this <see cref="GraphicsManager"/>
+    /// Represents the <see cref="ImGUIElement"/>s currently held by this <see cref="GraphicsManager{TGraphicsContext}"/>
     /// </summary>
     /// <remarks>
-    /// A <see cref="GraphicsManager"/>
+    /// A <see cref="GraphicsManager{TGraphicsContext}"/>
     /// </remarks>
     public GUIElementList GUIElements { get; } = new();
 
     /// <summary>
-    /// Adds a <see cref="ImGUIElement"/> <paramref name="element"/> to this <see cref="GraphicsManager"/>
+    /// Adds a <see cref="ImGUIElement"/> <paramref name="element"/> to this <see cref="GraphicsManager{TGraphicsContext}"/>
     /// </summary>
-    /// <param name="element">The <see cref="ImGUIElement"/> to add as an element of this <see cref="GraphicsManager"/></param>
+    /// <param name="element">The <see cref="ImGUIElement"/> to add as an element of this <see cref="GraphicsManager{TGraphicsContext}"/></param>
     /// <param name="context">The DataContext to give to <paramref name="element"/>, or null if it's to use its previously set DataContext or inherit it from this <see cref="ImGUIElement"/></param>
     public void AddElement(ImGUIElement element, object? context = null)
     {
@@ -344,7 +343,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// Waits until the Manager finishes drawing its <see cref="DrawOperation"/>s and locks it
     /// </summary>
     /// <remarks>
-    /// *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
+    /// *ALWAYS* wrap the disposable object this method returns in an using statement. The <see cref="GraphicsManager{TGraphicsContext}"/> will stay locked forever if it's not disposed of
     /// </remarks>
     /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
     public IDisposable LockManagerDrawing()
@@ -357,7 +356,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// Asynchronously waits until the Manager finishes drawing its <see cref="DrawOperation"/>s and locks it
     /// </summary>
     /// <remarks>
-    /// *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
+    /// *ALWAYS* wrap the disposable object this method returns in an using statement. The <see cref="GraphicsManager{TGraphicsContext}"/> will stay locked forever if it's not disposed of
     /// </remarks>
     /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
     public async Task<IDisposable> LockManagerDrawingAsync()
@@ -375,7 +374,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// Waits until the Manager finishes drawing its <see cref="ImGUIElement"/>s and locks it
     /// </summary>
     /// <remarks>
-    /// *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
+    /// *ALWAYS* wrap the disposable object this method returns in an using statement. The <see cref="GraphicsManager{TGraphicsContext}"/> will stay locked forever if it's not disposed of
     /// </remarks>
     /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
     public IDisposable LockManagerGUI()
@@ -388,7 +387,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// Asynchronously waits until the Manager finishes drawing its <see cref="ImGUIElement"/>s and locks it
     /// </summary>
     /// <remarks>
-    /// *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
+    /// *ALWAYS* wrap the disposable object this method returns in an using statement. The <see cref="GraphicsManager{TGraphicsContext}"/> will stay locked forever if it's not disposed of
     /// </remarks>
     /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
     public async Task<IDisposable> LockManagerGUIAsync()
@@ -406,7 +405,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// Waits until the Manager finishes drawing the current frame and locks it
     /// </summary>
     /// <remarks>
-    /// Neither general drawing or GUI will be drawn until the frame is released. *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
+    /// Neither general drawing or GUI will be drawn until the frame is released. *ALWAYS* wrap the disposable object this method returns in an using statement. The <see cref="GraphicsManager{TGraphicsContext}"/> will stay locked forever if it's not disposed of
     /// </remarks>
     /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
     public IDisposable LockManagerFrame()
@@ -419,7 +418,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// Asynchronously waits until the Manager finishes drawing the current frame and locks it
     /// </summary>
     /// <remarks>
-    /// Neither general drawing or GUI will be drawn until the frame is released. *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
+    /// Neither general drawing or GUI will be drawn until the frame is released. *ALWAYS* wrap the disposable object this method returns in an using statement. The <see cref="GraphicsManager{TGraphicsContext}"/> will stay locked forever if it's not disposed of
     /// </remarks>
     /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
     public async Task<IDisposable> LockManagerFrameAsync()
@@ -527,7 +526,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     #region Public Properties
 
     /// <summary>
-    /// Whether this <see cref="GraphicsManager"/> is currently running
+    /// Whether this <see cref="GraphicsManager{TGraphicsContext}"/> is currently running
     /// </summary>
     public bool IsRunning { get; private set; } = true;
 
@@ -541,14 +540,14 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     #region Public Methods
 
     ///// <summary>
-    ///// Attempts to stop the current <see cref="GraphicsManager"/>'s draw loop
+    ///// Attempts to stop the current <see cref="GraphicsManager{TGraphicsContext}"/>'s draw loop
     ///// </summary>
-    ///// <returns><c>true</c> if the <see cref="GraphicsManager"/> was succesfully stopped, <c>false</c> otherwise</returns>
+    ///// <returns><c>true</c> if the <see cref="GraphicsManager{TGraphicsContext}"/> was succesfully stopped, <c>false</c> otherwise</returns>
     //public bool TryPause()
     //{
     //    lock (sync)
     //        if (!IsRunning)
-    //            throw new InvalidOperationException($"Can't stop a GraphicsManager that is not running");
+    //            throw new InvalidOperationException($"Can't stop a GraphicsManager<TGraphicsContext> that is not running");
 
     //    if (TryingToStop())
     //    {
@@ -568,28 +567,28 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     #region Reaction Methods
 
     ///// <summary>
-    ///// This method is called automatically when this <see cref="GraphicsManager"/> has received a request to stop
+    ///// This method is called automatically when this <see cref="GraphicsManager{TGraphicsContext}"/> has received a request to stop
     ///// </summary>
-    ///// <returns><c>true</c> if the <see cref="GraphicsManager"/> should be allowed to stop, <c>false</c> otherwise</returns>
+    ///// <returns><c>true</c> if the <see cref="GraphicsManager{TGraphicsContext}"/> should be allowed to stop, <c>false</c> otherwise</returns>
     //protected virtual bool TryingToStop() => true;
 
     /// <summary>
-    /// This method is called automatically when this <see cref="GraphicsManager"/> is about to start
+    /// This method is called automatically when this <see cref="GraphicsManager{TGraphicsContext}"/> is about to start
     /// </summary>
     /// <remarks>
-    /// A <see cref="GraphicsManager"/> starts only at the beginning of the first frame it can, and it's done from the default thread
+    /// A <see cref="GraphicsManager{TGraphicsContext}"/> starts only at the beginning of the first frame it can, and it's done from the default thread
     /// </remarks>
     protected virtual void Starting() { }
 
     /// <summary>
-    /// This method is called automatically every frame this <see cref="GraphicsManager"/> is active
+    /// This method is called automatically every frame this <see cref="GraphicsManager{TGraphicsContext}"/> is active
     /// </summary>
     protected virtual void Running() { }
 
     /// <summary>
     /// Creates a <see cref="CommandList"/> for internal use. This method may be used to create multiple <see cref="CommandList"/>s at discretion
     /// </summary>
-    /// <param name="device">The device of the attached <see cref="GraphicsManager"/></param>
+    /// <param name="device">The device of the attached <see cref="GraphicsManager{TGraphicsContext}"/></param>
     /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
     protected virtual CommandList CreateCommandList(GraphicsDevice device, ResourceFactory factory)
         => factory.CreateCommandList();
@@ -601,7 +600,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// <paramref name="commandlist"/> is begun, ended and submitted automatically. <see cref="CommandList.SetFramebuffer(Framebuffer)"/> is not called, however.
     /// </remarks>
     /// <param name="commandlist">The <see cref="CommandList"/> for this call. It's ended, begun and submitted automatically, so you don't need to worry about it. <see cref="CommandList.SetFramebuffer(Framebuffer)"/> is not called, however.</param>
-    /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
+    /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager{TGraphicsContext}"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
     protected virtual void PrepareForDraw(CommandList commandlist, Framebuffer mainBuffer)
     {
         commandlist.SetFramebuffer(mainBuffer);
@@ -1066,7 +1065,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
             sw.Restart();
         }
 
-        Debug.Assert(IsRunning is false, "The main rendering loop broke even though the GraphicsManager is still supposed to be running");
+        Debug.Assert(IsRunning is false, "The main rendering loop broke even though the GraphicsManager<TGraphicsContext> is still supposed to be running");
         InternalLog?.Information("Exiting main rendering loop and disposing");
 
         Dispose();
@@ -1082,20 +1081,20 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     #region Events
 
     ///// <summary>
-    ///// Fired when <see cref="GraphicsManager"/> start
+    ///// Fired when <see cref="GraphicsManager{TGraphicsContext}"/> start
     ///// </summary>
     ///// <remarks>
     ///// Specifically, when <see cref="IsRunning"/> is set to <c>true</c>
     ///// </remarks>
-    //public GraphicsManagerRunStateChanged? Started;
+    //public GraphicsManager<TGraphicsContext>RunStateChanged? Started;
 
     ///// <summary>
-    ///// Fired when <see cref="GraphicsManager"/> stops
+    ///// Fired when <see cref="GraphicsManager{TGraphicsContext}"/> stops
     ///// </summary>
     ///// <remarks>
     ///// Specifically, when <see cref="IsRunning"/> is set to <c>false</c>
     ///// </remarks>
-    //public GraphicsManagerRunStateChanged? Stopped;
+    //public GraphicsManager<TGraphicsContext>RunStateChanged? Stopped;
 
     ///// <summary>
     ///// Fired when <see cref="IsRunning"/> changes
@@ -1103,7 +1102,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     ///// <remarks>
     ///// Fired after <see cref="Started"/> or <see cref="Stopped"/>
     ///// </remarks>
-    //public GraphicsManagerRunStateChanged? RunStateChanged;
+    //public GraphicsManager<TGraphicsContext>RunStateChanged? RunStateChanged;
 
     #endregion
 
@@ -1167,7 +1166,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// <c>true</c> if <see cref="Window"/> is currently visible, or shown. <c>false</c> otherwise.
     /// </summary>
     /// <remarks>
-    /// This <see cref="GraphicsManager"/> will *NOT* run or update while <see cref="Window"/> is inactive
+    /// This <see cref="GraphicsManager{TGraphicsContext}"/> will *NOT* run or update while <see cref="Window"/> is inactive
     /// </remarks>
     public bool IsWindowAvailable { get; private set; }
 
@@ -1177,7 +1176,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     public bool HasFocus { get; private set; }
 
     /// <summary>
-    /// Whether the current <see cref="GraphicsManager"/> should currently be updating or not
+    /// Whether the current <see cref="GraphicsManager{TGraphicsContext}"/> should currently be updating or not
     /// </summary>
     public bool IsRendering => IsWindowAvailable && (!PauseOnInputLoss || HasFocus);
 
@@ -1196,7 +1195,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// This method is automatically called during this object's construction, creates a <see cref="SDL2.NET.Window"/> and <see cref="GraphicsDevice"/> to be used as <see cref="Window"/> and <see cref="Device"/> respectively
     /// </summary>
     /// <remarks>
-    /// Do not call any <see cref="GraphicsManager"/> methods from here, it may cause a deadlock! The <see cref="Window"/> and <see cref="GraphicsDevice"/> here produced are expected to be unique and owned exclusively by this <see cref="GraphicsManager"/>. Issues may arise if this is not so. It's better if you don't call base <see cref="CreateWindow"/>. This is called, specifically, by <see cref="GraphicsManager"/>'s constructor. If this is a derived type, know that this method will be called by the first constructor in the hierarchy, and NOT after your type's constructor
+    /// Do not call any <see cref="GraphicsManager{TGraphicsContext}"/> methods from here, it may cause a deadlock! The <see cref="Window"/> and <see cref="GraphicsDevice"/> here produced are expected to be unique and owned exclusively by this <see cref="GraphicsManager{TGraphicsContext}"/>. Issues may arise if this is not so. It's better if you don't call base <see cref="CreateWindow"/>. This is called, specifically, by <see cref="GraphicsManager{TGraphicsContext}"/>'s constructor. If this is a derived type, know that this method will be called by the first constructor in the hierarchy, and NOT after your type's constructor
     /// </remarks>
     protected virtual void CreateWindow(out Window mainWindow, out GraphicsDevice graphicsDevice)
     {
