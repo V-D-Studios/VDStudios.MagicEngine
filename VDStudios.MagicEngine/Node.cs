@@ -18,7 +18,7 @@ public abstract class Node : GameObject, IDisposable
     /// <summary>
     /// Initializes basic properties and fields to give a <see cref="Node"/> its default functionality
     /// </summary>
-    protected Node() : base("Game Node Tree", "Update")
+    protected Node(Game game) : base(game, "Game Node Tree", "Update")
     {
         ReadySemaphore = new(0, 1);
     }
@@ -422,6 +422,8 @@ public abstract class Node : GameObject, IDisposable
     /// <param name="rootScene">The <see cref="Scene"/> to attach into</param>
     public async ValueTask AttachTo(Scene rootScene)
     {
+        GameMismatchException.ThrowIfMismatch(this, rootScene);
+
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfAttached();
 

@@ -14,7 +14,7 @@ namespace VDStudios.MagicEngine.Internal;
 /// </remarks>
 public abstract class GraphicsManager : GameObject
 {
-    internal GraphicsManager() : base("Graphics & Input", "Rendering")
+    internal GraphicsManager(Game game) : base(game, "Graphics & Input", "Rendering")
     {
         snapshotBuffer = CreateNewEmptyInputSnapshotBuffer();
         initLock.Wait();

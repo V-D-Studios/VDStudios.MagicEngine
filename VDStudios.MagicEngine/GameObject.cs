@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using Serilog;
+using VDStudios.MagicEngine.Internal;
 using VDStudios.MagicEngine.Logging;
 
 namespace VDStudios.MagicEngine;
@@ -10,7 +11,7 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// This class cannot be inherited directly by user code
 /// </remarks>
-public abstract class GameObject : IDisposable
+public abstract class GameObject : IDisposable, IGameObject
 {
     private object? ____sync;
     private readonly Lazy<ILogger> logSync;
@@ -19,9 +20,7 @@ public abstract class GameObject : IDisposable
 
     internal object Sync => ____sync ??= new();
 
-    /// <summary>
-    /// An optional name for debugging purposes
-    /// </summary>
+    /// <inheritdoc/>
     public string? Name { get; init; }
 
     /// <summary>
@@ -29,13 +28,14 @@ public abstract class GameObject : IDisposable
     /// </summary>
     /// <param name="area">Logging information. The area the GameObject belongs to</param>
     /// <param name="facility">Logging information. The facility the GameObject operates for</param>
-    internal GameObject(string facility, string area)
+    /// <param name="game">The game this <see cref="GameObject"/> belongs to</param>
+    internal GameObject(Game game, string facility, string area)
     {
         ArgumentException.ThrowIfNullOrEmpty(area);
         ArgumentException.ThrowIfNullOrEmpty(facility);
         logSync = new(InternalCreateLogger, LazyThreadSafetyMode.ExecutionAndPublication);
-        Game = Game.Instance;
         Facility = facility;
+        Game = game;
         Area = area;
         Random = Game.Random;
         GameDeferredCallSchedule = Game.DeferredCallSchedule;
@@ -93,10 +93,8 @@ public abstract class GameObject : IDisposable
     protected virtual ILogger CreateLogger(ILogger gameLogger, string area, string facility)
         => new GameLogger(gameLogger, area, facility, Name, GetType());
 
-    /// <summary>
-    /// The <see cref="MagicEngine.Game"/> this <see cref="GameObject"/> belongs to. Same as<see cref="SDL2.NET.SDLApplication{TApp}.Instance"/>
-    /// </summary>
-    protected Game Game { get; }
+    /// <inheritdoc/>
+    public Game Game { get; }
 
     private ILogger InternalCreateLogger()
         => CreateLogger(Game.Logger, Area, Facility);
@@ -113,9 +111,7 @@ public abstract class GameObject : IDisposable
             throw new ObjectDisposedException(GetType().Name);
     }
 
-    /// <summary>
-    /// <see langword="true"/> if this <see cref="GameObject"/> has already been disposed of
-    /// </summary>
+    /// <inheritdoc/>
     public bool IsDisposed { get; private set; }
 
     /// <summary>
@@ -161,12 +157,7 @@ public abstract class GameObject : IDisposable
     /// <param name="disposing">Whether this method was called through <see cref="IDisposable.Dispose"/> or by the GC calling this object's finalizer</param>
     protected virtual void Dispose(bool disposing) { }
 
-    /// <summary>
-    /// Fired right before this <see cref="GameObject"/> is disposed
-    /// </summary>
-    /// <remarks>
-    /// While .NET allows fire-and-forget async methods in these events (<c><see langword="async void"/></c>), this is *NOT* recommended, as it's almost guaranteed the <see cref="GameObject"/> will be fully disposed before the async portion of your code gets a chance to run
-    /// </remarks>
+    /// <inheritdoc/>
     public event GeneralGameEvent<GameObject>? AboutToDispose;
 
     #endregion

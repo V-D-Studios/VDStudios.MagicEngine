@@ -59,7 +59,6 @@
 	  <PackageReference Include="ConfigureAwait.Fody" Version="3.3.2">
 		<PrivateAssets>all</PrivateAssets>
 	  </PackageReference>
-	  <PackageReference Include="ImGui.NET" Version="1.89.4" />
 	  <PackageReference Include="MessagePack" Version="2.5.108" />
 	  <PackageReference Include="MessagePackAnalyzer" Version="2.5.108">
 		<PrivateAssets>all</PrivateAssets>

@@ -20,7 +20,7 @@ public abstract class Scene : GameObject, IDisposable
     /// <summary>
     /// Instances and Initializes the current <see cref="Scene"/>
     /// </summary>
-    public Scene() : base("Game Scene", "Update")
+    public Scene(Game game) : base(game, "Game Scene", "Update")
     {
         Children = NodeList.Empty.Clone();
         Game.SetupScenes += OnGameSetupScenes;

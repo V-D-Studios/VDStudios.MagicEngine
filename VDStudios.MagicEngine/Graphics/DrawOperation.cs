@@ -17,7 +17,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// <summary>
     /// Instances a new object of type <see cref="DrawOperation{TGraphicsContext}"/>
     /// </summary>
-    public DrawOperation() : base("Drawing")
+    public DrawOperation(Game game) : base(game, "Drawing")
     {
     }
 

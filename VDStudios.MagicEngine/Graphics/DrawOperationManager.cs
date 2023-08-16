@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Graphics;
@@ -16,7 +17,7 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     /// </summary>
     /// <param name="owner">The <see cref="IDrawableNode{TGraphicsContext}"/> that owns this <see cref="DrawOperationManager{TGraphicsContext}"/></param>
     protected DrawOperationManager(IDrawableNode<TGraphicsContext> owner)
-        : base("Rendering & Game Scene", "Draw Operations")
+        : base(owner.Game, "Rendering & Game Scene", "Draw Operations")
     {
         if (owner is not Node n)
             throw new InvalidOperationException($"The owner of a DrawOperationManager must be a node");
@@ -130,6 +131,8 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
             ??= Game.MainGraphicsManager is GraphicsManager<TGraphicsContext> mgm
             ? mgm
             : throw new InvalidOperationException($"If the Game's MainGraphicsManager is not of type {typeof(GraphicsManager<TGraphicsContext>)}, then a non-null argument MUST be provided");
+
+        GameMismatchException.ThrowIfMismatch(graphicsManager, operation, this);
 
         InternalLog?.Debug("Adding a new DrawOperation {objName}-{type}", operation.Name ?? "", operation.GetTypeName());
         operation.SetOwner(this);

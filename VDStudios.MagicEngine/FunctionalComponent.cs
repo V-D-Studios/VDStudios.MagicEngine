@@ -16,8 +16,8 @@ public abstract class FunctionalComponent : GameObject
     /// <summary>
     /// Instances a new <see cref="FunctionalComponent"/> and installs it onto <see cref="Node"/>
     /// </summary>
-    /// <param name="node"></param>
-    public FunctionalComponent(Node node) : base("Node Functionality", "Update")
+    /// <param name="node">The node this <see cref="FunctionalComponent"/> is going to be attached to</param>
+    public FunctionalComponent(Node node) : base(node.Game, "Node Functionality", "Update")
     {
         Owner = node;
     }

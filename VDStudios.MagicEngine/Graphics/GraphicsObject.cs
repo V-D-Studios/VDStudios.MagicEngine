@@ -1,4 +1,6 @@
-﻿namespace VDStudios.MagicEngine.Graphics;
+﻿using VDStudios.MagicEngine.Exceptions;
+
+namespace VDStudios.MagicEngine.Graphics;
 
 /// <summary>
 /// Represents the base class for graphical operations, such as <see cref="DrawOperation{TGraphicsContext}"/>, <see cref="ImGUIElement"/>
@@ -9,7 +11,7 @@
 public abstract class GraphicsObject<TGraphicsContext> : GameObject
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
-    internal GraphicsObject(string facility) : base(facility, "Rendering")
+    internal GraphicsObject(Game game, string facility) : base(game, facility, "Rendering")
     {
         ReadySemaphore = new(0, 1);
     }
@@ -40,6 +42,8 @@ public abstract class GraphicsObject<TGraphicsContext> : GameObject
                 throw new InvalidOperationException("This GraphicsObject is already registered on a GraphicsManager<TGraphicsContext>");
             isRegistered = true;
             Manager = manager;
+
+            GameMismatchException.ThrowIfMismatch(manager, this);
         }
     }
 
@@ -51,6 +55,8 @@ public abstract class GraphicsObject<TGraphicsContext> : GameObject
                 throw new InvalidOperationException("This GraphicsObject was not properly assigned a GraphicsManager");
             if (!ReferenceEquals(manager, Manager))
                 throw new InvalidOperationException("Cannot register a GraphicsObject under a different GraphicsManager than it was first queued to. This is likely a library bug.");
+
+            GameMismatchException.ThrowIfMismatch(manager, this);
         }
     }
 

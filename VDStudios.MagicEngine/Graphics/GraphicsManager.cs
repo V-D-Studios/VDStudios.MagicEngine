@@ -36,7 +36,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// <summary>
     /// Instances and constructs a new <see cref="GraphicsManager{TGraphicsContext}"/> object
     /// </summary>
-    public GraphicsManager() : base()
+    public GraphicsManager(Game game) : base(game)
     {
         RenderTargets = new(this);
 
