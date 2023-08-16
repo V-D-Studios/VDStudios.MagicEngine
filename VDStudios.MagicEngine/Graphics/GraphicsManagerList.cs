@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Graphics;
 
@@ -6,17 +7,16 @@ namespace VDStudios.MagicEngine.Graphics;
 /// Represents a list of <see cref="GraphicsManager{TGraphicsContext}"/>s in a <see cref="Game"/>
 /// </summary>
 /// <remarks>
-/// This class cannot be inherited. This class cannot be instanced by user code. <see cref="GraphicsManagerList{TGraphicsContext}"/> is not very performant, and should not be used in hot paths
+/// This class cannot be inherited. This class cannot be instanced by user code. <see cref="GraphicsManagerList"/> is not very performant, and should not be used in hot paths
 /// </remarks>
-public sealed class GraphicsManagerList<TGraphicsContext> : IReadOnlyList<GraphicsManager<TGraphicsContext>>
-    where TGraphicsContext : GraphicsContext<TGraphicsContext>
+public sealed class GraphicsManagerList : IReadOnlyList<GraphicsManager>
 {
-    private readonly LinkedList<GraphicsManager<TGraphicsContext>> Managers = new();
+    private readonly LinkedList<GraphicsManager> Managers = new();
 
     #region Public
 
     /// <inheritdoc/>
-    public GraphicsManager<TGraphicsContext> this[int index]
+    public GraphicsManager this[int index]
     {
         get
         {
@@ -31,7 +31,7 @@ public sealed class GraphicsManagerList<TGraphicsContext> : IReadOnlyList<Graphi
     public int Count => Managers.Count;
 
     /// <inheritdoc/>
-    public IEnumerator<GraphicsManager<TGraphicsContext>> GetEnumerator()
+    public IEnumerator<GraphicsManager> GetEnumerator()
     {
         var managers = Managers;
         var current = managers.First;
@@ -49,7 +49,7 @@ public sealed class GraphicsManagerList<TGraphicsContext> : IReadOnlyList<Graphi
 
     #region Internal
 
-    internal void Remove(GraphicsManager<TGraphicsContext> manager)
+    internal void Remove(GraphicsManager manager)
     {
         lock (Managers)
             Managers.Remove(manager);
@@ -61,7 +61,7 @@ public sealed class GraphicsManagerList<TGraphicsContext> : IReadOnlyList<Graphi
             Managers.Remove(Managers.ElementAt(index));
     }
 
-    internal void Add(GraphicsManager<TGraphicsContext> manager)
+    internal void Add(GraphicsManager manager)
     {
         lock (Managers)
             Managers.AddLast(manager);

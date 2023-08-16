@@ -99,9 +99,8 @@ public delegate void GameEvent(Game game, TimeSpan timestamp);
 /// </summary>
 /// <param name="game">The <see cref="Game"/> that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since the library's initialization and this event firing</param>
-/// <param name="graphicsManager">The <see cref="GraphicsManager{TGraphicsContext}"/> that was created</param>
-public delegate void GameMainGraphicsManagerCreatedEvent<TGraphicsContext>(Game game, TimeSpan timestamp, GraphicsManager<TGraphicsContext> graphicsManager)
-    where TGraphicsContext : GraphicsContext<TGraphicsContext>;
+/// <param name="graphicsManager">The <see cref="GraphicsManager"/> that was created</param>
+public delegate void GameGraphicsManagerCreatedEvent(Game game, TimeSpan timestamp, GraphicsManager graphicsManager);
 
 /// <summary>
 /// Represents an event in the game regarding the <see cref="Game"/>'s <see cref="IGameLifetime"/>

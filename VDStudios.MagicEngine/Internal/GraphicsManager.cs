@@ -1,5 +1,7 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Input;
 
 namespace VDStudios.MagicEngine.Internal;
@@ -15,6 +17,8 @@ public abstract class GraphicsManager : GameObject
     internal GraphicsManager() : base("Graphics & Input", "Rendering")
     {
         snapshotBuffer = CreateNewEmptyInputSnapshotBuffer();
+        initLock.Wait();
+        Game.graphicsManagersAwaitingSetup.Enqueue(this);
     }
 
     #region Input Management
@@ -43,7 +47,13 @@ public abstract class GraphicsManager : GameObject
     }
 
     private readonly SemaphoreSlim InputSemaphore = new(1, 1);
+
+    internal readonly SemaphoreSlim initLock = new(1, 1);
     private Task? InputPropagationTask;
+
+    
+    
+    private Task graphics_thread;
 
     /// <summary>
     /// Propagates input across all of <see cref="InputReady"/>'s subscribers
@@ -198,4 +208,131 @@ public abstract class GraphicsManager : GameObject
                 return false;
         return true;
     }
+
+    internal void WaitForInit()
+    {
+        initLock.Wait();
+        initLock.Release();
+    }
+
+        
+    internal async ValueTask AwaitIfFaulted()
+    {
+        if (graphics_thread.IsFaulted)
+            await graphics_thread;
+    }
+
+    
+    
+    ///// <summary>
+    ///// Fired when <see cref="GraphicsManager{TGraphicsContext}"/> start
+    ///// </summary>
+    ///// <remarks>
+    ///// Specifically, when <see cref="IsRunning"/> is set to <c>true</c>
+    ///// </remarks>
+    //public GraphicsManager<TGraphicsContext>RunStateChanged? Started;
+
+    ///// <summary>
+    ///// Fired when <see cref="GraphicsManager{TGraphicsContext}"/> stops
+    ///// </summary>
+    ///// <remarks>
+    ///// Specifically, when <see cref="IsRunning"/> is set to <c>false</c>
+    ///// </remarks>
+    //public GraphicsManager<TGraphicsContext>RunStateChanged? Stopped;
+
+    ///// <summary>
+    ///// Fired when <see cref="IsRunning"/> changes
+    ///// </summary>
+    ///// <remarks>
+    ///// Fired after <see cref="Started"/> or <see cref="Stopped"/>
+    ///// </remarks>
+    //public GraphicsManager<TGraphicsContext>RunStateChanged? RunStateChanged;
+
+    
+    
+    
+    /// <summary>
+    /// Performs task such as Creating and Setting up the Window
+    /// </summary>
+    [MemberNotNull(nameof(graphics_thread))]
+    protected abstract void SetupGraphicsManager();
+
+    ///////// <summary>
+    ///////// Gets the <see cref="IDrawableNode{TGraphicsContext}"/> from <see cref="Game.CurrentScene"/> that belong to this <see cref="GraphicsManager{TGraphicsContext}"/>
+    ///////// </summary>
+    //////public IEnumerable<IDrawableNode<TGraphicsContext>> GetDrawableNodesFromCurrentScene()
+    //////    => GetDrawableNodes(Game.CurrentScene);
+
+    ///////// <summary>
+    ///////// Gets the <see cref="IDrawableNode{TGraphicsContext}"/> from <paramref name="scene"/> that belong to this <see cref="GraphicsManager{TGraphicsContext}"/>
+    ///////// </summary>
+    ///////// <param name="scene">The <see cref="Scene"/> containing the drawable nodes</param>
+    //////public IEnumerable<IDrawableNode<TGraphicsContext>> GetDrawableNodes(Scene scene)
+    //////    => scene.GetDrawableNodes<TGraphicsContext>(this);
+
+    /// <summary>
+    /// This is run from the update thread
+    /// </summary>
+    [MemberNotNull(nameof(graphics_thread))]
+    internal void InternalStart()
+    {
+        InternalLog?.Information("Starting GraphicsManager");
+        Starting();
+
+        InternalLog?.Information("Setting up Window");
+        SetupGraphicsManager();
+        InternalLog?.Information("Running GraphicsManager");
+        graphics_thread = Task.Run(Run);
+
+        initLock.Release();
+    }
+
+    
+    
+    ///// <summary>
+    ///// Attempts to stop the current <see cref="GraphicsManager{TGraphicsContext}"/>'s draw loop
+    ///// </summary>
+    ///// <returns><c>true</c> if the <see cref="GraphicsManager{TGraphicsContext}"/> was succesfully stopped, <c>false</c> otherwise</returns>
+    //public bool TryPause()
+    //{
+    //    lock (sync)
+    //        if (!IsRunning)
+    //            throw new InvalidOperationException($"Can't stop a GraphicsManager<TGraphicsContext> that is not running");
+
+    //    if (TryingToStop())
+    //    {
+    //        lock (sync)
+    //            IsRunning = false;
+
+    //        Stopped?.Invoke(this, Game.TotalTime, false);
+    //        RunStateChanged?.Invoke(this, Game.TotalTime, false);
+    //        return true;
+    //    }
+
+    //    return false;
+    //}
+
+    
+    
+    ///// <summary>
+    ///// This method is called automatically when this <see cref="GraphicsManager{TGraphicsContext}"/> has received a request to stop
+    ///// </summary>
+    ///// <returns><c>true</c> if the <see cref="GraphicsManager{TGraphicsContext}"/> should be allowed to stop, <c>false</c> otherwise</returns>
+    //protected virtual bool TryingToStop() => true;
+
+    /// <summary>
+    /// This method is called automatically when this <see cref="GraphicsManager{TGraphicsContext}"/> is about to start
+    /// </summary>
+    /// <remarks>
+    /// A <see cref="GraphicsManager{TGraphicsContext}"/> starts only at the beginning of the first frame it can, and it's done from the default thread
+    /// </remarks>
+    protected virtual void Starting() { }
+
+    /// <summary>
+    /// The main running method of this <see cref="GraphicsManager{TGraphicsContext}"/>
+    /// </summary>
+    /// <remarks>
+    /// This is a very advanced method, the entire state of the GraphicsManager is dependent on this method and thus must be understood perfectly. This method will be called strictly once, as it is expected the rendering loop to run within it
+    /// </remarks>
+    protected abstract Task Run();
 }

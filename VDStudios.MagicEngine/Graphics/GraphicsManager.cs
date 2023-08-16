@@ -38,9 +38,6 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// </summary>
     public GraphicsManager() : base()
     {
-        initLock.Wait();
-        Game.graphicsManagersAwaitingSetup.Enqueue(this);
-
         RenderTargets = new(this);
 
         framelockWaiter = new(FrameLock);
@@ -50,14 +47,6 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
 
         IsRunningCheck = () => IsRunning;
         IsNotRenderingCheck = () => !IsRendering;
-    }
-
-    private readonly SemaphoreSlim initLock = new(1, 1);
-
-    internal void WaitForInit()
-    {
-        initLock.Wait();
-        initLock.Release();
     }
 
     #endregion
@@ -159,16 +148,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     }
 
     #endregion
-
     #region Running
-
-    private Task graphics_thread;
-
-    internal async ValueTask AwaitIfFaulted()
-    {
-        if (graphics_thread.IsFaulted)
-            await graphics_thread;
-    }
 
     #region Public Properties
 
@@ -183,49 +163,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     public abstract RgbaVector BackgroundColor { get; set; }
 
     #endregion
-
-    #region Public Methods
-
-    ///// <summary>
-    ///// Attempts to stop the current <see cref="GraphicsManager{TGraphicsContext}"/>'s draw loop
-    ///// </summary>
-    ///// <returns><c>true</c> if the <see cref="GraphicsManager{TGraphicsContext}"/> was succesfully stopped, <c>false</c> otherwise</returns>
-    //public bool TryPause()
-    //{
-    //    lock (sync)
-    //        if (!IsRunning)
-    //            throw new InvalidOperationException($"Can't stop a GraphicsManager<TGraphicsContext> that is not running");
-
-    //    if (TryingToStop())
-    //    {
-    //        lock (sync)
-    //            IsRunning = false;
-
-    //        Stopped?.Invoke(this, Game.TotalTime, false);
-    //        RunStateChanged?.Invoke(this, Game.TotalTime, false);
-    //        return true;
-    //    }
-
-    //    return false;
-    //}
-
-    #endregion
-
     #region Reaction Methods
-
-    ///// <summary>
-    ///// This method is called automatically when this <see cref="GraphicsManager{TGraphicsContext}"/> has received a request to stop
-    ///// </summary>
-    ///// <returns><c>true</c> if the <see cref="GraphicsManager{TGraphicsContext}"/> should be allowed to stop, <c>false</c> otherwise</returns>
-    //protected virtual bool TryingToStop() => true;
-
-    /// <summary>
-    /// This method is called automatically when this <see cref="GraphicsManager{TGraphicsContext}"/> is about to start
-    /// </summary>
-    /// <remarks>
-    /// A <see cref="GraphicsManager{TGraphicsContext}"/> starts only at the beginning of the first frame it can, and it's done from the default thread
-    /// </remarks>
-    protected virtual void Starting() { }
 
     /// <summary>
     /// This method is called automatically every frame this <see cref="GraphicsManager{TGraphicsContext}"/> is active
@@ -302,37 +240,6 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// </remarks>
     protected virtual void WindowSizeChanged(IntVector2 oldSize, IntVector2 newSize) { }
 
-#warning Revisit this
-    ///////// <summary>
-    ///////// Gets the <see cref="IDrawableNode{TGraphicsContext}"/> from <see cref="Game.CurrentScene"/> that belong to this <see cref="GraphicsManager{TGraphicsContext}"/>
-    ///////// </summary>
-    //////public IEnumerable<IDrawableNode<TGraphicsContext>> GetDrawableNodesFromCurrentScene()
-    //////    => GetDrawableNodes(Game.CurrentScene);
-
-    ///////// <summary>
-    ///////// Gets the <see cref="IDrawableNode{TGraphicsContext}"/> from <paramref name="scene"/> that belong to this <see cref="GraphicsManager{TGraphicsContext}"/>
-    ///////// </summary>
-    ///////// <param name="scene">The <see cref="Scene"/> containing the drawable nodes</param>
-    //////public IEnumerable<IDrawableNode<TGraphicsContext>> GetDrawableNodes(Scene scene)
-    //////    => scene.GetDrawableNodes<TGraphicsContext>(this);
-
-    /// <summary>
-    /// This is run from the update thread
-    /// </summary>
-    [MemberNotNull(nameof(graphics_thread))]
-    internal void InternalStart()
-    {
-        InternalLog?.Information("Starting GraphicsManager");
-        Starting();
-
-        InternalLog?.Information("Setting up Window");
-        SetupGraphicsManager();
-        InternalLog?.Information("Running GraphicsManager");
-        graphics_thread = Task.Run(Run);
-
-        initLock.Release();
-    }
-
     /// <summary>
     /// Fetches a graphics context for rendering. This can either be a reused context or a brand new one.
     /// </summary>
@@ -370,53 +277,9 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// </summary>
     protected readonly Func<bool> IsNotRenderingCheck;
 
-    /// <summary>
-    /// The main running method of this <see cref="GraphicsManager{TGraphicsContext}"/>
-    /// </summary>
-    /// <remarks>
-    /// This is a very advanced method, the entire state of the GraphicsManager is dependent on this method and thus must be understood perfectly. This method will be called strictly once, as it is expected the rendering loop to run within it
-    /// </remarks>
-    protected abstract Task Run();
-
     #endregion
-
-    #region Events
-
-    ///// <summary>
-    ///// Fired when <see cref="GraphicsManager{TGraphicsContext}"/> start
-    ///// </summary>
-    ///// <remarks>
-    ///// Specifically, when <see cref="IsRunning"/> is set to <c>true</c>
-    ///// </remarks>
-    //public GraphicsManager<TGraphicsContext>RunStateChanged? Started;
-
-    ///// <summary>
-    ///// Fired when <see cref="GraphicsManager{TGraphicsContext}"/> stops
-    ///// </summary>
-    ///// <remarks>
-    ///// Specifically, when <see cref="IsRunning"/> is set to <c>false</c>
-    ///// </remarks>
-    //public GraphicsManager<TGraphicsContext>RunStateChanged? Stopped;
-
-    ///// <summary>
-    ///// Fired when <see cref="IsRunning"/> changes
-    ///// </summary>
-    ///// <remarks>
-    ///// Fired after <see cref="Started"/> or <see cref="Stopped"/>
-    ///// </remarks>
-    //public GraphicsManager<TGraphicsContext>RunStateChanged? RunStateChanged;
-
     #endregion
-
-    #endregion
-
     #region Setup Methods
-
-    /// <summary>
-    /// Performs task such as Creating and Setting up the Window
-    /// </summary>
-    [MemberNotNull(nameof(graphics_thread))]
-    protected abstract void SetupGraphicsManager();
 
     /// <summary>
     /// <c>true</c> if this GraphicsManager is currently visible, or shown. <c>false</c> otherwise.
