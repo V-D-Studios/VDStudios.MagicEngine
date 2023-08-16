@@ -4,12 +4,14 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine;
 using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Graphics;
+using VDStudios.MagicEngine.Internal;
 using Veldrid;
 using Veldrid.SPIRV;
 
-namespace VDStudios.MagicEngine.Internal;
+namespace VDStudios.MagicEngine.Graphics.Veldrid.Internal;
 /// <summary>
 /// Provides a means of caching default resources for a specific <see cref="GraphicsManager"/>
 /// </summary>
@@ -50,7 +52,7 @@ public sealed class DefaultResourceCache
         {
             rwl.ExitWriteLock();
         }
-    }                     
+    }
 
     private readonly GraphicsManager Manager;
     private readonly ReaderWriterLockSlim rwl = new(LockRecursionPolicy.NoRecursion);

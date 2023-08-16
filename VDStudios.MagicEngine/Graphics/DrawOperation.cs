@@ -133,15 +133,6 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     public float PreferredPriority { get; set; }
 
     /// <summary>
-    /// Represents this <see cref="DrawOperation{TGraphicsContext}"/>'s CommandList Group affinity. If this value is 
-    /// </summary>
-    /// <remarks>
-    /// This value will also set this <see cref="DrawOperation{TGraphicsContext}"/> in its own draw priority group; which means that it will be drawn over <see cref="DrawOperation{TGraphicsContext}"/>s that have a lower <see cref="CommandListGroupAffinity"/> regardless of priority. If in doubt, leave this as <see langword="null"/>
-    /// </remarks>
-    public uint? CommandListGroupAffinity { get; init; }
-    internal int Clga => (int)(CommandListGroupAffinity ?? 0);
-
-    /// <summary>
     /// The owner <see cref="DrawOperationManager{TGraphicsContext}"/> of this <see cref="DrawOperation{TGraphicsContext}"/>
     /// </summary>
     /// <remarks>

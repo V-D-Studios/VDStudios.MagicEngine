@@ -5,31 +5,32 @@ using VDStudios.MagicEngine.Graphics;
 
 namespace VDStudios.MagicEngine.Internal;
 
-internal sealed class DrawQueue : IDrawQueue<DrawOperation>
+internal sealed class DrawQueue<TGraphicsContext> : IDrawQueue<DrawOperation<TGraphicsContext>, TGraphicsContext>
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     #region Fields
 
-    private readonly PriorityQueue<DrawOperation, float>[] _queues;
+    private readonly PriorityQueue<DrawOperation<TGraphicsContext>, float> _queues;
     internal readonly AsyncLock _lock = new();
 
     #endregion
 
     public DrawQueue(ImmutableArray<CommandListGroupDefinition> commandListGroups)
     {
-        _queues = new PriorityQueue<DrawOperation, float>[commandListGroups.Length];
+        _queues = new PriorityQueue<DrawOperation<TGraphicsContext>, float>[commandListGroups.Length];
         for (int i = 0; i < _queues.Length; i++)
             _queues[i] = new(commandListGroups[i].ExpectedOperations, new PriorityComparer());
     }
 
-    internal DrawOperation Dequeue(int group) => _queues[group].Dequeue();
+    internal DrawOperation<TGraphicsContext> Dequeue(int group) => _queues[group].Dequeue();
 
-    internal bool TryDequeue(int group, [MaybeNullWhen(true)] out DrawOperation? drawOperation) => _queues[group].TryDequeue(out drawOperation, out _);
+    internal bool TryDequeue(int group, [MaybeNullWhen(true)] out DrawOperation<TGraphicsContext>? drawOperation) => _queues[group].TryDequeue(out drawOperation, out _);
 
-    internal PriorityQueue<DrawOperation, float> GetQueue(int group) => _queues[group];
+    internal PriorityQueue<DrawOperation<TGraphicsContext>, float> GetQueue(int group) => _queues[group];
     internal int QueueCount => _queues.Length;
 
     /// <summary>
-    /// Gets the total amount of <see cref="DrawOperation"/>s in all the queues in this draw queue
+    /// Gets the total amount of <see cref="DrawOperation<TGraphicsContext>"/>s in all the queues in this draw queue
     /// </summary>
     /// <returns></returns>
     public int GetTotalCount()
@@ -40,13 +41,13 @@ internal sealed class DrawQueue : IDrawQueue<DrawOperation>
         return count;
     }
 
-    public async Task EnqueueAsync(DrawOperation drawing, float priority)
+    public async Task EnqueueAsync(DrawOperation<TGraphicsContext> drawing, float priority)
     {
         using (await _lock.LockAsync())
             _queues[drawing._clga].Enqueue(drawing, priority);
     }
 
-    public void Enqueue(DrawOperation drawing, float priority)
+    public void Enqueue(DrawOperation<TGraphicsContext> drawing, float priority)
     {
         using (_lock.Lock())
             _queues[drawing._clga].Enqueue(drawing, priority);

@@ -70,12 +70,6 @@ public delegate void UpdateEvent<in TSender>(TSender sender, TimeSpan delta);
 #region Game Delegates
 
 /// <summary>
-/// Represents an operation to be run against a given <see cref="Window"/>
-/// </summary>
-/// <param name="window"></param>
-public delegate void WindowAction(Window window);
-
-/// <summary>
 /// Represents an event in the <see cref="Game"/> regarding the changing of a scene
 /// </summary>
 /// <param name="game">The <see cref="Game"/> that experienced the change</param>

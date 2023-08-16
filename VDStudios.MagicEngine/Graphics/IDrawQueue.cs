@@ -3,7 +3,7 @@
 /// <summary>
 /// The engine's Draw Queue
 /// </summary>
-public interface IDrawQueue<TGraphicsContext, T> where T : GraphicsObject<TGraphicsContext>
+public interface IDrawQueue<T, TGraphicsContext> where T : GraphicsObject<TGraphicsContext>
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     /// <summary>

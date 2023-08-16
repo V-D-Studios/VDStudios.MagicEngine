@@ -17,12 +17,12 @@ public class FloatingShapesNode : Node, IDrawableNode
     private struct ColorVertex
     {
         public Vector2 Position;
-        public RgbaFloat Color;
+        public RgbaVector Color;
     }
 
     private class ColorVertexGenerator : IShape2DRendererVertexGenerator<ColorVertex>
     {
-        private static readonly RgbaFloat[] Colors = new RgbaFloat[]
+        private static readonly RgbaVector[] Colors = new RgbaVector[]
         {
             new(1f, .2f, .2f, 1f),
             new(.2f, 1f, .2f, 1f),
@@ -254,7 +254,7 @@ public class FloatingShapesNode : Node, IDrawableNode
         return ValueTask.FromResult(true);
     }
 
-    private unsafe RgbaFloat GenNewColor()
+    private unsafe RgbaVector GenNewColor()
         => new(
             r: Random.NextSingle(),
             g: Random.NextSingle(),

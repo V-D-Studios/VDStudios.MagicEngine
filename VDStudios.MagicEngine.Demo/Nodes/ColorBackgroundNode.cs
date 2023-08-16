@@ -22,8 +22,8 @@ public class ColorBackgroundNode : Node, IDrawableNode
     private struct VertexPositionColor
     {
         public Vector2 Position;
-        public RgbaFloat Color;
-        public VertexPositionColor(Vector2 position, RgbaFloat color)
+        public RgbaVector Color;
+        public VertexPositionColor(Vector2 position, RgbaVector color)
         {
             Position = position;
             Color = color;
@@ -71,10 +71,10 @@ void main()
         {
             Span<VertexPositionColor> _vert = stackalloc VertexPositionColor[]
             {
-                new(new(-0.75f, 0.75f), RgbaFloat.Red),
-                new(new(0.75f, 0.75f), RgbaFloat.Green),
-                new(new(-0.75f, -0.75f), RgbaFloat.Blue),
-                new(new(0.75f, -0.75f), RgbaFloat.Yellow)
+                new(new(-0.75f, 0.75f), RgbaVector.Red),
+                new(new(0.75f, 0.75f), RgbaVector.Green),
+                new(new(-0.75f, -0.75f), RgbaVector.Blue),
+                new(new(0.75f, -0.75f), RgbaVector.Yellow)
             };
 
             Span<ushort> inds = stackalloc ushort[] { 0, 1, 2, 3 };

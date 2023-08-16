@@ -1,17 +1,17 @@
 ﻿using ImGuiNET;
-using SDL2.NET;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Input;
-using Veldrid;
+using VDStudios.MagicEngine.Internal;
 
-namespace VDStudios.MagicEngine.Internal;
+namespace VDStudios.MagicEngine.Graphics.Veldrid.Internal;
 /// <summary>
 /// A modified version of Veldrid.ImGui's ImGuiRenderer.
 /// Manages input for ImGui and handles rendering ImGui's DrawLists with Veldrid.
 /// </summary>
-internal class ImGuiController : IDisposable
+public class ImGuiController<TGraphicsContext> : IDisposable
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     private GraphicsDevice _gd;
 
@@ -28,7 +28,7 @@ internal class ImGuiController : IDisposable
     private ResourceSet _mainResourceSet;
     private ResourceSet _fontTextureResourceSet;
 
-    private readonly IntPtr _fontAtlasID = (IntPtr)1;
+    private readonly nint _fontAtlasID = 1;
     private bool _controlDown;
     private bool _shiftDown;
     private bool _altDown;
@@ -43,10 +43,10 @@ internal class ImGuiController : IDisposable
     // Image trackers
     private readonly Dictionary<TextureView, ResourceSetInfo> _setsByView = new();
     private readonly Dictionary<Texture, TextureView> _autoViewsByTexture = new();
-    private readonly Dictionary<IntPtr, ResourceSetInfo> _viewsById = new();
+    private readonly Dictionary<nint, ResourceSetInfo> _viewsById = new();
     private readonly List<IDisposable> _ownedResources = new();
     private int _lastAssignedID = 100;
-    private readonly IntPtr Context;
+    private readonly nint Context;
 
     private sealed class ImGuiControllerLockRelease : IDisposable
     {
@@ -187,7 +187,7 @@ internal class ImGuiController : IDisposable
     /// Gets or creates a handle for a texture to be drawn with ImGui.
     /// Pass the returned handle to Image() or ImageButton().
     /// </summary>
-    public IntPtr GetOrCreateImGuiBinding(ResourceFactory factory, TextureView textureView)
+    public nint GetOrCreateImGuiBinding(ResourceFactory factory, TextureView textureView)
     {
         if (!_setsByView.TryGetValue(textureView, out ResourceSetInfo rsi))
         {
@@ -202,17 +202,17 @@ internal class ImGuiController : IDisposable
         return rsi.ImGuiBinding;
     }
 
-    private IntPtr GetNextImGuiBindingID()
+    private nint GetNextImGuiBindingID()
     {
         int newID = _lastAssignedID++;
-        return (IntPtr)newID;
+        return newID;
     }
 
     /// <summary>
     /// Gets or creates a handle for a texture to be drawn with ImGui.
     /// Pass the returned handle to Image() or ImageButton().
     /// </summary>
-    public IntPtr GetOrCreateImGuiBinding(ResourceFactory factory, Texture texture)
+    public nint GetOrCreateImGuiBinding(ResourceFactory factory, Texture texture)
     {
         if (!_autoViewsByTexture.TryGetValue(texture, out var textureView))
         {
@@ -227,7 +227,7 @@ internal class ImGuiController : IDisposable
     /// <summary>
     /// Retrieves the shader texture binding for the given helper handle.
     /// </summary>
-    public ResourceSet GetImageResourceSet(IntPtr imGuiBinding)
+    public ResourceSet GetImageResourceSet(nint imGuiBinding)
     {
         return !_viewsById.TryGetValue(imGuiBinding, out ResourceSetInfo tvi)
             ? throw new InvalidOperationException("No registered ImGui binding with id " + imGuiBinding.ToString())
@@ -255,7 +255,7 @@ internal class ImGuiController : IDisposable
     {
         ImGuiIOPtr io = ImGui.GetIO();
         // Build
-        io.Fonts.GetTexDataAsRGBA32(out IntPtr pixels, out int width, out int height, out int bytesPerPixel);
+        io.Fonts.GetTexDataAsRGBA32(out nint pixels, out int width, out int height, out int bytesPerPixel);
         // Store our identifier
         io.Fonts.SetTexID(_fontAtlasID);
 
@@ -360,7 +360,7 @@ internal class ImGuiController : IDisposable
         bool rightPressed = false;
         foreach (var me in snapshot.MouseEvents)
         {
-            if (me.Pressed != 0) 
+            if (me.Pressed != 0)
             {
                 switch (me.Pressed)
                 {
@@ -400,7 +400,7 @@ internal class ImGuiController : IDisposable
             io.AddInputCharacter(c);
         }
 
-        foreach (var ke in snapshot.KeyEvents) 
+        foreach (var ke in snapshot.KeyEvents)
         {
             io.KeysDown[(int)ke.Scancode] = ke.IsPressed;
             if (ke.Scancode == Scancode.LeftControl)
@@ -524,13 +524,13 @@ internal class ImGuiController : IDisposable
             for (int cmd_i = 0; cmd_i < cmd_list.CmdBuffer.Size; cmd_i++)
             {
                 ImDrawCmdPtr pcmd = cmd_list.CmdBuffer[cmd_i];
-                if (pcmd.UserCallback != IntPtr.Zero)
+                if (pcmd.UserCallback != nint.Zero)
                 {
                     throw new NotImplementedException();
                 }
                 else
                 {
-                    if (pcmd.TextureId != IntPtr.Zero)
+                    if (pcmd.TextureId != nint.Zero)
                     {
                         if (pcmd.TextureId == _fontAtlasID)
                         {
@@ -581,10 +581,10 @@ internal class ImGuiController : IDisposable
 
     private struct ResourceSetInfo
     {
-        public readonly IntPtr ImGuiBinding;
+        public readonly nint ImGuiBinding;
         public readonly ResourceSet ResourceSet;
 
-        public ResourceSetInfo(IntPtr imGuiBinding, ResourceSet resourceSet)
+        public ResourceSetInfo(nint imGuiBinding, ResourceSet resourceSet)
         {
             ImGuiBinding = imGuiBinding;
             ResourceSet = resourceSet;

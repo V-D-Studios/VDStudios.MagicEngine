@@ -435,9 +435,13 @@ public abstract class Node : GameObject, IDisposable
         await Attaching(rootScene);
         
         lock (rootScene.Sync)
-            Id = rootScene.Children.Add(this);
+        {
+            Id = rootScene.RegisterNodeInScene(this);
+        }
 
         updater = await rootScene.AssignUpdater(this);
+
+#warning All IDrawableNode responsibilities should be forwarded from Node to DrawOperationManager
         if (DrawableSelf is IDrawableNode dn)
             drawer = await rootScene.AssignDrawer(dn);
 

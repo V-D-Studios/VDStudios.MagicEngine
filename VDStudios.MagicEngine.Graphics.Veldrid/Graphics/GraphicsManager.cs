@@ -8,8 +8,8 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.DrawLibrary;
 using VDStudios.MagicEngine.Exceptions;
+using VDStudios.MagicEngine.Graphics.Veldrid.Internal;
 using VDStudios.MagicEngine.Input;
-using VDStudios.MagicEngine.Internal;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.Graphics;
@@ -536,7 +536,7 @@ public class GraphicsManager : GameObject, IDisposable
     /// <summary>
     /// The color to draw when the frame is beginning to be drawn
     /// </summary>
-    public RgbaFloat BackgroundColor { get; set; } = RgbaFloat.CornflowerBlue;
+    public RgbaVector BackgroundColor { get; set; } = RgbaVector.CornflowerBlue;
 
     #endregion
 

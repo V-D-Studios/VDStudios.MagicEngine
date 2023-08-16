@@ -16,7 +16,7 @@ namespace VDStudios.MagicEngine.Graphics;
 /// <remarks>
 /// *ALL* Graphics Managers are automatically managed by <see cref="Game"/>, registered at the time of construction
 /// </remarks>
-public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
+public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisposable
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     #region Construction
@@ -25,56 +25,39 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// Represents the <see cref="DeferredExecutionSchedule"/> tied to this <see cref="GraphicsManager{TGraphicsContext}"/>, and can be used to defer calls that should run under this <see cref="GraphicsManager{TGraphicsContext}"/>'s loop. 
     /// </summary>
     /// <remarks>
-    /// This schedule is updated every frame, as such, it's subject to the framerate of this <see cref="GraphicsManager{TGraphicsContext}"/>, which, depending on configuration, can vary between the <see cref="GraphicsDevice"/> vertical refresh rate, or as fast as it can run. ---- Not to be confused with <see cref="Game.DeferredCallSchedule"/> (or <see cref="GameObject.GameDeferredCallSchedule"/>, which is the same)
+    /// This schedule is updated every frame, as such, it's subject to the framerate of this <see cref="GraphicsManager{TGraphicsContext}"/> ---- Not to be confused with <see cref="Game.DeferredCallSchedule"/> (or <see cref="GameObject.GameDeferredCallSchedule"/>, which is the same)
     /// </remarks>
     public DeferredExecutionSchedule DeferredCallSchedule { get; }
-    private readonly Func<ValueTask> DeferredCallScheduleUpdater;
+
+    /// <summary>
+    /// The updater for <see cref="DeferredCallSchedule"/>
+    /// </summary>
+    /// <remarks>
+    /// Must be called regularly
+    /// </remarks>
+    protected readonly Func<ValueTask> DeferredCallScheduleUpdater;
 
     /// <summary>
     /// Instances and constructs a new <see cref="GraphicsManager{TGraphicsContext}"/> object
     /// </summary>
-    /// <param name="commandListGroups">The CommandList group definitions for this <see cref="GraphicsManager{TGraphicsContext}"/></param>
-    public GraphicsManager(ImmutableArray<CommandListGroupDefinition> commandListGroups) : base("Graphics & Input", "Rendering")
+    public GraphicsManager() : base()
     {
-        if (commandListGroups.Length <= 0)
-            throw new ArgumentException("The array of CommandListGroups cannot be empty", nameof(commandListGroups));
-        for (int i = 0; i < commandListGroups.Length; i++)
-            if (commandListGroups[i].Parallelism <= 0 || commandListGroups[i].ExpectedOperations <= 0)
-                throw new ArgumentException($"The CommandListGroupDefinition at index {i} is improperly defined. The degree of parallelism and the amount of expected operations must both be larger than 0");
-
         initLock.Wait();
         Game.graphicsManagersAwaitingSetup.Enqueue(this);
 
         RenderTargets = new(this);
 
-        CurrentSnapshot = new(this);
-        snapshotBuffer = new(this);
+        CurrentSnapshot = CreateNewEmptyInputSnapshot();
+        snapshotBuffer = CreateNewEmptyInputSnapshot();
 
         framelockWaiter = new(FrameLock);
-        guilockWaiter = new(GUILock);
         drawlockWaiter = new(DrawLock);
-
-        CommandListGroups = commandListGroups;
-
-        DefaultResourceCache = new(this);
 
         DeferredCallSchedule = new DeferredExecutionSchedule(out DeferredCallScheduleUpdater);
 
         IsRunningCheck = () => IsRunning;
         IsNotRenderingCheck = () => !IsRendering;
     }
-
-    /// <summary>
-    /// Instances and constructs a new <see cref="GraphicsManager{TGraphicsContext}"/> object
-    /// </summary>
-    /// <param name="commandListGroups">The CommandList group definitions for this <see cref="GraphicsManager{TGraphicsContext}"/>. This array will be copied and turned into an <see cref="ImmutableArray{T}"/></param>
-    public GraphicsManager<TGraphicsContext>(params CommandListGroupDefinition[] commandListGroups) : this(ImmutableArray.Create(commandListGroups)) { }
-
-    /// <summary>
-    /// Instances and constructs a new <see cref="GraphicsManager{TGraphicsContext}"/> object
-    /// </summary>
-    /// <param name="parallelism">The degree of parallelism to assign to the single <see cref="CommandListGroupDefinition"/> this constructor will create</param>
-    public GraphicsManager<TGraphicsContext>(int parallelism) : this(ImmutableArray.Create(new CommandListGroupDefinition(parallelism))) { }
 
     private readonly SemaphoreSlim initLock = new(1, 1);
 
@@ -86,17 +69,6 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
 
     #endregion
 
-    #region Parallel Rendering
-
-    /// <summary>
-    /// The maximum degree of parallel rendering to use for this <see cref="GraphicsManager{TGraphicsContext}"/>
-    /// </summary>
-    public ImmutableArray<CommandListGroupDefinition> CommandListGroups { get; }
-
-    private CommandListDispatch[][] CLDispatchs;
-
-    #endregion
-
     #region Public Properties
 
     /// <summary>
@@ -105,29 +77,9 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     public bool PauseOnInputLoss { get; set; }
 
     /// <summary>
-    /// <see cref="Window"/>'s size
-    /// </summary>
-    /// <remarks>
-    /// May not represent the actual size of <see cref="Window"/> at any given time, since <see cref="Window"/>s are managed on the VideoThread
-    /// </remarks>
-    public Size WindowSize { get; private set; }
-
-    /// <summary>
-    /// Represents the <see cref="ResourceLayout"/> that describes the usage of a <see cref="DrawTransformation"/>
-    /// </summary>
-    public ResourceLayout DrawParametersLayout { get; private set; }
-
-    internal ResourceLayout DrawOpTransLayout { get; private set; }
-
-    /// <summary>
-    /// The the default resource cache for this <see cref="GraphicsManager{TGraphicsContext}"/>
-    /// </summary>
-    public DefaultResourceCache DefaultResourceCache { get; }
-
-    /// <summary>
     /// This <see cref="GraphicsManager{TGraphicsContext}"/>'s render targets
     /// </summary>
-    public RenderTargetList RenderTargets { get; }
+    public RenderTargetList<TGraphicsContext> RenderTargets { get; }
 
     /// <summary>
     /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager{TGraphicsContext}"/> is running
@@ -137,102 +89,15 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
 
     #endregion
 
-    #region DrawOperation Registration
-
-    private readonly List<DrawOperation> DOPRegistrationBuffer = new();
-    private readonly List<SharedDrawResource> SDRRegistrationBuffer = new();
-
-    #region Public
-
-    /// <summary>
-    /// Register <paramref name="operation"/> into this <see cref="GraphicsManager{TGraphicsContext}"/> to be drawn
-    /// </summary>
-    /// <remarks>
-    /// Remember than any single <see cref="DrawOperation"/> can only be assigned to one <see cref="GraphicsManager{TGraphicsContext}"/>, and can only be deregistered after disposing. <see cref="DrawOperation"/>s should not be dropped, as <see cref="GraphicsManager{TGraphicsContext}"/>s only keep <see cref="WeakReference"/>s to them
-    /// </remarks>
-    /// <param name="operation">The <see cref="DrawOperation"/> that will be drawn in this <see cref="GraphicsManager{TGraphicsContext}"/></param>
-    internal void QueueOperationRegistration(DrawOperation operation)
-    {
-        if (operation._clga >= CommandListGroups.Length)
-            throw new InvalidOperationException($"This GraphicsManager<TGraphicsContext> only has {CommandListGroups.Length} CommandList groups [0-{CommandListGroups.Length - 1}], an operation with a CommandListGroupAffinity of {operation._clga} cannot be registered.");
-        operation.AssignManager(this);
-        lock (DOPRegistrationBuffer)
-            DOPRegistrationBuffer.Add(operation);
-    }
-
-    /// <summary>
-    /// Queues <paramref name="resource"/> for registration in this <see cref="GraphicsManager{TGraphicsContext}"/>
-    /// </summary>
-    /// <param name="resource">The <see cref="SharedDrawResource"/> that will be registered onto this <see cref="GraphicsManager{TGraphicsContext}"/></param>
-    public void RegisterSharedDrawResource(SharedDrawResource resource)
-    {
-        resource.ThrowIfAlreadyRegistered();
-        resource.AssignManager(this);
-        lock (SDRRegistrationBuffer)
-            SDRRegistrationBuffer.Add(resource);
-    }
-
-    /// <summary>
-    /// Queues all of the <see cref="SharedDrawResource"/>s in <paramref name="resources"/> for registration in this <see cref="GraphicsManager{TGraphicsContext}"/>
-    /// </summary>
-    /// <param name="resources">The <see cref="SharedDrawResource"/>s that will be registered onto this <see cref="GraphicsManager{TGraphicsContext}"/></param>
-    public void RegisterSharedDrawResource(IEnumerable<SharedDrawResource> resources)
-    {
-        lock (SDRRegistrationBuffer)
-        {
-            if (resources is ICollection<SharedDrawResource> coll)
-                SDRRegistrationBuffer.EnsureCapacity(coll.Count + SDRRegistrationBuffer.Count);
-
-            if (resources is SharedDrawResource[] arr)
-                for (int i = 0; i < arr.Length; i++)
-                {
-                    var obj = arr[i];
-                    obj.ThrowIfAlreadyRegistered();
-                    obj.AssignManager(this);
-                    SDRRegistrationBuffer.Add(obj);
-                }
-            else
-                foreach (var obj in resources)
-                {
-                    obj.ThrowIfAlreadyRegistered();
-                    obj.AssignManager(this);
-                    SDRRegistrationBuffer.Add(obj);
-                }
-        }
-    }
-
-    #endregion
-
-    #region Fields
-
-    private readonly Dictionary<Guid, WeakReference<DrawOperation>> RegisteredOperations = new(10);
-    private readonly Dictionary<Guid, WeakReference<SharedDrawResource>> RegisteredResources = new(10);
-
-    #endregion
-
-    #region Reaction Methods
-
-    /// <summary>
-    /// This method is called automatically when a new <see cref="DrawOperation"/> is being registered
-    /// </summary>
-    /// <param name="operation">The <see cref="DrawOperation"/> being registered</param>
-    /// <param name="rejectionReason">An optional out parameter that should be set to the reason the change was rejected if the method returns <c>false</c></param>
-    /// <returns><c>true</c> if the change is acceptable, <c>false</c> if the registration should be rejected</returns>
-    protected virtual bool DrawOperationRegistering(DrawOperation operation, [NotNullWhen(false)] out string? rejectionReason)
-    {
-        rejectionReason = null;
-        return true;
-    }
-
-    #endregion
-
-    #endregion
-
     #region Input Management
 
     private readonly InputSnapshot snapshotBuffer;
     private InputSnapshot CurrentSnapshot;
-    private readonly Queue<InputSnapshot> SnapshotPool = new(3);
+
+    /// <summary>
+    /// The <see cref="InputSnapshot"/> pool for this <see cref="GraphicsManager{TGraphicsContext}"/>
+    /// </summary>
+    protected readonly Queue<InputSnapshot> SnapshotPool = new(3);
 
     internal void ReturnSnapshot(InputSnapshot snapshot)
     {
@@ -243,13 +108,19 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// Creates a new Empty <see cref="InputSnapshot"/> to be added to the SnapshotPool
+    /// </summary>
+    /// <returns></returns>
+    protected abstract InputSnapshot CreateNewEmptyInputSnapshot();
+
     internal InputSnapshot FetchSnapshot()
     {
         lock (SnapshotPool)
         {
             var ret = CurrentSnapshot;
             if (!SnapshotPool.TryDequeue(out var snap))
-                snap = new(this);
+                snap = CreateNewEmptyInputSnapshot();
             CurrentSnapshot = snap;
             ret.CopyTo(snap);
             ret.FetchLastMomentData();
@@ -257,79 +128,84 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
         }
     }
 
-    private void Window_MouseWheelScrolled(Window sender, TimeSpan timestamp, uint mouseId, float verticalScroll, float horizontalScroll)
+    /// <summary>
+    /// Reports a mouse wheel event to the current staging snapshot
+    /// </summary>
+    /// <param name="mouseId">The id of the mouse if applicable</param>
+    /// <param name="delta">The mouse's wheel delta</param>
+    protected void ReportMouseWheelEvent(uint mouseId, Vector2 delta)
     {
         lock (SnapshotPool)
-        {
-            snapshotBuffer.WheelVerticalDelta = verticalScroll;
-            snapshotBuffer.WheelHorizontalDelta = horizontalScroll;
-        }
+            snapshotBuffer.ReportMouseWheelMoved(mouseId, delta);
     }
-
-    private void Window_MouseMoved(Window sender, TimeSpan timestamp, Point delta, Point newPosition, uint mouseId, MouseButton pressed)
-    {
-        lock (SnapshotPool)
-            snapshotBuffer.mEvs.Add(new(new(delta.X, delta.Y), new Vector2(newPosition.X, newPosition.Y), default));
-    }
-
-    private void Window_MouseButtonReleased(Window sender, TimeSpan timestamp, uint mouseId, int clicks, MouseButton state)
-    {
-        var mp = Mouse.MouseState.Location;
-        lock (SnapshotPool)
-        {
-            snapshotBuffer.butt &= ~state;
-            snapshotBuffer.mEvs.Add(new(Vector2.Zero, new Vector2(mp.X, mp.Y), state));
-        }
-    }
-
-    private void Window_MouseButtonPressed(Window sender, TimeSpan timestamp, uint mouseId, int clicks, MouseButton state)
-    {
-        var mp = Mouse.MouseState.Location;
-        lock (SnapshotPool)
-        {
-            snapshotBuffer.butt |= state;
-            snapshotBuffer.mEvs.Add(new(Vector2.Zero, new Vector2(mp.X, mp.Y), state));
-        }
-    }
-
-    private void Window_KeyReleased(Window sender, TimeSpan timestamp, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
-    {
-        lock (SnapshotPool)
-            snapshotBuffer.kEvs.Add(new(scancode, key, modifiers, false, repeat, unicode));
-    }
-
-    private void Window_KeyPressed(Window sender, TimeSpan timestamp, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
-    {
-        lock (SnapshotPool)
-        {
-            snapshotBuffer.kEvs.Add(new(scancode, key, modifiers, true, repeat, unicode));
-            snapshotBuffer.kcEvs.Add(unicode);
-        }
-    }
-
-    #endregion
-
-    #region ImGUI
-
-    private ImGuiController ImGuiController;
 
     /// <summary>
-    /// Represents the <see cref="ImGUIElement"/>s currently held by this <see cref="GraphicsManager{TGraphicsContext}"/>
+    /// Reports a mouse event to the current staging snapshot
     /// </summary>
-    /// <remarks>
-    /// A <see cref="GraphicsManager{TGraphicsContext}"/>
-    /// </remarks>
-    public GUIElementList GUIElements { get; } = new();
+    /// <param name="mouseId">The id of the mouse if applicable</param>
+    /// <param name="delta">A <see cref="Vector2"/> representing how much did the mouse move in each axis</param>
+    /// <param name="newPosition">The mouse's current position at the time of this event</param>
+    /// <param name="pressed">The buttons that were pressed at the time of this event</param>
+    protected void ReportMouseMoved(uint mouseId, Vector2 delta, Vector2 newPosition, MouseButton pressed)
+    {
+        lock (SnapshotPool)
+            snapshotBuffer.ReportMouseMoved(mouseId, delta, newPosition, pressed);
+    }
 
     /// <summary>
-    /// Adds a <see cref="ImGUIElement"/> <paramref name="element"/> to this <see cref="GraphicsManager{TGraphicsContext}"/>
+    /// Reports a mouse event to the current staging snapshot
     /// </summary>
-    /// <param name="element">The <see cref="ImGUIElement"/> to add as an element of this <see cref="GraphicsManager{TGraphicsContext}"/></param>
-    /// <param name="context">The DataContext to give to <paramref name="element"/>, or null if it's to use its previously set DataContext or inherit it from this <see cref="ImGUIElement"/></param>
-    public void AddElement(ImGUIElement element, object? context = null)
+    /// <param name="mouseId">The id of the mouse if applicable</param>
+    /// <param name="clicks">The amount of clicks, if any, that were done in this event</param>
+    /// <param name="state">The mouse's current state</param>
+    protected void ReportMouseButtonReleased(uint mouseId, int clicks, MouseButton state)
     {
-        element.AssignManager(this);
-        element.RegisterOnto(this, context);
+        lock (SnapshotPool)
+            snapshotBuffer.ReportMouseButtonReleased(mouseId, clicks, state);
+    }
+
+    /// <summary>
+    /// Reports a mouse event to the current staging snapshot
+    /// </summary>
+    /// <param name="mouseId">The id of the mouse if applicable</param>
+    /// <param name="clicks">The amount of clicks, if any, that were done in this event</param>
+    /// <param name="state">The mouse's current state</param>
+    protected void ReportMouseButtonPressed(uint mouseId, int clicks, MouseButton state)
+    {
+        lock (SnapshotPool)
+            snapshotBuffer.ReportMouseButtonPressed(mouseId, clicks, state);
+    }
+
+    /// <summary>
+    /// Reports a keyboard event to the current staging snapshot
+    /// </summary>
+    /// <param name="keyboardId">The id of the keyboard, if applicable</param>
+    /// <param name="scancode">The scancode of the key released</param>
+    /// <param name="key">The keycode of the key released</param>
+    /// <param name="modifiers">Any modifiers that may have been released at the time this key was released</param>
+    /// <param name="isPressed">Whether the key was released at the time of this event. Usually <see langword="false"/></param>
+    /// <param name="repeat">Whether this keypress is a repeat, i.e. it's being held down</param>
+    /// <param name="unicode">The unicode value for key that was released</param>
+    protected void ReportKeyReleased(uint keyboardId, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
+    {
+        lock (SnapshotPool)
+            snapshotBuffer.ReportKeyReleased(keyboardId, scancode, key, modifiers, false, repeat, unicode);
+    }
+
+    /// <summary>
+    /// Reports a keyboard event to the current staging snapshot
+    /// </summary>
+    /// <param name="keyboardId">The id of the keyboard, if applicable</param>
+    /// <param name="scancode">The scancode of the key pressed</param>
+    /// <param name="key">The keycode of the key pressed</param>
+    /// <param name="modifiers">Any modifiers that may have been pressed at the time this key was pressed</param>
+    /// <param name="isPressed">Whether the key was pressed at the time of this event. Usually <see langword="true"/></param>
+    /// <param name="repeat">Whether this keypress is a repeat, i.e. it's being held down</param>
+    /// <param name="unicode">The unicode value for key that was pressed</param>
+    protected void ReportKeyPressed(uint keyboardId, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
+    {
+        lock (SnapshotPool)
+            snapshotBuffer.ReportKeyPressed(keyboardId, scancode, key, modifiers, false, repeat, unicode);
     }
 
     #endregion
@@ -337,10 +213,10 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     #region Waiting
 
     #region DrawLock
-    private readonly idleWaiter drawlockWaiter;
+    private readonly Internal_IdleWaiter drawlockWaiter;
 
     /// <summary>
-    /// Waits until the Manager finishes drawing its <see cref="DrawOperation"/>s and locks it
+    /// Waits until the Manager finishes drawing its <see cref="DrawOperation{TGraphicsContext}"/>s and locks it
     /// </summary>
     /// <remarks>
     /// *ALWAYS* wrap the disposable object this method returns in an using statement. The <see cref="GraphicsManager{TGraphicsContext}"/> will stay locked forever if it's not disposed of
@@ -353,7 +229,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     }
 
     /// <summary>
-    /// Asynchronously waits until the Manager finishes drawing its <see cref="DrawOperation"/>s and locks it
+    /// Asynchronously waits until the Manager finishes drawing its <see cref="DrawOperation{TGraphicsContext}"/>s and locks it
     /// </summary>
     /// <remarks>
     /// *ALWAYS* wrap the disposable object this method returns in an using statement. The <see cref="GraphicsManager{TGraphicsContext}"/> will stay locked forever if it's not disposed of
@@ -367,39 +243,8 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
 
     #endregion
 
-    #region GUILock
-    private readonly idleWaiter guilockWaiter;
-
-    /// <summary>
-    /// Waits until the Manager finishes drawing its <see cref="ImGUIElement"/>s and locks it
-    /// </summary>
-    /// <remarks>
-    /// *ALWAYS* wrap the disposable object this method returns in an using statement. The <see cref="GraphicsManager{TGraphicsContext}"/> will stay locked forever if it's not disposed of
-    /// </remarks>
-    /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
-    public IDisposable LockManagerGUI()
-    {
-        GUILock.Wait();
-        return guilockWaiter;
-    }
-
-    /// <summary>
-    /// Asynchronously waits until the Manager finishes drawing its <see cref="ImGUIElement"/>s and locks it
-    /// </summary>
-    /// <remarks>
-    /// *ALWAYS* wrap the disposable object this method returns in an using statement. The <see cref="GraphicsManager{TGraphicsContext}"/> will stay locked forever if it's not disposed of
-    /// </remarks>
-    /// <returns>An <see cref="IDisposable"/> object that unlocks the manager when disposed of</returns>
-    public async Task<IDisposable> LockManagerGUIAsync()
-    {
-        await GUILock.WaitAsync();
-        return guilockWaiter;
-    }
-
-    #endregion
-
     #region FrameLock
-    private readonly idleWaiter framelockWaiter;
+    private readonly Internal_IdleWaiter framelockWaiter;
 
     /// <summary>
     /// Waits until the Manager finishes drawing the current frame and locks it
@@ -429,86 +274,16 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
 
     #endregion
 
-    private sealed class idleWaiter : IDisposable
+    private sealed class Internal_IdleWaiter : IDisposable
     {
         private readonly SemaphoreSlim @lock;
 
-        public idleWaiter(SemaphoreSlim fl) => @lock = fl;
+        public Internal_IdleWaiter(SemaphoreSlim fl) => @lock = fl;
 
         public void Dispose()
         {
             @lock.Release();
         }
-    }
-
-    #endregion
-
-    #region Window
-
-    /// <summary>
-    /// Performs the desired <see cref="WindowAction"/> on <see cref="Window"/>, and returns immediately
-    /// </summary>
-    /// <remarks>
-    /// Failure to perform on <see cref="Window"/> from this method will result in an exception, as <see cref="SDL2.NET.Window"/> is NOT thread-safe and, in fact, thread-protected. All <see cref="SDL2.NET.Window"/>s are created from the main thread
-    /// </remarks>
-    /// <param name="action">The action to perform on <see cref="Window"/></param>
-    public void PerformOnWindow(WindowAction action)
-    {
-        Game.windowActions.Enqueue(new(Window, action));
-    }
-
-    /// <summary>
-    /// Performs the desired <see cref="WindowAction"/> on <see cref="Window"/>, and waits for it to complete
-    /// </summary>
-    /// <remarks>
-    /// Failure to perform on <see cref="Window"/> from this method will result in an exception, as <see cref="SDL2.NET.Window"/> is NOT thread-safe and, in fact, thread-protected. All <see cref="SDL2.NET.Window"/>s are created from the main thread
-    /// </remarks>
-    /// <param name="action">The action to perform on <see cref="Window"/></param>
-    public void PerformOnWindowAndWait(WindowAction action)
-    {
-        SemaphoreSlim sem = new(1, 1);
-        sem.Wait();
-        Game.windowActions.Enqueue(new(Window, w =>
-        {
-            try
-            {
-                action(w);
-            }
-            finally
-            {
-                sem.Release();
-            }
-        }));
-        sem.Wait();
-        sem.Release();
-        sem.Dispose();
-    }
-
-    /// <summary>
-    /// Performs the desired <see cref="WindowAction"/> on <see cref="Window"/>, and asynchronously waits for it to complete
-    /// </summary>
-    /// <remarks>
-    /// Failure to perform on <see cref="Window"/> from this method will result in an exception, as <see cref="SDL2.NET.Window"/> is NOT thread-safe and, in fact, thread-protected. All <see cref="SDL2.NET.Window"/>s are created from the main thread
-    /// </remarks>
-    /// <param name="action">The action to perform on <see cref="Window"/></param>
-    public async Task PerformOnWindowAndWaitAsync(WindowAction action)
-    {
-        SemaphoreSlim sem = new(1, 1);
-        sem.Wait();
-        Game.windowActions.Enqueue(new(Window, w =>
-        {
-            try
-            {
-                action(w);
-            }
-            finally
-            {
-                sem.Release();
-            }
-        }));
-        await sem.WaitAsync();
-        sem.Release();
-        sem.Dispose();
     }
 
     #endregion
@@ -533,7 +308,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// <summary>
     /// The color to draw when the frame is beginning to be drawn
     /// </summary>
-    public RgbaFloat BackgroundColor { get; set; } = RgbaFloat.CornflowerBlue;
+    public abstract RgbaVector BackgroundColor { get; set; } 
 
     #endregion
 
@@ -585,92 +360,144 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// </summary>
     protected virtual void Running() { }
 
-    /// <summary>
-    /// Creates a <see cref="CommandList"/> for internal use. This method may be used to create multiple <see cref="CommandList"/>s at discretion
-    /// </summary>
-    /// <param name="device">The device of the attached <see cref="GraphicsManager{TGraphicsContext}"/></param>
-    /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
-    protected virtual CommandList CreateCommandList(GraphicsDevice device, ResourceFactory factory)
-        => factory.CreateCommandList();
-
-    /// <summary>
-    /// Executes commands before any registered <see cref="DrawOperation"/> is processed
-    /// </summary>
-    /// <remarks>
-    /// <paramref name="commandlist"/> is begun, ended and submitted automatically. <see cref="CommandList.SetFramebuffer(Framebuffer)"/> is not called, however.
-    /// </remarks>
-    /// <param name="commandlist">The <see cref="CommandList"/> for this call. It's ended, begun and submitted automatically, so you don't need to worry about it. <see cref="CommandList.SetFramebuffer(Framebuffer)"/> is not called, however.</param>
-    /// <param name="mainBuffer">The <see cref="GraphicsDevice"/> owned by this <see cref="GraphicsManager{TGraphicsContext}"/>'s main <see cref="Framebuffer"/>, to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"/></param>
-    protected virtual void PrepareForDraw(CommandList commandlist, Framebuffer mainBuffer)
-    {
-        commandlist.SetFramebuffer(mainBuffer);
-        commandlist.ClearColorTarget(0, BackgroundColor);
-    }
-
     #endregion
 
     #region Internal
 
-    private readonly SemaphoreSlim WindowShownLock = new(1, 1);
-    private readonly SemaphoreSlim FrameLock = new(1, 1);
-    private readonly SemaphoreSlim DrawLock = new(1, 1);
-    private readonly SemaphoreSlim GUILock = new(1, 1);
+    /// <summary>
+    /// Locked while the Window is being shown
+    /// </summary>
+    protected readonly SemaphoreSlim WindowShownLock = new(1, 1);
 
-    internal Vector4 LastReportedWinSize = default;
+    /// <summary>
+    /// Locked while the frame is being processed
+    /// </summary>
+    protected readonly SemaphoreSlim FrameLock = new(1, 1);
 
-    private void Window_SizeChanged(Window window, TimeSpan timestamp, Size newSize)
+    /// <summary>
+    /// Locked while the frame is being drawn into
+    /// </summary>
+    /// <remarks>
+    /// Locked while <see cref="FrameLock"/> is locked
+    /// </remarks>
+    protected readonly SemaphoreSlim DrawLock = new(1, 1);
+
+    /// <summary>
+    /// The current Window's Size
+    /// </summary>
+    public abstract IntVector2 WindowSize { get; protected set; }
+
+    /// <summary>
+    /// Handles the Window's size changing
+    /// </summary>
+    /// <param name="newSize"></param>
+    protected internal void InternalWindowSizeChanged(IntVector2 newSize)
     {
+        IntVector2 oldSize;
         FrameLock.Wait();
         try
         {
             var (ww, wh) = newSize;
-            InternalLog?.Information("Window size changed to {{w:{width}, h:{height}}}", newSize.Width, newSize.Height);
-            InternalLog?.Verbose("Resizing MainSwapchain");
-            Device.MainSwapchain.Resize((uint)ww, (uint)wh);
+            InternalLog?.Information("Window size changed to {{w:{width}, h:{height}}}", newSize.X, newSize.Y);
 
-            InternalLog?.Verbose("Resizing ImGuiController");
-            ImGuiController.WindowResized(ww, wh);
-
+            oldSize = WindowSize;
             WindowSize = newSize;
             WindowView = Matrix4x4.CreateScale(wh / (float)ww, 1, 1);
+
+            WindowSizeChangedFrameLocked(oldSize, newSize);
         }
         finally
         {
             FrameLock.Release();
         }
 
-        WindowSizeChanged(timestamp, newSize);
+        WindowSizeChanged(oldSize, newSize);
     }
 
     /// <summary>
-    /// This method is called automatically when <see cref="Window"/> changes its size
+    /// This method is called automatically when a window changes its size
     /// </summary>
     /// <remarks>
-    /// This method is called after the frame is unlocked
+    /// This method is called while the frame is still locked, hence before <see cref="WindowSizeChanged(IntVector2, IntVector2)"/>
     /// </remarks>
-    protected virtual void WindowSizeChanged(TimeSpan timestamp, Size newSize) { }
+    protected virtual void WindowSizeChangedFrameLocked(IntVector2 oldSize, IntVector2 newSize) { }
+
+    /// <summary>
+    /// This method is called automatically when the window changes its size
+    /// </summary>
+    /// <remarks>
+    /// This method is called after the frame is unlocked, hence after <see cref="WindowSizeChangedFrameLocked(IntVector2, IntVector2)"/>
+    /// </remarks>
+    protected virtual void WindowSizeChanged(IntVector2 oldSize, IntVector2 newSize) { }
+
+#warning Revisit this
+    ///////// <summary>
+    ///////// Gets the <see cref="IDrawableNode{TGraphicsContext}"/> from <see cref="Game.CurrentScene"/> that belong to this <see cref="GraphicsManager{TGraphicsContext}"/>
+    ///////// </summary>
+    //////public IEnumerable<IDrawableNode<TGraphicsContext>> GetDrawableNodesFromCurrentScene()
+    //////    => GetDrawableNodes(Game.CurrentScene);
+
+    ///////// <summary>
+    ///////// Gets the <see cref="IDrawableNode{TGraphicsContext}"/> from <paramref name="scene"/> that belong to this <see cref="GraphicsManager{TGraphicsContext}"/>
+    ///////// </summary>
+    ///////// <param name="scene">The <see cref="Scene"/> containing the drawable nodes</param>
+    //////public IEnumerable<IDrawableNode<TGraphicsContext>> GetDrawableNodes(Scene scene)
+    //////    => scene.GetDrawableNodes<TGraphicsContext>(this);
 
     /// <summary>
     /// This is run from the update thread
     /// </summary>
+    [MemberNotNull(nameof(graphics_thread))]
     internal void InternalStart()
     {
         InternalLog?.Information("Starting GraphicsManager");
         Starting();
 
         InternalLog?.Information("Setting up Window");
-        SetupWindow();
+        SetupGraphicsManager();
         InternalLog?.Information("Running GraphicsManager");
-        graphics_thread = Run();
+        graphics_thread = Task.Run(Run);
 
         initLock.Release();
     }
 
+    /// <summary>
+    /// Fetches a graphics context for rendering. This can either be a reused context or a brand new one.
+    /// </summary>
+    /// <remarks>
+    /// Reference this method only to implement it -- Use it only through <see cref="GetGraphicsContext"/>
+    /// </remarks>
+    protected abstract ValueTask<TGraphicsContext> FetchGraphicsContext();
+
+    /// <summary>
+    /// Obtains a new <see cref="GraphicsContext{TSelf}"/>
+    /// </summary>
+    /// <remarks>
+    /// Should be used over <see cref="FetchGraphicsContext"/>
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static async ValueTask<bool> WaitOn(SemaphoreSlim semaphore, Func<bool> condition, int syncWait = 15, int asyncWait = 50, int syncRepeats = 10)
+    protected async ValueTask<TGraphicsContext> GetGraphicsContext()
+    {
+        var ctxt = await FetchGraphicsContext();
+        Debug.Assert(ctxt.Manager == this, "The fetched GraphicsContext does not belong to this GraphicsManager");
+        return ctxt;
+    }
+
+    /// <summary>
+    /// Waits for a <see cref="SemaphoreSlim"/> lock to be unlocked and adquires the lock if possible
+    /// </summary>
+    /// <param name="semaphore">The <see cref="SemaphoreSlim"/> to wait on</param>
+    /// <param name="condition">The condition to continue waiting for the semaphore. If <see langword="true"/> the method will continue waiting until the other parameters are up, otherwise, it will break immediately.</param>
+    /// <param name="syncWait">The amount of milliseconds to wait synchronously before to checking on the condition</param>
+    /// <param name="asyncWait">The amount of milliseconds to wait asynchronously before checking on the condition</param>
+    /// <param name="syncRepeats">The amount of times to wait <paramref name="syncWait"/> milliseconds (and checking the condition) before switching to asynchronous waiting</param>
+    /// <param name="ct">A <see cref="CancellationToken"/> to cancel the operation</param>
+    /// <returns><see langword="true"/> if <paramref name="semaphore"/>'s lock was adquired, <see langword="false"/> otherwise</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected static async ValueTask<bool> WaitOn(SemaphoreSlim semaphore, Func<bool> condition, int syncWait = 15, int asyncWait = 50, int syncRepeats = 10, CancellationToken ct = default)
     {
         while (syncRepeats-- > 0)
-            if (!semaphore.Wait(syncWait))
+            if (!semaphore.Wait(syncWait, ct))
             {
                 if (!condition())
                     return false;
@@ -679,7 +506,7 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
                 return true;
         // ran out of repeats without adquiring the lock
 
-        while (!await semaphore.WaitAsync(asyncWait))
+        while (!await semaphore.WaitAsync(asyncWait, ct))
             if (!condition())
                 return false;
         return true;
@@ -690,391 +517,23 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// </summary>
     public Matrix4x4 WindowView { get; private set; }
 
-    private async ValueTask ProcessSharedResourceRegistrationBuffer()
-    {
-        int count = SDRRegistrationBuffer.Count;
-        SharedDrawResource[] regbuf;
-        lock (SDRRegistrationBuffer)
-        {
-            if (SDRRegistrationBuffer.Count <= 0) return;
-            regbuf = ArrayPool<SharedDrawResource>.Shared.Rent(count);
-            SDRRegistrationBuffer.CopyTo(regbuf);
-            SDRRegistrationBuffer.Clear();
-        }
+    /// <summary>
+    /// A check to see if this <see cref="GraphicsManager{TGraphicsContext}"/> is running
+    /// </summary>
+    protected readonly Func<bool> IsRunningCheck;
 
-        try
-        {
-            for (int i = 0; i < count; i++)
-            {
-                var resource = regbuf[i];
-                InternalLog?.Verbose("Registering SharedDrawResource {objName}-{type}", resource.Name ?? "(noname)", resource.GetTypeName());
-                await resource.Register(this);
-                RegisteredResources.Add(resource.Identifier, new(resource));
-            }
-        }
-        finally
-        {
-            ArrayPool<SharedDrawResource>.Shared.Return(regbuf);
-        }
-    }
+    /// <summary>
+    /// A check to see if this <see cref="GraphicsManager{TGraphicsContext}"/> is not rendering
+    /// </summary>
+    protected readonly Func<bool> IsNotRenderingCheck;
 
-    private async ValueTask ProcessDrawOpRegistrationBuffer()
-    {
-        int count = DOPRegistrationBuffer.Count;
-        DrawOperation[] regbuf;
-        lock (DOPRegistrationBuffer)
-        {
-            if (DOPRegistrationBuffer.Count <= 0) return;
-            regbuf = ArrayPool<DrawOperation>.Shared.Rent(count);
-            DOPRegistrationBuffer.CopyTo(regbuf);
-            DOPRegistrationBuffer.Clear();
-        }
-
-        try
-        {
-            for (int i = 0; i < count; i++)
-            {
-                var operation = regbuf[i];
-                InternalLog?.Verbose("Registering DrawOperation {objName}-{type}", operation.Name ?? "(noname)", operation.GetTypeName());
-                await operation.Register(this);
-                if (!DrawOperationRegistering(operation, out var reason))
-                {
-                    var excp = new DrawOperationRejectedException(reason, this, operation);
-                    operation.Dispose();
-                    throw excp;
-                }
-                RegisteredOperations.Add(operation.Identifier, new(operation));
-            }
-        }
-        finally
-        {
-            ArrayPool<DrawOperation>.Shared.Return(regbuf);
-        }
-    }
-
-    private void InitCLD()
-    {
-        var gd = Device!;
-        var factory = gd.ResourceFactory;
-        var count = CommandListGroups.Length;
-        CLDispatchs = new CommandListDispatch[count][];
-        for (int i1 = 0; i1 < count; i1++)
-        {
-            var (paral, exops) = CommandListGroups[i1];
-
-#if FORCE_GM_NOPARALLEL
-            paral = 1;
-#endif
-
-            ref var cld = ref CLDispatchs[i1];
-            cld = new CommandListDispatch[paral];
-            int div = int.Max(exops / paral, exops);
-            for (int i2 = 0; i2 < cld.Length; i2++)
-                cld[i2] = new(div, CreateCommandList(gd, factory));
-            InternalLog?.Debug("Created a CommandList group with a degree of parallelism of {paralellism}, and an amount of expected operations of {exops}", paral, exops);
-        }
-        if (count is 1)
-            InternalLog?.Information("Started with {count} CommandList group", count);
-        else
-            InternalLog?.Information("Started with {count} CommandList groups", count);
-    }
-
-    private readonly Func<bool> IsRunningCheck;
-    private readonly Func<bool> IsNotRenderingCheck;
-
-    private async Task Run()
-    {
-        await Task.Yield();
-
-        var framelock = FrameLock;
-        var drawlock = DrawLock;
-        var glock = GUILock;
-        var winlock = WindowShownLock;
-
-        var isRunning = IsRunningCheck;
-        var isNotRendering = IsNotRenderingCheck;
-
-        var sw = new Stopwatch();
-        var drawqueue = new DrawQueue(CommandListGroups);
-        var removalQueue = new Queue<Guid>(10);
-        CommandListDispatch[] activeDispatchs = Array.Empty<CommandListDispatch>();
-        SharedDrawResource[] resBuffer = Array.Empty<SharedDrawResource>();
-        int resBufferFill = 0;
-        TimeSpan delta = default;
-
-        int targetcount;
-        IRenderTarget[] activeTargets = Array.Empty<IRenderTarget>();
-        RenderTargetState[] activeTargetBuffers = Array.Empty<RenderTargetState>();
-
-        var gd = Device!;
-
-        var managercl = CreateCommandList(gd, gd.ResourceFactory);
-
-        ulong frameCount = 0;
-
-        InitCLD();
-        InternalLog?.Debug("Querying WindowFlags");
-        await PerformOnWindowAndWaitAsync(w =>
-        {
-            var flags = w.Flags;
-            IsWindowAvailable = flags.HasFlag(WindowFlags.Shown);
-            HasFocus = flags.HasFlag(WindowFlags.InputFocus);
-        });
-
-        var (ww, wh) = WindowSize;
-
-        InternalLog?.Information("Entering main rendering loop");
-        while (IsRunning) // Running Loop
-        {
-            for (; ; )
-            {
-                while (!IsRendering)
-                    await Task.Delay(1000);
-                if (await WaitOn(winlock, condition: isNotRendering, syncWait: 500, asyncWait: 1000)) break;
-            }
-
-            try
-            {
-                if (!await WaitOn(framelock, condition: isRunning)) break; // Frame Render
-                try
-                {
-                    Vector4 winsize = LastReportedWinSize;
-
-                    Running();
-
-                    if (!await WaitOn(drawlock, condition: isRunning)) break; // Frame Render Stage 1: General Drawing
-                    try
-                    {
-                        #region Render Targets
-
-                        if (RenderTargets.Count <= 0)
-                        {
-                            InternalLog?.Warning("This GraphicsManager has no render targets");
-                            continue;
-                        }
-
-                        if (activeTargets.Length < RenderTargets.Count)
-                        {
-                            activeTargets = new IRenderTarget[int.Max(RenderTargets.Count, activeTargets.Length * 2)];
-                            activeTargetBuffers = new RenderTargetState[int.Max(RenderTargets.Count, activeTargetBuffers.Length * 2)];
-                        }
-
-                        targetcount = 0;
-                        foreach (var target in RenderTargets)
-                        {
-                            activeTargets[targetcount] = target;
-                            target.GetTarget(gd, delta, out var tb, out var tp);
-                            activeTargetBuffers[targetcount++] = new(target, tb, tp);
-                        }
-
-                        #endregion
-
-                        #region Draw Resources
-
-                        if (SDRRegistrationBuffer.Count > 0)
-                            await ProcessSharedResourceRegistrationBuffer();
-
-                        var res = RegisteredResources;
-
-                        if (resBuffer.Length < res.Count)
-                            resBuffer = new SharedDrawResource[int.Max(resBuffer.Length * 2, res.Count + 1)];
-
-                        foreach (var kv in res) // Iterate through all registered operations
-                            if (kv.Value.TryGetTarget(out var sdr) && !sdr.disposedValue)
-                            {
-                                if (sdr.PendingGpuUpdate)
-                                    resBuffer[resBufferFill++] = sdr;
-                            }
-                            else
-                                removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
-
-                        while (removalQueue.Count > 0)
-                            res.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
-
-                        #endregion
-
-                        #region Draw Operations
-
-                        var ops = RegisteredOperations;
-
-                        foreach (var kv in ops) // Iterate through all registered operations
-                            if (kv.Value.TryGetTarget(out var op) && !op.IsDisposed)  // Filter out those that have been disposed or collected
-                                op.Owner.AddToDrawQueue(drawqueue, op); // And query them
-                            else
-                                removalQueue.Enqueue(kv.Key); // Enqueue the object if filtered out (Enumerators forbid changes mid-enumeration)
-
-                        while (removalQueue.Count > 0)
-                            ops.Remove(removalQueue.Dequeue()); // Remove collected or disposed objects
-
-                        #endregion
-
-                        using (drawqueue._lock.Lock())
-                        {
-                            int totalcount = drawqueue.GetTotalCount();
-                            int dispatchs = 0;
-                            if (activeDispatchs.Length < totalcount)
-                                activeDispatchs = new CommandListDispatch[int.Max(totalcount, activeDispatchs.Length * 2)];
-
-                            for (int cld_g_i = 0; cld_g_i < drawqueue.QueueCount; cld_g_i++)
-                            {
-                                var queue = drawqueue.GetQueue(cld_g_i);
-                                if (queue.Count <= 0) continue;
-                                int dqc = queue.Count;
-                                var cld_g = CLDispatchs[cld_g_i];
-                                var perCL = dqc / cld_g.Length;
-                                if (perCL is 0 || queue.Count == cld_g.Length)
-                                {
-                                    int i = 0;
-                                    for (; i < dqc; i++)
-                                    {
-                                        var cld = cld_g[i];
-                                        cld.SetTargets(new(activeTargetBuffers, 0, targetcount));
-                                        cld.Add(queue.Dequeue());
-                                        cld.Start(delta);
-                                        activeDispatchs[dispatchs++] = cld;
-                                    }
-                                }
-                                else
-                                {
-                                    int i = 0;
-                                    for (; i < cld_g.Length - 1; i++)
-                                    {
-                                        var cld = cld_g[i];
-                                        cld.SetTargets(new(activeTargetBuffers, 0, targetcount));
-                                        for (int x = 0; x < perCL; x++)
-                                            cld.Add(queue.Dequeue());
-                                        cld.Start(delta);
-                                        activeDispatchs[dispatchs++] = cld;
-                                    }
-                                    var lcld = cld_g[i];
-                                    lcld.SetTargets(new(activeTargetBuffers, 0, targetcount));
-                                    while (queue.Count > 0)
-                                        lcld.Add(queue.Dequeue());
-                                    lcld.Start(delta);
-                                    activeDispatchs[dispatchs++] = lcld;
-                                }
-                            }
-
-                            managercl.Begin();
-
-                            for (int tari = 0; tari < targetcount; tari++)
-                                activeTargets[tari].PrepareForDraw(managercl);
-                            PrepareForDraw(managercl, gd.SwapchainFramebuffer);
-
-                            for (int i = 0; i < resBufferFill; i++)
-                                await resBuffer[i].InternalUpdate(delta, managercl);
-                            managercl.End();
-
-                            gd.SubmitCommands(managercl);
-                            Array.Clear(resBuffer, 0, resBufferFill);
-                            resBufferFill = 0;
-                            for (int i = 0; i < dispatchs; i++)
-                                gd.SubmitCommands(activeDispatchs[i].WaitForEnd());
-
-                            bool clbegun = false;
-                            for (int tari = 0; tari < targetcount; tari++)
-                            {
-                                if (activeTargets[tari].QueryCopyToScreenRequired(gd))
-                                {
-                                    if (clbegun is false)
-                                    {
-                                        managercl.Begin();
-                                        clbegun = true;
-                                    }
-                                }
-                                else
-                                    continue;
-
-                                activeTargets[tari].CopyToScreen(managercl, activeTargetBuffers[tari].ActiveBuffer, gd);
-                            }
-
-                            if (clbegun)
-                            {
-                                managercl.End();
-                                gd.SubmitCommands(managercl);
-                            }
-
-                            Array.Clear(activeDispatchs, 0, dispatchs);
-                        }
-                    }
-                    finally
-                    {
-                        drawlock.Release(); // End the general drawing stage
-                    }
-
-                    if (GUIElements.Count > 0) // There's no need to lock neither glock nor ImGUI lock if there are no elements to render. And if it does change between this check and the second one, then tough luck and it'll have to wait until the next frame
-                    {
-                        if (!await WaitOn(glock, condition: isRunning)) break; // Frame Render Stage 2: GUI Drawing
-                        try
-                        {
-                            if (GUIElements.Count > 0) // We check twice, as it may have changed between the first check and the lock being adquired
-                            {
-                                managercl.Begin();
-                                managercl.SetFramebuffer(gd.SwapchainFramebuffer); // Prepare for ImGUI
-                                using (ImGuiController.Begin()) // Lock ImGUI from other GraphicsManagers
-                                {
-                                    foreach (var element in GUIElements)
-                                        element.InternalSubmitUI(delta); // Submit UIs
-                                    using (var snapshot = FetchSnapshot())
-                                        ImGuiController.Update(1 / 60f, snapshot);
-                                    ImGuiController.Render(gd, managercl); // Render
-                                }
-                                managercl.End();
-                                gd.SubmitCommands(managercl);
-                            }
-                        }
-                        finally
-                        {
-                            glock.Release(); // End the GUI drawing stage
-                        }
-                    }
-                }
-                finally
-                {
-                    framelock.Release(); // End Frame Render
-                }
-            }
-            finally
-            {
-                winlock.Release();
-            }
-
-            {
-                var tdopr = ValueTask.CompletedTask;
-                if (DOPRegistrationBuffer.Count > 0)
-                    tdopr = ProcessDrawOpRegistrationBuffer().Preserve();
-
-                await DeferredCallScheduleUpdater();
-                await tdopr;
-            }
-
-            gd.WaitForIdle(); // Wait for operations to finish
-            gd.SwapBuffers(); // Present
-
-            // Code that does not require any resources and is not bothered if resources are suddenly released
-
-            lock (SnapshotPool)
-            {
-                snapshotBuffer.CopyTo(CurrentSnapshot);
-                snapshotBuffer.Clear();
-            }
-
-            frameCount++;
-            delta = sw.Elapsed;
-            fak.Push(1000 / (sw.ElapsedMilliseconds + 0.0000001f));
-            sw.Restart();
-        }
-
-        Debug.Assert(IsRunning is false, "The main rendering loop broke even though the GraphicsManager<TGraphicsContext> is still supposed to be running");
-        InternalLog?.Information("Exiting main rendering loop and disposing");
-
-        Dispose();
-    }
-
-    private void Window_Closed(Window sender, TimeSpan timestamp)
-    {
-        IsRunning = false;
-    }
+    /// <summary>
+    /// The main running method of this <see cref="GraphicsManager{TGraphicsContext}"/>
+    /// </summary>
+    /// <remarks>
+    /// This is a very advanced method, the entire state of the GraphicsManager is dependent on this method and thus must be understood perfectly. This method will be called strictly once, as it is expected the rendering loop to run within it
+    /// </remarks>
+    protected abstract Task Run();
 
     #endregion
 
@@ -1108,70 +567,24 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
 
     #endregion
 
-    #region Private Fields
-
-    private readonly object sync = new();
-
-    #endregion
-
     #region Setup Methods
 
-    [MethodImpl]
-    internal void SetupWindow()
-    {
-        CreateWindow(out var window, out var gd);
-        Window = window;
-        Device = gd;
-        var factory = gd.ResourceFactory;
-
-        var (ww, wh) = window.Size;
-        ImGuiController = new(gd, gd.SwapchainFramebuffer.OutputDescription, ww, wh);
-
-        var dTransDesc = new ResourceLayoutDescription(new ResourceLayoutElementDescription("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex));
-        var dotransl = new ResourceLayoutDescription(
-            new ResourceLayoutElementDescription("Transform", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment)
-        );
-
-        DrawParametersLayout = factory.CreateResourceLayout(ref dTransDesc);
-        DrawOpTransLayout = factory.CreateResourceLayout(ref dotransl);
-
-        Window_SizeChanged(window, Game.TotalTime, window.Size);
-
-        window.SizeChanged += Window_SizeChanged;
-        window.Closed += Window_Closed;
-        window.KeyPressed += Window_KeyPressed;
-        window.KeyReleased += Window_KeyReleased;
-        window.MouseButtonPressed += Window_MouseButtonPressed;
-        window.MouseButtonReleased += Window_MouseButtonReleased;
-        window.MouseMoved += Window_MouseMoved;
-        window.MouseWheelScrolled += Window_MouseWheelScrolled;
-        window.MouseExited += Window_MouseExited;
-        window.Hidden += Window_Hidden;
-        window.Shown += Window_Shown;
-        window.FocusGained += Window_FocusGained;
-        window.FocusLost += Window_FocusLost;
-    }
-
-    private void Window_FocusLost(Window sender, TimeSpan timestamp) => HasFocus = false;
-
-    private void Window_FocusGained(Window sender, TimeSpan timestamp) => HasFocus = true;
-
-    private void Window_MouseExited(Window sender, TimeSpan timestamp, Point delta, Point newPosition, uint mouseId, MouseButton pressed)
-    {
-        lock (SnapshotPool)
-            snapshotBuffer.butt = 0;
-    }
+    /// <summary>
+    /// Performs task such as Creating and Setting up the Window
+    /// </summary>
+    [MemberNotNull(nameof(graphics_thread))]
+    protected abstract void SetupGraphicsManager();
 
     /// <summary>
-    /// <c>true</c> if <see cref="Window"/> is currently visible, or shown. <c>false</c> otherwise.
+    /// <c>true</c> if this GraphicsManager is currently visible, or shown. <c>false</c> otherwise.
     /// </summary>
     /// <remarks>
-    /// This <see cref="GraphicsManager{TGraphicsContext}"/> will *NOT* run or update while <see cref="Window"/> is inactive
+    /// This <see cref="GraphicsManager{TGraphicsContext}"/> will *NOT* run or update while this GraphicsManager is inactive
     /// </remarks>
     public bool IsWindowAvailable { get; private set; }
 
     /// <summary>
-    /// <c>true</c> if <see cref="Window"/> currently has input focus. <c>false</c> otherwise
+    /// <c>true</c> if this GraphicsManager currently has input focus. <c>false</c> otherwise
     /// </summary>
     public bool HasFocus { get; private set; }
 
@@ -1180,130 +593,16 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     /// </summary>
     public bool IsRendering => IsWindowAvailable && (!PauseOnInputLoss || HasFocus);
 
-    private void Window_Shown(Window sender, TimeSpan timestamp) => UpdateWindowAvailability(true);
-
-    private void Window_Hidden(Window sender, TimeSpan timestamp) => UpdateWindowAvailability(false);
-
-    private void UpdateWindowAvailability(bool isAvailable)
+    /// <summary>
+    /// Updates the window
+    /// </summary>
+    /// <param name="isAvailable"></param>
+    protected void UpdateWindowAvailability(bool isAvailable)
     {
         IsWindowAvailable = isAvailable;
         lock (SnapshotPool)
             snapshotBuffer.butt = 0;
     }
-
-    /// <summary>
-    /// This method is automatically called during this object's construction, creates a <see cref="SDL2.NET.Window"/> and <see cref="GraphicsDevice"/> to be used as <see cref="Window"/> and <see cref="Device"/> respectively
-    /// </summary>
-    /// <remarks>
-    /// Do not call any <see cref="GraphicsManager{TGraphicsContext}"/> methods from here, it may cause a deadlock! The <see cref="Window"/> and <see cref="GraphicsDevice"/> here produced are expected to be unique and owned exclusively by this <see cref="GraphicsManager{TGraphicsContext}"/>. Issues may arise if this is not so. It's better if you don't call base <see cref="CreateWindow"/>. This is called, specifically, by <see cref="GraphicsManager{TGraphicsContext}"/>'s constructor. If this is a derived type, know that this method will be called by the first constructor in the hierarchy, and NOT after your type's constructor
-    /// </remarks>
-    protected virtual void CreateWindow(out Window mainWindow, out GraphicsDevice graphicsDevice)
-    {
-        mainWindow = new Window(Game.GameTitle, 800, 600, WindowConfig.Default);
-
-        var gdoptions =
-#if !DEBUG
-            new GraphicsDeviceOptions(true, null, true, ResourceBindingModel.Improved, false, false);
-#else
-            new GraphicsDeviceOptions(false, null, true, ResourceBindingModel.Improved, false, false);
-#endif
-
-        try
-        {
-            graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
-                mainWindow,
-                gdoptions
-            );
-        }
-        catch (Exception e)
-        {
-            InternalLog?.Error(e, "Failed to create a GraphicDevice using the default platform backend, retrying with Vulkan");
-
-            try
-            {
-                graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
-                    mainWindow,
-                    gdoptions,
-                    GraphicsBackend.Vulkan
-                );
-            }
-            catch (Exception e1)
-            {
-                InternalLog?.Error(e1, "Failed to create a GraphicDevice using Vulkan, retrying with OpenGLES");
-
-                try
-                {
-                    graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
-                        mainWindow,
-                        gdoptions,
-                        GraphicsBackend.OpenGLES
-                    );
-                }
-                catch (Exception e2)
-                {
-                    InternalLog?.Error(e2, "Failed to create a GraphicDevice using OpenGLES, retrying with OpenGL");
-
-                    try
-                    {
-                        graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
-                            mainWindow,
-                            gdoptions,
-                            GraphicsBackend.OpenGL
-                        );
-                    }
-                    catch (Exception e3)
-                    {
-                        InternalLog?.Error(e3, "Failed to create a GraphicDevice using Vulkan, retrying with Direct3D11");
-
-                        try
-                        {
-                            graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
-                                mainWindow,
-                                gdoptions,
-                                GraphicsBackend.Direct3D11
-                            );
-                        }
-                        catch (Exception e4)
-                        {
-                            InternalLog?.Error(e4, "Failed to create a GraphicDevice using Direct3D11, retrying with Metal");
-
-                            try
-                            {
-                                graphicsDevice = Veldrid.Startup.CreateGraphicsDevice(
-                                    mainWindow,
-                                    gdoptions,
-                                    GraphicsBackend.Metal
-                                );
-                            }
-                            catch (Exception e5)
-                            {
-                                InternalLog?.Error(e5, "Failed to create a GraphicDevice using Metal");
-                                throw new VeldridException("Could not create a GraphicsDevice with any of the supported Graphics Backends");
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    #endregion
-
-    #region Graphic Resources
-
-    #region Public Properties
-
-    /// <summary>
-    /// The current Main Window of the Game
-    /// </summary>
-    public Window Window { get; private set; }
-
-    /// <summary>
-    /// The current Main Renderer of the Game
-    /// </summary>
-    public GraphicsDevice Device { get; private set; }
-
-    #endregion
 
     #endregion
 
@@ -1313,10 +612,21 @@ public class GraphicsManager<TGraphicsContext> : GameObject, IDisposable
     {
         IsRunning = false;
         FrameLock.Wait();
-        Device.Dispose();
-        Window.Dispose();
-        FrameLock.Release();
+        try
+        {
+            FramelockedDispose(disposing);
+        }
+        finally
+        {
+            FrameLock.Release();
+        }
+        base.InternalDispose(disposing);
     }
+
+    /// <summary>
+    /// Performs disposal tasks while the Frame is locked
+    /// </summary>
+    protected abstract void FramelockedDispose(bool disposing);
 
     #endregion
 }

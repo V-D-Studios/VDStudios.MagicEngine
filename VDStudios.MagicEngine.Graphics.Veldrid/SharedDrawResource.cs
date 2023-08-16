@@ -8,7 +8,7 @@ using VDStudios.MagicEngine.Graphics;
 using Veldrid;
 using Vulkan;
 
-namespace VDStudios.MagicEngine;
+namespace VDStudios.MagicEngine.Graphics.Veldrid;
 
 /// <summary>
 /// Represents a resource that can be shared across multiple <see cref="DrawOperation"/>s, and as such should be updated independently
@@ -20,7 +20,7 @@ public abstract class SharedDrawResource : GraphicsObject
     /// <summary>
     /// Instances a new <see cref="SharedDrawResource"/> object
     /// </summary>
-    public SharedDrawResource() : base("resources") 
+    public SharedDrawResource() : base("resources")
     {
     }
 
@@ -117,7 +117,7 @@ public abstract class SharedDrawResource : GraphicsObject
     private void InternalDispose(bool disposing)
     {
         AboutToDispose?.Invoke(this, Game.TotalTime);
-        lock (sync) 
+        lock (sync)
             if (Manager is GraphicsManager manager)
             {
                 var @lock = manager.LockManagerDrawing();

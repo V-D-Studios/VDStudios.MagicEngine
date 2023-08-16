@@ -1,27 +1,8 @@
 ﻿using System.Numerics;
 using VDStudios.MagicEngine.Graphics;
+using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Input;
-
-public enum Scancode
-{
-
-}
-
-public enum Keycode
-{
-
-}
-
-public enum KeyModifier
-{
-
-}
-
-public enum MouseButton
-{
-
-}
 
 /// <summary>
 /// Represents a recording of a Key Event
@@ -32,7 +13,8 @@ public enum MouseButton
 /// <param name="IsPressed">Whether the key was pressed or not</param>
 /// <param name="Repeat">Whether the key was a repeat press or not</param>
 /// <param name="Unicode">The unicode value of the key</param>
-public readonly record struct KeyEventRecord(Scancode Scancode, Keycode Key, KeyModifier Modifiers, bool IsPressed, bool Repeat, uint Unicode);
+/// <param name="KeyboardId">The keyboard's ID if applicable</param>
+public readonly record struct KeyEventRecord(uint KeyboardId, Scancode Scancode, Keycode Key, KeyModifier Modifiers, bool IsPressed, bool Repeat, uint Unicode);
 
 /// <summary>
 /// Represents a recording of a Mouse Event
@@ -40,7 +22,15 @@ public readonly record struct KeyEventRecord(Scancode Scancode, Keycode Key, Key
 /// <param name="Delta">The amount of travel the Mouse had during this event</param>
 /// <param name="NewPosition">The new position of the mouse</param>
 /// <param name="Pressed">The buttons that were pressed at the time of this event</param>
-public readonly record struct MouseEventRecord(Vector2 Delta, Vector2 NewPosition, MouseButton Pressed);
+/// <param name="MouseId">The mouse's Id if applicable</param>
+public readonly record struct MouseEventRecord(uint MouseId, Vector2 Delta, Vector2 NewPosition, MouseButton Pressed);
+
+/// <summary>
+/// Represents a recording of a Mouse Wheel Event
+/// </summary>
+/// <param name="MouseId">The mouse's Id if applicable</param>
+/// <param name="WheelDelta">The amount of travel the Mouse's wheel had in each axis during this event.</param>
+public readonly record struct MouseWheelEventRecord(uint MouseId, Vector2 WheelDelta);
 
 /// <summary>
 /// Represents a snapshot of given input at a specific frame
@@ -48,7 +38,7 @@ public readonly record struct MouseEventRecord(Vector2 Delta, Vector2 NewPositio
 /// <remarks>
 /// Input events get recorded at all times, and are reset at the beginning of a new frame. Disposing this object returns it to the Snapshot pool, not doing so may result in extra allocations
 /// </remarks>
-public sealed class InputSnapshot : IDisposable
+public abstract class InputSnapshot : IDisposable
 {
     internal readonly GraphicsManager Manager;
     internal InputSnapshot(GraphicsManager manager)
@@ -74,10 +64,16 @@ public sealed class InputSnapshot : IDisposable
     internal List<uint> kcEvs = new();
 
     /// <summary>
-    /// The characters that were pressed at the time of this snapshot
+    /// The mouse events that happened at the time of this snapshot
     /// </summary>
     public IReadOnlyList<MouseEventRecord> MouseEvents => mEvs;
     internal List<MouseEventRecord> mEvs = new();
+
+    /// <summary>
+    /// The mouse wheel events that happened at the time of this snapshot
+    /// </summary>
+    public IReadOnlyList<MouseWheelEventRecord> MouseWheelEvents => mwEvs;
+    internal List<MouseWheelEventRecord> mwEvs = new();
 
     /// <summary>
     /// The mouse position at the time of this snapshot
@@ -85,14 +81,9 @@ public sealed class InputSnapshot : IDisposable
     public Vector2 MousePosition { get; internal set; }
 
     /// <summary>
-    /// The mouse wheel's vertical delta at the time of this snapshot
+    /// The mouse wheel's delta at the time of this snapshot
     /// </summary>
-    public float WheelVerticalDelta { get; internal set; }
-
-    /// <summary>
-    /// The mouse wheel's horizontal delta at the time of this snapshot
-    /// </summary>
-    public float WheelHorizontalDelta { get; internal set; }
+    public Vector2 WheelDelta { get; internal set; }
 
     /// <summary>
     /// Checks if <paramref name="button"/> was pressed at the time of this snapshot
@@ -111,16 +102,104 @@ public sealed class InputSnapshot : IDisposable
     public void ReturnToPool()
         => Manager.ReturnSnapshot(this);
 
-    internal void FetchLastMomentData()
+    /// <summary>
+    /// Fetches data that can only be obtained at the last possible moment, like the Mouse's current position
+    /// </summary>
+    protected internal virtual void FetchLastMomentData()
     {
-        var ms = Mouse.MouseState;
-        MousePosition = new(ms.Location.X, ms.Location.Y);
+        MousePosition = FetchMousePosition();
+    }
+
+    /// <summary>
+    /// Fetches the mouse's current position
+    /// </summary>
+    /// <remarks>
+    /// The mouse's position is assumed to be in window-space, and not necessarily screen-space
+    /// </remarks>
+    /// <returns>A <see cref="Vector2"/> representing the mouse's current position in the screen</returns>
+    protected abstract Vector2 FetchMousePosition();
+
+    /// <summary>
+    /// Reports a mouse wheel event
+    /// </summary>
+    /// <param name="mouseId">The id of the mouse if applicable</param>
+    /// <param name="delta">A <see cref="Vector2"/> representing how much did the mouse wheel move in each axis</param>
+    protected internal virtual void ReportMouseWheelMoved(uint mouseId, Vector2 delta)
+    {
+        WheelDelta += delta;
+        mwEvs.Add(new MouseWheelEventRecord(mouseId, delta));
+    }
+
+    /// <summary>
+    /// Reports a mouse event
+    /// </summary>
+    /// <param name="mouseId">The id of the mouse if applicable</param>
+    /// <param name="delta">A <see cref="Vector2"/> representing how much did the mouse move in each axis</param>
+    /// <param name="newPosition">The mouse's current position at the time of this event</param>
+    /// <param name="pressed">The buttons that were pressed at the time of this event</param>
+    protected internal virtual void ReportMouseMoved(uint mouseId, Vector2 delta, Vector2 newPosition, MouseButton pressed)
+    {
+        mEvs.Add(new(mouseId, delta, newPosition, pressed));
+    }
+
+    /// <summary>
+    /// Reports a mouse event
+    /// </summary>
+    /// <param name="mouseId">The id of the mouse if applicable</param>
+    /// <param name="clicks">The amount of clicks, if any, that were done in this event</param>
+    /// <param name="state">The mouse's current state</param>
+    protected internal virtual void ReportMouseButtonReleased(uint mouseId, int clicks, MouseButton state)
+    {
+        butt &= ~state;
+        mEvs.Add(new(mouseId, Vector2.Zero, FetchMousePosition(), state));
+    }
+
+    /// <summary>
+    /// Reports a mouse event
+    /// </summary>
+    /// <param name="mouseId">The id of the mouse if applicable</param>
+    /// <param name="clicks">The amount of clicks, if any, that were done in this event</param>
+    /// <param name="state">The mouse's current state</param>
+    protected internal virtual void ReportMouseButtonPressed(uint mouseId, int clicks, MouseButton state)
+    {
+        butt |= state;
+        mEvs.Add(new(mouseId, Vector2.Zero, FetchMousePosition(), state));
+    }
+
+    /// <summary>
+    /// Reports a keyboard event
+    /// </summary>
+    /// <param name="keyboardId">The id of the keyboard, if applicable</param>
+    /// <param name="scancode">The scancode of the key released</param>
+    /// <param name="key">The keycode of the key released</param>
+    /// <param name="modifiers">Any modifiers that may have been released at the time this key was released</param>
+    /// <param name="isPressed">Whether the key was released at the time of this event. Usually <see langword="false"/></param>
+    /// <param name="repeat">Whether this keypress is a repeat, i.e. it's being held down</param>
+    /// <param name="unicode">The unicode value for key that was released</param>
+    protected internal virtual void ReportKeyReleased(uint keyboardId, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
+    {
+        kEvs.Add(new(keyboardId, scancode, key, modifiers, false, repeat, unicode));
+    }
+
+    /// <summary>
+    /// Reports a keyboard event
+    /// </summary>
+    /// <param name="keyboardId">The id of the keyboard, if applicable</param>
+    /// <param name="scancode">The scancode of the key pressed</param>
+    /// <param name="key">The keycode of the key pressed</param>
+    /// <param name="modifiers">Any modifiers that may have been pressed at the time this key was pressed</param>
+    /// <param name="isPressed">Whether the key was pressed at the time of this event. Usually <see langword="true"/></param>
+    /// <param name="repeat">Whether this keypress is a repeat, i.e. it's being held down</param>
+    /// <param name="unicode">The unicode value for key that was pressed</param>
+    protected internal virtual void ReportKeyPressed(uint keyboardId, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
+    {
+        kEvs.Add(new(keyboardId, scancode, key, modifiers, true, repeat, unicode));
+        kcEvs.Add(unicode);
     }
 
     internal void Clear()
     {
-        WheelHorizontalDelta = 0;
-        WheelVerticalDelta = 0;
+        WheelDelta = default;
         MousePosition = default;
         kEvs.Clear();
         kcEvs.Clear();
@@ -130,8 +209,7 @@ public sealed class InputSnapshot : IDisposable
     internal void CopyTo(InputSnapshot other)
     {
         other.butt = butt;
-        other.WheelHorizontalDelta = WheelHorizontalDelta;
-        other.WheelVerticalDelta = WheelVerticalDelta;
+        other.WheelDelta = WheelDelta;
         other.MousePosition = MousePosition;
 
         other.kEvs.Clear();

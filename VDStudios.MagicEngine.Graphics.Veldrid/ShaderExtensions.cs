@@ -1,7 +1,7 @@
 ﻿using System.Buffers;
 using Veldrid;
 
-namespace VDStudios.MagicEngine;
+namespace VDStudios.MagicEngine.Graphics.Veldrid;
 
 /// <summary>
 /// Provides a set of extensions to work with and load <see cref="Shader"/>s
@@ -69,7 +69,7 @@ public static class ShaderExtensions
 
                 buffer[shInd++] = factory.CreateShader(new(type, await File.ReadAllBytesAsync(file, ct), "main"));
             });
-            
+
             var final = new Shader[shInd];
             Array.ConstrainedCopy(buffer, 0, final, 0, shInd);
             return final;

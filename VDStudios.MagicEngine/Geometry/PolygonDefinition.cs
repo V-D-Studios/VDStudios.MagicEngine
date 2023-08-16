@@ -1,5 +1,4 @@
-﻿using SDL2.NET;
-using System.Collections;
+﻿using System.Collections;
 using System.Numerics;
 
 namespace VDStudios.MagicEngine.Geometry;
@@ -47,18 +46,7 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     /// </summary>
     /// <param name="rectangle">The rectangle describing the location and dimensions of the polygon to define</param>
     /// <returns>A new <see cref="PolygonDefinition"/> with four vertices describing the rectangle</returns>
-    public static PolygonDefinition Rectangle(FRectangle rectangle)
-    {
-        var (w, h, x, y) = rectangle;
-        return Rectangle(new(x, y), new(w, h));
-    }
-
-    /// <summary>
-    /// Creates a new <see cref="PolygonDefinition"/> object that describes a Rectangle represented by <paramref name="rectangle"/>
-    /// </summary>
-    /// <param name="rectangle">The rectangle describing the location and dimensions of the polygon to define</param>
-    /// <returns>A new <see cref="PolygonDefinition"/> with four vertices describing the rectangle</returns>
-    public static PolygonDefinition Rectangle(Rectangle rectangle)
+    public static PolygonDefinition Rectangle(FloatRectangle rectangle)
     {
         var (w, h, x, y) = rectangle;
         return Rectangle(new(x, y), new(w, h));

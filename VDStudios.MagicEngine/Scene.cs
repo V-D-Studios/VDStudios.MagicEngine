@@ -1,5 +1,8 @@
 ﻿using System.Buffers;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 using static System.Net.Mime.MediaTypeNames;
@@ -114,12 +117,40 @@ public abstract class Scene : GameObject, IDisposable
     /// </remarks>
     public NodeList Children { get; internal set; }
 
-    #region Attachment
+    private readonly ConcurrentDictionary<Type, ConcurrentBag<object>> drawablenodes_dict = new();
 
     /// <summary>
-    /// Attaches <paramref name="child"/> into this <see cref="Scene"/>
+    /// Gets the <see cref="IDrawableNode{TGraphicsContext}"/> that are <see cref="IDrawableNode{TGraphicsContext}"/>
     /// </summary>
-    /// <param name="child">The child <see cref="Node"/> to attach into this <see cref="Scene"/></param>
+    /// <typeparam name="TGraphicsContext">The <see cref="GraphicsContext{TSelf}"/> that defines the <see cref="IDrawableNode{TGraphicsContext}"/></typeparam>
+    public IEnumerable<IDrawableNode<TGraphicsContext>> GetDrawableNodes<TGraphicsContext>()
+        where TGraphicsContext : GraphicsContext<TGraphicsContext>
+    {
+        if (drawablenodes_dict.TryGetValue(typeof(IDrawableNode<TGraphicsContext>), out var bag))
+            foreach (var t in bag)
+            {
+                if (t is IDrawableNode<TGraphicsContext> dn)
+                    yield return dn;
+                else
+                    Debug.Fail("At least one of the values in a DrawableNode bag was not a DrawableNode of the expected type");
+            }
+    }
+
+    internal int RegisterNodeInScene(Node child)
+    {
+        var id = Children.Add(child);
+
+        foreach (var x in child.GetType().FindInterfaces((t, c) => t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(IDrawableNode<>), null))
+            drawablenodes_dict.GetOrAdd(x, gm => new ConcurrentBag<object>()).Add(child);
+        return id;
+    }
+
+    #region Attachment
+
+        /// <summary>
+        /// Attaches <paramref name="child"/> into this <see cref="Scene"/>
+        /// </summary>
+        /// <param name="child">The child <see cref="Node"/> to attach into this <see cref="Scene"/></param>
     public ValueTask Attach(Node child)
         => child.AttachTo(this);
 

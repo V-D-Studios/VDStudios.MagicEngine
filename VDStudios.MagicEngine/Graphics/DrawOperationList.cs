@@ -13,7 +13,6 @@ public sealed class DrawOperationList<TGraphicsContext> : IReadOnlyCollection<Dr
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     private readonly Dictionary<Guid, DrawOperation<TGraphicsContext>> Ops = new();
-    internal readonly SemaphoreSlim RegistrationSync = new(1, 1);
 
     #region Public
 

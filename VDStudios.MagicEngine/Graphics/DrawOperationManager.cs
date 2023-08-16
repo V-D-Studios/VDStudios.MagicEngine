@@ -1,4 +1,5 @@
-﻿using VDStudios.MagicEngine.Internal;
+﻿using System.Collections.Concurrent;
+using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Graphics;
 
@@ -8,6 +9,8 @@ namespace VDStudios.MagicEngine.Graphics;
 public class DrawOperationManager<TGraphicsContext> : GameObject
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
+    private readonly ConcurrentDictionary<GraphicsManager<TGraphicsContext>, DrawOperationList<TGraphicsContext>> gm_dict = new();
+
     /// <summary>
     /// Instantiates a new object of type <see cref="DrawOperationManager{TGraphicsContext}"/>
     /// </summary>
@@ -105,10 +108,17 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     /// </remarks>
     /// <param name="queue">The queue associated with <paramref name="operation"/> into which to add the draw operations</param>
     /// <param name="operation">A specific registered <see cref="DrawOperation{TGraphicsContext}"/></param>
-    public virtual void AddToDrawQueue(IDrawQueue<TGraphicsContext, DrawOperation<TGraphicsContext>> queue, DrawOperation<TGraphicsContext> operation)
+    public virtual void AddToDrawQueue(IDrawQueue<DrawOperation<TGraphicsContext>, TGraphicsContext> queue, DrawOperation<TGraphicsContext> operation)
     {
         queue.Enqueue(operation, operation.PreferredPriority);
     }
+
+    /// <summary>
+    /// Gets the <see cref="DrawOperation{TGraphicsContext}"/>s that belong to <paramref name="graphicsManager"/>
+    /// </summary>
+    /// <param name="graphicsManager">The <see cref="GraphicsManager{TGraphicsContext}"/> owning the draw operations</param>
+    public IEnumerable<DrawOperation<TGraphicsContext>> GetDrawOperations(GraphicsManager<TGraphicsContext> graphicsManager) 
+        => gm_dict.TryGetValue(graphicsManager, out var drawOperations) ? drawOperations : Array.Empty<DrawOperation<TGraphicsContext>>();
 
     #endregion
 
@@ -116,8 +126,10 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
 
     private void InternalAddDrawOperation(DrawOperation<TGraphicsContext> operation, GraphicsManager<TGraphicsContext>? graphicsManager)
     {
-#warning Review if DrawOperations should be registered like this. A better alternative might be to, instead, have something like a HashSet of GraphicsManagers each with their own DrawOperationManager instance? Then IDrawableNode could have some form of super DrawOperationManager
-// The reasoning for this is simplifying how DrawOperations are handled; they should be handled through a Scene
+        graphicsManager 
+            ??= Game.MainGraphicsManager is GraphicsManager<TGraphicsContext> mgm 
+            ? mgm
+            : throw new InvalidOperationException($"If the Game's MainGraphicsManager is not of type {typeof(GraphicsManager<TGraphicsContext>)}, then a non-null argument MUST be provided");
 
         InternalLog?.Debug("Adding a new DrawOperation {objName}-{type}", operation.Name ?? "", operation.GetTypeName());
         operation.SetOwner(this);
@@ -126,16 +138,7 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
             AddingDrawOperation(operation);
             operation.ThrowIfDisposed();
             DrawOperations.Add(operation);
-            DrawOperations.RegistrationSync.Wait();
-            try
-            {
-                var manager = graphicsManager ?? Game.MainGraphicsManager;
-                manager.QueueOperationRegistration(operation);
-            }
-            finally
-            {
-                DrawOperations.RegistrationSync.Release();
-            }
+            gm_dict.GetOrAdd(graphicsManager, gm => new DrawOperationList<TGraphicsContext>()).Add(operation);
             operation.AboutToDispose += Operation_AboutToDispose;
         }
         catch
@@ -165,7 +168,7 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
 }
 
 /// <summary>
-/// Represents a <see cref="DrawOperationManager{TGraphicsContext}"/> that accepts a <see cref="DrawQueueSelector"/> delegate method to act in place of inheriting and overriding <see cref="DrawOperationManager{TGraphicsContext}.AddToDrawQueue(IDrawQueue{DrawOperation{TGraphicsContext}}, DrawOperation{TGraphicsContext})"/>
+/// Represents a <see cref="DrawOperationManager{TGraphicsContext}"/> that accepts a <see cref="DrawQueueSelector"/> delegate method to act in place of inheriting and overriding <see cref="AddToDrawQueue(IDrawQueue{DrawOperation{TGraphicsContext}, TGraphicsContext}, DrawOperation{TGraphicsContext})"/>
 /// </summary>
 public sealed class DrawOperationManagerDrawQueueDelegate<TGraphicsContext>  : DrawOperationManager<TGraphicsContext>
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
@@ -175,7 +178,7 @@ public sealed class DrawOperationManagerDrawQueueDelegate<TGraphicsContext>  : D
     /// </summary>
     /// <param name="queue">The <see cref="IDrawQueue{TGraphicsContext, T}"/> into which to add <paramref name="operation"/></param>
     /// <param name="operation">The operation in question</param>
-    public delegate void DrawQueueSelector(IDrawQueue<TGraphicsContext, DrawOperation<TGraphicsContext>> queue, DrawOperation<TGraphicsContext> operation);
+    public delegate void DrawQueueSelector(IDrawQueue<DrawOperation<TGraphicsContext>, TGraphicsContext> queue, DrawOperation<TGraphicsContext> operation);
 
     private readonly DrawQueueSelector _drawQueueSelector;
 
@@ -187,6 +190,6 @@ public sealed class DrawOperationManagerDrawQueueDelegate<TGraphicsContext>  : D
     }
 
     /// <inheritdoc/>
-    public override void AddToDrawQueue(IDrawQueue<TGraphicsContext, DrawOperation<TGraphicsContext>> queue, DrawOperation<TGraphicsContext> operation)
+    public override void AddToDrawQueue(IDrawQueue<DrawOperation<TGraphicsContext>, TGraphicsContext> queue, DrawOperation<TGraphicsContext> operation)
         => _drawQueueSelector.Invoke(queue, operation);
 }

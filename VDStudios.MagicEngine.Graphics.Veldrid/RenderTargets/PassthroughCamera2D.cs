@@ -5,10 +5,11 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using VDStudios.MagicEngine.Graphics;
+using VDStudios.MagicEngine.Graphics.Veldrid.Internal;
 using VDStudios.MagicEngine.Internal;
 using Veldrid;
 
-namespace VDStudios.MagicEngine.RenderTargets;
+namespace VDStudios.MagicEngine.Graphics.Veldrid.RenderTargets;
 
 /// <summary>
 /// Represents a simple 2D Camera that passes the main <see cref="Framebuffer"/> from its <see cref="Camera2D.Owner"/> 

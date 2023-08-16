@@ -2,9 +2,10 @@
 using System.Security.Cryptography;
 using SDL2.NET;
 using VDStudios.MagicEngine.Graphics;
+using VDStudios.MagicEngine.Internal;
 using Veldrid;
 
-namespace VDStudios.MagicEngine.Internal;
+namespace VDStudios.MagicEngine.Graphics.Veldrid.Internal;
 
 /// <summary>
 /// Basic functionality for a 2D Camera

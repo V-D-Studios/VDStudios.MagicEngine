@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using VDStudios.MagicEngine.Graphics;
 using Veldrid;
 
-namespace VDStudios.MagicEngine.Internal;
+namespace VDStudios.MagicEngine.Graphics.Veldrid.Internal;
 
 /// <summary>
 /// Represents a collection of <see cref="DrawOperation"/>s that are to be rendered in the current frame
@@ -28,7 +28,7 @@ internal class CommandListDispatch
 
     private TimeSpan delta;
     private Exception? Fault;
-    
+
     /// <param name="expectedDops">A hint to the amount of <see cref="DrawOperation"/> that is expected for this <see cref="CommandListDispatch"/> to handle per frame</param>
     /// <param name="cl">The <see cref="CommandList"/> belonging to this <see cref="CommandListDispatch"/></param>
     public CommandListDispatch(int expectedDops, CommandList cl)
@@ -78,7 +78,7 @@ internal class CommandListDispatch
             for (int ti = 0; ti < taskCount; ti++)
                 tasks[ti].GetAwaiter().GetResult();
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             Fault = e;
             throw;
