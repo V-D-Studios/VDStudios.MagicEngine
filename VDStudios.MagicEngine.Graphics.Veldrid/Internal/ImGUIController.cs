@@ -328,7 +328,7 @@ public class ImGuiController<TGraphicsContext> : IDisposable
     /// <summary>
     /// Updates ImGui input and IO configuration state.
     /// </summary>
-    public void Update(float deltaSeconds, InputSnapshot snapshot)
+    public void Update(float deltaSeconds, InputSnapshotBuffer snapshot)
     {
         SetPerFrameImGuiData(deltaSeconds);
         UpdateImGuiInput(snapshot);
@@ -348,7 +348,7 @@ public class ImGuiController<TGraphicsContext> : IDisposable
         io.DeltaTime = deltaSeconds; // DeltaTime is in seconds.
     }
 
-    private void UpdateImGuiInput(InputSnapshot snapshot)
+    private void UpdateImGuiInput(InputSnapshotBuffer snapshot)
     {
         ImGuiIOPtr io = ImGui.GetIO();
 

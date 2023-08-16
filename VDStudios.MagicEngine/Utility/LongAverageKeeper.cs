@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-
-namespace VDStudios.MagicEngine.Utility;
+﻿namespace VDStudios.MagicEngine.Utility;
 
 /// <summary>
 /// Maintains a list of data and presents an arithmetic mean average of the stored data

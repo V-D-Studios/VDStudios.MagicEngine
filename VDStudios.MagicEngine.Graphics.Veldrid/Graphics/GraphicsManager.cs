@@ -233,11 +233,11 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region Input Management
 
-    private readonly InputSnapshot snapshotBuffer;
-    private InputSnapshot CurrentSnapshot;
-    private readonly Queue<InputSnapshot> SnapshotPool = new(3);
+    private readonly InputSnapshotBuffer snapshotBuffer;
+    private InputSnapshotBuffer CurrentSnapshot;
+    private readonly Queue<InputSnapshotBuffer> SnapshotPool = new(3);
 
-    internal void ReturnSnapshot(InputSnapshot snapshot)
+    internal void ReturnSnapshot(InputSnapshotBuffer snapshot)
     {
         lock (SnapshotPool)
         {
@@ -246,7 +246,7 @@ public class GraphicsManager : GameObject, IDisposable
         }
     }
 
-    internal InputSnapshot FetchSnapshot()
+    internal InputSnapshotBuffer FetchSnapshot()
     {
         lock (SnapshotPool)
         {
@@ -280,7 +280,7 @@ public class GraphicsManager : GameObject, IDisposable
         var mp = Mouse.MouseState.Location;
         lock (SnapshotPool)
         {
-            snapshotBuffer.butt &= ~state;
+            snapshotBuffer.PressedMouseButtons &= ~state;
             snapshotBuffer.mEvs.Add(new(Vector2.Zero, new Vector2(mp.X, mp.Y), state));
         }
     }
@@ -290,7 +290,7 @@ public class GraphicsManager : GameObject, IDisposable
         var mp = Mouse.MouseState.Location;
         lock (SnapshotPool)
         {
-            snapshotBuffer.butt |= state;
+            snapshotBuffer.PressedMouseButtons |= state;
             snapshotBuffer.mEvs.Add(new(Vector2.Zero, new Vector2(mp.X, mp.Y), state));
         }
     }
@@ -1162,7 +1162,7 @@ public class GraphicsManager : GameObject, IDisposable
     private void Window_MouseExited(Window sender, TimeSpan timestamp, Point delta, Point newPosition, uint mouseId, MouseButton pressed)
     {
         lock (SnapshotPool)
-            snapshotBuffer.butt = 0;
+            snapshotBuffer.PressedMouseButtons = 0;
     }
 
     /// <summary>
@@ -1191,7 +1191,7 @@ public class GraphicsManager : GameObject, IDisposable
     {
         IsWindowAvailable = isAvailable;
         lock (SnapshotPool)
-            snapshotBuffer.butt = 0;
+            snapshotBuffer.PressedMouseButtons = 0;
     }
 
     /// <summary>

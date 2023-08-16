@@ -51,7 +51,7 @@ public abstract class ImGUIElement<TGraphicsContext> : GraphicsObject<TGraphicsC
     /// <summary>
     /// 
     /// </summary>
-    public GUIElementDataContextChangedEvent? DataContextChanged;
+    public GraphicsManagerInputEventHandler? DataContextChanged;
 
     #endregion
 

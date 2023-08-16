@@ -1,5 +1,6 @@
 ﻿using VDStudios.MagicEngine.Graphics;
-using VDStudios.MagicEngine.Templates;
+using VDStudios.MagicEngine.Input;
+using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
 
@@ -249,33 +250,14 @@ public delegate void GraphicsManagerRunStateChanged<TGraphicsContext>(GraphicsMa
 
 #endregion
 
-#region GUIElement Delegates
+#region GraphicsManager Delegates
 
 /// <summary>
-/// Represents an event in the game regarding a <see cref="ImGUIElement{TGraphicsContext}"/>'s <see cref="ImGUIElement{TGraphicsContext}.DataContext"/>
+/// Represents an event in the game regarding a <see cref="GraphicsManager"/> having finished receiving input
 /// </summary>
-/// <param name="element">The <see cref="ImGUIElement{TGraphicsContext}"/> that experienced the change</param>
-/// <param name="timestamp">The amount of time that has passed since the library's initialization and this event firing</param>
-/// <param name="oldContext">The data context <paramref name="element"/> previously had, if any</param>
-/// <param name="newContext">The data context <paramref name="element"/> now has, if any</param>
-public delegate void GUIElementDataContextChangedEvent<TGraphicsContext>(ImGUIElement<TGraphicsContext> element, TimeSpan timestamp, object? oldContext, object? newContext)
-    where TGraphicsContext : GraphicsContext<TGraphicsContext>;
-
-/// <summary>
-/// Represents an event in the game regarding a <see cref="ImGUIElement{TGraphicsContext}"/>'s <see cref="ImGUIElement{TGraphicsContext}.IsActive"/> property
-/// </summary>
-/// <param name="element">The <see cref="ImGUIElement{TGraphicsContext}"/> that experienced the change</param>
-/// <param name="timestamp">The amount of time that has passed since the library's initialization and this event firing</param>
-/// <param name="isActive">The value that <paramref name="element"/>'s <see cref="ImGUIElement{TGraphicsContext}.IsActive"/> changed into</param>
-public delegate void GUIElementActiveChanged<TGraphicsContext>(ImGUIElement<TGraphicsContext> element, TimeSpan timestamp, bool isActive)
-    where TGraphicsContext : GraphicsContext<TGraphicsContext>;
-
-/// <summary>
-/// Represents a method that configures a <see cref="ImGUIElement{TGraphicsContext}"/> that has been instanced from a <see cref="TemplatedGUIElement"/>
-/// </summary>
-/// <param name="element">The newly instanced <see cref="ImGUIElement{TGraphicsContext}"/> from the template</param>
-/// <returns>An object representing the <see cref="ImGUIElement{TGraphicsContext}.DataContext"/> of the element, or <c>null</c> if it's not meant to have one</returns>
-public delegate object? TemplatedGUIElementConfigurator<TGraphicsContext>(ImGUIElement<TGraphicsContext> element)
-    where TGraphicsContext : GraphicsContext<TGraphicsContext>;
+/// <param name="graphicsManager">The <see cref="GraphicsManager"/> that experienced the change</param>
+/// <param name="inputSnapshot">The <see cref="InputSnapshot"/> containing the input data</param>
+/// <param name="timestamp">The system time at the moment this event fired</param>
+public delegate void GraphicsManagerInputEventHandler(GraphicsManager graphicsManager, InputSnapshot inputSnapshot, DateTime timestamp);
 
 #endregion

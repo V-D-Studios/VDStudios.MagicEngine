@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine.Graphics;
+using VDStudios.MagicEngine.Input;
 
 namespace VDStudios.MagicEngine.Internal;
 
@@ -16,6 +20,188 @@ public abstract class GraphicsManager : GameObject
 {
     internal GraphicsManager() : base("Graphics & Input", "Rendering")
     {
+        snapshotBuffer = CreateNewEmptyInputSnapshotBuffer();
+    }
 
+    #region Input Management
+
+    private readonly InputSnapshotBuffer snapshotBuffer;
+    private InputSnapshot? inputSnapshot;
+
+    /// <summary>
+    /// Creates a new Empty <see cref="InputSnapshotBuffer"/> to be added to the SnapshotPool
+    /// </summary>
+    /// <returns></returns>
+    protected abstract InputSnapshotBuffer CreateNewEmptyInputSnapshotBuffer();
+
+    internal InputSnapshot FetchSnapshot()
+    {
+        if (inputSnapshot is null)
+            lock (snapshotBuffer)
+                if (inputSnapshot is null)
+                {
+                    snapshotBuffer.FetchLastMomentData();
+                    inputSnapshot = snapshotBuffer.CreateSnapshot();
+                    snapshotBuffer.Clear();
+                } 
+
+        return inputSnapshot;
+    }
+
+    private readonly SemaphoreSlim InputSemaphore = new(1, 1);
+    private Task? InputPropagationTask;
+
+    /// <summary>
+    /// Propagates input across all of <see cref="InputReady"/>'s subscribers
+    /// </summary>
+    protected virtual async ValueTask SubmitInput(CancellationToken ct = default)
+    {
+        if (InputSemaphore.Wait(50, ct) is false)
+            await InputSemaphore.WaitAsync(ct);
+
+        try
+        {
+            if (InputPropagationTask is not null)
+                await InputPropagationTask;
+
+            InputPropagationTask = Task.Run(() =>
+            {
+                try
+                {
+                    FireInputReady();
+                }
+                finally
+                {
+                    InputSemaphore.Release();
+                }
+            }, ct);
+        }
+        catch // If an exception is thrown before the task can be scheduled, the InputSemaphore should be released
+        {
+            InputSemaphore.Release();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Fires <see cref="InputReady"/>
+    /// </summary>
+    protected void FireInputReady()
+        => InputReady?.Invoke(this, FetchSnapshot(), DateTime.Now);
+
+    /// <summary>
+    /// Fired when this <see cref="GraphicsManager"/> has finished preparing user input
+    /// </summary>
+    public event GraphicsManagerInputEventHandler? InputReady;
+
+    /// <summary>
+    /// Reports a mouse wheel event to the current staging snapshot
+    /// </summary>
+    /// <param name="mouseId">The id of the mouse if applicable</param>
+    /// <param name="delta">The mouse's wheel delta</param>
+    protected void ReportMouseWheelEvent(uint mouseId, Vector2 delta)
+    {
+        lock (snapshotBuffer)
+            snapshotBuffer.ReportMouseWheelMoved(mouseId, delta);
+    }
+
+    /// <summary>
+    /// Reports a mouse event to the current staging snapshot
+    /// </summary>
+    /// <param name="mouseId">The id of the mouse if applicable</param>
+    /// <param name="delta">A <see cref="Vector2"/> representing how much did the mouse move in each axis</param>
+    /// <param name="newPosition">The mouse's current position at the time of this event</param>
+    /// <param name="pressed">The buttons that were pressed at the time of this event</param>
+    protected void ReportMouseMoved(uint mouseId, Vector2 delta, Vector2 newPosition, MouseButton pressed)
+    {
+        lock (snapshotBuffer)
+            snapshotBuffer.ReportMouseMoved(mouseId, delta, newPosition, pressed);
+    }
+
+    /// <summary>
+    /// Reports a mouse event to the current staging snapshot
+    /// </summary>
+    /// <param name="mouseId">The id of the mouse if applicable</param>
+    /// <param name="clicks">The amount of clicks, if any, that were done in this event</param>
+    /// <param name="state">The mouse's current state</param>
+    protected void ReportMouseButtonReleased(uint mouseId, int clicks, MouseButton state)
+    {
+        lock (snapshotBuffer)
+            snapshotBuffer.ReportMouseButtonReleased(mouseId, clicks, state);
+    }
+
+    /// <summary>
+    /// Reports a mouse event to the current staging snapshot
+    /// </summary>
+    /// <param name="mouseId">The id of the mouse if applicable</param>
+    /// <param name="clicks">The amount of clicks, if any, that were done in this event</param>
+    /// <param name="state">The mouse's current state</param>
+    protected void ReportMouseButtonPressed(uint mouseId, int clicks, MouseButton state)
+    {
+        lock (snapshotBuffer)
+            snapshotBuffer.ReportMouseButtonPressed(mouseId, clicks, state);
+    }
+
+    /// <summary>
+    /// Reports a keyboard event to the current staging snapshot
+    /// </summary>
+    /// <param name="keyboardId">The id of the keyboard, if applicable</param>
+    /// <param name="scancode">The scancode of the key released</param>
+    /// <param name="key">The keycode of the key released</param>
+    /// <param name="modifiers">Any modifiers that may have been released at the time this key was released</param>
+    /// <param name="isPressed">Whether the key was released at the time of this event. Usually <see langword="false"/></param>
+    /// <param name="repeat">Whether this keypress is a repeat, i.e. it's being held down</param>
+    /// <param name="unicode">The unicode value for key that was released</param>
+    protected void ReportKeyReleased(uint keyboardId, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
+    {
+        lock (snapshotBuffer)
+            snapshotBuffer.ReportKeyReleased(keyboardId, scancode, key, modifiers, false, repeat, unicode);
+    }
+
+    /// <summary>
+    /// Reports a keyboard event to the current staging snapshot
+    /// </summary>
+    /// <param name="keyboardId">The id of the keyboard, if applicable</param>
+    /// <param name="scancode">The scancode of the key pressed</param>
+    /// <param name="key">The keycode of the key pressed</param>
+    /// <param name="modifiers">Any modifiers that may have been pressed at the time this key was pressed</param>
+    /// <param name="isPressed">Whether the key was pressed at the time of this event. Usually <see langword="true"/></param>
+    /// <param name="repeat">Whether this keypress is a repeat, i.e. it's being held down</param>
+    /// <param name="unicode">The unicode value for key that was pressed</param>
+    protected void ReportKeyPressed(uint keyboardId, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
+    {
+        lock (snapshotBuffer)
+            snapshotBuffer.ReportKeyPressed(keyboardId, scancode, key, modifiers, false, repeat, unicode);
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Waits for a <see cref="SemaphoreSlim"/> lock to be unlocked and adquires the lock if possible
+    /// </summary>
+    /// <param name="semaphore">The <see cref="SemaphoreSlim"/> to wait on</param>
+    /// <param name="condition">The condition to continue waiting for the semaphore. If <see langword="true"/> the method will continue waiting until the other parameters are up, otherwise, it will break immediately.</param>
+    /// <param name="syncWait">The amount of milliseconds to wait synchronously before to checking on the condition</param>
+    /// <param name="asyncWait">The amount of milliseconds to wait asynchronously before checking on the condition</param>
+    /// <param name="syncRepeats">The amount of times to wait <paramref name="syncWait"/> milliseconds (and checking the condition) before switching to asynchronous waiting</param>
+    /// <param name="ct">A <see cref="CancellationToken"/> to cancel the operation</param>
+    /// <returns><see langword="true"/> if <paramref name="semaphore"/>'s lock was adquired, <see langword="false"/> otherwise</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected static async ValueTask<bool> WaitOn(SemaphoreSlim semaphore, Func<bool> condition, int syncWait = 15, int asyncWait = 50, int syncRepeats = 10, CancellationToken ct = default)
+    {
+        while (syncRepeats-- > 0)
+            if (!semaphore.Wait(syncWait, ct))
+            {
+                if (!condition())
+                    return false;
+            }
+            else //succesfully adquired the lock
+                return true;
+        // ran out of repeats without adquiring the lock
+
+        while (!await semaphore.WaitAsync(asyncWait, ct))
+            if (!condition())
+                return false;
+        return true;
     }
 }
