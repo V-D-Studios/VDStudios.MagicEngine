@@ -1,6 +1,5 @@
-﻿using ImGuiNET;
-using System.Numerics;
-using VDStudios.MagicEngine.Graphics;
+﻿using System.Numerics;
+using ImGuiNET;
 
 namespace VDStudios.MagicEngine.Demo.GUI.Elements;
 public class ImGUIDemo : ImGUIElement

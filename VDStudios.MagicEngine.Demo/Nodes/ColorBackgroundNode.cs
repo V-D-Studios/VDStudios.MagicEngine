@@ -1,12 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
-using SDL2.NET;
-using SDL2.NET.SDLFont;
 using VDStudios.MagicEngine.Graphics;
-using Veldrid;
-using Veldrid.MetalBindings;
-using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.Demo.Nodes;
 public class ColorBackgroundNode : Node, IDrawableNode
@@ -34,7 +29,7 @@ public class ColorBackgroundNode : Node, IDrawableNode
     private sealed class ColorDraw : DrawOperation
     {
         #region Shaders
-        
+
         private const string VertexCode = @"
 #version 450
 
@@ -81,16 +76,16 @@ void main()
 
             VertexBuffer = factory.CreateBuffer(new((uint)(Unsafe.SizeOf<VertexPositionColor>() * 4), BufferUsage.VertexBuffer));
             device.UpdateBuffer(VertexBuffer, 0, _vert);
-            
+
             IndexBuffer = factory.CreateBuffer(new(sizeof(ushort) * 4, BufferUsage.IndexBuffer));
             device.UpdateBuffer(IndexBuffer, 0, inds);
 
             VertexLayoutDescription vertexLayout = new(
                 new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
                 new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4));
-            
+
             Shaders = factory.CreateFromSpirv(
-                new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main"), 
+                new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main"),
                 new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main"));
 
             var pp = new GraphicsPipelineDescription
@@ -144,7 +139,7 @@ void main()
         }
     }
 
-    public DrawOperationManager DrawOperationManager { get; } 
+    public DrawOperationManager DrawOperationManager { get; }
     public bool SkipDrawPropagation { get; }
 
     #endregion

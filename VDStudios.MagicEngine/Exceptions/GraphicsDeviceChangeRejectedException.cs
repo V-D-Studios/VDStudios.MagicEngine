@@ -1,6 +1,4 @@
-﻿using Veldrid;
-
-namespace VDStudios.MagicEngine.Exceptions;
+﻿namespace VDStudios.MagicEngine.Exceptions;
 
 /// <summary>
 /// An exception that is thrown when a <see cref="Node"/> or <see cref="Scene"/> rejects the attaching of a child <see cref="Node"/>

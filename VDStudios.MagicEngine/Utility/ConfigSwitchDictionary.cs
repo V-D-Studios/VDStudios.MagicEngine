@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace VDStudios.MagicEngine.Utility;
 
@@ -187,7 +181,7 @@ public class ConfigSwitchDictionary<TKey, TValue, TConfig>
     /// <summary>
     /// Removes all keys and values from the <see cref="ConfigSwitchDictionary{TKey, TValue, TConfig}"/>.
     /// </summary>
-    public void Clear() 
+    public void Clear()
         => Dictionary.Clear();
 
     /// <summary>Gets or sets the value associated with the specified key.</summary>

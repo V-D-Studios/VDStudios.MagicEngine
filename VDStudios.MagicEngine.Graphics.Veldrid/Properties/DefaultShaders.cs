@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using VDStudios.MagicEngine.DrawLibrary;
-using VDStudios.MagicEngine.DrawLibrary.Geometry;
-
-namespace VDStudios.MagicEngine.Properties;
+﻿namespace VDStudios.MagicEngine.Properties;
 
 /// <summary>
 /// This class presents access to MagicEngine's default shaders

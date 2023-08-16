@@ -12,7 +12,7 @@ public class FunctionalComponentRejectedException : Exception
     /// <param name="reason">The reason the component was rejected</param>
     /// <param name="node">The node that rejected the component</param>
     /// <param name="rejectedComponent">The component that was rejected</param>
-    public FunctionalComponentRejectedException(string? reason, Node node, FunctionalComponent rejectedComponent) 
+    public FunctionalComponentRejectedException(string? reason, Node node, FunctionalComponent rejectedComponent)
         : base($"FunctionalComponent of type {rejectedComponent.GetType().Name} was rejected by Node of type {node.GetType().Name} and could not be installed{(reason is null ? "" : $": {reason}")}")
     { }
 

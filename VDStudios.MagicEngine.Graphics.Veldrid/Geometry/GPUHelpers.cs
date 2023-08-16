@@ -1,13 +1,4 @@
-﻿using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Veldrid.MetalBindings;
-using Veldrid;
-using Vulkan;
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.Geometry;
 

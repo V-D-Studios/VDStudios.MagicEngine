@@ -1,15 +1,5 @@
-﻿using System;
-using System.Buffers;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Buffers;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace VDStudios.MagicEngine;
 
@@ -123,9 +113,9 @@ public sealed class DeferredExecutionSchedule
         }
     }
 
-    Task? onet;
-    Task? tima;
-    Task? recc;
+    private Task? onet;
+    private Task? tima;
+    private Task? recc;
     private async ValueTask Update()
     {
         Stamp = Watch.Elapsed;
@@ -332,7 +322,7 @@ public sealed class DeferredExecutionSchedule
     //   Recurrent?
     //   Returning?
 
-#region Helpers
+    #region Helpers
 
     /// <summary>
     /// Represents a handle to a specific delegate that has been scheduled as a Recurrent Call in a <see cref="DeferredExecutionSchedule"/>
@@ -377,5 +367,5 @@ public sealed class DeferredExecutionSchedule
 
     internal record struct DeferredCallInfo(UpdateEvent<DeferredExecutionSchedule> Action, TimeSpan Time, uint Frames, TimeSpan Registered);
 
-#endregion
+    #endregion
 }

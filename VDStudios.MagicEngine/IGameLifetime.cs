@@ -1,6 +1,4 @@
-﻿using SDL2.NET;
-
-namespace VDStudios.MagicEngine;
+﻿namespace VDStudios.MagicEngine;
 
 /// <summary>
 /// Represents the lifetime of the game

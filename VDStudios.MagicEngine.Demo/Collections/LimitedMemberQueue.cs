@@ -12,7 +12,7 @@ public class LimitedMemberQueue<T> : IEnumerable<T>, IEnumerable, IReadOnlyColle
         _q = new(limit);
         Limit = limit;
     }
-    
+
     public LimitedMemberQueue(IEnumerable<T> collection, int limit)
     {
         if (limit <= 0)

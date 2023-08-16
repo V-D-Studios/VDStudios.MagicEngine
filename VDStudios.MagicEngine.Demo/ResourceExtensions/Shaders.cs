@@ -1,6 +1,4 @@
 ﻿using System.Text;
-using Veldrid;
-using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.Demo.ResourceExtensions;
 

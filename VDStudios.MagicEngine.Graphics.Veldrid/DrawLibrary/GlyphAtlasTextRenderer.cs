@@ -1,5 +1,4 @@
 ﻿using SDL2.NET;
-using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.Veldrid.Graphics;
 using Veldrid;
 

@@ -1,13 +1,9 @@
-﻿using SDL2.NET;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.Intrinsics;
 using VDStudios.MagicEngine.Exceptions;
-using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 using VDStudios.MagicEngine.Logging;
 
@@ -24,7 +20,7 @@ public class Game
     #region (Standalone) Fields
 
     private readonly object _lock = new();
-    
+
     internal readonly record struct WindowActionCache(Window Window, WindowAction Action);
 
     private class DescendingIntComparer : IComparer<int>
@@ -187,7 +183,7 @@ public class Game
     /// </remarks>
     public TimeSpan AverageDelta => TimeSpan.FromTicks(_mspup.Average);
     private readonly LongAverageKeeper _mspup = new(16);
-    
+
     /// <summary>
     /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame{TScene}"/> is called
     /// </summary>
@@ -300,7 +296,7 @@ public class Game
             int sleep = (int)TimeSpan.FromSeconds(1d / 60d).TotalMilliseconds;
 
             VideoThreadLock.Release();
-            while (isStarted) 
+            while (isStarted)
             {
                 if (!actionsToTake.IsEmpty)
                     while (actionsToTake.TryDequeue(out var act))
@@ -322,7 +318,7 @@ public class Game
                 Thread.Sleep(sleep);
             }
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             VideoThreadFault = new VideoThreadException(e);
             throw;
@@ -467,7 +463,7 @@ public class Game
         GameLoading?.Invoke(this, TotalTime);
 
         Load(Preload());
-        
+
         GameLoaded?.Invoke(this, TotalTime);
 
         var firstScene = new TScene();
@@ -527,7 +523,7 @@ public class Game
         GameStopped?.Invoke(this, TotalTime);
     }
 
-#endregion
+    #endregion
 
     #region Run
 
@@ -556,7 +552,7 @@ public class Game
                     if (scenesAwaitingSetup.Count > sceneSetupList.Length)
                         Array.Resize(ref sceneSetupList, int.Max(scenesAwaitingSetup.Count, sceneSetupList.Length * 2));
 
-                    while (scenesAwaitingSetup.TryDequeue(out var sc, out var pr) && scenes < sceneSetupList.Length) 
+                    while (scenesAwaitingSetup.TryDequeue(out var sc, out var pr) && scenes < sceneSetupList.Length)
                         sceneSetupList[scenes++] = sc.InternalConfigure().Preserve();
                 }
                 for (int i = 0; i < scenes; i++)
@@ -639,10 +635,10 @@ public class Game
             }
             if (remaining > 0)
                 SDL2.Bindings.SDL.SDL_Delay(remaining);
-            
+
             delta = sw.Elapsed;
             _mspup.Push(delta.Ticks);
-            
+
             sw.Restart();
         }
 
@@ -650,7 +646,7 @@ public class Game
         await CurrentScene.End();
     }
 
-#endregion
+    #endregion
 
     #region Events
 
@@ -731,5 +727,5 @@ public class Game
     /// </remarks>
     public event GameMainGraphicsManagerCreatedEvent? WindowObtained;
 
-#endregion
+    #endregion
 }

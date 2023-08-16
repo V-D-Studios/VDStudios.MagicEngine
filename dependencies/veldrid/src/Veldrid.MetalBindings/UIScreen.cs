@@ -1,19 +1,18 @@
 using System;
 using static Veldrid.MetalBindings.ObjectiveCRuntime;
 
-namespace Veldrid.MetalBindings
+namespace Veldrid.MetalBindings;
+
+public unsafe struct UIScreen
 {
-    public unsafe struct UIScreen
+    public readonly IntPtr NativePtr;
+    public UIScreen(IntPtr ptr)
     {
-        public readonly IntPtr NativePtr;
-        public UIScreen(IntPtr ptr)
-        {
-            NativePtr = ptr;
-        }
-
-        public CGFloat nativeScale => CGFloat_objc_msgSend(NativePtr, "nativeScale");
-
-        public static UIScreen mainScreen
-            => objc_msgSend<UIScreen>(new ObjCClass(nameof(UIScreen)), "mainScreen");
+        NativePtr = ptr;
     }
+
+    public CGFloat nativeScale => CGFloat_objc_msgSend(NativePtr, "nativeScale");
+
+    public static UIScreen mainScreen
+        => objc_msgSend<UIScreen>(new ObjCClass(nameof(UIScreen)), "mainScreen");
 }

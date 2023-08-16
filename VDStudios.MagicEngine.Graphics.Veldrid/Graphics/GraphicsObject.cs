@@ -72,7 +72,6 @@ public abstract class GraphicsObject : GameObject
     private bool _isReady;
     private readonly SemaphoreSlim ReadySemaphore;
 
-
     /// <summary>
     /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used
     /// </summary>
@@ -90,7 +89,6 @@ public abstract class GraphicsObject : GameObject
             await Manager!.AwaitIfFaulted();
         ReadySemaphore.Release();
     }
-
 
     /// <summary>
     /// Waits until the Node has been added to the scene tree and is ready to be used
@@ -131,7 +129,6 @@ public abstract class GraphicsObject : GameObject
             t.GetAwaiter().GetResult();
         return false;
     }
-
 
     /// <summary>
     /// Asynchronously waits until the Node has been added to the scene tree and is ready to be used

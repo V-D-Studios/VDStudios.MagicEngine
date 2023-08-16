@@ -1,11 +1,7 @@
-﻿using System.Buffers;
-using System.Collections.Immutable;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using VDStudios.MagicEngine.Exceptions;
-using VDStudios.MagicEngine.Input;
 using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Graphics;
@@ -184,7 +180,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// <summary>
     /// The color to draw when the frame is beginning to be drawn
     /// </summary>
-    public abstract RgbaVector BackgroundColor { get; set; } 
+    public abstract RgbaVector BackgroundColor { get; set; }
 
     #endregion
 

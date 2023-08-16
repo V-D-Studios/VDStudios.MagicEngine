@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using VDStudios.MagicEngine.Graphics;
-using VDStudios.MagicEngine.Graphics.Veldrid.Internal;
+﻿using VDStudios.MagicEngine.Graphics.Veldrid.Internal;
 using VDStudios.MagicEngine.Internal;
 using Veldrid;
 

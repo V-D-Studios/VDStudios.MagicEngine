@@ -1,9 +1,8 @@
 using System;
 
-namespace Veldrid.MetalBindings
+namespace Veldrid.MetalBindings;
+
+public struct MTLDepthStencilState
 {
-    public struct MTLDepthStencilState
-    {
-        public readonly IntPtr NativePtr;
-    }
+    public readonly IntPtr NativePtr;
 }

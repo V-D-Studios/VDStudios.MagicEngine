@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Xml.Linq;
 
 namespace VDStudios.MagicEngine;
 
@@ -98,7 +97,7 @@ public abstract class FunctionalComponent : GameObject
 
     #region Internal
 
-    internal void InternalInstall(Node node) 
+    internal void InternalInstall(Node node)
     {
         InternalLog?.Debug("Installing onto node {name}-{type}", node.Name, node.GetTypeName());
         Installing(node);

@@ -1,9 +1,6 @@
-﻿using SDL2.Bindings;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Transactions;
 using VDStudios.MagicEngine.Graphics.Veldrid.DrawLibrary;
 using VDStudios.MagicEngine.Utility;
 using Veldrid;

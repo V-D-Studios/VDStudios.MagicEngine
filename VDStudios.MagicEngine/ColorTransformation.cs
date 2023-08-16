@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using VDStudios.MagicEngine.Graphics;
-using Veldrid;
 
 namespace VDStudios.MagicEngine;
 
@@ -51,7 +50,7 @@ public static class ColorTransformationExtensions
     /// <param name="trans"></param>
     /// <returns>The created <see cref="ColorTransformation"/></returns>
     public static ColorTransformation WithOverlay(this in ColorTransformation trans, RgbaVector overlay)
-        => trans with 
+        => trans with
         {
             Effects = ColorEffect.Overlay | trans.Effects,
             Overlay = overlay.ToVector4()
@@ -64,7 +63,7 @@ public static class ColorTransformationExtensions
     /// <param name="trans"></param>
     /// <returns>The created <see cref="ColorTransformation"/></returns>
     public static ColorTransformation WithTint(this in ColorTransformation trans, Vector4 tint)
-        => trans with 
+        => trans with
         {
             Tint = tint,
             Effects = ColorEffect.Tinted | ColorEffect.GrayScale | trans.Effects
@@ -77,7 +76,7 @@ public static class ColorTransformationExtensions
     /// <param name="trans"></param>
     /// <returns>The created <see cref="ColorTransformation"/></returns>
     public static ColorTransformation WithOverlay(this in ColorTransformation trans, Vector4 overlay)
-        => trans with 
+        => trans with
         {
             Effects = ColorEffect.Overlay | trans.Effects,
             Overlay = overlay

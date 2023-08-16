@@ -1,6 +1,4 @@
-﻿using VDStudios.MagicEngine.Graphics;
-
-namespace VDStudios.MagicEngine;
+﻿namespace VDStudios.MagicEngine;
 
 #region Update
 

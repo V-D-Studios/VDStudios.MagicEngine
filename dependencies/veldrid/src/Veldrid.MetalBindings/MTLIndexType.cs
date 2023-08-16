@@ -1,8 +1,7 @@
-namespace Veldrid.MetalBindings
+namespace Veldrid.MetalBindings;
+
+public enum MTLIndexType
 {
-    public enum MTLIndexType
-    {
-        UInt16 = 0,
-        UInt32 = 1,
-    }
+    UInt16 = 0,
+    UInt32 = 1,
 }

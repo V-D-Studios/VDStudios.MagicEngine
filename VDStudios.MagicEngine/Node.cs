@@ -1,8 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Exceptions;
-using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
@@ -78,9 +76,9 @@ public abstract class Node : GameObject, IDisposable
     /// <summary>
     /// <c>true</c> when the node has been added to the scene tree and initialized
     /// </summary>
-    public bool IsReady 
+    public bool IsReady
     {
-        get => _isReady; 
+        get => _isReady;
         private set
         {
             if (value == _isReady) return;
@@ -432,7 +430,7 @@ public abstract class Node : GameObject, IDisposable
             throw new ChildNodeRejectedException(reason, rootScene, this);
 
         await Attaching(rootScene);
-        
+
         lock (rootScene.Sync)
         {
             Id = rootScene.RegisterNodeInScene(this);

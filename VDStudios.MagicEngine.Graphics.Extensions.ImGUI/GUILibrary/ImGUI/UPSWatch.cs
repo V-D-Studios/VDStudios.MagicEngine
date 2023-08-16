@@ -1,6 +1,5 @@
-﻿using ImGuiNET;
-using System.Collections.Concurrent;
-using VDStudios.MagicEngine.Graphics;
+﻿using System.Collections.Concurrent;
+using ImGuiNET;
 
 namespace VDStudios.MagicEngine.GUILibrary.ImGUI;
 

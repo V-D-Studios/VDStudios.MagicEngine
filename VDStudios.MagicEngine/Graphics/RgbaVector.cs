@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Channels;
-using System.Threading.Tasks;
+﻿using System.Numerics;
 
 namespace VDStudios.MagicEngine.Graphics;
 
@@ -19,7 +13,7 @@ public struct RgbaVector : IEquatable<RgbaVector>
     /// The red component.
     /// </summary>
     public float R
-    { 
+    {
         readonly get => _channels.X;
         set => _channels.X = value;
     }
@@ -55,15 +49,15 @@ public struct RgbaVector : IEquatable<RgbaVector>
         => _channels.Equals(other);
 
     /// <inheritdoc/>
-    public override readonly bool Equals(object? obj) 
+    public override readonly bool Equals(object? obj)
         => obj is RgbaVector channels && Equals(channels);
 
     /// <inheritdoc/>
-    public static bool operator ==(RgbaVector left, RgbaVector right) 
+    public static bool operator ==(RgbaVector left, RgbaVector right)
         => left.Equals(right);
 
     /// <inheritdoc/>
-    public static bool operator !=(RgbaVector left, RgbaVector right) 
+    public static bool operator !=(RgbaVector left, RgbaVector right)
         => !(left == right);
 
     /// <inheritdoc/>

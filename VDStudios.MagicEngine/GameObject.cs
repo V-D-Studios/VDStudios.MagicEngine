@@ -1,6 +1,5 @@
-﻿using Serilog;
-using Serilog.Events;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
+using Serilog;
 using VDStudios.MagicEngine.Logging;
 
 namespace VDStudios.MagicEngine;

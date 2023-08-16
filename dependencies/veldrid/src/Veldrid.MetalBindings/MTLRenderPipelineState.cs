@@ -1,10 +1,9 @@
 using System;
 
-namespace Veldrid.MetalBindings
+namespace Veldrid.MetalBindings;
+
+public struct MTLRenderPipelineState
 {
-    public struct MTLRenderPipelineState
-    {
-        public readonly IntPtr NativePtr;
-        public MTLRenderPipelineState(IntPtr ptr) => NativePtr = ptr;
-    }
+    public readonly IntPtr NativePtr;
+    public MTLRenderPipelineState(IntPtr ptr) => NativePtr = ptr;
 }

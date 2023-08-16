@@ -1,13 +1,11 @@
-﻿using SDL2.NET;
-using SDL2.NET.Input;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using VDStudios.MagicEngine.DrawLibrary;
-using VDStudios.MagicEngine.Exceptions;
+using SDL2.NET;
+using SDL2.NET.Input;
 using VDStudios.MagicEngine.Graphics.Veldrid.Internal;
 using VDStudios.MagicEngine.Input;
 using Veldrid;

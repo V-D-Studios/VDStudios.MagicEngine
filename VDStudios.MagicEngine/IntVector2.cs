@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace VDStudios.MagicEngine;
 
@@ -83,7 +78,7 @@ public struct IntVector2 : IEquatable<IntVector2>, IFormattable
         => $"<{X.ToString(format, formatProvider)}, {Y.ToString(format, formatProvider)}>";
 
     /// <inheritdoc/>
-    public readonly override string ToString()
+    public override readonly string ToString()
         => ToString("G", CultureInfo.CurrentCulture);
 
     /// <inheritdoc/>

@@ -1,9 +1,8 @@
-namespace Veldrid.MetalBindings
+namespace Veldrid.MetalBindings;
+
+public enum MTLSamplerMipFilter
 {
-    public enum MTLSamplerMipFilter
-    {
-        NotMipmapped = 0,
-        Nearest = 1,
-        Linear = 2,
-    }
+    NotMipmapped = 0,
+    Nearest = 1,
+    Linear = 2,
 }

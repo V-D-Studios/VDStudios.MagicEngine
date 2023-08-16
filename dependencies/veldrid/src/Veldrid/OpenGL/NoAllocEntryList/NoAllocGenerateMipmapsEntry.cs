@@ -1,12 +1,11 @@
-﻿namespace Veldrid.OpenGL.NoAllocEntryList
-{
-    internal struct NoAllocGenerateMipmapsEntry
-    {
-        public readonly Tracked<Texture> Texture;
+﻿namespace Veldrid.OpenGL.NoAllocEntryList;
 
-        public NoAllocGenerateMipmapsEntry(Tracked<Texture> texture)
-        {
-            Texture = texture;
-        }
+internal struct NoAllocGenerateMipmapsEntry
+{
+    public readonly Tracked<Texture> Texture;
+
+    public NoAllocGenerateMipmapsEntry(Tracked<Texture> texture)
+    {
+        Texture = texture;
     }
 }

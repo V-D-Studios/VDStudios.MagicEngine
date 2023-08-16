@@ -1,5 +1,5 @@
-﻿using MessagePack;
-using System.Reflection;
+﻿using System.Reflection;
+using MessagePack;
 
 namespace VDStudios.MagicEngine.Utility;
 
@@ -52,7 +52,7 @@ public struct SerializableMethodDescription
     /// Creates a new <see cref="SerializableMethodDescription"/> based on a type and a methodName
     /// </summary>
     /// <exception cref="MissingMethodException"/>
-    public SerializableMethodDescription(Type type, string methodName) 
+    public SerializableMethodDescription(Type type, string methodName)
         : this(type.GetMethod(methodName) ?? throw new MissingMethodException($"Method {methodName} does not exist under type {type.AssemblyQualifiedName}")) { }
 
     /// <summary>

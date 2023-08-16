@@ -1,6 +1,4 @@
-﻿using VDStudios.MagicEngine.Graphics;
-
-namespace VDStudios.MagicEngine.Templates;
+﻿namespace VDStudios.MagicEngine.Templates;
 
 /// <summary>
 /// Represents a <see cref="ImGUIElement"/> that has been templated with a given set of configurations and tree structure
@@ -160,13 +158,13 @@ public sealed class TemplatedGUIElement
     public void SetConfigurationMethod(TemplatedGUIElementConfigurator? configurator)
     {
         configuratorCache = null;
-        if (configurator is null) 
+        if (configurator is null)
         {
             _confg = null;
             return;
         }
 
-        if (configurator.Target is not null) 
+        if (configurator.Target is not null)
             throw new InvalidOperationException($"Cannot use an instance method as a configuration method. There will be no attempts at instancing or serializing/deserializing a target object for the configurator");
         _confg = SerializableMethodDescription.Describe(configurator);
     }

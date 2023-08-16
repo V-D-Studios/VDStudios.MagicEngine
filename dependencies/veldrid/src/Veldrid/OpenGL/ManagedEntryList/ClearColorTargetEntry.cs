@@ -1,27 +1,26 @@
-﻿namespace Veldrid.OpenGL.ManagedEntryList
+﻿namespace Veldrid.OpenGL.ManagedEntryList;
+
+internal class ClearColorTargetEntry : OpenGLCommandEntry
 {
-    internal class ClearColorTargetEntry : OpenGLCommandEntry
+    public uint Index;
+    public RgbaFloat ClearColor;
+
+    public ClearColorTargetEntry(uint index, RgbaFloat clearColor)
     {
-        public uint Index;
-        public RgbaFloat ClearColor;
+        Index = index;
+        ClearColor = clearColor;
+    }
 
-        public ClearColorTargetEntry(uint index, RgbaFloat clearColor)
-        {
-            Index = index;
-            ClearColor = clearColor;
-        }
+    public ClearColorTargetEntry() { }
 
-        public ClearColorTargetEntry() { }
+    public ClearColorTargetEntry Init(uint index, RgbaFloat clearColor)
+    {
+        Index = index;
+        ClearColor = clearColor;
+        return this;
+    }
 
-        public ClearColorTargetEntry Init(uint index, RgbaFloat clearColor)
-        {
-            Index = index;
-            ClearColor = clearColor;
-            return this;
-        }
-
-        public override void ClearReferences()
-        {
-        }
+    public override void ClearReferences()
+    {
     }
 }

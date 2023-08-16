@@ -1,6 +1,6 @@
-﻿using Nito.AsyncEx;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using Nito.AsyncEx;
 using VDStudios.MagicEngine.Graphics;
 
 namespace VDStudios.MagicEngine.Internal;

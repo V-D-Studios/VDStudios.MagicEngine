@@ -1,21 +1,20 @@
 using System;
 
-namespace Veldrid.MetalBindings
+namespace Veldrid.MetalBindings;
+
+public struct NSAutoreleasePool : IDisposable
 {
-    public struct NSAutoreleasePool : IDisposable
+    private static readonly ObjCClass s_class = new ObjCClass(nameof(NSAutoreleasePool));
+    public readonly IntPtr NativePtr;
+    public NSAutoreleasePool(IntPtr ptr) => NativePtr = ptr;
+
+    public static NSAutoreleasePool Begin()
     {
-        private static readonly ObjCClass s_class = new ObjCClass(nameof(NSAutoreleasePool));
-        public readonly IntPtr NativePtr;
-        public NSAutoreleasePool(IntPtr ptr) => NativePtr = ptr;
+        return s_class.AllocInit<NSAutoreleasePool>();
+    }
 
-        public static NSAutoreleasePool Begin()
-        {
-            return s_class.AllocInit<NSAutoreleasePool>();
-        }
-
-        public void Dispose()
-        {
-            ObjectiveCRuntime.release(this.NativePtr);
-        }
+    public void Dispose()
+    {
+        ObjectiveCRuntime.release(this.NativePtr);
     }
 }

@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 
 namespace VDStudios.Utilities.Grids;
 
@@ -45,13 +44,13 @@ public struct SquareCell<TContext>
             HasDown = true;
             Up = new() { X = _d.x, Y = _d.y };
         }
-            
+
         if (left is (int, int) _l)
         {
             HasLeft = true;
             Up = new() { X = _l.x, Y = _l.y };
         }
-            
+
         if (right is (int, int) _r)
         {
             HasRight = true;
@@ -61,7 +60,7 @@ public struct SquareCell<TContext>
         Owner = owner;
     }
 
-    public SquareCell<TContext> GetUp() => HasUp ? Up.Get(Owner._grid): throw new InvalidOperationException("There is not a square to the up of this one");
+    public SquareCell<TContext> GetUp() => HasUp ? Up.Get(Owner._grid) : throw new InvalidOperationException("There is not a square to the up of this one");
     public SquareCell<TContext> GetDown() => HasDown ? Down.Get(Owner._grid) : throw new InvalidOperationException("There is not a square to the down of this one");
     public SquareCell<TContext> GetLeft() => HasLeft ? Left.Get(Owner._grid) : throw new InvalidOperationException("There is not a square to the left of this one");
     public SquareCell<TContext> GetRight() => HasRight ? Right.Get(Owner._grid) : throw new InvalidOperationException("There is not a square to the right of this one");
@@ -72,19 +71,19 @@ public struct SquareCell<TContext>
         return HasUp;
     }
 
-    public bool TryGetDown([NotNullWhen(true)] out SquareCell<TContext> result) 
+    public bool TryGetDown([NotNullWhen(true)] out SquareCell<TContext> result)
     {
         result = HasDown ? Down.Get(Owner._grid) : default;
         return HasDown;
     }
 
-    public bool TryGetLeft([NotNullWhen(true)] out SquareCell<TContext> result) 
+    public bool TryGetLeft([NotNullWhen(true)] out SquareCell<TContext> result)
     {
         result = HasLeft ? Left.Get(Owner._grid) : default;
         return HasLeft;
     }
 
-    public bool TryGetRight([NotNullWhen(true)] out SquareCell<TContext> result) 
+    public bool TryGetRight([NotNullWhen(true)] out SquareCell<TContext> result)
     {
         result = HasRight ? Right.Get(Owner._grid) : default;
         return HasRight;

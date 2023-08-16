@@ -1,14 +1,8 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
 using VDStudios.MagicEngine.Demo.Properties;
-using VDStudios.MagicEngine.DrawLibrary;
-using VDStudios.MagicEngine.DrawLibrary.Geometry;
 using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.Graphics;
-using VDStudios.MagicEngine.GUILibrary.ImGUI;
 using VDStudios.MagicEngine.Utility;
-using Veldrid;
-using Veldrid.ImageSharp;
 
 namespace VDStudios.MagicEngine.Demo.Nodes;
 
@@ -43,7 +37,7 @@ public class FloatingShapesNode : Node, IDrawableNode
             var x = shape.Count / 3d;
             return new() { Position = shapeVertex, Color = Colors[index < x ? 0 : index > x * 2 ? 2 : 1] };
 
-        Preset:
+            Preset:
             return new() { Position = shapeVertex, Color = Colors[index] };
         }
 
@@ -82,7 +76,8 @@ public class FloatingShapesNode : Node, IDrawableNode
             new(313.956123998003f / 500f, 9.09693153458295f / 500f),
             new(149.59669171830413f / 500f, 149.7064357876441f / 500f),
             new(157.05319901188642f / 500f, 365.87640633068054f / 500f)
-        }, true) { Name = "Hexagon" };
+        }, true)
+        { Name = "Hexagon" };
 
         segment = new(new(.2f, .3f), new(-.4f, -.1f), 10f);
 
@@ -133,7 +128,8 @@ public class FloatingShapesNode : Node, IDrawableNode
                 donut
             },
             shapeRendererDesc,
-            new TextureVertexGeneratorFill()) { PreferredPriority = -2 }
+            new TextureVertexGeneratorFill())
+        { PreferredPriority = -2 }
         );
 
         TexturedRenderer.WaitUntilReady();
@@ -141,18 +137,18 @@ public class FloatingShapesNode : Node, IDrawableNode
         TexturedShapeRenderer<Vector2>.ConfigureDescription(TexturedRenderer.Manager, TexturedRenderer.Manager.Device.ResourceFactory, ref shapeRendererDesc.ShapeRendererDescription);
         shapeRendererDesc.ShapeRendererDescription.RenderMode = PolygonRenderMode.TriangulatedFill;
         var fillPipeline = TexturedShapeRenderer<Vector2>.CreatePipeline(
-            TexturedRenderer.Manager, 
-            TexturedRenderer.Manager.Device, 
+            TexturedRenderer.Manager,
+            TexturedRenderer.Manager.Device,
             TexturedRenderer.Manager.Device.ResourceFactory,
             wireframePipeline.ResourceLayouts.ToArray(),
             shapeRendererDesc.ShapeRendererDescription
         );
 
         bool isWireframe = true;
-        var watch = new Watch(viewLoggers: new() 
+        var watch = new Watch(viewLoggers: new()
         {
             ("Force Donut update", () => { donut.ForceRegenerate(); return true; }),
-            ("Toggle Donut Pipeline", () => 
+            ("Toggle Donut Pipeline", () =>
             {
                 if (isWireframe)
                 {
@@ -179,7 +175,7 @@ public class FloatingShapesNode : Node, IDrawableNode
             new(.15f - .5f, .15f - .5f),
             new(.15f - .5f, -.15f - .5f)
         };
-        
+
         var circ1 = new CircleDefinition(new(-.2f, .15f), .3f, 7) { Name = "Circle 1" };
         var circ2 = new CircleDefinition(new(.2f, -.15f), .3f, 8) { Name = "Circle 2" };
         circle = new CircleDefinition(Vector2.Zero, .65f);
@@ -214,7 +210,7 @@ public class FloatingShapesNode : Node, IDrawableNode
                 null
             ),
             new ColorVertexGenerator())
-            { VertexSkip = ElementSkip.ElementsToMaintain(100) }
+        { VertexSkip = ElementSkip.ElementsToMaintain(100) }
         );
     }
 

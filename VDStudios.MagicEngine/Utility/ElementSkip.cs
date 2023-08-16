@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.CompilerServices;
 
 namespace VDStudios.MagicEngine.Utility;
 
@@ -98,15 +92,15 @@ public readonly struct ElementSkip : IEquatable<ElementSkip>
             && Mode == other.Mode;
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) 
+    public override bool Equals(object? obj)
         => obj is ElementSkip skip && Equals(skip);
 
     /// <inheritdoc/>
-    public static bool operator ==(ElementSkip left, ElementSkip right) 
+    public static bool operator ==(ElementSkip left, ElementSkip right)
         => left.Equals(right);
 
     /// <inheritdoc/>
-    public static bool operator !=(ElementSkip left, ElementSkip right) 
+    public static bool operator !=(ElementSkip left, ElementSkip right)
         => !(left == right);
 
     /// <inheritdoc/>

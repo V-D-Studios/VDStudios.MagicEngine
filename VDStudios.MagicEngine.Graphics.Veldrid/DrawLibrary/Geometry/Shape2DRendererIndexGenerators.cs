@@ -1,8 +1,4 @@
-﻿using System.Buffers;
-using VDStudios.MagicEngine.DrawLibrary.Geometry;
-using Vulkan;
-
-namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawLibrary.Geometry;
+﻿namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawLibrary.Geometry;
 
 /// <summary>
 /// Contains static references to instances of <see cref="IShape2DRendererIndexGenerator"/> that are included in this library

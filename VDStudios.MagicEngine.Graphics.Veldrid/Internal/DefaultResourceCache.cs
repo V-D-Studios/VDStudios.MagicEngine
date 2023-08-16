@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics.CodeAnalysis;
 using VDStudios.MagicEngine;
-using VDStudios.MagicEngine.DrawLibrary.Geometry;
-using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 using Veldrid;
 using Veldrid.SPIRV;

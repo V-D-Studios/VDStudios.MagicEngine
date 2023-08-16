@@ -104,7 +104,7 @@ public static class Startup
 
         ThrowIfLessThan(SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_FLAGS, (int)value));
         var (value2, value3) = GetMaxGLVersion(backend == GraphicsBackend.OpenGLES);
-        
+
         ThrowIfLessThan(SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_PROFILE_MASK, backend == GraphicsBackend.OpenGL ? 1 : 4));
         ThrowIfLessThan(SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_MAJOR_VERSION, value2));
         ThrowIfLessThan(SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_MINOR_VERSION, value3));
@@ -172,8 +172,8 @@ public static class Startup
             (3, 0)
         } : stackalloc (int, int)[2]
         {
-                (3, 2),
-                (3, 0)
+            (3, 2),
+            (3, 0)
         };
 
         for (int i = 0; i < versions.Length; i++)
@@ -252,7 +252,7 @@ public static class Startup
         };
     }
 
-    public static GraphicsBackend GetPlatformDefaultBackend() 
+    public static GraphicsBackend GetPlatformDefaultBackend()
         => OperatingSystem.IsWindows()
            ? GraphicsBackend.Direct3D11
            : OperatingSystem.IsMacOS()

@@ -1,6 +1,6 @@
-﻿using SDL2.NET;
-using System.Collections;
+﻿using System.Collections;
 using System.Numerics;
+using SDL2.NET;
 using VDStudios.MagicEngine;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.Geometry;

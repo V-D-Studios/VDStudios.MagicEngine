@@ -1,18 +1,13 @@
-﻿using SixLabors.ImageSharp.Processing;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Collections;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using VDStudios.MagicEngine;
 using VDStudios.MagicEngine.Geometry;
-using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.Veldrid.Geometry;
 using VDStudios.MagicEngine.Graphics.Veldrid.Graphics;
 using Veldrid;
-using Veldrid.MetalBindings;
 using Veldrid.SPIRV;
-using Vulkan;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawLibrary.Geometry;
 

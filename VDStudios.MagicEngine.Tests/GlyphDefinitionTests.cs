@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using Microsoft.VisualStudio.TestPlatform.Utilities;
-using VDStudios.MagicEngine.DrawLibrary;
 
 namespace VDStudios.MagicEngine.Tests;
 
@@ -45,7 +43,7 @@ public class GlyphDefinitionTests
             Debug.Assert(glyphs[i] == otherglyphs[i], $"Glyph mismatch at index {i}; {glyphs[i]} != {otherglyphs[i]}");
     }
 
-    private unsafe readonly int GlyphDefSize = sizeof(VarisizeGlyphAtlasTextRenderer.GlyphDefinition);
+    private readonly unsafe int GlyphDefSize = sizeof(VarisizeGlyphAtlasTextRenderer.GlyphDefinition);
 
     [TestMethod]
     public unsafe void ReadWriteFromArray()
@@ -97,7 +95,7 @@ public class GlyphDefinitionTests
                 {
                     Debug.Fail("Glyph read error");
                     throw new InvalidOperationException("Glyph read error");
-                } 
+                }
 
                 readbufferarray[i] = result;
             }

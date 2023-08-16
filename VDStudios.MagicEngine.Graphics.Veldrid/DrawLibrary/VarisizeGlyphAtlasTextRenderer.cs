@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.Veldrid.Graphics;
 using Veldrid;
 

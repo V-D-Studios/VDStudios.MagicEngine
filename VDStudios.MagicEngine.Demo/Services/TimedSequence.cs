@@ -84,7 +84,7 @@ public class TimedSequence<T>
         Timer.Start();
     }
 
-    private (int index, bool reverse) NextStep() 
+    private (int index, bool reverse) NextStep()
         => !IsReversing
             ? Index != TArray.Length - 1
                 ? ((int index, bool reverse))(Index + 1, false)

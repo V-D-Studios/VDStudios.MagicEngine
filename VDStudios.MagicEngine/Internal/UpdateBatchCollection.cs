@@ -24,7 +24,7 @@ internal sealed class UpdateBatchCollection
         lock (Batches)
         {
             var _batch = Batches[(int)batch];
-            if (_batch is null) 
+            if (_batch is null)
                 Batches[(int)batch] = _batch = new();
             _batch.Add(node, tendency);
         }

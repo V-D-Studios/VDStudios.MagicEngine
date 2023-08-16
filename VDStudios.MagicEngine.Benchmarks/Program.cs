@@ -1,11 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
-using BenchmarkDotNet.Toolchains.InProcess.Emit;
-using VDStudios.MagicEngine.Benchmarks.Serialization;
 
 namespace VDStudios.MagicEngine.Benchmarks;
 
@@ -13,7 +9,7 @@ internal static class Program
 {
     private static void Main(string[] args)
     {
-        var benchmarkTypes 
+        var benchmarkTypes
             = Assembly.GetCallingAssembly().GetTypes().Where(x => x.GetMethods().Any(x => x.GetCustomAttribute<BenchmarkAttribute>() is not null)).ToImmutableArray();
 
         int index = 0;

@@ -2,10 +2,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace VDStudios.MagicEngine;
 
@@ -147,10 +145,10 @@ public abstract class Scene : GameObject, IDisposable
 
     #region Attachment
 
-        /// <summary>
-        /// Attaches <paramref name="child"/> into this <see cref="Scene"/>
-        /// </summary>
-        /// <param name="child">The child <see cref="Node"/> to attach into this <see cref="Scene"/></param>
+    /// <summary>
+    /// Attaches <paramref name="child"/> into this <see cref="Scene"/>
+    /// </summary>
+    /// <param name="child">The child <see cref="Node"/> to attach into this <see cref="Scene"/></param>
     public ValueTask Attach(Node child)
         => child.AttachTo(this);
 
@@ -235,7 +233,7 @@ public abstract class Scene : GameObject, IDisposable
         var sd = node.SkipDat;
         // This could potentially cause a state where the node never-endingly skips
         // Protections against such cases are built into the Node.Skip methods; any new instance methods that don't use methods that already have those protections, should include such protections.
-        if (sd.MarkedForSkip && (sd.Time is TimeSpan t && t > Game.TotalTime || sd.Frames > 0 && Game.FrameCount % sd.Frames != 0)) 
+        if (sd.MarkedForSkip && (sd.Time is TimeSpan t && t > Game.TotalTime || sd.Frames > 0 && Game.FrameCount % sd.Frames != 0))
             return;
         node.SkipDat = default;
         await node.InternalUpdate(delta);

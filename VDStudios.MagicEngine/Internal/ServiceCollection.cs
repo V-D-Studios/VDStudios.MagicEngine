@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace VDStudios.MagicEngine.Internal;
 
@@ -34,7 +29,7 @@ public sealed class ServiceCollection : IDisposable
         ServiceDictionary = new(previous?.ServiceDictionary.Count ?? 10);
     }
 
-    private static void ThrowForNotFound<TService>() 
+    private static void ThrowForNotFound<TService>()
         => throw new KeyNotFoundException($"Could not find a service for type {typeof(TService)} at any point of the node tree");
 
     internal void SetPrev(ServiceCollection? previous)
@@ -104,12 +99,12 @@ public sealed class ServiceCollection : IDisposable
         bool obtained;
         lock (ServiceDictionary)
             obtained = ServiceDictionary.TryGetValue(typeof(TService), out value);
-        if (!obtained) 
+        if (!obtained)
         {
             var top = PreviousLayer;
             while (top is not null && top.TryGetTarget(out var sd))
             {
-                lock (sd.ServiceDictionary) 
+                lock (sd.ServiceDictionary)
                     if (sd.ServiceDictionary.TryGetValue(typeof(TService), out value))
                     {
                         service = VerifyService<TService>(value, true);

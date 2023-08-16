@@ -1,8 +1,7 @@
-namespace Veldrid.MetalBindings
+namespace Veldrid.MetalBindings;
+
+public enum MTLCPUCacheMode
 {
-    public enum MTLCPUCacheMode
-    {
-        DefaultCache = 0,
-        WriteCombined = 1,
-    }
+    DefaultCache = 0,
+    WriteCombined = 1,
 }

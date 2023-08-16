@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Input;
@@ -201,6 +200,6 @@ public abstract class InputSnapshotBuffer
         mEvs.Clear();
     }
 
-    internal InputSnapshot CreateSnapshot() 
+    internal InputSnapshot CreateSnapshot()
         => new(this);
 }

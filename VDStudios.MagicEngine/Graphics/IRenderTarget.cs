@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-namespace VDStudios.MagicEngine.Graphics;
+﻿namespace VDStudios.MagicEngine.Graphics;
 
 /// <summary>
 /// Represents a Render Target for a GraphicsManager
 /// </summary>
-public interface IRenderTarget<TGraphicsContext> 
+public interface IRenderTarget<TGraphicsContext>
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     /// <summary>

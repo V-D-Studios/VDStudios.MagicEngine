@@ -1,7 +1,6 @@
-﻿using ImGuiNET;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.CompilerServices;
-using VDStudios.MagicEngine.Graphics;
+using ImGuiNET;
 using VDStudios.MagicEngine.Input;
 using VDStudios.MagicEngine.Internal;
 

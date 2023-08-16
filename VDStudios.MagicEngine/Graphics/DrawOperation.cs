@@ -1,8 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Transactions;
 
 namespace VDStudios.MagicEngine.Graphics;
 

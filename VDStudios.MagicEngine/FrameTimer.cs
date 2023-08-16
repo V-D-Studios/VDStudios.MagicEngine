@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace VDStudios.MagicEngine;
+﻿namespace VDStudios.MagicEngine;
 
 /// <summary>
 /// Represents a timer that can be used to time events using a <see cref="Game"/>'s frames as reference for time

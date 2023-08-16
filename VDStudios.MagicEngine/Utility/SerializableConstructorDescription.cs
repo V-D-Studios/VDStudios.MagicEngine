@@ -1,5 +1,5 @@
-﻿using MessagePack;
-using System.Reflection;
+﻿using System.Reflection;
+using MessagePack;
 
 namespace VDStudios.MagicEngine.Utility;
 
@@ -70,7 +70,7 @@ public struct SerializableConstructorDescription
             throw new InvalidOperationException("The type owned by the method must be a closed generic type (Have all of its generic parameters replaced by concrete types)");
 
         AssemblyQualifiedContainingTypeName = t.AssemblyQualifiedName ?? throw new InvalidOperationException("The type the described method belongs to does not have an AssemblyQualifiedName");
-        
+
         var para = ctorInfo.GetParameters();
         var types = new SerializableTypeDescription[para.Length];
         for (int i = 0; i < para.Length; i++) types[i] = new SerializableTypeDescription(para[i].ParameterType);

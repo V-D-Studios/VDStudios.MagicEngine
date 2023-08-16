@@ -1,12 +1,11 @@
-﻿namespace Veldrid.SPIRV
+﻿namespace Veldrid.SPIRV;
+
+internal enum ShadercShaderKind
 {
-    internal enum ShadercShaderKind
-    {
-        Vertex,
-        Fragment,
-        Compute,
-        Geometry,
-        TessellationControl,
-        TessellationEvaluation,
-    }
+    Vertex,
+    Fragment,
+    Compute,
+    Geometry,
+    TessellationControl,
+    TessellationEvaluation,
 }

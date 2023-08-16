@@ -1,7 +1,4 @@
 ﻿using System.Numerics;
-using System.Security.Cryptography;
-using SDL2.NET;
-using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 using Veldrid;
 

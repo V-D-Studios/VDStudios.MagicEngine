@@ -1,6 +1,4 @@
-﻿using Veldrid.ImageSharp;
-
-namespace VDStudios.MagicEngine.Demo.ResourceExtensions;
+﻿namespace VDStudios.MagicEngine.Demo.ResourceExtensions;
 public static class ImageTextures
 {
     public static ImageSharpTexture RobinSpriteSheet => _robin.Value;

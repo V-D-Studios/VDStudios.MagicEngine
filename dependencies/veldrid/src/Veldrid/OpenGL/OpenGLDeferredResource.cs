@@ -1,9 +1,8 @@
-﻿namespace Veldrid.OpenGL
+﻿namespace Veldrid.OpenGL;
+
+internal interface OpenGLDeferredResource
 {
-    internal interface OpenGLDeferredResource
-    {
-        bool Created { get; }
-        void EnsureResourcesCreated();
-        void DestroyGLResources();
-    }
+    bool Created { get; }
+    void EnsureResourcesCreated();
+    void DestroyGLResources();
 }

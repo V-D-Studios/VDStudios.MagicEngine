@@ -1,7 +1,6 @@
-﻿using ImGuiNET;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-using VDStudios.MagicEngine.Graphics;
+using ImGuiNET;
 
 namespace VDStudios.MagicEngine.GUILibrary.ImGUI;
 
@@ -36,7 +35,7 @@ public class Watch : ImGUIElement
         public delegate bool ViewMethod([NotNullWhen(true)] out string? data);
 
         private readonly ViewMethod meth;
-        
+
         /// <summary>
         /// Instances a new object of type <see cref="DelegateViewer"/> 
         /// </summary>
@@ -93,7 +92,7 @@ public class Watch : ImGUIElement
     {
         ImGui.Begin(Title);
         var viewers = CollectionsMarshal.AsSpan(Viewers);
-        for (int i = 0; i < viewers.Length; i++) 
+        for (int i = 0; i < viewers.Length; i++)
         {
             if (!viewers[i].Poll(out var dat))
             {
@@ -103,7 +102,7 @@ public class Watch : ImGUIElement
             ImGui.Text(dat);
         }
 
-        if(ViewLoggers.Count > 0)
+        if (ViewLoggers.Count > 0)
         {
             var loggers = CollectionsMarshal.AsSpan(ViewLoggers);
             for (int i = 0; i < loggers.Length; i++)

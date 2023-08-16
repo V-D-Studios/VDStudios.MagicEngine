@@ -117,7 +117,7 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     /// Gets the <see cref="DrawOperation{TGraphicsContext}"/>s that belong to <paramref name="graphicsManager"/>
     /// </summary>
     /// <param name="graphicsManager">The <see cref="GraphicsManager{TGraphicsContext}"/> owning the draw operations</param>
-    public IEnumerable<DrawOperation<TGraphicsContext>> GetDrawOperations(GraphicsManager<TGraphicsContext> graphicsManager) 
+    public IEnumerable<DrawOperation<TGraphicsContext>> GetDrawOperations(GraphicsManager<TGraphicsContext> graphicsManager)
         => gm_dict.TryGetValue(graphicsManager, out var drawOperations) ? drawOperations : Array.Empty<DrawOperation<TGraphicsContext>>();
 
     #endregion
@@ -126,8 +126,8 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
 
     private void InternalAddDrawOperation(DrawOperation<TGraphicsContext> operation, GraphicsManager<TGraphicsContext>? graphicsManager)
     {
-        graphicsManager 
-            ??= Game.MainGraphicsManager is GraphicsManager<TGraphicsContext> mgm 
+        graphicsManager
+            ??= Game.MainGraphicsManager is GraphicsManager<TGraphicsContext> mgm
             ? mgm
             : throw new InvalidOperationException($"If the Game's MainGraphicsManager is not of type {typeof(GraphicsManager<TGraphicsContext>)}, then a non-null argument MUST be provided");
 
@@ -170,7 +170,7 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
 /// <summary>
 /// Represents a <see cref="DrawOperationManager{TGraphicsContext}"/> that accepts a <see cref="DrawQueueSelector"/> delegate method to act in place of inheriting and overriding <see cref="AddToDrawQueue(IDrawQueue{DrawOperation{TGraphicsContext}, TGraphicsContext}, DrawOperation{TGraphicsContext})"/>
 /// </summary>
-public sealed class DrawOperationManagerDrawQueueDelegate<TGraphicsContext>  : DrawOperationManager<TGraphicsContext>
+public sealed class DrawOperationManagerDrawQueueDelegate<TGraphicsContext> : DrawOperationManager<TGraphicsContext>
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     /// <summary>

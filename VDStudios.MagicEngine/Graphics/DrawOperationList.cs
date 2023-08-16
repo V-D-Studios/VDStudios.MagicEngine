@@ -43,13 +43,13 @@ public sealed class DrawOperationList<TGraphicsContext> : IReadOnlyCollection<Dr
 
     #region Internal
 
-    internal void Remove(DrawOperation <TGraphicsContext>dop)
+    internal void Remove(DrawOperation<TGraphicsContext> dop)
     {
         lock (Ops)
             Ops.Remove(dop.Identifier);
     }
 
-    internal void Add(DrawOperation <TGraphicsContext>dop)
+    internal void Add(DrawOperation<TGraphicsContext> dop)
     {
         lock (Ops)
             Ops.Add(dop.Identifier, dop);

@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Input;
 
 namespace VDStudios.MagicEngine.Internal;
@@ -43,7 +37,7 @@ public abstract class GraphicsManager : GameObject
                     snapshotBuffer.FetchLastMomentData();
                     inputSnapshot = snapshotBuffer.CreateSnapshot();
                     snapshotBuffer.Clear();
-                } 
+                }
 
         return inputSnapshot;
     }

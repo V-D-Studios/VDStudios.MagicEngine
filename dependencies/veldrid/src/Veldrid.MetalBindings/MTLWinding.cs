@@ -1,8 +1,7 @@
-namespace Veldrid.MetalBindings
+namespace Veldrid.MetalBindings;
+
+public enum MTLWinding
 {
-    public enum MTLWinding
-    {
-        Clockwise = 0,
-        CounterClockwise = 1,
-    }
+    Clockwise = 0,
+    CounterClockwise = 1,
 }

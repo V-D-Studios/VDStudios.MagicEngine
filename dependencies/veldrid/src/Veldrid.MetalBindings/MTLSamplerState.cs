@@ -1,10 +1,8 @@
 using System;
-using static Veldrid.MetalBindings.ObjectiveCRuntime;
 
-namespace Veldrid.MetalBindings
+namespace Veldrid.MetalBindings;
+
+public struct MTLSamplerState
 {
-    public struct MTLSamplerState
-    {
-        public readonly IntPtr NativePtr;
-    }
+    public readonly IntPtr NativePtr;
 }

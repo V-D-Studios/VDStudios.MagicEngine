@@ -1,5 +1,4 @@
 ﻿using ImGuiNET;
-using VDStudios.MagicEngine.Graphics;
 
 namespace VDStudios.MagicEngine.Demo.GUI.Elements;
 public class TestElement : ImGUIElement

@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
 namespace VDStudios.MagicEngine;
@@ -131,7 +130,7 @@ public struct FloatRectangle : IEquatable<FloatRectangle>, IFormattable
         => $"<X: {X.ToString(format, formatProvider)}, Y: {Y.ToString(format, formatProvider)}, Width: {Width.ToString(format, formatProvider)}, Height: {Height.ToString(format, formatProvider)}>";
 
     /// <inheritdoc/>
-    public readonly override string ToString()
+    public override readonly string ToString()
         => ToString("G", CultureInfo.CurrentCulture);
 
     /// <inheritdoc/>
@@ -144,7 +143,7 @@ public struct FloatRectangle : IEquatable<FloatRectangle>, IFormattable
     /// <remarks>
     /// Two rectangles intersect when one is entirely contained within another, are the same rectangle, or any part of a rectangle crosses into the area covered by the other
     /// </remarks>
-    public static bool Intersects(FloatRectangle a, FloatRectangle b) 
+    public static bool Intersects(FloatRectangle a, FloatRectangle b)
         => a == b || float.Abs(a.X - b.X) < float.Abs(a.Width + b.Width) / 2 && float.Abs(a.Y - b.Y) < float.Abs(a.Height + b.Height) / 2;
 
     /// <summary>

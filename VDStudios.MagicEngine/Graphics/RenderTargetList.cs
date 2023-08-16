@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace VDStudios.MagicEngine.Graphics;
+﻿namespace VDStudios.MagicEngine.Graphics;
 
 /// <summary>
 /// A list that contains <see cref="IRenderTarget{TRenderTargetContext}"/>

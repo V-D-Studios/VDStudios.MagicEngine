@@ -1,6 +1,4 @@
-﻿using VDStudios.MagicEngine.Graphics;
-
-namespace VDStudios.MagicEngine.Exceptions;
+﻿namespace VDStudios.MagicEngine.Exceptions;
 
 /// <summary>
 /// An exception that is thrown when a <see cref="GraphicsManager"/> rejects the changing of its <see cref="GraphicsManager.CurrentScene"/>
