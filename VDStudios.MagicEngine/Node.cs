@@ -22,7 +22,6 @@ public abstract class Node : GameObject, IDisposable
     /// </summary>
     protected Node() : base("Game Node Tree", "Update")
     {
-        DrawableSelf = this as IDrawableNode;
         ReadySemaphore = new(0, 1);
     }
 
@@ -441,10 +440,6 @@ public abstract class Node : GameObject, IDisposable
 
         updater = await rootScene.AssignUpdater(this);
 
-#warning All IDrawableNode responsibilities should be forwarded from Node to DrawOperationManager
-        if (DrawableSelf is IDrawableNode dn)
-            drawer = await rootScene.AssignDrawer(dn);
-
         rootScene.AssignToUpdateBatch(this);
 
         ParentScene = rootScene;
@@ -470,7 +465,6 @@ public abstract class Node : GameObject, IDisposable
         InternalLog?.Information("Detaching from {name}-{type}", ps!.Name, ps.GetTypeName());
 
         await Detaching();
-        drawer = null;
         updater = null;
 
         foreach (var comp in Components)
@@ -546,11 +540,6 @@ public abstract class Node : GameObject, IDisposable
     /// </summary>
     internal NodeUpdater? updater;
 
-    /// <summary>
-    /// This belongs to this <see cref="Node"/>'s scene
-    /// </summary>
-    internal NodeDrawRegistrar? drawer;
-
     #endregion
 
     #region Update
@@ -588,15 +577,6 @@ public abstract class Node : GameObject, IDisposable
 
     #endregion
 
-    #region Draw
-
-    /// <summary>
-    /// Scene should ignore this, and let it remain null
-    /// </summary>
-    internal IDrawableNode? DrawableSelf;
-
-    #endregion
-
     #endregion
 
     #region Helper Methods
@@ -628,8 +608,6 @@ public abstract class Node : GameObject, IDisposable
         Components.Clear();
         Components = null!;
         updater = null;
-        drawer = null;
-        DrawableSelf = null;
         NodeSceneChanged = null;
         base.InternalDispose(disposing);
     }

@@ -181,13 +181,6 @@ public abstract class Scene : GameObject, IDisposable
     /// <returns>The <see cref="NodeUpdater"/> specific to <paramref name="node"/>, or <c>null</c> to use <see cref="HandleChildUpdate(Node)"/> instead</returns>
     protected internal virtual ValueTask<NodeUpdater?> AssignUpdater(Node node) => ValueTask.FromResult<NodeUpdater?>(null);
 
-    /// <summary>
-    /// This method is automatically called when a Child node is being attached. It assigns a custom drawer to the child node, or <c>null</c> to use <see cref="HandleChildRegisterDrawOperations(IDrawableNode)"/> instead
-    /// </summary>
-    /// <param name="node">The <see cref="Node"/> that is being attached, and should be assigned a drawer</param>
-    /// <returns>The <see cref="NodeDrawRegistrar"/> specific to <paramref name="node"/>, or <c>null</c> to use <see cref="HandleChildRegisterDrawOperations(IDrawableNode)"/> instead</returns>
-    protected internal virtual ValueTask<NodeDrawRegistrar?> AssignDrawer(IDrawableNode node) => ValueTask.FromResult<NodeDrawRegistrar?>(null);
-
     #endregion
 
     #region Default Handlers
@@ -197,12 +190,6 @@ public abstract class Scene : GameObject, IDisposable
     /// </summary>
     /// <param name="node">The node about to be updated</param>
     protected virtual ValueTask HandleChildUpdate(Node node) => ValueTask.CompletedTask;
-
-    /// <summary>
-    /// This method is automatically called when a Child node is about to be queried for <see cref="DrawOperation"/>s to register, and it has no custom handler set
-    /// </summary>
-    /// <param name="node">The node about to be queried</param>
-    protected virtual ValueTask HandleChildRegisterDrawOperations(IDrawableNode node) => ValueTask.CompletedTask;
 
     #endregion
 
@@ -229,11 +216,6 @@ public abstract class Scene : GameObject, IDisposable
     #endregion
 
     #region Internal
-
-    internal ValueTask InternalHandleChildDrawRegistration(Node node)
-        => node.drawer is NodeDrawRegistrar drawer
-            ? drawer.PerformDrawRegistration()
-            : node.DrawableSelf is IDrawableNode n ? HandleChildRegisterDrawOperations(n) : ValueTask.CompletedTask;
 
     internal void AssignToUpdateBatch(Node node)
     {
@@ -382,39 +364,6 @@ public abstract class Scene : GameObject, IDisposable
             return;
 
         await InternalPropagateChildUpdate(delta);
-    }
-
-    #endregion
-
-    #region Draw
-
-    internal async ValueTask RegisterDrawOperations()
-    {
-#pragma warning disable CA2012 // Just like Roslyn is so kind to warn us about, this code right here has the potential to offer some nasty asynchrony bugs. Be careful here, remember ValueTasks must only ever be consumed once
-
-        var pool = ArrayPool<ValueTask>.Shared;
-        int toUpdate = Children.Count;
-        ValueTask[] tasks = pool.Rent(toUpdate);
-        try
-        {
-            int ind = 0;
-            lock (Sync)
-            {
-                for (int i = 0; i < toUpdate; i++)
-                {
-                    var child = Children.Get(i);
-                    if (child.IsActive)
-                        tasks[ind++] = InternalHandleChildDrawRegistration(child);
-                }
-            }
-            for (int i = 0; i < ind; i++)
-                await tasks[i];
-        }
-        finally
-        {
-            pool.Return(tasks, true);
-        }
-#pragma warning restore CA2012
     }
 
     #endregion
