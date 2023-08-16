@@ -29,7 +29,7 @@ public class ShapeRenderer : ShapeRenderer<Vector2>
 /// <summary>
 /// Represents an operation to draw a list of 2D shapes
 /// </summary>
-public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefinition2D> where TVertex : unmanaged
+public class ShapeRenderer<TVertex> : VeldridDrawOperation, IReadOnlyList<ShapeDefinition2D> where TVertex : unmanaged
 {
     /// <summary>
     /// This list is always updated instantaneously, and represents the real-time state of the renderer before it's properly updated for the next draw sequence
@@ -270,7 +270,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// The Pipeline that will be used to render the shapes
     /// </summary>
     /// <remarks>
-    /// Will become available after <see cref="DrawOperation.IsReady"/> is <c>true</c>. If, for any reason, this property is set before that, it will be overwritten
+    /// Will become available after <see cref="VeldridDrawOperation.IsReady"/> is <c>true</c>. If, for any reason, this property is set before that, it will be overwritten
     /// </remarks>
     public Pipeline Pipeline
     {
@@ -385,7 +385,7 @@ public class ShapeRenderer<TVertex> : DrawOperation, IReadOnlyList<ShapeDefiniti
     /// </summary>
     /// <param name="shape">The data context specific of the shape being drawn</param>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
-    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
+    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="VeldridDrawOperation"/> is registered on</param>
     /// <param name="cl">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
     /// <param name="target">Information about the target <see cref="Framebuffer"/> that this draw operation is being directed into</param>
     protected virtual void DrawShape(TimeSpan delta, in ShapeDat shape, CommandList cl, GraphicsDevice device, FramebufferTargetInfo target)

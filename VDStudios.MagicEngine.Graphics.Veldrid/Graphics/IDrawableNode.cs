@@ -6,7 +6,7 @@
 public interface IDrawableNode
 {
     /// <summary>
-    /// Represents the class that manages this <see cref="IDrawableNode"/>'s <see cref="DrawOperation"/>s
+    /// Represents the class that manages this <see cref="IDrawableNode"/>'s <see cref="VeldridDrawOperation"/>s
     /// </summary>
     public DrawOperationManager DrawOperationManager { get; }
 

@@ -1,7 +1,7 @@
 ﻿namespace VDStudios.MagicEngine.Graphics.Veldrid.Graphics;
 
 /// <summary>
-/// Represents the base class for graphical operations, such as <see cref="DrawOperation"/>, <see cref="GUIElement"/>
+/// Represents the base class for graphical operations, such as <see cref="VeldridDrawOperation"/>, <see cref="GUIElement"/>
 /// </summary>
 /// <remarks>
 /// This class cannot be instanced or inherited by user code
@@ -14,7 +14,7 @@ public abstract class GraphicsObject : GameObject
     }
 
     /// <summary>
-    /// This <see cref="DrawOperation"/>'s unique identifier, generated automatically
+    /// This <see cref="VeldridDrawOperation"/>'s unique identifier, generated automatically
     /// </summary>
     public Guid Identifier { get; } = Guid.NewGuid();
 

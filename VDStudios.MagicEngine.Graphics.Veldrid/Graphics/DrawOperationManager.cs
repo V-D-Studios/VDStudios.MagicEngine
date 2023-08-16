@@ -3,7 +3,7 @@
 namespace VDStudios.MagicEngine.Graphics.Veldrid.Graphics;
 
 /// <summary>
-/// Represents a list of <see cref="DrawOperation"/> objects belonging to a <see cref="IDrawableNode"/> and their general behaviour
+/// Represents a list of <see cref="VeldridDrawOperation"/> objects belonging to a <see cref="IDrawableNode"/> and their general behaviour
 /// </summary>
 public class DrawOperationManager : GameObject
 {
@@ -11,7 +11,7 @@ public class DrawOperationManager : GameObject
     /// Instantiates a new object of type <see cref="DrawOperationManager"/>
     /// </summary>
     /// <param name="owner">The <see cref="IDrawableNode"/> that owns this <see cref="DrawOperationManager"/></param>
-    /// <param name="graphicsManagerSelector">The method that this <see cref="DrawOperationManager"/> will use to select an appropriate <see cref="GraphicsManager"/> to register a new <see cref="DrawOperation"/> onto</param>
+    /// <param name="graphicsManagerSelector">The method that this <see cref="DrawOperationManager"/> will use to select an appropriate <see cref="GraphicsManager"/> to register a new <see cref="VeldridDrawOperation"/> onto</param>
     public DrawOperationManager(IDrawableNode owner, DrawOperationGraphicsManagerSelector? graphicsManagerSelector = null)
         : this(owner, graphicsManagerSelector, "Draw Operations") { }
 
@@ -19,7 +19,7 @@ public class DrawOperationManager : GameObject
     /// Instantiates a new object of type <see cref="DrawOperationManager"/>
     /// </summary>
     /// <param name="owner">The <see cref="IDrawableNode"/> that owns this <see cref="DrawOperationManager"/></param>
-    /// <param name="graphicsManagerSelector">The method that this <see cref="DrawOperationManager"/> will use to select an appropriate <see cref="GraphicsManager"/> to register a new <see cref="DrawOperation"/> onto</param>
+    /// <param name="graphicsManagerSelector">The method that this <see cref="DrawOperationManager"/> will use to select an appropriate <see cref="GraphicsManager"/> to register a new <see cref="VeldridDrawOperation"/> onto</param>
     protected DrawOperationManager(IDrawableNode owner, DrawOperationGraphicsManagerSelector? graphicsManagerSelector, string area)
         : base("Rendering & Game Scene", area)
     {
@@ -36,7 +36,7 @@ public class DrawOperationManager : GameObject
     #region Public Properties
 
     /// <summary>
-    /// Represents the method that this <see cref="DrawOperationManager"/> will use to select an appropriate <see cref="GraphicsManager"/> to register a new <see cref="DrawOperation"/> onto
+    /// Represents the method that this <see cref="DrawOperationManager"/> will use to select an appropriate <see cref="GraphicsManager"/> to register a new <see cref="VeldridDrawOperation"/> onto
     /// </summary>
     public DrawOperationGraphicsManagerSelector? GraphicsManagerSelector { get; set; }
 
@@ -46,10 +46,10 @@ public class DrawOperationManager : GameObject
     public IDrawableNode Owner { get; }
 
     /// <summary>
-    /// Represents the <see cref="DrawOperation"/>s that belong to this <see cref="DrawOperationManager"/>
+    /// Represents the <see cref="VeldridDrawOperation"/>s that belong to this <see cref="DrawOperationManager"/>
     /// </summary>
     /// <remarks>
-    /// To remove a <see cref="DrawOperation"/>, dispose it
+    /// To remove a <see cref="VeldridDrawOperation"/>, dispose it
     /// </remarks>
     public DrawOperationList DrawOperations { get; } = new();
 
@@ -79,20 +79,20 @@ public class DrawOperationManager : GameObject
     #region Public Methods
 
     /// <summary>
-    /// Adds a new <see cref="DrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
+    /// Adds a new <see cref="VeldridDrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
     /// </summary>
-    /// <typeparam name="TDrawOp">The type of <see cref="DrawOperation"/> to instantiate and add</typeparam>
-    public TDrawOp AddDrawOperation<TDrawOp>(TDrawOp dop) where TDrawOp : DrawOperation
+    /// <typeparam name="TDrawOp">The type of <see cref="VeldridDrawOperation"/> to instantiate and add</typeparam>
+    public TDrawOp AddDrawOperation<TDrawOp>(TDrawOp dop) where TDrawOp : VeldridDrawOperation
     {
         InternalAddDrawOperation(dop);
         return dop;
     }
 
     /// <summary>
-    /// Adds a new <see cref="DrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
+    /// Adds a new <see cref="VeldridDrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
     /// </summary>
-    /// <typeparam name="TDrawOp">The type of <see cref="DrawOperation"/> to instantiate and add</typeparam>
-    public TDrawOp AddDrawOperation<TDrawOp>() where TDrawOp : DrawOperation, new()
+    /// <typeparam name="TDrawOp">The type of <see cref="VeldridDrawOperation"/> to instantiate and add</typeparam>
+    public TDrawOp AddDrawOperation<TDrawOp>() where TDrawOp : VeldridDrawOperation, new()
     {
         var dop = new TDrawOp();
         InternalAddDrawOperation(dop);
@@ -100,10 +100,10 @@ public class DrawOperationManager : GameObject
     }
 
     /// <summary>
-    /// Adds a new <see cref="DrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
+    /// Adds a new <see cref="VeldridDrawOperation"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager"/>
     /// </summary>
-    /// <typeparam name="TDrawOp">The type of <see cref="DrawOperation"/> to instantiate and add</typeparam>
-    public TDrawOp AddDrawOperation<TDrawOp>(Func<TDrawOp> factory) where TDrawOp : DrawOperation
+    /// <typeparam name="TDrawOp">The type of <see cref="VeldridDrawOperation"/> to instantiate and add</typeparam>
+    public TDrawOp AddDrawOperation<TDrawOp>(Func<TDrawOp> factory) where TDrawOp : VeldridDrawOperation
     {
         var dop = factory();
         InternalAddDrawOperation(dop);
@@ -117,8 +117,8 @@ public class DrawOperationManager : GameObject
     /// By default, this method will enqueue <paramref name="operation"/> onto <paramref name="queue"/> with a priority of <c>1</c>
     /// </remarks>
     /// <param name="queue">The queue associated with <paramref name="operation"/> into which to add the draw operations</param>
-    /// <param name="operation">A specific registered <see cref="DrawOperation"/></param>
-    public virtual void AddToDrawQueue(IDrawQueue<DrawOperation> queue, DrawOperation operation)
+    /// <param name="operation">A specific registered <see cref="VeldridDrawOperation"/></param>
+    public virtual void AddToDrawQueue(IDrawQueue<VeldridDrawOperation> queue, VeldridDrawOperation operation)
     {
         queue.Enqueue(operation, operation.PreferredPriority);
     }
@@ -127,7 +127,7 @@ public class DrawOperationManager : GameObject
 
     #region Internal
 
-    private void InternalAddDrawOperation(DrawOperation operation)
+    private void InternalAddDrawOperation(VeldridDrawOperation operation)
     {
         InternalLog?.Debug("Adding a new DrawOperation {objName}-{type}", operation.Name ?? "", operation.GetTypeName());
         operation.SetOwner(this);
@@ -158,7 +158,7 @@ public class DrawOperationManager : GameObject
 
     private void Operation_AboutToDispose(GameObject sender, TimeSpan timestamp)
     {
-        if (sender is not DrawOperation dop) throw new InvalidOperationException($"Sender GameObject was not a DrawOperation");
+        if (sender is not VeldridDrawOperation dop) throw new InvalidOperationException($"Sender GameObject was not a DrawOperation");
         DrawOperations.Remove(dop);
     }
 
@@ -167,16 +167,16 @@ public class DrawOperationManager : GameObject
     #region Reaction Methods
 
     /// <summary>
-    /// This method is called automatically when a new <see cref="DrawOperation"/> is being added onto this <see cref="DrawOperationManager"/>
+    /// This method is called automatically when a new <see cref="VeldridDrawOperation"/> is being added onto this <see cref="DrawOperationManager"/>
     /// </summary>
     /// <param name="operation">The operation being added</param>
-    protected virtual void AddingDrawOperation(DrawOperation operation) { }
+    protected virtual void AddingDrawOperation(VeldridDrawOperation operation) { }
 
     #endregion
 }
 
 /// <summary>
-/// Represents a <see cref="DrawOperationManager"/> that accepts a <see cref="DrawQueueSelector"/> delegate method to act in place of inheriting and overriding <see cref="DrawOperationManager.AddToDrawQueue(IDrawQueue{DrawOperation}, DrawOperation)"/>
+/// Represents a <see cref="DrawOperationManager"/> that accepts a <see cref="DrawQueueSelector"/> delegate method to act in place of inheriting and overriding <see cref="DrawOperationManager.AddToDrawQueue(IDrawQueue{VeldridDrawOperation}, VeldridDrawOperation)"/>
 /// </summary>
 public sealed class DrawOperationManagerDrawQueueDelegate : DrawOperationManager
 {
@@ -185,7 +185,7 @@ public sealed class DrawOperationManagerDrawQueueDelegate : DrawOperationManager
     /// </summary>
     /// <param name="queue">The <see cref="IDrawQueue{T}"/> into which to add <paramref name="operation"/></param>
     /// <param name="operation">The operation in question</param>
-    public delegate void DrawQueueSelector(IDrawQueue<DrawOperation> queue, DrawOperation operation);
+    public delegate void DrawQueueSelector(IDrawQueue<VeldridDrawOperation> queue, VeldridDrawOperation operation);
 
     private readonly DrawQueueSelector _drawQueueSelector;
 
@@ -197,6 +197,6 @@ public sealed class DrawOperationManagerDrawQueueDelegate : DrawOperationManager
     }
 
     /// <inheritdoc/>
-    public override void AddToDrawQueue(IDrawQueue<DrawOperation> queue, DrawOperation operation)
+    public override void AddToDrawQueue(IDrawQueue<VeldridDrawOperation> queue, VeldridDrawOperation operation)
         => _drawQueueSelector.Invoke(queue, operation);
 }

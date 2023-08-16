@@ -54,11 +54,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="SDL2.Bindings" Version="1.1.0" />
-		<PackageReference Include="SDL2.NET" Version="1.2.3" />
+		<PackageReference Include="ImGui.NET" Version="1.89.4" />
 	</ItemGroup>
 	
 	<ItemGroup>
+		<ProjectReference Include="..\dependencies\SDL2.NET\SDL2.Bindings\SDL2.Bindings.csproj" />
+		<ProjectReference Include="..\dependencies\SDL2.NET\SDL2.NET\SDL2.NET.csproj" />
 		<ProjectReference Include="..\dependencies\veldrid-spirv\src\Veldrid.SPIRV\Veldrid.SPIRV.csproj" />
 		<ProjectReference Include="..\dependencies\veldrid\src\Veldrid.ImageSharp\Veldrid.ImageSharp.csproj" />
 		<ProjectReference Include="..\dependencies\veldrid\src\Veldrid\Veldrid.csproj" />

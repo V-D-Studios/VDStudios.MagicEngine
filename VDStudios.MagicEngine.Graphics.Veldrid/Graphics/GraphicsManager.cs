@@ -140,7 +140,7 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region DrawOperation Registration
 
-    private readonly List<DrawOperation> DOPRegistrationBuffer = new();
+    private readonly List<VeldridDrawOperation> DOPRegistrationBuffer = new();
     private readonly List<SharedDrawResource> SDRRegistrationBuffer = new();
 
     #region Public
@@ -149,10 +149,10 @@ public class GraphicsManager : GameObject, IDisposable
     /// Register <paramref name="operation"/> into this <see cref="GraphicsManager"/> to be drawn
     /// </summary>
     /// <remarks>
-    /// Remember than any single <see cref="DrawOperation"/> can only be assigned to one <see cref="GraphicsManager"/>, and can only be deregistered after disposing. <see cref="DrawOperation"/>s should not be dropped, as <see cref="GraphicsManager"/>s only keep <see cref="WeakReference"/>s to them
+    /// Remember than any single <see cref="VeldridDrawOperation"/> can only be assigned to one <see cref="GraphicsManager"/>, and can only be deregistered after disposing. <see cref="VeldridDrawOperation"/>s should not be dropped, as <see cref="GraphicsManager"/>s only keep <see cref="WeakReference"/>s to them
     /// </remarks>
-    /// <param name="operation">The <see cref="DrawOperation"/> that will be drawn in this <see cref="GraphicsManager"/></param>
-    internal void QueueOperationRegistration(DrawOperation operation)
+    /// <param name="operation">The <see cref="VeldridDrawOperation"/> that will be drawn in this <see cref="GraphicsManager"/></param>
+    internal void QueueOperationRegistration(VeldridDrawOperation operation)
     {
         if (operation._clga >= CommandListGroups.Length)
             throw new InvalidOperationException($"This GraphicsManager only has {CommandListGroups.Length} CommandList groups [0-{CommandListGroups.Length - 1}], an operation with a CommandListGroupAffinity of {operation._clga} cannot be registered.");
@@ -206,7 +206,7 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region Fields
 
-    private readonly Dictionary<Guid, WeakReference<DrawOperation>> RegisteredOperations = new(10);
+    private readonly Dictionary<Guid, WeakReference<VeldridDrawOperation>> RegisteredOperations = new(10);
     private readonly Dictionary<Guid, WeakReference<SharedDrawResource>> RegisteredResources = new(10);
 
     #endregion
@@ -214,12 +214,12 @@ public class GraphicsManager : GameObject, IDisposable
     #region Reaction Methods
 
     /// <summary>
-    /// This method is called automatically when a new <see cref="DrawOperation"/> is being registered
+    /// This method is called automatically when a new <see cref="VeldridDrawOperation"/> is being registered
     /// </summary>
-    /// <param name="operation">The <see cref="DrawOperation"/> being registered</param>
+    /// <param name="operation">The <see cref="VeldridDrawOperation"/> being registered</param>
     /// <param name="rejectionReason">An optional out parameter that should be set to the reason the change was rejected if the method returns <c>false</c></param>
     /// <returns><c>true</c> if the change is acceptable, <c>false</c> if the registration should be rejected</returns>
-    protected virtual bool DrawOperationRegistering(DrawOperation operation, [NotNullWhen(false)] out string? rejectionReason)
+    protected virtual bool DrawOperationRegistering(VeldridDrawOperation operation, [NotNullWhen(false)] out string? rejectionReason)
     {
         rejectionReason = null;
         return true;
@@ -341,7 +341,7 @@ public class GraphicsManager : GameObject, IDisposable
     private readonly idleWaiter drawlockWaiter;
 
     /// <summary>
-    /// Waits until the Manager finishes drawing its <see cref="DrawOperation"/>s and locks it
+    /// Waits until the Manager finishes drawing its <see cref="VeldridDrawOperation"/>s and locks it
     /// </summary>
     /// <remarks>
     /// *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
@@ -354,7 +354,7 @@ public class GraphicsManager : GameObject, IDisposable
     }
 
     /// <summary>
-    /// Asynchronously waits until the Manager finishes drawing its <see cref="DrawOperation"/>s and locks it
+    /// Asynchronously waits until the Manager finishes drawing its <see cref="VeldridDrawOperation"/>s and locks it
     /// </summary>
     /// <remarks>
     /// *ALWAYS* wrap the disposable object this method returns in an using statement. The GraphicsManager will stay locked forever if it's not disposed of
@@ -595,7 +595,7 @@ public class GraphicsManager : GameObject, IDisposable
         => factory.CreateCommandList();
 
     /// <summary>
-    /// Executes commands before any registered <see cref="DrawOperation"/> is processed
+    /// Executes commands before any registered <see cref="VeldridDrawOperation"/> is processed
     /// </summary>
     /// <remarks>
     /// <paramref name="commandlist"/> is begun, ended and submitted automatically. <see cref="CommandList.SetFramebuffer(Framebuffer)"/> is not called, however.
@@ -722,11 +722,11 @@ public class GraphicsManager : GameObject, IDisposable
     private async ValueTask ProcessDrawOpRegistrationBuffer()
     {
         int count = DOPRegistrationBuffer.Count;
-        DrawOperation[] regbuf;
+        VeldridDrawOperation[] regbuf;
         lock (DOPRegistrationBuffer)
         {
             if (DOPRegistrationBuffer.Count <= 0) return;
-            regbuf = ArrayPool<DrawOperation>.Shared.Rent(count);
+            regbuf = ArrayPool<VeldridDrawOperation>.Shared.Rent(count);
             DOPRegistrationBuffer.CopyTo(regbuf);
             DOPRegistrationBuffer.Clear();
         }
@@ -749,7 +749,7 @@ public class GraphicsManager : GameObject, IDisposable
         }
         finally
         {
-            ArrayPool<DrawOperation>.Shared.Return(regbuf);
+            ArrayPool<VeldridDrawOperation>.Shared.Return(regbuf);
         }
     }
 

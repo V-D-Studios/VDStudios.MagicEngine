@@ -13,11 +13,9 @@ namespace VDStudios.MagicEngine.Graphics.Veldrid.Graphics;
 /// <remarks>
 /// Try to keep an object created from this class cached somewhere in a node, as they incur a number of allocations that should be avoided in a HotPath like the rendering sequence
 /// </remarks>
-public abstract class DrawOperation : GraphicsObject, IDisposable
+public abstract class VeldridDrawOperation : DrawOperation<VeldridGraphicsContext>, IDisposable
 {
     private readonly SemaphoreSlim sync = new(1, 1);
-
-    internal GraphicsDevice? Device;
 
     private static ResourceLayoutBuilder ResourceLayoutFactory() => ResourceLayoutBuilderPool.Rent();
     private static void ResourceLayoutCleaner(ResourceLayoutBuilder resource) => ResourceLayoutBuilderPool.Return(resource);
@@ -26,16 +24,16 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     private static readonly ObjectPool<ResourceLayoutBuilder> ResourceLayoutBuilderPool = new(x => new ResourceLayoutBuilder(), x => x.Clear(), 2, 5);
 
     /// <summary>
-    /// Instances a new object of type <see cref="DrawOperation"/>
+    /// Instances a new object of type <see cref="VeldridDrawOperation"/>
     /// </summary>
-    public DrawOperation() : base("Drawing")
+    public VeldridDrawOperation(Game game) : base(game)
     {
     }
 
     #region Transformation
 
     /// <summary>
-    /// The <see cref="ResourceLayout"/> used to describe the layout for <see cref="DrawOperation"/> color and vertex transformations
+    /// The <see cref="ResourceLayout"/> used to describe the layout for <see cref="VeldridDrawOperation"/> color and vertex transformations
     /// </summary>
     /// <remarks>
     /// This layout is static across <see cref="GraphicsManager"/>s
@@ -69,7 +67,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     }
 
     /// <summary>
-    /// The transformation matrix that represents the current transformation properties in this <see cref="DrawOperation"/>
+    /// The transformation matrix that represents the current transformation properties in this <see cref="VeldridDrawOperation"/>
     /// </summary>
     /// <remarks>
     /// This transformation can be used to represent the current world properties of the drawing operation, for example, it's position and rotation in relation to the world itself
@@ -100,7 +98,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     private const uint VertexTransformationOffset = 0;
 
     /// <summary>
-    /// The transformation matrix that represents the current transformation properties in this <see cref="DrawOperation"/>
+    /// The transformation matrix that represents the current transformation properties in this <see cref="VeldridDrawOperation"/>
     /// </summary>
     public ColorTransformation ColorTransformation
     {
@@ -116,10 +114,10 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     private readonly uint ColorTransformationOffset = (uint)Unsafe.SizeOf<Matrix4x4>();
 
     /// <summary>
-    /// Adjusts the transformation parameters and calculates the appropriate transformation matrix for this <see cref="DrawOperation"/>
+    /// Adjusts the transformation parameters and calculates the appropriate transformation matrix for this <see cref="VeldridDrawOperation"/>
     /// </summary>
     /// <remarks>
-    /// Parameters that are not specified (i.e. left as <c>null</c>) will default to the current transformation setting in this <see cref="DrawOperation"/>
+    /// Parameters that are not specified (i.e. left as <c>null</c>) will default to the current transformation setting in this <see cref="VeldridDrawOperation"/>
     /// </remarks>
     /// <param name="translation">The translation in worldspace for this operation</param>
     /// <param name="scale">The scale in worldspace for this operation</param>
@@ -139,17 +137,17 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     }
 
     /// <summary>
-    /// Describes the current translation setting of this <see cref="DrawOperation"/>
+    /// Describes the current translation setting of this <see cref="VeldridDrawOperation"/>
     /// </summary>
     public Vector3 Translation { get; private set; }
 
     /// <summary>
-    /// Describes the current scale setting of this <see cref="DrawOperation"/>
+    /// Describes the current scale setting of this <see cref="VeldridDrawOperation"/>
     /// </summary>
     public Vector3 Scale { get; private set; } = Vector3.One;
 
     /// <summary>
-    /// Describes the current rotation setting along the x axis of this <see cref="DrawOperation"/>
+    /// Describes the current rotation setting along the x axis of this <see cref="VeldridDrawOperation"/>
     /// </summary>
     /// <remarks>
     /// Where <see cref="Vector4.X"/>, <see cref="Vector4.Y"/> and <see cref="Vector4.Z"/> are the center point, and <see cref="Vector4.W"/> is the actual rotation in <c>radians</c>
@@ -157,7 +155,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     public Vector4 RotationX { get; private set; }
 
     /// <summary>
-    /// Describes the current rotation setting along the y axis of this <see cref="DrawOperation"/>
+    /// Describes the current rotation setting along the y axis of this <see cref="VeldridDrawOperation"/>
     /// </summary>
     /// <remarks>
     /// Where <see cref="Vector4.X"/>, <see cref="Vector4.Y"/> and <see cref="Vector4.Z"/> are the center point, and <see cref="Vector4.W"/> is the actual rotation in <c>radians</c>
@@ -165,7 +163,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     public Vector4 RotationY { get; private set; }
 
     /// <summary>
-    /// Describes the current rotation setting along the z axis of this <see cref="DrawOperation"/>
+    /// Describes the current rotation setting along the z axis of this <see cref="VeldridDrawOperation"/>
     /// </summary>
     /// <remarks>
     /// Where <see cref="Vector4.X"/>, <see cref="Vector4.Y"/> and <see cref="Vector4.Z"/> are the center point, and <see cref="Vector4.W"/> is the actual rotation in <c>radians</c>
@@ -175,25 +173,25 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     #endregion
 
     /// <summary>
-    /// Represents this <see cref="DrawOperation"/>'s preferred priority. May or may not be honored depending on the <see cref="DrawOperationManager"/>
+    /// Represents this <see cref="VeldridDrawOperation"/>'s preferred priority. May or may not be honored depending on the <see cref="DrawOperationManager"/>
     /// </summary>
     public float PreferredPriority { get; set; }
 
     /// <summary>
-    /// Represents this <see cref="DrawOperation"/>'s CommandList Group affinity. If this value is 
+    /// Represents this <see cref="VeldridDrawOperation"/>'s CommandList Group affinity. If this value is 
     /// </summary>
     /// <remarks>
-    /// This value will also set this <see cref="DrawOperation"/> in its own draw priority group; which means that it will be drawn over <see cref="DrawOperation"/>s that have a lower <see cref="CommandListGroupAffinity"/> regardless of priority. If in doubt, leave this as <see langword="null"/>
+    /// This value will also set this <see cref="VeldridDrawOperation"/> in its own draw priority group; which means that it will be drawn over <see cref="VeldridDrawOperation"/>s that have a lower <see cref="CommandListGroupAffinity"/> regardless of priority. If in doubt, leave this as <see langword="null"/>
     /// </remarks>
     public uint? CommandListGroupAffinity { get; init; }
     internal int _clga => (int)(CommandListGroupAffinity ?? 0);
 
 
     /// <summary>
-    /// The owner <see cref="DrawOperationManager"/> of this <see cref="DrawOperation"/>
+    /// The owner <see cref="DrawOperationManager"/> of this <see cref="VeldridDrawOperation"/>
     /// </summary>
     /// <remarks>
-    /// Will throw if this <see cref="DrawOperation"/> is not registered
+    /// Will throw if this <see cref="VeldridDrawOperation"/> is not registered
     /// </remarks>
     public DrawOperationManager Owner => _owner ?? throw new InvalidOperationException("Cannot query the Owner of an unregistered DrawOperation");
     private DrawOperationManager? _owner;
@@ -243,13 +241,13 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     #region Reaction Methods
 
     /// <summary>
-    /// This method is called automatically when this <see cref="DrawOperation"/> is being registered onto <paramref name="manager"/>
+    /// This method is called automatically when this <see cref="VeldridDrawOperation"/> is being registered onto <paramref name="manager"/>
     /// </summary>
-    /// <param name="manager">The <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is being registered onto</param>
+    /// <param name="manager">The <see cref="GraphicsManager"/> this <see cref="VeldridDrawOperation"/> is being registered onto</param>
     protected virtual void Registering(GraphicsManager manager) { }
 
     /// <summary>
-    /// This method is called automatically when this <see cref="DrawOperation"/> has been registered
+    /// This method is called automatically when this <see cref="VeldridDrawOperation"/> has been registered
     /// </summary>
     protected virtual void Registered() { }
 
@@ -264,7 +262,7 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     private bool pendingGpuUpdate = true;
 
     /// <summary>
-    /// Flags this <see cref="DrawOperation"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, FramebufferTargetInfo)"/> call
+    /// Flags this <see cref="VeldridDrawOperation"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, FramebufferTargetInfo)"/> call
     /// </summary>
     /// <remarks>
     /// Multiple calls to this method will not result in <see cref="UpdateGPUState(GraphicsDevice, CommandList)"/> being called multiple times
@@ -306,14 +304,14 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     //protected internal bool ReplaceWindowSizeResourcesInmediately { get; init; } = true;
 
     /// <summary>
-    /// Creates the necessary resource sets for this <see cref="DrawOperation"/>
+    /// Creates the necessary resource sets for this <see cref="VeldridDrawOperation"/>
     /// </summary>
     /// <remarks>
-    /// This method is called before <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[], ResourceLayout[])"/>. The base method at <see cref="DrawOperation"/> creates <see cref="TransformationSet"/> and the appropriate buffer
+    /// This method is called before <see cref="CreateResources(GraphicsDevice, ResourceFactory, ResourceSet[], ResourceLayout[])"/>. The base method at <see cref="VeldridDrawOperation"/> creates <see cref="TransformationSet"/> and the appropriate buffer
     /// </remarks>
     /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
-    /// <param name="builder">The collection of descriptions that will be used to build the resource sets for this <see cref="DrawOperation"/>. This object is borrowed from a pool and will be cleared and returned after this method returns</param>
-    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
+    /// <param name="builder">The collection of descriptions that will be used to build the resource sets for this <see cref="VeldridDrawOperation"/>. This object is borrowed from a pool and will be cleared and returned after this method returns</param>
+    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="VeldridDrawOperation"/> is registered on</param>
     protected virtual ValueTask CreateResourceSets(GraphicsDevice device, ResourceSetBuilder builder, ResourceFactory factory)
     {
         TransformationBuffer = factory.CreateBuffer(
@@ -333,12 +331,12 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     }
 
     /// <summary>
-    /// Creates the necessary resources for this <see cref="DrawOperation"/>
+    /// Creates the necessary resources for this <see cref="VeldridDrawOperation"/>
     /// </summary>
     /// <remarks>
     /// This method is called after <see cref="CreateResourceSets(GraphicsDevice, ResourceSetBuilder, ResourceFactory)"/>
     /// </remarks>
-    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
+    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="VeldridDrawOperation"/> is registered on</param>
     /// <param name="factory"><paramref name="device"/>'s <see cref="ResourceFactory"/></param>
     /// <param name="resourceSets">The resource sets generated by <see cref="CreateResourceSets(GraphicsDevice, ResourceSetBuilder, ResourceFactory)"/></param>
     /// <param name="resourceLayouts">The resource layouts generated by <see cref="CreateResourceSets(GraphicsDevice, ResourceSetBuilder, ResourceFactory)"/></param>
@@ -348,22 +346,22 @@ public abstract class DrawOperation : GraphicsObject, IDisposable
     /// The method that will be used to draw the component
     /// </summary>
     /// <remarks>
-    /// Calling <see cref="GameObject.ThrowIfDisposed()"/> or <see cref="GameObject.Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock! Remember that <paramref name="commandList"/> is *NOT* thread-safe, but it is used only one <see cref="DrawOperation"/> at a time, managed externally; and <see cref="GraphicsManager"/> will not use it until this method returns.
+    /// Calling <see cref="GameObject.ThrowIfDisposed()"/> or <see cref="GameObject.Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock! Remember that <paramref name="commandList"/> is *NOT* thread-safe, but it is used only one <see cref="VeldridDrawOperation"/> at a time, managed externally; and <see cref="GraphicsManager"/> will not use it until this method returns.
     /// </remarks>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
-    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
+    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="VeldridDrawOperation"/> is registered on</param>
     /// <param name="commandList">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
     /// <param name="target">Information about the <see cref="Framebuffer"/> that this specific call should be rendered to. Use <see cref="FramebufferTargetInfo.Target"/> with to use with <see cref="CommandList.SetFramebuffer(Framebuffer)"</param>
     protected abstract ValueTask Draw(TimeSpan delta, CommandList commandList, GraphicsDevice device, FramebufferTargetInfo target);
 
     /// <summary>
-    /// This method is called automatically when this <see cref="DrawOperation"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, FramebufferTargetInfo)"/>
+    /// This method is called automatically when this <see cref="VeldridDrawOperation"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(TimeSpan, CommandList, GraphicsDevice, FramebufferTargetInfo)"/>
     /// </summary>
     /// <remarks>
     /// Calling <see cref="GameObject.ThrowIfDisposed()"/> or <see cref="GameObject.Dispose(bool)"/> from this method WILL ALWAYS cause a deadlock!
     /// </remarks>
     /// <param name="commandList">The <see cref="CommandList"/> opened specifically for this call. <see cref="CommandList.End"/> will be called AFTER this method returns, so don't call it yourself</param>
-    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="DrawOperation"/> is registered on</param>
+    /// <param name="device">The Veldrid <see cref="GraphicsDevice"/> attached to the <see cref="GraphicsManager"/> this <see cref="VeldridDrawOperation"/> is registered on</param>
     protected virtual ValueTask UpdateGPUState(GraphicsDevice device, CommandList commandList)
     {
         UpdateTransformationBuffer(commandList);
