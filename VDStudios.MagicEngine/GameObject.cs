@@ -31,6 +31,7 @@ public abstract class GameObject : IDisposable, IGameObject
     /// <param name="game">The game this <see cref="GameObject"/> belongs to</param>
     internal GameObject(Game game, string facility, string area)
     {
+        ArgumentNullException.ThrowIfNull(game);
         ArgumentException.ThrowIfNullOrEmpty(area);
         ArgumentException.ThrowIfNullOrEmpty(facility);
         logSync = new(InternalCreateLogger, LazyThreadSafetyMode.ExecutionAndPublication);
@@ -157,8 +158,13 @@ public abstract class GameObject : IDisposable, IGameObject
     /// <param name="disposing">Whether this method was called through <see cref="IDisposable.Dispose"/> or by the GC calling this object's finalizer</param>
     protected virtual void Dispose(bool disposing) { }
 
-    /// <inheritdoc/>
-    public event GeneralGameEvent<GameObject>? AboutToDispose;
+    /// <summary>
+    /// Fired right before this <see cref="GameObject"/> is disposed
+    /// </summary>
+    /// <remarks>
+    /// While .NET allows fire-and-forget async methods in these events (<c><see langword="async void"/></c>), this is *NOT* recommended, as it's almost guaranteed the <see cref="GameObject"/> will be fully disposed before the async portion of your code gets a chance to run
+    /// </remarks>
+    event GeneralGameEvent<GameObject>? AboutToDispose;
 
     #endregion
 }

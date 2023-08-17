@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Exceptions;
 
@@ -19,7 +20,7 @@ public class GameMismatchException : Exception
     /// </summary>
     public string MismatchDetails { get; }
 
-    private static string BuildDetailedMessage(GameObject[] objects, string[] objectExpressions)
+    private static string BuildDetailedMessage(IGameObject[] objects, string[] objectExpressions)
     {
         int latest = 0;
         Debug.Assert(objects.Length == objectExpressions.Length, "objects and objectExpressions have different lengths");
@@ -52,7 +53,7 @@ public class GameMismatchException : Exception
         }
     }
 
-    private static string BuildMessage(GameObject[] objects, string[] objectExpressions)
+    private static string BuildMessage(IGameObject[] objects, string[] objectExpressions)
     {
         Debug.Assert(objects.Length == objectExpressions.Length, "objects and objectExpressions have different lengths");
         StringBuilder sb = new();
@@ -73,7 +74,7 @@ public class GameMismatchException : Exception
     /// <summary>
     /// Creates a new instance of <see cref="GameMismatchException"/>
     /// </summary>
-    public GameMismatchException(GameObject[] objects, string[] objectExpressions)
+    public GameMismatchException(IGameObject[] objects, string[] objectExpressions)
         : base(BuildMessage(objects, objectExpressions)) 
     {
         Debug.Assert(objects.Length == objectExpressions.Length, "objects and objectExpressions have different lengths");
@@ -84,15 +85,15 @@ public class GameMismatchException : Exception
     /// Creates a new instance of <see cref="GameMismatchException"/>
     /// </summary>
     public static void ThrowIfMismatch(
-        GameObject a, 
-        GameObject b, 
+        IGameObject a, 
+        IGameObject b, 
         [CallerArgumentExpression(nameof(a))] string? aexpression = null, 
         [CallerArgumentExpression(nameof(b))] string? bexpression = null
     )
     {
         if (a.Game != b.Game)
             throw new GameMismatchException(
-                  new GameObject[]
+                  new IGameObject[]
                   {
                       a,
                       b
@@ -109,9 +110,9 @@ public class GameMismatchException : Exception
     /// Creates a new instance of <see cref="GameMismatchException"/>
     /// </summary>
     public static void ThrowIfMismatch(
-        GameObject a,
-        GameObject b,
-        GameObject c,
+        IGameObject a,
+        IGameObject b,
+        IGameObject c,
         [CallerArgumentExpression(nameof(a))] string? aexpression = null,
         [CallerArgumentExpression(nameof(b))] string? bexpression = null,
         [CallerArgumentExpression(nameof(c))] string? cexpression = null
@@ -119,7 +120,7 @@ public class GameMismatchException : Exception
     {
         if (a.Game != b.Game || b.Game != c.Game || c.Game != a.Game) 
             throw new GameMismatchException(
-              new GameObject[]
+              new IGameObject[]
               {
                   a,
                   b,
@@ -138,10 +139,10 @@ public class GameMismatchException : Exception
     /// Creates a new instance of <see cref="GameMismatchException"/>
     /// </summary>
     public static void ThrowIfMismatch(
-        GameObject a,
-        GameObject b,
-        GameObject c,
-        GameObject d,
+        IGameObject a,
+        IGameObject b,
+        IGameObject c,
+        IGameObject d,
         [CallerArgumentExpression(nameof(a))] string? aexpression = null,
         [CallerArgumentExpression(nameof(b))] string? bexpression = null,
         [CallerArgumentExpression(nameof(c))] string? cexpression = null,
@@ -152,7 +153,7 @@ public class GameMismatchException : Exception
             b.Game != c.Game || b.Game != d.Game ||
             c.Game != d.Game) 
             throw new GameMismatchException(
-              new GameObject[]
+              new IGameObject[]
               {
                   a,
                   b,

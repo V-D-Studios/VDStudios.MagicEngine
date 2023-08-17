@@ -254,7 +254,6 @@ public abstract class GraphicsManager : GameObject
     /// <summary>
     /// Performs task such as Creating and Setting up the Window
     /// </summary>
-    [MemberNotNull(nameof(graphics_thread))]
     protected abstract void SetupGraphicsManager();
 
     ///////// <summary>

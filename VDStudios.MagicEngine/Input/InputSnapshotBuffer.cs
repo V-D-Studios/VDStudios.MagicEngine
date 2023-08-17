@@ -39,11 +39,19 @@ public readonly record struct MouseWheelEventRecord(uint MouseId, Vector2 WheelD
 /// </remarks>
 public abstract class InputSnapshotBuffer
 {
-    internal readonly GraphicsManager Manager;
-    internal InputSnapshotBuffer(GraphicsManager manager)
+    /// <summary>
+    /// Instances a new object of type <see cref="InputSnapshotBuffer"/>
+    /// </summary>
+    /// <param name="manager">The <see cref="GraphicsManager"/> that will own the resulting <see cref="InputSnapshotBuffer"/></param>
+    protected internal InputSnapshotBuffer(GraphicsManager manager)
     {
         Manager = manager;
     }
+
+    /// <summary>
+    /// The <see cref="Manager"/> that owns this <see cref="InputSnapshotBuffer"/>
+    /// </summary>
+    public GraphicsManager Manager { get; }
 
     /// <summary>
     /// The system time at the moment of this <see cref="InputSnapshotBuffer"/>'s last update

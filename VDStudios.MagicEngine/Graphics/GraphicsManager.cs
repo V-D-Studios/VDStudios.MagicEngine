@@ -7,7 +7,7 @@ using VDStudios.MagicEngine.Internal;
 namespace VDStudios.MagicEngine.Graphics;
 
 /// <summary>
-/// Represents a Thread dedicated solely to handling a window or equivalent, and managing their respective resources in a thread-safe manner
+/// Represents an object dedicated solely to handling a window or equivalent, and managing their respective resources in a thread-safe manner
 /// </summary>
 /// <remarks>
 /// *ALL* Graphics Managers are automatically managed by <see cref="Game"/>, registered at the time of construction
