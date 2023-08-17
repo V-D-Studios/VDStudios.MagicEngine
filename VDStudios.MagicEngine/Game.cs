@@ -16,7 +16,7 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// This class should take control of most, if not all, of any underlying graphics library. And should be allowed to do so. Follow the docs on how to initialize your <see cref="Game"/>
 /// </remarks>
-public abstract class Game
+public abstract class Game : IGameObject
 {
     #region (Standalone) Fields
 
@@ -172,7 +172,7 @@ public abstract class Game
     private readonly LongAverageKeeper _mspup = new(16);
 
     /// <summary>
-    /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame{TScene}"/> is called
+    /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame"/> is called
     /// </summary>
     public IGameLifetime Lifetime => lifetime ?? throw new InvalidOperationException("The game has not had its lifetime attached yet");
 
@@ -198,6 +198,7 @@ public abstract class Game
     public void SetScene(Scene newScene)
     {
         ArgumentNullException.ThrowIfNull(newScene);
+        GameMismatchException.ThrowIfMismatch(this, newScene);
         if (isStarted is false)
             throw new InvalidOperationException("The game has not been started; set the scene with Game.Start");
 
@@ -246,6 +247,9 @@ public abstract class Game
     /// <summary>
     /// Configures the lifetime of a game
     /// </summary>
+    /// <remarks>
+    /// Called after most of everything's been done, just before <see cref="Run(IGameLifetime)"/>
+    /// </remarks>
     /// <returns>The configured <see cref="IGameLifetime"/></returns>
     protected abstract IGameLifetime ConfigureGameLifetime();
 
@@ -338,11 +342,10 @@ public abstract class Game
     /// <summary>
     /// Initiates the process of starting the game. Launches the main Renderer and Window if not already created. This method will not return until the <see cref="Game"/>'s <see cref="IGameLifetime"/> ends
     /// </summary>
-    /// <typeparam name="TScene">The first scene of the game. It must have a parameterless constructor, and it must be constructed by the <see cref="Game"/>. Later <see cref="Scene"/>s can be constructed manually after the game has started</typeparam>
     /// <remarks>
     /// This method forces concurrency by locking, and will throw if called twice before calling the game is stopped. Still a good idea to call it from the thread that initialized SDL
     /// </remarks>
-    public async Task StartGame<TScene>() where TScene : Scene, new()
+    public async Task StartGame()
     {
         lock (_lock)
         {
@@ -616,6 +619,14 @@ public abstract class Game
     /// Fired when the main <see cref="GraphicsManager"/> is created, or found by the <see cref="Game"/>. This will fire before <see cref="GameStarting"/> and after <see cref="GameLoaded"/>
     /// </summary>
     public event GameGraphicsManagerCreatedEvent? MainGraphicsManagerCreated;
+
+    #region IGameObject
+
+    Game IGameObject.Game => this;
+    bool IGameObject.IsDisposed => false;
+    string? IGameObject.Name => GameTitle;
+
+    #endregion
 
     #endregion
 }
