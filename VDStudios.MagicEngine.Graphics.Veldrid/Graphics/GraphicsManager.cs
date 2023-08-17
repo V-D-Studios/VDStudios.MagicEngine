@@ -612,10 +612,10 @@ public class GraphicsManager : GameObject, IDisposable
 
     #region Internal
 
-    private readonly SemaphoreSlim WindowShownLock = new(1, 1);
     private readonly SemaphoreSlim FrameLock = new(1, 1);
     private readonly SemaphoreSlim DrawLock = new(1, 1);
     private readonly SemaphoreSlim GUILock = new(1, 1);
+    private readonly SemaphoreSlim WindowShownLock = new(1, 1);
 
     internal Vector4 LastReportedWinSize = default;
 

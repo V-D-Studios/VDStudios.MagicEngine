@@ -7,4 +7,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\dependencies\SDL2.NET\SDL2.Bindings\SDL2.Bindings.csproj" />
+    <ProjectReference Include="..\dependencies\SDL2.NET\SDL2.NET\SDL2.NET.csproj" />
+    <ProjectReference Include="..\VDStudios.MagicEngine.Graphics.SDL\VDStudios.MagicEngine.Graphics.SDL.csproj" />
+    <ProjectReference Include="..\VDStudios.MagicEngine\VDStudios.MagicEngine.csproj" />
+  </ItemGroup>
+
 </Project>

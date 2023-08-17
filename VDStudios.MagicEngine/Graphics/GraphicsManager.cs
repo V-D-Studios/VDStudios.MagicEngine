@@ -74,6 +74,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     #region Waiting
 
     #region DrawLock
+
     private readonly Internal_IdleWaiter drawlockWaiter;
 
     /// <summary>
@@ -105,6 +106,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     #endregion
 
     #region FrameLock
+
     private readonly Internal_IdleWaiter framelockWaiter;
 
     /// <summary>
@@ -148,6 +150,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     }
 
     #endregion
+
     #region Running
 
     #region Public Properties
@@ -155,7 +158,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// <summary>
     /// Whether this <see cref="GraphicsManager{TGraphicsContext}"/> is currently running
     /// </summary>
-    public bool IsRunning { get; private set; } = true;
+    public bool IsRunning { get; protected set; } = true;
 
     /// <summary>
     /// The color to draw when the frame is beginning to be drawn
@@ -163,6 +166,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     public abstract RgbaVector BackgroundColor { get; set; }
 
     #endregion
+
     #region Reaction Methods
 
     /// <summary>
@@ -265,7 +269,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// <summary>
     /// A transformation Matrix that represents the current Window's dimensions
     /// </summary>
-    public Matrix4x4 WindowView { get; private set; }
+    public Matrix4x4 WindowView { get; protected set; }
 
     /// <summary>
     /// A check to see if this <see cref="GraphicsManager{TGraphicsContext}"/> is running
@@ -278,7 +282,9 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     protected readonly Func<bool> IsNotRenderingCheck;
 
     #endregion
+
     #endregion
+
     #region Setup Methods
 
     /// <summary>
@@ -287,12 +293,12 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// <remarks>
     /// This <see cref="GraphicsManager{TGraphicsContext}"/> will *NOT* run or update while this GraphicsManager is inactive
     /// </remarks>
-    public bool IsWindowAvailable { get; private set; }
+    public bool IsWindowAvailable { get; protected set; }
 
     /// <summary>
     /// <c>true</c> if this GraphicsManager currently has input focus. <c>false</c> otherwise
     /// </summary>
-    public bool HasFocus { get; private set; }
+    public bool HasFocus { get; protected set; }
 
     /// <summary>
     /// Whether the current <see cref="GraphicsManager{TGraphicsContext}"/> should currently be updating or not

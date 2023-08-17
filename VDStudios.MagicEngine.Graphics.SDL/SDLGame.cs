@@ -1,4 +1,5 @@
 ﻿using SDL2.Bindings;
+using SDL2.NET;
 using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Graphics.SDL;
@@ -8,6 +9,13 @@ namespace VDStudios.MagicEngine.Graphics.SDL;
 /// </summary>
 public class SDLGame : Game
 {
+    /// <inheritdoc/>
+    public SDLGame()
+    {
+        if (OperatingSystem.IsWindows())
+            Hints.DisableThreadNaming.IsEnabled = true;
+    }
+
     /// <inheritdoc/>
     protected override GraphicsManager CreateGraphicsManager()
         => new SDLGraphicsManager(this);

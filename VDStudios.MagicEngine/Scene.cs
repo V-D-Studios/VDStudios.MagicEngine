@@ -22,6 +22,7 @@ public abstract class Scene : GameObject, IDisposable
     /// </summary>
     public Scene(Game game) : base(game, "Game Scene", "Update")
     {
+        Log?.Verbose("Constructing new Scene");
         Children = NodeList.Empty.Clone();
         Game.SetupScenes += OnGameSetupScenes;
         Game.StopScenes += OnGameStopScenes;

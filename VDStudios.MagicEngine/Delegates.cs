@@ -217,6 +217,12 @@ public delegate void FunctionalComponentNodeEvent(FunctionalComponent component,
 #region Scene Delegates
 
 /// <summary>
+/// Represents a method that, given a <see cref="Game"/> will produce a <see cref="Scene"/>
+/// </summary>
+/// <param name="game">The <see cref="Game"/> that will own the produced <see cref="Scene"/></param>
+public delegate Scene SceneFactory(Game game);
+
+/// <summary>
 /// Represents an event in the game regarding a <see cref="Scene"/>
 /// </summary>
 /// <param name="scene">The scene that experienced the change</param>

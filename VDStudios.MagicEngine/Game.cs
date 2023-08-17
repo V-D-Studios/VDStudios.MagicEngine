@@ -339,14 +339,36 @@ public abstract class Game : IGameObject
     /// <param name="millisecondsDelay">The amount of milliseconds to delay for</param>
     protected abstract void Delay(uint millisecondsDelay);
 
+    private Task ProcessPendingGraphicsManagersTask;
+    private async Task ProcessPendingGraphicsManagers()
+    {
+        while (true)
+        {
+            if (graphicsManagersAwaitingSetup.TryDequeue(out var gm))
+                gm.InternalStart();
+            await Task.Delay(100);
+        }
+    }
+
+    private async ValueTask AwaitPendingGraphicsManagersTaskIfFinished()
+    {
+        if (ProcessPendingGraphicsManagersTask.IsCompleted)
+        {
+            await ProcessPendingGraphicsManagersTask;
+            //throw new GameException("ProcessPendingGraphicsManagersTask stopped unexpectedly. This is likely a library error");
+        }
+    }
+
     /// <summary>
     /// Initiates the process of starting the game. Launches the main Renderer and Window if not already created. This method will not return until the <see cref="Game"/>'s <see cref="IGameLifetime"/> ends
     /// </summary>
     /// <remarks>
     /// This method forces concurrency by locking, and will throw if called twice before calling the game is stopped. Still a good idea to call it from the thread that initialized SDL
     /// </remarks>
-    public async Task StartGame()
+    public async Task StartGame(SceneFactory sceneFactory)
     {
+        ArgumentNullException.ThrowIfNull(sceneFactory);
+
         lock (_lock)
         {
             if (isStarted)
@@ -356,41 +378,60 @@ public abstract class Game : IGameObject
 
         //
 
+        InternalLog?.Information("Loading the Game");
         GameLoading?.Invoke(this, TotalTime);
 
         Load(Preload());
 
+        InternalLog?.Information("Loaded the game");
         GameLoaded?.Invoke(this, TotalTime);
 
-        var firstScene = new TScene();
+        var firstScene = sceneFactory(this);
         currentScene = firstScene;
 
+        InternalLog?.Debug("Setting up all scenes");
         SetupScenes?.Invoke();
 
         //
 
         {
+            InternalLog?.Information("Launching PendingGraphicsManagersTask");
+            ProcessPendingGraphicsManagersTask = Task.Run(ProcessPendingGraphicsManagers);
+
+            InternalLog?.Information("Creating MainGraphicsManager");
             MainGraphicsManager = CreateGraphicsManager();
-            MainGraphicsManager.WaitForInit();
+            
+            while (true)
+            {
+                if (await MainGraphicsManager.WaitForInitAsync(100))
+                    break;
+                await AwaitPendingGraphicsManagersTaskIfFinished();
+            }
+
+            InternalLog?.Information("Created MainGraphicsManager");
             MainGraphicsManagerCreated?.Invoke(this, TotalTime, MainGraphicsManager);
         }
 
         //
 
+        InternalLog?.Information("Starting Game");
         GameStarting?.Invoke(this, TotalTime);
 
         Start(firstScene);
 
+        InternalLog?.Information("Started Game");
         GameStarted?.Invoke(this, TotalTime);
 
         //
 
+        InternalLog?.Debug("Configuring Game lifetime");
         lifetime = ConfigureGameLifetime();
 
         LifetimeAttached?.Invoke(this, TotalTime, lifetime);
 
         //
 
+        InternalLog?.Information("Running Game");
         runtimewatch.Restart();
         await Run(lifetime).ConfigureAwait(false);
         runtimewatch.Stop();
@@ -399,19 +440,23 @@ public abstract class Game : IGameObject
 
         StopScenes?.Invoke();
 
+        InternalLog?.Information("Unloading the Game");
         GameUnloading?.Invoke(this, TotalTime);
 
         Unload();
 
+        InternalLog?.Information("Unloaded the Game");
         GameUnloaded?.Invoke(this, TotalTime);
 
         //
 
         GameStopping?.Invoke(this, TotalTime);
+        InternalLog?.Information("Stopping the Game");
 
         Stop();
         isStarted = false;
 
+        InternalLog?.Information("Stopped the Game");
         GameStopped?.Invoke(this, TotalTime);
     }
 
@@ -439,6 +484,8 @@ public abstract class Game : IGameObject
         Log.Information("Entering Main Update Loop");
         while (lifetime.ShouldRun)
         {
+            await AwaitPendingGraphicsManagersTaskIfFinished();
+
             if (scenesAwaitingSetup.Count > 0)
             {
                 int scenes = 0;

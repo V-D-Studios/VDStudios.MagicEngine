@@ -51,10 +51,6 @@ public abstract class GraphicsManager : GameObject
     internal readonly SemaphoreSlim initLock = new(1, 1);
     private Task? InputPropagationTask;
 
-    
-    
-    private Task graphics_thread;
-
     /// <summary>
     /// Propagates input across all of <see cref="InputReady"/>'s subscribers
     /// </summary>
@@ -209,21 +205,28 @@ public abstract class GraphicsManager : GameObject
         return true;
     }
 
-    internal void WaitForInit()
+    internal async ValueTask<bool> WaitForInitAsync(int millisecondsTimeout = -1, CancellationToken ct = default)
     {
-        initLock.Wait();
-        initLock.Release();
+        if (millisecondsTimeout is <= 50 and >= 0) 
+        {
+            if (initLock.Wait(millisecondsTimeout, ct))
+            {
+                initLock.Release();
+                return true;
+            }
+            return false;
+        }
+
+        int wait = millisecondsTimeout - 50;
+        if (initLock.Wait(50, ct) || await initLock.WaitAsync(wait, ct))
+        {
+            initLock.Release();
+            return true;
+        }
+
+        return false;
     }
 
-        
-    internal async ValueTask AwaitIfFaulted()
-    {
-        if (graphics_thread.IsFaulted)
-            await graphics_thread;
-    }
-
-    
-    
     ///// <summary>
     ///// Fired when <see cref="GraphicsManager{TGraphicsContext}"/> start
     ///// </summary>
@@ -272,7 +275,6 @@ public abstract class GraphicsManager : GameObject
     /// <summary>
     /// This is run from the update thread
     /// </summary>
-    [MemberNotNull(nameof(graphics_thread))]
     internal void InternalStart()
     {
         InternalLog?.Information("Starting GraphicsManager");
@@ -281,13 +283,11 @@ public abstract class GraphicsManager : GameObject
         InternalLog?.Information("Setting up Window");
         SetupGraphicsManager();
         InternalLog?.Information("Running GraphicsManager");
-        graphics_thread = Task.Run(Run);
 
+        Launch();
         initLock.Release();
     }
 
-    
-    
     ///// <summary>
     ///// Attempts to stop the current <see cref="GraphicsManager{TGraphicsContext}"/>'s draw loop
     ///// </summary>
@@ -311,13 +311,16 @@ public abstract class GraphicsManager : GameObject
     //    return false;
     //}
 
-    
-    
     ///// <summary>
     ///// This method is called automatically when this <see cref="GraphicsManager{TGraphicsContext}"/> has received a request to stop
     ///// </summary>
     ///// <returns><c>true</c> if the <see cref="GraphicsManager{TGraphicsContext}"/> should be allowed to stop, <c>false</c> otherwise</returns>
     //protected virtual bool TryingToStop() => true;
+
+    /// <summary>
+    /// Checks if the running worker of this <see cref="GraphicsManager"/> is faulted, and if so, awaits it to throw an exception
+    /// </summary>
+    protected internal abstract ValueTask AwaitIfFaulted();
 
     /// <summary>
     /// This method is called automatically when this <see cref="GraphicsManager{TGraphicsContext}"/> is about to start
@@ -328,10 +331,10 @@ public abstract class GraphicsManager : GameObject
     protected virtual void Starting() { }
 
     /// <summary>
-    /// The main running method of this <see cref="GraphicsManager{TGraphicsContext}"/>
+    /// The main running method of this <see cref="GraphicsManager{TGraphicsContext}"/>. This method is expected to be called once and return, having initialized a Thread or scheduled a long running Task. 
     /// </summary>
     /// <remarks>
-    /// This is a very advanced method, the entire state of the GraphicsManager is dependent on this method and thus must be understood perfectly. This method will be called strictly once, as it is expected the rendering loop to run within it
+    /// This is a very advanced method, the entire state of the GraphicsManager is dependent on this method and thus must be understood perfectly. This method will be called strictly once, as it is expected the rendering loop to start externally with it
     /// </remarks>
-    protected abstract Task Run();
+    protected abstract void Launch();
 }

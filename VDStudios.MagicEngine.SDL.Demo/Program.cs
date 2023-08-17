@@ -8,7 +8,7 @@ internal class Program
     private static async Task Main(string[] args)
     {
         var game = new SDLGame();
-        await game.StartGame();
+        await game.StartGame(g => new TestScene(g));
     }
 }
 
