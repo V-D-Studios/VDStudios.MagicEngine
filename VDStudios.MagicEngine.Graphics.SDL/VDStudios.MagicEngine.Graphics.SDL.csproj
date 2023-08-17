@@ -40,6 +40,11 @@
 		</ContentWithTargetPath>
 		<None Include="lib\*.txt" />
 	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\dependencies\SDL2.NET\SDL2.Bindings\SDL2.Bindings.csproj" />
+	  <ProjectReference Include="..\dependencies\SDL2.NET\SDL2.NET\SDL2.NET.csproj" />
+	  <ProjectReference Include="..\VDStudios.MagicEngine\VDStudios.MagicEngine.csproj" />
+	</ItemGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 		<DebugType>embedded</DebugType>
@@ -52,10 +57,4 @@
 		<DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
 		<Deterministic>False</Deterministic>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<PackageReference Include="SDL2.Bindings" Version="1.1.0" />
-		<PackageReference Include="SDL2.NET" Version="1.2.3" />
-	</ItemGroup>
-
 </Project>
