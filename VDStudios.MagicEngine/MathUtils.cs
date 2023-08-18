@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace VDStudios.MagicEngine;
 
@@ -30,8 +25,8 @@ public static class MathUtils
         var absB = TNumber.Abs(b);
         var diff = TNumber.Abs(a - b);
 
-        return a.Equals(b) || (a == TNumber.Zero || b == TNumber.Zero || absA + absB < MinNormal 
-                                ? diff < (eps * MinNormal) 
+        return a.Equals(b) || (a == TNumber.Zero || b == TNumber.Zero || absA + absB < MinNormal
+                                ? diff < (eps * MinNormal)
                                 : diff / (absA + absB) < eps);
     }
 }

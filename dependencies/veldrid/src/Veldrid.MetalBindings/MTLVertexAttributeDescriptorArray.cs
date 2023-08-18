@@ -1,20 +1,19 @@
 using System;
 using static Veldrid.MetalBindings.ObjectiveCRuntime;
 
-namespace Veldrid.MetalBindings
-{
-    public struct MTLVertexAttributeDescriptorArray
-    {
-        public readonly IntPtr NativePtr;
+namespace Veldrid.MetalBindings;
 
-        public MTLVertexAttributeDescriptor this[uint index]
+public struct MTLVertexAttributeDescriptorArray
+{
+    public readonly IntPtr NativePtr;
+
+    public MTLVertexAttributeDescriptor this[uint index]
+    {
+        get
         {
-            get
-            {
-                IntPtr value = IntPtr_objc_msgSend(NativePtr, Selectors.objectAtIndexedSubscript, index);
-                return new MTLVertexAttributeDescriptor(value);
-            }
-            set => objc_msgSend(NativePtr, Selectors.setObjectAtIndexedSubscript, value.NativePtr, index);
+            IntPtr value = IntPtr_objc_msgSend(NativePtr, Selectors.objectAtIndexedSubscript, index);
+            return new MTLVertexAttributeDescriptor(value);
         }
+        set => objc_msgSend(NativePtr, Selectors.setObjectAtIndexedSubscript, value.NativePtr, index);
     }
 }

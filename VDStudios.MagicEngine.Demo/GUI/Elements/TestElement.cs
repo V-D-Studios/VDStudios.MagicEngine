@@ -1,12 +1,12 @@
 ﻿using ImGuiNET;
 
 namespace VDStudios.MagicEngine.Demo.GUI.Elements;
-public class TestElement : GUIElement
+public class TestElement : ImGUIElement
 {
     private int clicks = 0;
     private uint cid;
 
-    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<GUIElement> subElements)
+    protected override void SubmitUI(TimeSpan delta, IReadOnlyCollection<ImGUIElement> subElements)
     {
         if (Parent is null)
             ImGui.Begin("Test Window");

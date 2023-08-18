@@ -1,10 +1,5 @@
-﻿using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Buffers;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace VDStudios.MagicEngine.Geometry;
 
@@ -47,7 +42,7 @@ public class SegmentDefinition : ShapeDefinition2D
     /// <param name="a">The starting point of the segment</param>
     /// <param name="b">The ending point of the segment</param>
     /// <param name="width">The width of the segment</param>
-    public SegmentDefinition(Vector2 a, Vector2 b, float width = 1) : base(true) 
+    public SegmentDefinition(Vector2 a, Vector2 b, float width = 1) : base(true)
     {
         PointA = a;
         PointB = b;
@@ -86,7 +81,7 @@ public class SegmentDefinition : ShapeDefinition2D
         get => __pointB;
         set
         {
-            if(value == __pointB) return;
+            if (value == __pointB) return;
             __pointB = value;
             ___regenRequired = true;
         }

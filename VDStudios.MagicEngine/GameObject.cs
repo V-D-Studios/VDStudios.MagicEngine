@@ -1,6 +1,6 @@
-﻿using Serilog;
-using Serilog.Events;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
+using Serilog;
+using VDStudios.MagicEngine.Internal;
 using VDStudios.MagicEngine.Logging;
 
 namespace VDStudios.MagicEngine;
@@ -11,30 +11,38 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// This class cannot be inherited directly by user code
 /// </remarks>
-public abstract class GameObject : IDisposable
+public abstract class GameObject : IDisposable, IGameObject
 {
     private object? ____sync;
     private readonly Lazy<ILogger> logSync;
     internal readonly string Facility;
     internal readonly string Area;
 
-    internal object Sync => ____sync ??= new();
-
     /// <summary>
-    /// An optional name for debugging purposes
+    /// The synchronization object that belongs to this <see cref="GameObject"/>
     /// </summary>
+    /// <remarks>
+    /// Lock on this object with care; it may produce deadlocks. More often than not, it's preferrable you use your own private object.
+    /// </remarks>
+    protected internal object Sync => ____sync ??= new();
+
+    /// <inheritdoc/>
     public string? Name { get; init; }
 
     /// <summary>
     /// Instances a new GameObject
     /// </summary>
-    internal GameObject(string facility, string area)
+    /// <param name="area">Logging information. The area the GameObject belongs to</param>
+    /// <param name="facility">Logging information. The facility the GameObject operates for</param>
+    /// <param name="game">The game this <see cref="GameObject"/> belongs to</param>
+    internal GameObject(Game game, string facility, string area)
     {
+        ArgumentNullException.ThrowIfNull(game);
         ArgumentException.ThrowIfNullOrEmpty(area);
         ArgumentException.ThrowIfNullOrEmpty(facility);
         logSync = new(InternalCreateLogger, LazyThreadSafetyMode.ExecutionAndPublication);
-        Game = Game.Instance;
         Facility = facility;
+        Game = game;
         Area = area;
         Random = Game.Random;
         GameDeferredCallSchedule = Game.DeferredCallSchedule;
@@ -92,10 +100,8 @@ public abstract class GameObject : IDisposable
     protected virtual ILogger CreateLogger(ILogger gameLogger, string area, string facility)
         => new GameLogger(gameLogger, area, facility, Name, GetType());
 
-    /// <summary>
-    /// The <see cref="MagicEngine.Game"/> this <see cref="GameObject"/> belongs to. Same as<see cref="SDL2.NET.SDLApplication{TApp}.Instance"/>
-    /// </summary>
-    protected Game Game { get; }
+    /// <inheritdoc/>
+    public Game Game { get; }
 
     private ILogger InternalCreateLogger()
         => CreateLogger(Game.Logger, Area, Facility);
@@ -112,9 +118,7 @@ public abstract class GameObject : IDisposable
             throw new ObjectDisposedException(GetType().Name);
     }
 
-    /// <summary>
-    /// <see langword="true"/> if this <see cref="GameObject"/> has already been disposed of
-    /// </summary>
+    /// <inheritdoc/>
     public bool IsDisposed { get; private set; }
 
     /// <summary>

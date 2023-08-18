@@ -1,11 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
-using SDL2.NET;
-using SDL2.NET.SDLFont;
-using Veldrid;
-using Veldrid.MetalBindings;
-using Veldrid.SPIRV;
+using VDStudios.MagicEngine.Graphics;
 
 namespace VDStudios.MagicEngine.Demo.Nodes;
 public class ColorBackgroundNode : Node, IDrawableNode
@@ -21,8 +17,8 @@ public class ColorBackgroundNode : Node, IDrawableNode
     private struct VertexPositionColor
     {
         public Vector2 Position;
-        public RgbaFloat Color;
-        public VertexPositionColor(Vector2 position, RgbaFloat color)
+        public RgbaVector Color;
+        public VertexPositionColor(Vector2 position, RgbaVector color)
         {
             Position = position;
             Color = color;
@@ -33,7 +29,7 @@ public class ColorBackgroundNode : Node, IDrawableNode
     private sealed class ColorDraw : DrawOperation
     {
         #region Shaders
-        
+
         private const string VertexCode = @"
 #version 450
 
@@ -70,26 +66,26 @@ void main()
         {
             Span<VertexPositionColor> _vert = stackalloc VertexPositionColor[]
             {
-                new(new(-0.75f, 0.75f), RgbaFloat.Red),
-                new(new(0.75f, 0.75f), RgbaFloat.Green),
-                new(new(-0.75f, -0.75f), RgbaFloat.Blue),
-                new(new(0.75f, -0.75f), RgbaFloat.Yellow)
+                new(new(-0.75f, 0.75f), RgbaVector.Red),
+                new(new(0.75f, 0.75f), RgbaVector.Green),
+                new(new(-0.75f, -0.75f), RgbaVector.Blue),
+                new(new(0.75f, -0.75f), RgbaVector.Yellow)
             };
 
             Span<ushort> inds = stackalloc ushort[] { 0, 1, 2, 3 };
 
             VertexBuffer = factory.CreateBuffer(new((uint)(Unsafe.SizeOf<VertexPositionColor>() * 4), BufferUsage.VertexBuffer));
             device.UpdateBuffer(VertexBuffer, 0, _vert);
-            
+
             IndexBuffer = factory.CreateBuffer(new(sizeof(ushort) * 4, BufferUsage.IndexBuffer));
             device.UpdateBuffer(IndexBuffer, 0, inds);
 
             VertexLayoutDescription vertexLayout = new(
                 new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
                 new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4));
-            
+
             Shaders = factory.CreateFromSpirv(
-                new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main"), 
+                new ShaderDescription(ShaderStages.Vertex, Encoding.UTF8.GetBytes(VertexCode), "main"),
                 new ShaderDescription(ShaderStages.Fragment, Encoding.UTF8.GetBytes(FragmentCode), "main"));
 
             var pp = new GraphicsPipelineDescription
@@ -143,7 +139,7 @@ void main()
         }
     }
 
-    public DrawOperationManager DrawOperationManager { get; } 
+    public DrawOperationManager DrawOperationManager { get; }
     public bool SkipDrawPropagation { get; }
 
     #endregion

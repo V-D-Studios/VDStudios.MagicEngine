@@ -33,7 +33,7 @@ public readonly struct Radius
     /// Implicitly casts an instance of <see cref="float"/> to <see cref="Radius"/>
     /// </summary>
     public static implicit operator float(Radius r) => r.Value;
-    
+
     /// <summary>
     /// Implicitly casts an instance of <see cref="Radius"/> to <see cref="float"/>
     /// </summary>

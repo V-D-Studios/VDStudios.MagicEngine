@@ -1,8 +1,7 @@
-namespace Veldrid.MetalBindings
+namespace Veldrid.MetalBindings;
+
+public enum MTLDepthClipMode
 {
-    public enum MTLDepthClipMode
-    {
-        Clip = 0,
-        Clamp = 1,
-    }
+    Clip = 0,
+    Clamp = 1,
 }

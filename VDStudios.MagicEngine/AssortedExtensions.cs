@@ -1,5 +1,4 @@
-﻿using SDL2.NET;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -67,18 +66,22 @@ public static class AssortedExtensions
     public static string GetTypeName(this object obj) => obj.GetType().Name;
 
     /// <summary>
-    /// Converts a <see cref="Vector2"/> into an SDL.NET <see cref="FPoint"/>
+    /// Gets <see cref="Vector2.X"/> from <paramref name="vector"/>
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FPoint ToFPoint(this Vector2 vector)
-        => new(vector.X, vector.Y);
+    /// <remarks>
+    /// Functions as an utility to ensure any instance of a <see cref="Vector2"/> being used as a size parameter fetches the correct field
+    /// </remarks>
+    public static float Width(this Vector2 vector)
+        => vector.X;
 
     /// <summary>
-    /// Converts an SLD.NET <see cref="FPoint"/> into a <see cref="Vector2"/>
+    /// Gets <see cref="Vector2.Y"/> from <paramref name="vector"/>
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 ToVector(this FPoint point)
-        => new(point.X, point.Y);
+    /// <remarks>
+    /// Functions as an utility to ensure any instance of a <see cref="Vector2"/> being used as a size parameter fetches the correct field
+    /// </remarks>
+    public static float Height(this Vector2 vector)
+        => vector.Y;
 
     /// <summary>
     /// Gets the bytes associated to a given <see cref="string"/>

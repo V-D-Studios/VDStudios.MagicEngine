@@ -1,5 +1,4 @@
-﻿using SDL2.NET;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace VDStudios.MagicEngine.Geometry;
@@ -48,12 +47,12 @@ public static class GeometryMath
     /// Creates a <see cref="Matrix4x4"/> that translates and scales the view of a texture to only display a portion of it
     /// </summary>
     /// <param name="area">The area to view in the texture in texels</param>
-    /// <param name="texture">The texture to create the view for</param>
+    /// <param name="view">The size to create the view for. Where <see cref="Vector2.X"/> is the width, and <see cref="Vector2.Y"/> is the height</param>
     /// <returns>The transformation matrix for the texture coordinates</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 Create2DView(this Texture texture, FRectangle area)
-        => Matrix4x4.CreateScale(area.Width / texture.Width, area.Height / texture.Height, 1f) *
-            Matrix4x4.CreateTranslation(area.X / texture.Width, area.Y / texture.Height, 1f);
+    public static Matrix4x4 Create2DView(this Vector2 view, FloatRectangle area)
+        => Matrix4x4.CreateScale(area.Width / view.Width(), area.Height / view.Height(), 1f) *
+            Matrix4x4.CreateTranslation(area.X / view.Width(), area.Y / view.Height(), 1f);
 
     /// <summary>
     /// Creates a set of transformation matrices to fill <paramref name="transformationViews"/> with out of an evenly spaced grid
@@ -75,7 +74,7 @@ public static class GeometryMath
         => Div2DViews(transformationViews, rows, columns, 0, 0, 1f / columns, 1f / rows);
 
     /// <summary>
-    /// Creates a set of transformation matrices to fill <paramref name="transformationViews"/> with out of an evenly spaced grid graphed along the area specified within <paramref name="texture"/>'s dimensions
+    /// Creates a set of transformation matrices to fill <paramref name="transformationViews"/> with out of an evenly spaced grid graphed along the area specified within <paramref name="view"/>'s dimensions
     /// </summary>
     /// <remarks>
     /// The views are arranged from the top-left corner, going down, and back to the top-most row in the next column. For example, a 4x4 grid would produce the following, where 0, 0 (column, row) is the top-left corner:
@@ -87,13 +86,13 @@ public static class GeometryMath
     /// </list>
     /// would be ordered in the buffer as: 0, 0 -> 0, 1 -> 0, 2 -> 0, 3 -> 1, 0 -> 1, 1 -> 1, 2 -> 1, 3 -> 1, 0 -> 1, 1 -> 1, 2 -> 1, 3 -> 2, 0 -> 2, 1 -> 2, 2 -> 2, 3 -> 3, 0 -> 3, 1 -> 3, 2 -> 3, 3
     /// </remarks>
-    /// <param name="texture">The texture to create the views for</param>
-    /// <param name="rows">The amount of rows to divide the height of <paramref name="texture"/> in</param>
-    /// <param name="columns">The amount of columns to divide the width of <paramref name="texture"/> in</param>
+    /// <param name="view">The size to create the view for. Where <see cref="Vector2.X"/> is the width, and <see cref="Vector2.Y"/> is the height</param>
+    /// <param name="rows">The amount of rows to divide the height of <paramref name="view"/> in</param>
+    /// <param name="columns">The amount of columns to divide the width of <paramref name="view"/> in</param>
     /// <param name="transformationViews">The buffer in which to store the views</param>
-    /// <param name="area">The area of the texture in texels within which to graph the grid</param>
-    public static void DivideInto2DViews(Texture texture, Span<Matrix4x4> transformationViews, FRectangle area, int rows, int columns)
-        => Div2DViews(transformationViews, rows, columns, area.X / texture.Width, area.Y / texture.Height, (area.Width / columns) / texture.Width, (area.Height / rows) / texture.Height);
+    /// <param name="area">The area of the view within which to graph the grid</param>
+    public static void DivideInto2DViews(Vector2 view, Span<Matrix4x4> transformationViews, FloatRectangle area, int rows, int columns)
+        => Div2DViews(transformationViews, rows, columns, area.X / view.Width(), area.Y / view.Height(), (area.Width / columns) / view.Width(), (area.Height / rows) / view.Height());
 
     /// <summary>
     /// Creates a set of transformation matrices to fill <paramref name="transformationViews"/> with out of an evenly spaced grid within a defined relative area

@@ -1,84 +1,81 @@
 ﻿using System;
 using Vulkan;
 using Vulkan.Xlib;
-using static Veldrid.Vk.VulkanUtil;
-using static Vulkan.VulkanNative;
 
-namespace Veldrid.Vk
+namespace Veldrid.Vk;
+
+/// <summary>
+/// An object which can be used to create a VkSurfaceKHR.
+/// </summary>
+public abstract class VkSurfaceSource
 {
+    internal VkSurfaceSource() { }
+
     /// <summary>
-    /// An object which can be used to create a VkSurfaceKHR.
+    /// Creates a new VkSurfaceKHR attached to this source.
     /// </summary>
-    public abstract class VkSurfaceSource
+    /// <param name="instance">The VkInstance to use.</param>
+    /// <returns>A new VkSurfaceKHR.</returns>
+    public abstract VkSurfaceKHR CreateSurface(VkInstance instance);
+
+    /// <summary>
+    /// Creates a new <see cref="VkSurfaceSource"/> from the given Win32 instance and window handle.
+    /// </summary>
+    /// <param name="hinstance">The Win32 instance handle.</param>
+    /// <param name="hwnd">The Win32 window handle.</param>
+    /// <returns>A new VkSurfaceSource.</returns>
+    public static VkSurfaceSource CreateWin32(IntPtr hinstance, IntPtr hwnd) => new Win32VkSurfaceInfo(hinstance, hwnd);
+    /// <summary>
+    /// Creates a new VkSurfaceSource from the given Xlib information.
+    /// </summary>
+    /// <param name="display">A pointer to the Xlib Display.</param>
+    /// <param name="window">An Xlib window.</param>
+    /// <returns>A new VkSurfaceSource.</returns>
+    public static unsafe VkSurfaceSource CreateXlib(Display* display, Window window) => new XlibVkSurfaceInfo(display, window);
+
+    internal abstract SwapchainSource GetSurfaceSource();
+}
+
+internal class Win32VkSurfaceInfo : VkSurfaceSource
+{
+    private readonly IntPtr _hinstance;
+    private readonly IntPtr _hwnd;
+
+    public Win32VkSurfaceInfo(IntPtr hinstance, IntPtr hwnd)
     {
-        internal VkSurfaceSource() { }
-
-        /// <summary>
-        /// Creates a new VkSurfaceKHR attached to this source.
-        /// </summary>
-        /// <param name="instance">The VkInstance to use.</param>
-        /// <returns>A new VkSurfaceKHR.</returns>
-        public abstract VkSurfaceKHR CreateSurface(VkInstance instance);
-
-        /// <summary>
-        /// Creates a new <see cref="VkSurfaceSource"/> from the given Win32 instance and window handle.
-        /// </summary>
-        /// <param name="hinstance">The Win32 instance handle.</param>
-        /// <param name="hwnd">The Win32 window handle.</param>
-        /// <returns>A new VkSurfaceSource.</returns>
-        public static VkSurfaceSource CreateWin32(IntPtr hinstance, IntPtr hwnd) => new Win32VkSurfaceInfo(hinstance, hwnd);
-        /// <summary>
-        /// Creates a new VkSurfaceSource from the given Xlib information.
-        /// </summary>
-        /// <param name="display">A pointer to the Xlib Display.</param>
-        /// <param name="window">An Xlib window.</param>
-        /// <returns>A new VkSurfaceSource.</returns>
-        public unsafe static VkSurfaceSource CreateXlib(Display* display, Window window) => new XlibVkSurfaceInfo(display, window);
-
-        internal abstract SwapchainSource GetSurfaceSource();
+        _hinstance = hinstance;
+        _hwnd = hwnd;
     }
 
-    internal class Win32VkSurfaceInfo : VkSurfaceSource
+    public override unsafe VkSurfaceKHR CreateSurface(VkInstance instance)
     {
-        private readonly IntPtr _hinstance;
-        private readonly IntPtr _hwnd;
-
-        public Win32VkSurfaceInfo(IntPtr hinstance, IntPtr hwnd)
-        {
-            _hinstance = hinstance;
-            _hwnd = hwnd;
-        }
-
-        public unsafe override VkSurfaceKHR CreateSurface(VkInstance instance)
-        {
-            return VkSurfaceUtil.CreateSurface(null, instance, GetSurfaceSource());
-        }
-
-        internal override SwapchainSource GetSurfaceSource()
-        {
-            return new Win32SwapchainSource(_hwnd, _hinstance);
-        }
+        return VkSurfaceUtil.CreateSurface(null, instance, GetSurfaceSource());
     }
 
-    internal class XlibVkSurfaceInfo : VkSurfaceSource
+    internal override SwapchainSource GetSurfaceSource()
     {
-        private readonly unsafe Display* _display;
-        private readonly Window _window;
+        return new Win32SwapchainSource(_hwnd, _hinstance);
+    }
+}
 
-        public unsafe XlibVkSurfaceInfo(Display* display, Window window)
-        {
-            _display = display;
-            _window = window;
-        }
+internal class XlibVkSurfaceInfo : VkSurfaceSource
+{
+    private readonly unsafe Display* _display;
+    private readonly Window _window;
 
-        public unsafe override VkSurfaceKHR CreateSurface(VkInstance instance)
-        {
-            return VkSurfaceUtil.CreateSurface(null, instance, GetSurfaceSource());
-        }
+    public unsafe XlibVkSurfaceInfo(Display* display, Window window)
+    {
+        _display = display;
+        _window = window;
+    }
 
-        internal unsafe override SwapchainSource GetSurfaceSource()
-        {
-            return new XlibSwapchainSource((IntPtr)_display, _window.Value);
-        }
+    public override unsafe VkSurfaceKHR CreateSurface(VkInstance instance)
+    {
+        return VkSurfaceUtil.CreateSurface(null, instance, GetSurfaceSource());
+    }
+
+    internal override unsafe SwapchainSource GetSurfaceSource()
+    {
+        return new XlibSwapchainSource((IntPtr)_display, _window.Value);
     }
 }

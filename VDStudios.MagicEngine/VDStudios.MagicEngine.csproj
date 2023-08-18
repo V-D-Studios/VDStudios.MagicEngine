@@ -54,38 +54,22 @@
 		</ContentWithTargetPath>
 		<None Include="lib\*.txt" />
 	</ItemGroup>
+	
 	<ItemGroup>
 	  <PackageReference Include="ConfigureAwait.Fody" Version="3.3.2">
 		<PrivateAssets>all</PrivateAssets>
 	  </PackageReference>
-	  <PackageReference Include="ImGui.NET" Version="1.89.4" />
 	  <PackageReference Include="MessagePack" Version="2.5.108" />
 	  <PackageReference Include="MessagePackAnalyzer" Version="2.5.108">
 		<PrivateAssets>all</PrivateAssets>
 		<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 	  </PackageReference>
 	  <PackageReference Include="Nito.AsyncEx.Coordination" Version="5.1.2" />
-	  <PackageReference Include="SDL2.Bindings" Version="1.1.0" />
-	  <PackageReference Include="SDL2.NET" Version="1.2.3" />
 	  <PackageReference Include="Serilog" Version="2.12.0" />
 	  <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
 	</ItemGroup>
+	
 	<ItemGroup>
-	  <ProjectReference Include="..\dependencies\veldrid-spirv\src\Veldrid.SPIRV\Veldrid.SPIRV.csproj" />
-	  <ProjectReference Include="..\dependencies\veldrid\src\Veldrid.ImageSharp\Veldrid.ImageSharp.csproj" />
-	  <ProjectReference Include="..\dependencies\veldrid\src\Veldrid\Veldrid.csproj" />
-	</ItemGroup>
-	<ItemGroup>
-	  <Compile Update="Properties\ImGuiResources.Designer.cs">
-		<DesignTime>True</DesignTime>
-		<AutoGen>True</AutoGen>
-		<DependentUpon>ImGuiResources.resx</DependentUpon>
-	  </Compile>
-	</ItemGroup>
-	<ItemGroup>
-	  <EmbeddedResource Update="Properties\ImGuiResources.resx">
-		<Generator>PublicResXFileCodeGenerator</Generator>
-		<LastGenOutput>ImGuiResources.Designer.cs</LastGenOutput>
-	  </EmbeddedResource>
+	  <Folder Include="Properties\" />
 	</ItemGroup>
 </Project>

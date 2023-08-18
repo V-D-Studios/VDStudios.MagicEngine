@@ -1,5 +1,4 @@
-﻿using SDL2.NET;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using VDStudios.MagicEngine.Demo.Collections;
 
 namespace VDStudios.MagicEngine.Demo.Services;

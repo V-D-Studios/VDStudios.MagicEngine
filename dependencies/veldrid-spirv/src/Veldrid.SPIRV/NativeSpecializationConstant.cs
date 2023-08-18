@@ -1,11 +1,10 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Veldrid.SPIRV
+namespace Veldrid.SPIRV;
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+internal struct NativeSpecializationConstant
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct NativeSpecializationConstant
-    {
-        public uint ID;
-        public ulong Constant;
-    }
+    public uint ID;
+    public ulong Constant;
 }

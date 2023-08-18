@@ -1,6 +1,5 @@
-﻿namespace Veldrid.OpenGL.NoAllocEntryList
+﻿namespace Veldrid.OpenGL.NoAllocEntryList;
+
+internal struct NoAllocBeginEntry
 {
-    internal struct NoAllocBeginEntry
-    {
-    }
 }

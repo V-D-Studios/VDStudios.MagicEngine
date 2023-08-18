@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using MessagePack;
 
@@ -73,25 +68,25 @@ public struct NumberSummary
 
     [Key(0)]
     public int Alpha { get; set; }
-    
+
     [Key(1)]
     public float Beta { get; set; }
-    
+
     [Key(2)]
     public double Gamma { get; set; }
-    
+
     [Key(3)]
     public decimal Delta { get; set; }
-    
+
     [Key(4)]
     public long Epsilon { get; set; }
-    
+
     [Key(5)]
     public short Theta { get; set; }
-    
+
     [Key(6)]
     public char Iota { get; set; }
-    
+
     [Key(7)]
     public byte Kappa { get; set; }
 }
@@ -141,7 +136,7 @@ public class SerializationBenchmark
             handle.Free();
         }
 
-        for(int i = 0; i < Numbers.Length; i++)
+        for (int i = 0; i < Numbers.Length; i++)
         {
             ref var ns = ref Numbers[i];
             ns.Delta = (decimal)(Random.Shared.NextDouble() * Random.Shared.NextDouble());
@@ -153,7 +148,7 @@ public class SerializationBenchmark
     [Benchmark]
     public void SystemTextJson_PersonClass()
     {
-        for (int i = 0; i < Persons.Length; i++) 
+        for (int i = 0; i < Persons.Length; i++)
         {
             var json = JsonSerializer.Serialize(Persons[i]);
             Persons[i] = JsonSerializer.Deserialize<Person>(json)!;

@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Numerics;
-using VDStudios.MagicEngine.DrawLibrary.Geometry;
 
 namespace VDStudios.MagicEngine.Geometry;
 
@@ -29,8 +28,11 @@ public abstract class ShapeDefinition2D : IReadOnlyList<Vector2>
     }
 
     /// <summary>
-    /// Notifies the shape that there has been an update it may not be aware of. This can be useful to, for example, force a <see cref="ShapeRenderer{TVertex}"/> to regenerate vertices
+    /// Notifies the shape that there has been an update it may not be aware of
     /// </summary>
+    /// <remarks>
+    /// Use and implement with care. If using this method becomes necessary, it's likely an indication of a bug. a <see cref="ShapeDefinition2D"/> should be capable of accounting its state for itself
+    /// </remarks>
     public virtual void ForceUpdate() => version++;
 
     /// <summary>

@@ -1,47 +1,46 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 
-namespace Veldrid
+namespace Veldrid;
+
+internal struct BoundResourceSetInfo : IEquatable<BoundResourceSetInfo>
 {
-    internal struct BoundResourceSetInfo : IEquatable<BoundResourceSetInfo>
+    public ResourceSet Set;
+    public SmallFixedOrDynamicArray Offsets;
+
+    public BoundResourceSetInfo(ResourceSet set, uint offsetsCount, ref uint offsets)
     {
-        public ResourceSet Set;
-        public SmallFixedOrDynamicArray Offsets;
+        Set = set;
+        Offsets = new SmallFixedOrDynamicArray(offsetsCount, ref offsets);
+    }
 
-        public BoundResourceSetInfo(ResourceSet set, uint offsetsCount, ref uint offsets)
+    public bool Equals(ResourceSet set, uint offsetsCount, ref uint offsets)
+    {
+        if (set != Set || offsetsCount != Offsets.Count) { return false; }
+
+        for (uint i = 0; i < Offsets.Count; i++)
         {
-            Set = set;
-            Offsets = new SmallFixedOrDynamicArray(offsetsCount, ref offsets);
+            if (Unsafe.Add(ref offsets, (int)i) != Offsets.Get(i)) { return false; }
         }
 
-        public bool Equals(ResourceSet set, uint offsetsCount, ref uint offsets)
+        return true;
+    }
+
+    public bool Equals(BoundResourceSetInfo other)
+    {
+        if (Set != other.Set || Offsets.Count != other.Offsets.Count)
         {
-            if (set != Set || offsetsCount != Offsets.Count) { return false; }
-
-            for (uint i = 0; i < Offsets.Count; i++)
-            {
-                if (Unsafe.Add(ref offsets, (int)i) != Offsets.Get(i)) { return false; }
-            }
-
-            return true;
+            return false;
         }
 
-        public bool Equals(BoundResourceSetInfo other)
+        for (uint i = 0; i < Offsets.Count; i++)
         {
-            if (Set != other.Set || Offsets.Count != other.Offsets.Count)
+            if (Offsets.Get(i) != other.Offsets.Get(i))
             {
                 return false;
             }
-
-            for (uint i = 0; i < Offsets.Count; i++)
-            {
-                if (Offsets.Get(i) != other.Offsets.Get(i))
-                {
-                    return false;
-                }
-            }
-
-            return true;
         }
+
+        return true;
     }
 }

@@ -1,11 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Numerics;
-using VDStudios.MagicEngine.Demo.GUI.Elements;
 using VDStudios.MagicEngine.Demo.Nodes;
-using VDStudios.MagicEngine.GUILibrary.ImGUI;
-using VDStudios.MagicEngine.RenderTargets;
-using System.Linq;
 
 namespace VDStudios.MagicEngine.Demo.Scenes;
 
@@ -44,7 +39,7 @@ public sealed class DemoScene : Scene
         Log.Information("Adding FPS metrics to MainGraphicsManager GUI");
         Game.MainGraphicsManager.AddElement(new FPSWatch());
         Game.MainGraphicsManager.AddElement(new UPSWatch());
-        Game.MainGraphicsManager.AddElement(new Watch("Lagger", null, new() 
+        Game.MainGraphicsManager.AddElement(new Watch("Lagger", null, new()
         {
             ("Lag 7ms once", () =>
             {
@@ -121,5 +116,5 @@ public sealed class DemoScene : Scene
     }
 
     public static void configuratorNode(Node e) { }
-    public static object? configuratorElement(GUIElement e) => null;
+    public static object? configuratorElement(ImGUIElement e) => null;
 }

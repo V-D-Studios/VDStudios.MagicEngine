@@ -2,13 +2,12 @@ using System;
 using System.Runtime.InteropServices;
 using static Veldrid.MetalBindings.ObjectiveCRuntime;
 
-namespace Veldrid.MetalBindings
+namespace Veldrid.MetalBindings;
+
+[StructLayout(LayoutKind.Sequential)]
+public struct CAMetalDrawable
 {
-    [StructLayout(LayoutKind.Sequential)]
-    public struct CAMetalDrawable
-    {
-        public readonly IntPtr NativePtr;
-        public bool IsNull => NativePtr == IntPtr.Zero;
-        public MTLTexture texture => objc_msgSend<MTLTexture>(NativePtr, Selectors.texture);
-    }
+    public readonly IntPtr NativePtr;
+    public bool IsNull => NativePtr == IntPtr.Zero;
+    public MTLTexture texture => objc_msgSend<MTLTexture>(NativePtr, Selectors.texture);
 }

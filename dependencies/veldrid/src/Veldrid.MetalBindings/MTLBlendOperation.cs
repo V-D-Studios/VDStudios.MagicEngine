@@ -1,11 +1,10 @@
-namespace Veldrid.MetalBindings
+namespace Veldrid.MetalBindings;
+
+public enum MTLBlendOperation
 {
-    public enum MTLBlendOperation
-    {
-        Add = 0,
-        Subtract = 1,
-        ReverseSubtract = 2,
-        Min = 3,
-        Max = 4,
-    }
+    Add = 0,
+    Subtract = 1,
+    ReverseSubtract = 2,
+    Min = 3,
+    Max = 4,
 }

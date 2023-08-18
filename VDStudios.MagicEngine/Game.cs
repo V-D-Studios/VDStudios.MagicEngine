@@ -1,12 +1,10 @@
-﻿using SDL2.NET;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.Intrinsics;
 using VDStudios.MagicEngine.Exceptions;
+using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 using VDStudios.MagicEngine.Logging;
 
@@ -16,42 +14,23 @@ namespace VDStudios.MagicEngine;
 /// The class that contains the most important aspects of MagicEngine's functionality
 /// </summary>
 /// <remarks>
-/// This class takes control of most of SDL's processes. And should be allowed to do so. Follow the docs on how to initialize your <see cref="Game"/>
+/// This class should take control of most, if not all, of any underlying graphics library. And should be allowed to do so. Follow the docs on how to initialize your <see cref="Game"/>
 /// </remarks>
-public class Game : SDLApplication<Game>
+public abstract class Game : IGameObject
 {
     #region (Standalone) Fields
 
     private readonly object _lock = new();
-    
-    internal readonly record struct WindowActionCache(Window Window, WindowAction Action);
-
-    private class DescendingIntComparer : IComparer<int>
-    {
-        private DescendingIntComparer() { }
-        public int Compare(int x, int y) => x.CompareTo(y);
-        public static DescendingIntComparer Comparer { get; } = new();
-    }
 
     private IGameLifetime? lifetime;
     private bool isStarted;
-    internal PriorityQueue<Scene, int> scenesAwaitingSetup = new(5, DescendingIntComparer.Comparer);
+    internal PriorityQueue<Scene, int> scenesAwaitingSetup = new(5, InvertedIntComparer.Comparer);
     internal ConcurrentQueue<GraphicsManager> graphicsManagersAwaitingSetup = new();
-
-    static Game()
-    {
-        SDLAppBuilder.CreateInstance<Game>();
-    }
-
-    /// <summary>
-    /// Fetches the singleton instance of this <see cref="Game"/>
-    /// </summary>
-    public static new Game Instance => SDLApplication<Game>.Instance;
 
     /// <summary>
     /// Instances a new <see cref="Game"/>
     /// </summary>
-    public Game()
+    protected Game()
     {
         Logger = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
 #if FEATURE_INTERNAL_LOGGING
@@ -60,7 +39,6 @@ public class Game : SDLApplication<Game>
 #endif
         Log = new GameLogger(Logger, "Game", "Global", "Game Object", GetType());
         ActiveGraphicsManagers = new();
-        VideoThread = new(VideoRun);
         UpdateFrameThrottle = TimeSpan.FromMilliseconds(5);
         Random = CreateRNG();
         DeferredCallSchedule = new DeferredExecutionSchedule(out DeferredExecutionScheduleUpdater);
@@ -99,15 +77,21 @@ public class Game : SDLApplication<Game>
     private long _lastWarningTicks;
     private int _consecutiveWarnings;
 
+    private readonly Stopwatch runtimewatch = new();
     /// <summary>
-    /// Gets the total amount of time that has elapsed from the time SDL2 was initialized
+    /// Gets the total amount of time that has elapsed since the Game started
     /// </summary>
-    public static new TimeSpan TotalTime => TimeSpan.FromTicks(SDL2.Bindings.SDL.SDL_GetTicks());
+    public TimeSpan TotalTime => runtimewatch.Elapsed;
 
+    private GraphicsManager? mgm;
     /// <summary>
     /// Represents the Main <see cref="GraphicsManager"/> used by the game
     /// </summary>
-    public GraphicsManager MainGraphicsManager { get; private set; }
+    public GraphicsManager MainGraphicsManager
+    {
+        get => mgm ?? throw new InvalidOperationException("Cannot obtain this Game's MainGraphicsManager before its set");
+        private set => mgm = value;
+    }
 
     /// <summary>
     /// The Game's <see cref="MagicEngine.DeferredExecutionSchedule"/>, can be used to defer calls in the update thread
@@ -186,9 +170,9 @@ public class Game : SDLApplication<Game>
     /// </remarks>
     public TimeSpan AverageDelta => TimeSpan.FromTicks(_mspup.Average);
     private readonly LongAverageKeeper _mspup = new(16);
-    
+
     /// <summary>
-    /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame{TScene}"/> is called
+    /// The Game's current lifetime. Invalid after it ends and before <see cref="StartGame"/> is called
     /// </summary>
     public IGameLifetime Lifetime => lifetime ?? throw new InvalidOperationException("The game has not had its lifetime attached yet");
 
@@ -214,121 +198,13 @@ public class Game : SDLApplication<Game>
     public void SetScene(Scene newScene)
     {
         ArgumentNullException.ThrowIfNull(newScene);
+        GameMismatchException.ThrowIfMismatch(this, newScene);
         if (isStarted is false)
             throw new InvalidOperationException("The game has not been started; set the scene with Game.Start");
 
         nextScene = newScene;
     }
     private Scene? nextScene;
-
-    #endregion
-
-    #region Video Processing Thread
-
-    private VideoThreadException? VideoThreadFault;
-    private readonly SemaphoreSlim VideoThreadLock = new(1, 1);
-    private readonly Thread VideoThread;
-    private readonly ConcurrentQueue<Action> actionsToTake = new();
-    internal readonly ConcurrentQueue<WindowActionCache> windowActions = new();
-
-    #region Public Methods
-
-    /// <summary>
-    /// Queues an action to be executed in the thread that owns all <see cref="Window"/>s
-    /// </summary>
-    /// <param name="action">The action to take</param>
-    public void ExecuteInVideoThread(Action action)
-    {
-        actionsToTake.Enqueue(action);
-    }
-
-    /// <summary>
-    /// Queues an action to be executed in the thread that owns all <see cref="Window"/>s and waits for it to complete
-    /// </summary>
-    /// <param name="action">The action to take</param>
-    public void ExecuteInVideoThreadAndWait(Action action)
-    {
-        SemaphoreSlim sem = new(1, 1);
-        sem.Wait();
-        actionsToTake.Enqueue(() =>
-        {
-            try
-            {
-                action();
-            }
-            finally
-            {
-                sem.Release();
-            }
-        });
-        sem.Wait();
-        sem.Release();
-    }
-
-    /// <summary>
-    /// Queues an action to be executed in the thread that owns all <see cref="Window"/>s and asynchronously waits for it to complete
-    /// </summary>
-    /// <param name="action">The action to take</param>
-    public async Task ExecuteInVideoThreadAndWaitAsync(Action action)
-    {
-        SemaphoreSlim sem = new(1, 1);
-        sem.Wait();
-        actionsToTake.Enqueue(() =>
-        {
-            try
-            {
-                action();
-            }
-            finally
-            {
-                sem.Release();
-            }
-        });
-        await sem.WaitAsync();
-        sem.Release();
-    }
-
-    #endregion
-
-    #region Internal
-
-    private void VideoRun()
-    {
-        try
-        {
-            int sleep = (int)TimeSpan.FromSeconds(1d / 60d).TotalMilliseconds;
-
-            VideoThreadLock.Release();
-            while (isStarted) 
-            {
-                if (!actionsToTake.IsEmpty)
-                    while (actionsToTake.TryDequeue(out var act))
-                        act();
-
-                if (!graphicsManagersAwaitingSetup.IsEmpty)
-                    while (graphicsManagersAwaitingSetup.TryDequeue(out var manager))
-                    {
-                        manager.InternalStart();
-                        ActiveGraphicsManagers.Add(manager);
-                    }
-
-                if (!windowActions.IsEmpty)
-                    while (windowActions.TryDequeue(out var winact))
-                        winact.Action(winact.Window);
-
-                UpdateEvents();
-
-                Thread.Sleep(sleep);
-            }
-        }
-        catch(Exception e)
-        {
-            VideoThreadFault = new VideoThreadException(e);
-            throw;
-        }
-    }
-
-    #endregion
 
     #endregion
 
@@ -354,7 +230,10 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Creates and returns the <see cref="GraphicsManager"/> to be used as the <see cref="MainGraphicsManager"/>
     /// </summary>
-    protected virtual GraphicsManager CreateGraphicsManager() => new GraphicsManager(10) { Name = "Main GM" };
+    /// <remarks>
+    /// This method is called once when the game is starting
+    /// </remarks>
+    protected abstract GraphicsManager CreateGraphicsManager();
 
     /// <summary>
     /// Loads any required data for the <see cref="Game"/>, and report back the progress at any point in the method with <paramref name="progressTracker"/>
@@ -368,14 +247,11 @@ public class Game : SDLApplication<Game>
     /// <summary>
     /// Configures the lifetime of a game
     /// </summary>
-    /// <returns>The configured <see cref="IGameLifetime"/></returns>
     /// <remarks>
-    /// This method is called right before the <see cref="Game"/> starts running. Theoretically, when everything is already set up. Defaults to <see cref="GameLifeTimeOnWindowCloses"/>
+    /// Called after most of everything's been done, just before <see cref="Run(IGameLifetime)"/>
     /// </remarks>
-    protected virtual IGameLifetime ConfigureGameLifetime()
-    {
-        return new GameLifeTimeOnWindowCloses(MainGraphicsManager.Window);
-    }
+    /// <returns>The configured <see cref="IGameLifetime"/></returns>
+    protected abstract IGameLifetime ConfigureGameLifetime();
 
     /// <summary>
     /// Executes custom logic when starting the game
@@ -385,6 +261,15 @@ public class Game : SDLApplication<Game>
     /// Don't call this manually, place here code that should run when starting the game. Is called after <see cref="Load"/>
     /// </remarks>
     protected virtual void Start(Scene firstScene) { }
+
+    /// <summary>
+    /// Performs custom game updating logic
+    /// </summary>
+    /// <remarks>
+    /// Use this method with care. Most of the game's functionality is already done by <see cref="Run(IGameLifetime)"/>. This method is called after every scene related task is done and <see cref="DeferredCallSchedule"/> is updated. But before the next delta is measured
+    /// </remarks>
+    /// <param name="delta">The amount of time the last frame took to complete</param>
+    protected virtual ValueTask Updating(TimeSpan delta) => ValueTask.CompletedTask;
 
     /// <summary>
     /// Configures and initializes Serilog's log
@@ -446,14 +331,44 @@ public class Game : SDLApplication<Game>
     protected virtual void Stop() { }
 
     /// <summary>
+    /// Delays execution by the specified amount
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="millisecondsDelay"/> will, much more often than not, be very small, in the range of 0-10 milliseconds on average. The function here needs to be both performant, as it'll be called every update frame, and have a very high resolution. For example, this could be replaced with SDL's internal delay function
+    /// </remarks>
+    /// <param name="millisecondsDelay">The amount of milliseconds to delay for</param>
+    protected abstract void Delay(uint millisecondsDelay);
+
+    private Task ProcessPendingGraphicsManagersTask;
+    private async Task ProcessPendingGraphicsManagers()
+    {
+        while (true)
+        {
+            if (graphicsManagersAwaitingSetup.TryDequeue(out var gm))
+                gm.InternalStart();
+            await Task.Delay(100);
+        }
+    }
+
+    private async ValueTask AwaitPendingGraphicsManagersTaskIfFinished()
+    {
+        if (ProcessPendingGraphicsManagersTask.IsCompleted)
+        {
+            await ProcessPendingGraphicsManagersTask;
+            //throw new GameException("ProcessPendingGraphicsManagersTask stopped unexpectedly. This is likely a library error");
+        }
+    }
+
+    /// <summary>
     /// Initiates the process of starting the game. Launches the main Renderer and Window if not already created. This method will not return until the <see cref="Game"/>'s <see cref="IGameLifetime"/> ends
     /// </summary>
-    /// <typeparam name="TScene">The first scene of the game. It must have a parameterless constructor, and it must be constructed by the <see cref="Game"/>. Later <see cref="Scene"/>s can be constructed manually after the game has started</typeparam>
     /// <remarks>
     /// This method forces concurrency by locking, and will throw if called twice before calling the game is stopped. Still a good idea to call it from the thread that initialized SDL
     /// </remarks>
-    public async Task StartGame<TScene>() where TScene : Scene, new()
+    public async Task StartGame(SceneFactory sceneFactory)
     {
+        ArgumentNullException.ThrowIfNull(sceneFactory);
+
         lock (_lock)
         {
             if (isStarted)
@@ -463,76 +378,101 @@ public class Game : SDLApplication<Game>
 
         //
 
+        InternalLog?.Information("Loading the Game");
         GameLoading?.Invoke(this, TotalTime);
 
         Load(Preload());
-        
+
+        InternalLog?.Information("Loaded the game");
         GameLoaded?.Invoke(this, TotalTime);
 
-        var firstScene = new TScene();
+        var firstScene = sceneFactory(this);
         currentScene = firstScene;
 
+        InternalLog?.Debug("Setting up all scenes");
         SetupScenes?.Invoke();
-
-        VideoThreadLock.Wait();
-        VideoThread.Start(); // It should be released in this thread
-
-        VideoThreadLock.Wait();
-        VideoThreadLock.Release();
 
         //
 
         {
+            InternalLog?.Information("Launching PendingGraphicsManagersTask");
+            ProcessPendingGraphicsManagersTask = Task.Run(ProcessPendingGraphicsManagers);
+
+            InternalLog?.Information("Creating MainGraphicsManager");
             MainGraphicsManager = CreateGraphicsManager();
-            MainGraphicsManager.WaitForInit();
-            WindowObtained?.Invoke(this, TotalTime, MainGraphicsManager.Window, MainGraphicsManager.Device);
+            
+            while (true)
+            {
+                if (await MainGraphicsManager.WaitForInitAsync(100))
+                    break;
+                await AwaitPendingGraphicsManagersTaskIfFinished();
+            }
+
+            InternalLog?.Information("Created MainGraphicsManager");
+            MainGraphicsManagerCreated?.Invoke(this, TotalTime, MainGraphicsManager);
         }
 
         //
 
+        InternalLog?.Information("Starting Game");
         GameStarting?.Invoke(this, TotalTime);
 
         Start(firstScene);
 
+        InternalLog?.Information("Started Game");
         GameStarted?.Invoke(this, TotalTime);
 
         //
 
+        InternalLog?.Debug("Configuring Game lifetime");
         lifetime = ConfigureGameLifetime();
 
         LifetimeAttached?.Invoke(this, TotalTime, lifetime);
 
         //
 
+        InternalLog?.Information("Running Game");
+        runtimewatch.Restart();
         await Run(lifetime).ConfigureAwait(false);
+        runtimewatch.Stop();
 
         //
 
         StopScenes?.Invoke();
 
+        InternalLog?.Information("Unloading the Game");
         GameUnloading?.Invoke(this, TotalTime);
 
         Unload();
 
+        InternalLog?.Information("Unloaded the Game");
         GameUnloaded?.Invoke(this, TotalTime);
 
         //
 
         GameStopping?.Invoke(this, TotalTime);
+        InternalLog?.Information("Stopping the Game");
 
         Stop();
         isStarted = false;
 
+        InternalLog?.Information("Stopped the Game");
         GameStopped?.Invoke(this, TotalTime);
     }
 
-#endregion
+    #endregion
 
     #region Run
 
     internal ulong FrameCount { get; private set; }
 
-    private async Task Run(IGameLifetime lifetime)
+    /// <summary>
+    /// Runs fundamental game tasks, such as progressing, managing and updating Scenes, GraphicsManagers, keeping track of FPS and deltas, etc.
+    /// </summary>
+    /// <remarks>
+    /// Do *NOT* override this method unless you have a VERY good reason to. Most often than not, you'll need to copy most of the code over from the original source code. Consider overriding <see cref="Updating(TimeSpan)"/> instead
+    /// </remarks>
+    protected virtual async Task Run(IGameLifetime lifetime)
     {
         var sw = new Stopwatch();
         TimeSpan delta = default;
@@ -544,8 +484,7 @@ public class Game : SDLApplication<Game>
         Log.Information("Entering Main Update Loop");
         while (lifetime.ShouldRun)
         {
-            if (VideoThreadFault is VideoThreadException vtfault)
-                throw vtfault;
+            await AwaitPendingGraphicsManagersTaskIfFinished();
 
             if (scenesAwaitingSetup.Count > 0)
             {
@@ -555,7 +494,7 @@ public class Game : SDLApplication<Game>
                     if (scenesAwaitingSetup.Count > sceneSetupList.Length)
                         Array.Resize(ref sceneSetupList, int.Max(scenesAwaitingSetup.Count, sceneSetupList.Length * 2));
 
-                    while (scenesAwaitingSetup.TryDequeue(out var sc, out var pr) && scenes < sceneSetupList.Length) 
+                    while (scenesAwaitingSetup.TryDequeue(out var sc, out var pr) && scenes < sceneSetupList.Length)
                         sceneSetupList[scenes++] = sc.InternalConfigure().Preserve();
                 }
                 for (int i = 0; i < scenes; i++)
@@ -576,6 +515,9 @@ public class Game : SDLApplication<Game>
             }
 
             scene = CurrentScene;
+
+            if (scene.IsBegun is false)
+                await scene.Begin().ConfigureAwait(false);
 
             if (FrameCount++ % 100 == 0)
                 foreach (var manager in ActiveGraphicsManagers)
@@ -629,19 +571,20 @@ public class Game : SDLApplication<Game>
 #endif
 
             await scene.Update(delta).ConfigureAwait(false);
-            await scene.RegisterDrawOperations();
             await DeferredExecutionScheduleUpdater();
+
+            await Updating(delta);
 
             {
                 var c = (UpdateFrameThrottle - sw.Elapsed).TotalMilliseconds;
                 remaining = c > 0.1 ? (uint)c : 0;
             }
             if (remaining > 0)
-                SDL2.Bindings.SDL.SDL_Delay(remaining);
-            
+                Delay(remaining);
+
             delta = sw.Elapsed;
             _mspup.Push(delta.Ticks);
-            
+
             sw.Restart();
         }
 
@@ -649,7 +592,7 @@ public class Game : SDLApplication<Game>
         await CurrentScene.End();
     }
 
-#endregion
+    #endregion
 
     #region Events
 
@@ -723,12 +666,17 @@ public class Game : SDLApplication<Game>
     public event GameLifetimeChangedEvent? LifetimeAttached;
 
     /// <summary>
-    /// Fired when the main <see cref="Window"/> and <see cref="Renderer"/> are created, or found by the <see cref="Game"/>. This will fire before <see cref="GameStarting"/> and after <see cref="GameLoaded"/>
+    /// Fired when the main <see cref="GraphicsManager"/> is created, or found by the <see cref="Game"/>. This will fire before <see cref="GameStarting"/> and after <see cref="GameLoaded"/>
     /// </summary>
-    /// <remarks>
-    /// The <see cref="Game"/> checks if the <see cref="Window"/> and <see cref="Renderer"/> are created when calling <see cref="StartGame{TScene}"/>, and if so, fires this event. If not, creates them first and then fires this event
-    /// </remarks>
-    public event GameMainWindowCreatedEvent? WindowObtained;
+    public event GameGraphicsManagerCreatedEvent? MainGraphicsManagerCreated;
 
-#endregion
+    #region IGameObject
+
+    Game IGameObject.Game => this;
+    bool IGameObject.IsDisposed => false;
+    string? IGameObject.Name => GameTitle;
+
+    #endregion
+
+    #endregion
 }

@@ -1,7 +1,9 @@
 ﻿using System.Buffers;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace VDStudios.MagicEngine;
 
@@ -18,8 +20,9 @@ public abstract class Scene : GameObject, IDisposable
     /// <summary>
     /// Instances and Initializes the current <see cref="Scene"/>
     /// </summary>
-    public Scene() : base("Game Scene", "Update")
+    public Scene(Game game) : base(game, "Game Scene", "Update")
     {
+        Log?.Verbose("Constructing new Scene");
         Children = NodeList.Empty.Clone();
         Game.SetupScenes += OnGameSetupScenes;
         Game.StopScenes += OnGameStopScenes;
@@ -113,6 +116,34 @@ public abstract class Scene : GameObject, IDisposable
     /// </remarks>
     public NodeList Children { get; internal set; }
 
+    private readonly ConcurrentDictionary<Type, ConcurrentBag<object>> drawablenodes_dict = new();
+
+    /// <summary>
+    /// Gets the <see cref="IDrawableNode{TGraphicsContext}"/> that are <see cref="IDrawableNode{TGraphicsContext}"/>
+    /// </summary>
+    /// <typeparam name="TGraphicsContext">The <see cref="GraphicsContext{TSelf}"/> that defines the <see cref="IDrawableNode{TGraphicsContext}"/></typeparam>
+    public IEnumerable<IDrawableNode<TGraphicsContext>> GetDrawableNodes<TGraphicsContext>()
+        where TGraphicsContext : GraphicsContext<TGraphicsContext>
+    {
+        if (drawablenodes_dict.TryGetValue(typeof(IDrawableNode<TGraphicsContext>), out var bag))
+            foreach (var t in bag)
+            {
+                if (t is IDrawableNode<TGraphicsContext> dn)
+                    yield return dn;
+                else
+                    Debug.Fail("At least one of the values in a DrawableNode bag was not a DrawableNode of the expected type");
+            }
+    }
+
+    internal int RegisterNodeInScene(Node child)
+    {
+        var id = Children.Add(child);
+
+        foreach (var x in child.GetType().FindInterfaces((t, c) => t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(IDrawableNode<>), null))
+            drawablenodes_dict.GetOrAdd(x, gm => new ConcurrentBag<object>()).Add(child);
+        return id;
+    }
+
     #region Attachment
 
     /// <summary>
@@ -149,13 +180,6 @@ public abstract class Scene : GameObject, IDisposable
     /// <returns>The <see cref="NodeUpdater"/> specific to <paramref name="node"/>, or <c>null</c> to use <see cref="HandleChildUpdate(Node)"/> instead</returns>
     protected internal virtual ValueTask<NodeUpdater?> AssignUpdater(Node node) => ValueTask.FromResult<NodeUpdater?>(null);
 
-    /// <summary>
-    /// This method is automatically called when a Child node is being attached. It assigns a custom drawer to the child node, or <c>null</c> to use <see cref="HandleChildRegisterDrawOperations(IDrawableNode)"/> instead
-    /// </summary>
-    /// <param name="node">The <see cref="Node"/> that is being attached, and should be assigned a drawer</param>
-    /// <returns>The <see cref="NodeDrawRegistrar"/> specific to <paramref name="node"/>, or <c>null</c> to use <see cref="HandleChildRegisterDrawOperations(IDrawableNode)"/> instead</returns>
-    protected internal virtual ValueTask<NodeDrawRegistrar?> AssignDrawer(IDrawableNode node) => ValueTask.FromResult<NodeDrawRegistrar?>(null);
-
     #endregion
 
     #region Default Handlers
@@ -165,12 +189,6 @@ public abstract class Scene : GameObject, IDisposable
     /// </summary>
     /// <param name="node">The node about to be updated</param>
     protected virtual ValueTask HandleChildUpdate(Node node) => ValueTask.CompletedTask;
-
-    /// <summary>
-    /// This method is automatically called when a Child node is about to be queried for <see cref="DrawOperation"/>s to register, and it has no custom handler set
-    /// </summary>
-    /// <param name="node">The node about to be queried</param>
-    protected virtual ValueTask HandleChildRegisterDrawOperations(IDrawableNode node) => ValueTask.CompletedTask;
 
     #endregion
 
@@ -198,11 +216,6 @@ public abstract class Scene : GameObject, IDisposable
 
     #region Internal
 
-    internal ValueTask InternalHandleChildDrawRegistration(Node node)
-        => node.drawer is NodeDrawRegistrar drawer
-            ? drawer.PerformDrawRegistration()
-            : node.DrawableSelf is IDrawableNode n ? HandleChildRegisterDrawOperations(n) : ValueTask.CompletedTask;
-
     internal void AssignToUpdateBatch(Node node)
     {
         var ub = AssigningToUpdateBatch(node);
@@ -221,7 +234,7 @@ public abstract class Scene : GameObject, IDisposable
         var sd = node.SkipDat;
         // This could potentially cause a state where the node never-endingly skips
         // Protections against such cases are built into the Node.Skip methods; any new instance methods that don't use methods that already have those protections, should include such protections.
-        if (sd.MarkedForSkip && (sd.Time is TimeSpan t && t > Game.TotalTime || sd.Frames > 0 && Game.FrameCount % sd.Frames != 0)) 
+        if (sd.MarkedForSkip && (sd.Time is TimeSpan t && t > Game.TotalTime || sd.Frames > 0 && Game.FrameCount % sd.Frames != 0))
             return;
         node.SkipDat = default;
         await node.InternalUpdate(delta);
@@ -267,10 +280,14 @@ public abstract class Scene : GameObject, IDisposable
 
     #region Internal
 
+    internal bool IsBegun;
     internal async ValueTask Begin()
     {
+        if (IsBegun)
+            throw new InvalidOperationException("Cannot begin a Scene that has already begun");
         InternalLog?.Information("Beginning Scene");
         await Beginning();
+        IsBegun = true;
         SceneBegan?.Invoke(this, Game.TotalTime);
     }
 
@@ -350,39 +367,6 @@ public abstract class Scene : GameObject, IDisposable
             return;
 
         await InternalPropagateChildUpdate(delta);
-    }
-
-    #endregion
-
-    #region Draw
-
-    internal async ValueTask RegisterDrawOperations()
-    {
-#pragma warning disable CA2012 // Just like Roslyn is so kind to warn us about, this code right here has the potential to offer some nasty asynchrony bugs. Be careful here, remember ValueTasks must only ever be consumed once
-
-        var pool = ArrayPool<ValueTask>.Shared;
-        int toUpdate = Children.Count;
-        ValueTask[] tasks = pool.Rent(toUpdate);
-        try
-        {
-            int ind = 0;
-            lock (Sync)
-            {
-                for (int i = 0; i < toUpdate; i++)
-                {
-                    var child = Children.Get(i);
-                    if (child.IsActive)
-                        tasks[ind++] = InternalHandleChildDrawRegistration(child);
-                }
-            }
-            for (int i = 0; i < ind; i++)
-                await tasks[i];
-        }
-        finally
-        {
-            pool.Return(tasks, true);
-        }
-#pragma warning restore CA2012
     }
 
     #endregion

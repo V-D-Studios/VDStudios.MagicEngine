@@ -1,9 +1,8 @@
-namespace Veldrid.MetalBindings
+namespace Veldrid.MetalBindings;
+
+public enum MTLCullMode
 {
-    public enum MTLCullMode
-    {
-        None = 0,
-        Front = 1,
-        Back = 2,
-    }
+    None = 0,
+    Front = 1,
+    Back = 2,
 }

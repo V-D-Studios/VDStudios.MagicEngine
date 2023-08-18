@@ -1,24 +1,23 @@
-﻿namespace Veldrid.OpenGL.ManagedEntryList
+﻿namespace Veldrid.OpenGL.ManagedEntryList;
+
+internal class ClearDepthTargetEntry : OpenGLCommandEntry
 {
-    internal class ClearDepthTargetEntry : OpenGLCommandEntry
+    public float Depth;
+
+    public ClearDepthTargetEntry(float depth)
     {
-        public float Depth;
+        Depth = depth;
+    }
 
-        public ClearDepthTargetEntry(float depth)
-        {
-            Depth = depth;
-        }
+    public ClearDepthTargetEntry() { }
 
-        public ClearDepthTargetEntry() { }
+    public ClearDepthTargetEntry Init(float depth)
+    {
+        Depth = depth;
+        return this;
+    }
 
-        public ClearDepthTargetEntry Init(float depth)
-        {
-            Depth = depth;
-            return this;
-        }
-
-        public override void ClearReferences()
-        {
-        }
+    public override void ClearReferences()
+    {
     }
 }

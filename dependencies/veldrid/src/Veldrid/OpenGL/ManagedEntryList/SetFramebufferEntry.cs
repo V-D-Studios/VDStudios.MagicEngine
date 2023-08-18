@@ -1,25 +1,24 @@
-﻿namespace Veldrid.OpenGL.ManagedEntryList
+﻿namespace Veldrid.OpenGL.ManagedEntryList;
+
+internal class SetFramebufferEntry : OpenGLCommandEntry
 {
-    internal class SetFramebufferEntry : OpenGLCommandEntry
+    public Framebuffer Framebuffer;
+
+    public SetFramebufferEntry(Framebuffer fb)
     {
-        public Framebuffer Framebuffer;
+        Framebuffer = fb;
+    }
 
-        public SetFramebufferEntry(Framebuffer fb)
-        {
-            Framebuffer = fb;
-        }
+    public SetFramebufferEntry() { }
 
-        public SetFramebufferEntry() { }
+    public SetFramebufferEntry Init(Framebuffer fb)
+    {
+        Framebuffer = fb;
+        return this;
+    }
 
-        public SetFramebufferEntry Init(Framebuffer fb)
-        {
-            Framebuffer = fb;
-            return this;
-        }
-
-        public override void ClearReferences()
-        {
-            Framebuffer = null;
-        }
+    public override void ClearReferences()
+    {
+        Framebuffer = null;
     }
 }

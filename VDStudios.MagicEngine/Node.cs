@@ -1,6 +1,5 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Internal;
 
@@ -19,9 +18,8 @@ public abstract class Node : GameObject, IDisposable
     /// <summary>
     /// Initializes basic properties and fields to give a <see cref="Node"/> its default functionality
     /// </summary>
-    protected Node() : base("Game Node Tree", "Update")
+    protected Node(Game game) : base(game, "Game Node Tree", "Update")
     {
-        DrawableSelf = this as IDrawableNode;
         ReadySemaphore = new(0, 1);
     }
 
@@ -78,9 +76,9 @@ public abstract class Node : GameObject, IDisposable
     /// <summary>
     /// <c>true</c> when the node has been added to the scene tree and initialized
     /// </summary>
-    public bool IsReady 
+    public bool IsReady
     {
-        get => _isReady; 
+        get => _isReady;
         private set
         {
             if (value == _isReady) return;
@@ -424,6 +422,8 @@ public abstract class Node : GameObject, IDisposable
     /// <param name="rootScene">The <see cref="Scene"/> to attach into</param>
     public async ValueTask AttachTo(Scene rootScene)
     {
+        GameMismatchException.ThrowIfMismatch(this, rootScene);
+
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfAttached();
 
@@ -432,13 +432,13 @@ public abstract class Node : GameObject, IDisposable
             throw new ChildNodeRejectedException(reason, rootScene, this);
 
         await Attaching(rootScene);
-        
+
         lock (rootScene.Sync)
-            Id = rootScene.Children.Add(this);
+        {
+            Id = rootScene.RegisterNodeInScene(this);
+        }
 
         updater = await rootScene.AssignUpdater(this);
-        if (DrawableSelf is IDrawableNode dn)
-            drawer = await rootScene.AssignDrawer(dn);
 
         rootScene.AssignToUpdateBatch(this);
 
@@ -465,7 +465,6 @@ public abstract class Node : GameObject, IDisposable
         InternalLog?.Information("Detaching from {name}-{type}", ps!.Name, ps.GetTypeName());
 
         await Detaching();
-        drawer = null;
         updater = null;
 
         foreach (var comp in Components)
@@ -541,11 +540,6 @@ public abstract class Node : GameObject, IDisposable
     /// </summary>
     internal NodeUpdater? updater;
 
-    /// <summary>
-    /// This belongs to this <see cref="Node"/>'s scene
-    /// </summary>
-    internal NodeDrawRegistrar? drawer;
-
     #endregion
 
     #region Update
@@ -583,15 +577,6 @@ public abstract class Node : GameObject, IDisposable
 
     #endregion
 
-    #region Draw
-
-    /// <summary>
-    /// Scene should ignore this, and let it remain null
-    /// </summary>
-    internal IDrawableNode? DrawableSelf;
-
-    #endregion
-
     #endregion
 
     #region Helper Methods
@@ -623,8 +608,6 @@ public abstract class Node : GameObject, IDisposable
         Components.Clear();
         Components = null!;
         updater = null;
-        drawer = null;
-        DrawableSelf = null;
         NodeSceneChanged = null;
         base.InternalDispose(disposing);
     }

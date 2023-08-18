@@ -1,3 +1,6 @@
 [submodule "dependencies/FreeTypeSharp"]
 	path = dependencies/FreeTypeSharp
 	url = https://github.com/DiegoG1019/FreeTypeSharp.git
+[submodule "dependencies/SDL2.NET"]
+	path = dependencies/SDL2.NET
+	url = https://github.com/DiegoG1019/SDL2.NET

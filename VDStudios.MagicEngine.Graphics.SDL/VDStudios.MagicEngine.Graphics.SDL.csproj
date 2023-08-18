@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net7.0</TargetFramework>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+	<GenerateDocumentationFile>True</GenerateDocumentationFile>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<SignAssembly>False</SignAssembly>
+	<RepositoryType>git</RepositoryType>
+	<RepositoryUrl>https://github.com/V-D-Studios/VDStudios.MagicEngine</RepositoryUrl>
+	<PackageTags>game-development; game; gaming; game-dev; gamedev; sdl2; sdl; graphics; engine; graphics-engine; rendering; renderer</PackageTags>
+	<NeutralLanguage>en</NeutralLanguage>
+	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+	<ErrorReport>prompt</ErrorReport>
+	<Title>Magic Engine Graphics Implementation: SDL</Title>
+	<Authors>Diego Garcia</Authors>
+	<Company>V%26D Studios</Company>
+	<Copyright>V%26D Studios ️©️ 2023</Copyright>
+	<Version>$(AssemblyVersion)</Version>
+	<FileVersion>$(AssemblyVersion)</FileVersion>
+	<AssemblyVersion>1.0.*</AssemblyVersion>
+  </PropertyGroup>
+
+	<!-- This copies all .dll files from the lib folder to the project output root folder -->
+	<ItemGroup>
+		<ContentWithTargetPath Include="lib\*.dll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>%(Filename)%(Extension)</TargetPath>
+		</ContentWithTargetPath>
+		<None Include="lib\*.dll" />
+	</ItemGroup>
+
+	<!-- This copies all .txt files from the lib folder to the project output Licenses folder -->
+	<ItemGroup>
+		<ContentWithTargetPath Include="lib\Licenses\*.txt">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>Licenses\%(Filename)%(Extension)</TargetPath>
+		</ContentWithTargetPath>
+		<None Include="lib\*.txt" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\dependencies\SDL2.NET\SDL2.Bindings\SDL2.Bindings.csproj" />
+	  <ProjectReference Include="..\dependencies\SDL2.NET\SDL2.NET\SDL2.NET.csproj" />
+	  <ProjectReference Include="..\VDStudios.MagicEngine\VDStudios.MagicEngine.csproj" />
+	</ItemGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<DebugType>embedded</DebugType>
+		<DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
+		<Deterministic>False</Deterministic>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<DebugType>embedded</DebugType>
+		<DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
+		<Deterministic>False</Deterministic>
+	</PropertyGroup>
+</Project>
