@@ -1,12 +1,15 @@
 ﻿namespace VDStudios.MagicEngine.Graphics;
 
 /// <summary>
-/// A list that contains <see cref="IRenderTarget{TRenderTargetContext}"/>
+/// A list that contains <see cref="RenderTarget{TRenderTargetContext}"/>
 /// </summary>
-public class RenderTargetList<TGraphicsContext>
+/// <remarks>
+/// This type's mutating methods lock on itself
+/// </remarks>
+public sealed class RenderTargetList<TGraphicsContext>
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
-    private readonly HashSet<IRenderTarget<TGraphicsContext>> hashset = new();
+    private readonly HashSet<RenderTarget<TGraphicsContext>> hashset = new();
 
     internal RenderTargetList(GraphicsManager<TGraphicsContext> manager)
     {
@@ -19,36 +22,45 @@ public class RenderTargetList<TGraphicsContext>
     public GraphicsManager<TGraphicsContext> Manager { get; }
 
     /// <summary>
-    /// Adds a new <see cref="IRenderTarget{TRenderTargetContext}"/> to this list
+    /// Adds a new <see cref="RenderTarget{TRenderTargetContext}"/> to this list
     /// </summary>
     /// <param name="item">The item to add</param>
     /// <returns><see langword="true"/> if <paramref name="item"/> was succesfully added, <see langword="false"/> otherwise</returns>
-    /// <exception cref="ArgumentException">This exception is thrown if <paramref name="item"/>'s <see cref="IRenderTarget{TRenderTargetContext}.Manager"/> is not the same as this object's <see cref="Manager"/></exception>
-    public bool Add(IRenderTarget<TGraphicsContext> item)
-        => item.Manager != Manager ? throw new ArgumentException("The Manager of item is not the same as this list's manager", nameof(item)) : hashset.Add(item);
+    /// <exception cref="ArgumentException">This exception is thrown if <paramref name="item"/>'s <see cref="RenderTarget{TRenderTargetContext}.Manager"/> is not the same as this object's <see cref="Manager"/></exception>
+    public bool Add(RenderTarget<TGraphicsContext> item)
+    {
+        lock (this)
+            return item.Manager != Manager ? throw new ArgumentException("The Manager of item is not the same as this list's manager", nameof(item)) : hashset.Add(item);
+    }
 
     /// <summary>
     /// Removes <paramref name="item"/> from this list
     /// </summary>
     /// <param name="item">The item to remove</param>
     /// <returns><see langword="true"/> if <paramref name="item"/> was succesfully remove, <see langword="false"/> otherwise</returns>
-    public bool Remove(IRenderTarget<TGraphicsContext> item)
-        => hashset.Remove(item);
+    public bool Remove(RenderTarget<TGraphicsContext> item)
+    {
+        lock (this)
+            return hashset.Remove(item);
+    }
 
     /// <summary>
-    /// Clears this list from all <see cref="IRenderTarget{TRenderTargetContext}"/>s
+    /// Clears this list from all <see cref="RenderTarget{TRenderTargetContext}"/>s
     /// </summary>
     public void Clear()
-        => hashset.Clear();
+    {
+        lock (this)
+            hashset.Clear();
+    }
 
     /// <summary>
-    /// The amount of <see cref="IRenderTarget{TRenderTargetContext}"/>s contained in this list
+    /// The amount of <see cref="RenderTarget{TRenderTargetContext}"/>s contained in this list
     /// </summary>
     public int Count => hashset.Count;
 
     /// <summary>
-    /// Returns an enumerator that iterates through the <see cref="IRenderTarget{TRenderTargetContext}"/>s in this list
+    /// Returns an enumerator that iterates through the <see cref="RenderTarget{TRenderTargetContext}"/>s in this list
     /// </summary>
-    public IEnumerator<IRenderTarget<TGraphicsContext>> GetEnumerator()
+    public IEnumerator<RenderTarget<TGraphicsContext>> GetEnumerator()
         => hashset.GetEnumerator();
 }

@@ -14,9 +14,6 @@ namespace VDStudios.MagicEngine.Graphics.SDL;
 public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
 {
     /// <inheritdoc/>
-    public override RgbaVector BackgroundColor { get; set; }
-
-    /// <inheritdoc/>
     public override IntVector2 WindowSize { get; protected set; }
 
     private SDLGraphicsContext? context;
@@ -46,8 +43,13 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
     }
 
     /// <inheritdoc/>
-    protected override ValueTask<SDLGraphicsContext> FetchGraphicsContext()
-        => ValueTask.FromResult(context ??= new(this));
+    protected override SDLGraphicsContext FetchGraphicsContext()
+    {
+        Debug.Assert(window is not null, "Window is unexpectedly null");
+        Debug.Assert(renderer is not null, "Renderer is unexpectedly null");
+        lock (Sync)
+            return context ??= new(this);
+    }
 
     /// <inheritdoc/>
     protected override void FramelockedDispose(bool disposing)
@@ -115,8 +117,17 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
         }
     }
 
+    /// <summary>
+    /// Locked while the GUI is being drawn
+    /// </summary>
+    /// <remarks>
+    /// Locked while <see cref="GraphicsManager{TGraphicsContext}.FrameLock"/> is locked. After <see cref="GraphicsManager{TGraphicsContext}.DrawLock"/>
+    /// </remarks>
+    protected readonly SemaphoreSlim GUILock = new(1, 1);
+
     #region Window Thread
 
+    internal readonly SemaphoreSlim WindowThreadLock = new(1, 1);
     private Task? WindowThread;
     private readonly ConcurrentQueue<Action<Window>> WindowActionQueue;
 
@@ -139,6 +150,8 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
     /// This method is called after the frame is unlocked
     /// </remarks>
     protected virtual void WindowSizeChanged(TimeSpan timestamp, Size newSize) { }
+
+#warning Speaking of DrawQueues, do something about the DrawQueue not taking a position
 
     private void Run()
     {
@@ -170,14 +183,134 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
 
         try
         {
-            while (IsRunning)
-            {
-                while (WindowActionQueue.TryDequeue(out var action))
-                    action(Window);
+            var framelock = FrameLock;
+            var drawlock = DrawLock;
+            var winlock = WindowShownLock;
+            var guilock = GUILock;
 
-                Events.Update();
-                //Thread.Sleep(1000);
+            var isRunning = IsRunningCheck;
+            var isNotRendering = IsNotRenderingCheck;
+
+            var sw = new Stopwatch();
+            var drawqueue = new DrawQueue<SDLGraphicsContext>();
+            var removalQueue = new Queue<Guid>(10);
+            var drawOpBuffer = new List<DrawOperation<SDLGraphicsContext>>();
+            TimeSpan delta = default;
+
+            ulong frameCount = 0;
+
+            PerformOnWindow(w =>
+            {
+                Log?.Debug("Querying WindowFlags");
+                var flags = w.Flags;
+                IsWindowAvailable = flags.HasFlag(WindowFlags.Shown);
+                HasFocus = flags.HasFlag(WindowFlags.InputFocus);
+            });
+
+            var (ww, wh) = WindowSize;
+
+            Log?.Information("Entering main rendering loop");
+            while (IsRunning) // Running Loop
+            {
+                WaitLockDisposable winlockwaiter;
+
+                while (WaitOn(winlock, condition: isNotRendering, out winlockwaiter, syncWait: 500) is false)
+                {
+                    while (!IsRendering)
+                    {
+                        Events.Update();
+                        Thread.Sleep(100);
+                        continue;
+                    }
+                }
+
+                using (winlockwaiter)
+                {
+                    while (WindowActionQueue.TryDequeue(out var action))
+                        action(Window);
+
+
+                    if (!WaitOn(framelock, condition: isRunning, out var framelockwaiter)) break; // Frame Render
+                    using (framelockwaiter)
+                    {
+                        Running();
+
+                        var context = GetGraphicsContext();
+
+                        context.Update(delta);
+                        context.BeginFrame();
+
+                        if (!WaitOn(drawlock, condition: isRunning, out var drawlockwaiter)) break; // Frame Render Stage 1: General Drawing
+                        using (drawlockwaiter)
+                        {
+                            if (RenderTargets.Count <= 0)
+                                Log?.Debug("This GraphicsManager has no render targets");
+                            else
+                            {
+                                drawOpBuffer.Clear();
+                                foreach (var drawable in Game.CurrentScene.GetDrawableNodes<SDLGraphicsContext>())
+                                    foreach (var dop in drawable.DrawOperationManager.GetDrawOperations(this))
+                                        drawOpBuffer.Add(dop);
+
+                                if (drawOpBuffer.Count <= 0)
+                                    Log?.Verbose("No draw operations were registered");
+                                else
+                                {
+                                    lock (RenderTargets)
+                                    {
+                                        foreach (var target in RenderTargets)
+                                        {
+                                            target.BeginFrame(delta, context);
+                                            foreach (var dop in drawOpBuffer)
+                                                target.RenderDrawOperation(delta, context, dop);
+                                            target.EndFrame(context);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        //if (GUIElements.Count > 0) // There's no need to lock neither glock nor ImGUI lock if there are no elements to render. And if it does change between this check and the second one, then tough luck and it'll have to wait until the next frame
+                        //{
+                        //    if (!await WaitOn(guilock, condition: isRunning, out var guilockwaiter)) break; // Frame Render Stage 2: GUI Drawing
+                        //    using (guilockwaiter)
+                        //    {
+                        //        if (GUIElements.Count > 0) // We check twice, as it may have changed between the first check and the lock being adquired
+                        //        {
+                        //            managercl.Begin();
+                        //            managercl.SetFramebuffer(gd.SwapchainFramebuffer); // Prepare for ImGUI
+                        //            using (ImGuiController.Begin()) // Lock ImGUI from other GraphicsManagers
+                        //            {
+                        //                foreach (var element in GUIElements)
+                        //                    element.InternalSubmitUI(delta); // Submit UIs
+                        //                using (var snapshot = FetchSnapshot())
+                        //                    ImGuiController.Update(1 / 60f, snapshot);
+                        //                ImGuiController.Render(gd, managercl); // Render
+                        //            }
+                        //            managercl.End();
+                        //            gd.SubmitCommands(managercl);
+                        //        }
+                        //    }
+                        //}
+
+                        context.EndAndSubmitFrame();
+                    }
+
+                    Events.Update();
+                }
+                
+                SubmitInput();
+                // Code that does not require any resources and is not bothered if resources are suddenly released
+
+                frameCount++;
+                delta = sw.Elapsed;
+                DeltaAverageKeeper.Push(1000 / (sw.ElapsedMilliseconds + 0.0000001f));
+
+                sw.Restart();
             }
+
+            Debug.Assert(IsRunning is false, "The main rendering loop broke even though the GraphicsManager is still supposed to be running");
+            Log?.Information("Exiting main rendering loop and disposing");
         }
         finally
         {

@@ -3,7 +3,8 @@
 /// <summary>
 /// The engine's Draw Queue
 /// </summary>
-public interface IDrawQueue<T, TGraphicsContext> where T : GraphicsObject<TGraphicsContext>
+/// <typeparam name="TGraphicsContext">The <see cref="GraphicsContext{TSelf}"/> that this <see cref="IDrawQueue{TGraphicsContext}"/> uses</typeparam>
+public interface IDrawQueue<TGraphicsContext>
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     /// <summary>
@@ -11,12 +12,13 @@ public interface IDrawQueue<T, TGraphicsContext> where T : GraphicsObject<TGraph
     /// </summary>
     /// <param name="drawing">The object that is ready to draw</param>
     /// <param name="priority">The priority of the object. Higher numbers will draw first and will appear below lower numbers</param>
-    public Task EnqueueAsync(T drawing, float priority);
+    /// <param name="ct">The <see cref="CancellationToken"/> to observe</param>
+    public ValueTask EnqueueAsync(DrawOperation<TGraphicsContext> drawing, float priority, CancellationToken ct = default);
 
     /// <summary>
     /// Asynchronously enqueues a ready-to-draw object into the Draw Queue
     /// </summary>
     /// <param name="drawing">The object that is ready to draw</param>
     /// <param name="priority">The priority of the object. Higher numbers will draw first and will appear below lower numbers</param>
-    public void Enqueue(T drawing, float priority);
+    public void Enqueue(DrawOperation<TGraphicsContext> drawing, float priority);
 }

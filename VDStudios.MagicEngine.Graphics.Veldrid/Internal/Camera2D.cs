@@ -10,7 +10,7 @@ namespace VDStudios.MagicEngine.Graphics.Veldrid.Internal;
 /// <remarks>
 /// This class is for internal use only
 /// </remarks>
-public abstract class Camera2D : IRenderTarget
+public abstract class Camera2D : RenderTarget
 {
     /// <inheritdoc/>
     protected readonly DrawParameters drawParameters;

@@ -18,7 +18,13 @@ public abstract class GameObject : IDisposable, IGameObject
     internal readonly string Facility;
     internal readonly string Area;
 
-    internal object Sync => ____sync ??= new();
+    /// <summary>
+    /// The synchronization object that belongs to this <see cref="GameObject"/>
+    /// </summary>
+    /// <remarks>
+    /// Lock on this object with care; it may produce deadlocks. More often than not, it's preferrable you use your own private object.
+    /// </remarks>
+    protected internal object Sync => ____sync ??= new();
 
     /// <inheritdoc/>
     public string? Name { get; init; }

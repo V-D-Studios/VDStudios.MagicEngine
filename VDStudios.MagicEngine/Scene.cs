@@ -280,10 +280,14 @@ public abstract class Scene : GameObject, IDisposable
 
     #region Internal
 
+    internal bool IsBegun;
     internal async ValueTask Begin()
     {
+        if (IsBegun)
+            throw new InvalidOperationException("Cannot begin a Scene that has already begun");
         InternalLog?.Information("Beginning Scene");
         await Beginning();
+        IsBegun = true;
         SceneBegan?.Invoke(this, Game.TotalTime);
     }
 

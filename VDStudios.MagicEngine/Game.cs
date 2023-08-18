@@ -516,6 +516,9 @@ public abstract class Game : IGameObject
 
             scene = CurrentScene;
 
+            if (scene.IsBegun is false)
+                await scene.Begin().ConfigureAwait(false);
+
             if (FrameCount++ % 100 == 0)
                 foreach (var manager in ActiveGraphicsManagers)
                     await manager.AwaitIfFaulted();

@@ -66,8 +66,12 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// <summary>
     /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager{TGraphicsContext}"/> is running
     /// </summary>
-    public float FramesPerSecond => fak.Average;
-    private readonly FloatAverageKeeper fak = new(10);
+    public float FramesPerSecond => DeltaAverageKeeper.Average;
+
+    /// <summary>
+    /// The object that maintains the information that is fed to <see cref="FramesPerSecond"/>
+    /// </summary>
+    protected readonly FloatAverageKeeper DeltaAverageKeeper = new(10);
 
     #endregion
 
@@ -163,7 +167,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// <summary>
     /// The color to draw when the frame is beginning to be drawn
     /// </summary>
-    public abstract RgbaVector BackgroundColor { get; set; }
+    public virtual RgbaVector BackgroundColor { get; set; } = RgbaVector.CornflowerBlue;
 
     #endregion
 
@@ -250,7 +254,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// <remarks>
     /// Reference this method only to implement it -- Use it only through <see cref="GetGraphicsContext"/>
     /// </remarks>
-    protected abstract ValueTask<TGraphicsContext> FetchGraphicsContext();
+    protected abstract TGraphicsContext FetchGraphicsContext();
 
     /// <summary>
     /// Obtains a new <see cref="GraphicsContext{TSelf}"/>
@@ -259,9 +263,9 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// Should be used over <see cref="FetchGraphicsContext"/>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected async ValueTask<TGraphicsContext> GetGraphicsContext()
+    protected TGraphicsContext GetGraphicsContext()
     {
-        var ctxt = await FetchGraphicsContext();
+        var ctxt = FetchGraphicsContext();
         Debug.Assert(ctxt.Manager == this, "The fetched GraphicsContext does not belong to this GraphicsManager");
         return ctxt;
     }

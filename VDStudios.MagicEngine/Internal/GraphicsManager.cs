@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Graphics;
@@ -54,7 +55,37 @@ public abstract class GraphicsManager : GameObject
     /// <summary>
     /// Propagates input across all of <see cref="InputReady"/>'s subscribers
     /// </summary>
-    protected virtual async ValueTask SubmitInput(CancellationToken ct = default)
+    protected virtual void SubmitInput(CancellationToken ct = default)
+    {
+        InputSemaphore.Wait(ct);
+
+        try
+        {
+            InputPropagationTask?.ConfigureAwait(false).GetAwaiter().GetResult();
+
+            InputPropagationTask = Task.Run(() =>
+            {
+                try
+                {
+                    FireInputReady();
+                }
+                finally
+                {
+                    InputSemaphore.Release();
+                }
+            }, ct);
+        }
+        catch // If an exception is thrown before the task can be scheduled, the InputSemaphore should be released
+        {
+            InputSemaphore.Release();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Propagates input across all of <see cref="InputReady"/>'s subscribers
+    /// </summary>
+    protected virtual async ValueTask SubmitInputAsync(CancellationToken ct = default)
     {
         if (InputSemaphore.Wait(50, ct) is false)
             await InputSemaphore.WaitAsync(ct);
@@ -182,27 +213,80 @@ public abstract class GraphicsManager : GameObject
     /// <param name="semaphore">The <see cref="SemaphoreSlim"/> to wait on</param>
     /// <param name="condition">The condition to continue waiting for the semaphore. If <see langword="true"/> the method will continue waiting until the other parameters are up, otherwise, it will break immediately.</param>
     /// <param name="syncWait">The amount of milliseconds to wait synchronously before to checking on the condition</param>
+    /// <param name="ct">A <see cref="CancellationToken"/> to cancel the operation</param>
+    /// <param name="waitlock">The object that can be used to release the semaphore through an using statement</param>
+    /// <returns><see langword="true"/> if <paramref name="semaphore"/>'s lock was adquired, <see langword="false"/> otherwise</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected static bool WaitOn(SemaphoreSlim semaphore, Func<bool> condition, [NotNullWhen(true)] [MaybeNullWhen(false)] out WaitLockDisposable waitlock, int syncWait = 15, CancellationToken ct = default)
+    {
+        if (!semaphore.Wait(syncWait, ct))
+        {
+            if (!condition())
+            {
+                waitlock = default;
+                return false;
+            }
+        }
+
+        //succesfully adquired the lock
+        waitlock = new(semaphore);
+        return true;
+    }
+
+    /// <summary>
+    /// Waits for a <see cref="SemaphoreSlim"/> lock to be unlocked and adquires the lock if possible
+    /// </summary>
+    /// <param name="semaphore">The <see cref="SemaphoreSlim"/> to wait on</param>
+    /// <param name="condition">The condition to continue waiting for the semaphore. If <see langword="true"/> the method will continue waiting until the other parameters are up, otherwise, it will break immediately.</param>
+    /// <param name="syncWait">The amount of milliseconds to wait synchronously before to checking on the condition</param>
     /// <param name="asyncWait">The amount of milliseconds to wait asynchronously before checking on the condition</param>
     /// <param name="syncRepeats">The amount of times to wait <paramref name="syncWait"/> milliseconds (and checking the condition) before switching to asynchronous waiting</param>
     /// <param name="ct">A <see cref="CancellationToken"/> to cancel the operation</param>
     /// <returns><see langword="true"/> if <paramref name="semaphore"/>'s lock was adquired, <see langword="false"/> otherwise</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static async ValueTask<bool> WaitOn(SemaphoreSlim semaphore, Func<bool> condition, int syncWait = 15, int asyncWait = 50, int syncRepeats = 10, CancellationToken ct = default)
+    protected static async ValueTask<SuccessResult<WaitLockDisposable>> WaitOnAsync(SemaphoreSlim semaphore, Func<bool> condition, int syncWait = 15, int asyncWait = 50, int syncRepeats = 10, CancellationToken ct = default)
     {
         while (syncRepeats-- > 0)
             if (!semaphore.Wait(syncWait, ct))
             {
                 if (!condition())
-                    return false;
+                    return SuccessResult<WaitLockDisposable>.Failure;
             }
             else //succesfully adquired the lock
-                return true;
+                return new SuccessResult<WaitLockDisposable>(new WaitLockDisposable(semaphore), true);
         // ran out of repeats without adquiring the lock
 
         while (!await semaphore.WaitAsync(asyncWait, ct))
             if (!condition())
-                return false;
-        return true;
+                return SuccessResult<WaitLockDisposable>.Failure;
+        return new SuccessResult<WaitLockDisposable>(new WaitLockDisposable(semaphore), true);
+    }
+
+    /// <summary>
+    /// A struct that, when disposed, releases the lock it references. 
+    /// </summary>
+    /// <remarks>
+    /// For internal purposes only and should only be used as such: <c><see langword="using"/> (<see langword="var"/> waited = <see cref="WaitOn(SemaphoreSlim, Func{bool}, out WaitLockDisposable, int, CancellationToken)"/>) { /* ... */ }</c>
+    /// </remarks>
+    protected readonly struct WaitLockDisposable : IDisposable
+    {
+        private readonly SemaphoreSlim sem;
+
+        /// <summary>
+        /// Creates a new object of type <see cref="WaitLockDisposable"/>
+        /// </summary>
+        public WaitLockDisposable(SemaphoreSlim semaphore)
+        {
+            Debug.Assert(semaphore is not null, "This WaitLockDisposable's Semaphore is unexpectedly null");
+            sem = semaphore;
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            Debug.Assert(sem is not null, "This WaitLockDisposable's Semaphore is unexpectedly null");
+            sem.Release();
+        }
     }
 
     internal async ValueTask<bool> WaitForInitAsync(int millisecondsTimeout = -1, CancellationToken ct = default)

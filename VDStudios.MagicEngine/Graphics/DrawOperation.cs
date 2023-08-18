@@ -185,29 +185,36 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
 
     #region Internal
 
+    private bool gpuResourcesCreated = false;
     private bool pendingGpuUpdate = true;
 
     /// <summary>
-    /// Flags this <see cref="DrawOperation{TGraphicsContext}"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, TGraphicsContext)"/> call
+    /// Flags this <see cref="DrawOperation{TGraphicsContext}"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, TGraphicsContext, DrawTransformation)"/> call
     /// </summary>
     /// <remarks>
     /// Multiple calls to this method will not result in <see cref="UpdateGPUState(TGraphicsContext)"/> being called multiple times
     /// </remarks>
     protected void NotifyPendingGPUUpdate() => pendingGpuUpdate = true;
 
-    internal async ValueTask InternalDraw(TimeSpan delta, TGraphicsContext context)
+    internal void InternalDraw(TimeSpan delta, TGraphicsContext context, DrawTransformation drawTransformation)
     {
         Debug.Assert(context is not null, "The GraphicsContext is unexpectedly null");
         ThrowIfDisposed();
         sync.Wait();
         try
         {
+            if (gpuResourcesCreated is false)
+            {
+                gpuResourcesCreated = true;
+                CreateGPUResources(context);
+            } 
+
             if (pendingGpuUpdate)
             {
                 pendingGpuUpdate = false;
-                await UpdateGPUState(context);
+                UpdateGPUState(context);
             }
-            await Draw(delta, context).ConfigureAwait(false);
+            Draw(delta, context, drawTransformation);
         }
         finally
         {
@@ -220,22 +227,32 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     #region Reaction Methods
 
     /// <summary>
+    /// Creates the necessary resources for this <see cref="DrawOperation{TGraphicsContext}"/> that can be safely loaded or created from the CPU or a background thread
+    /// </summary>
+    /// <remarks>
+    /// This method is only called once, during registration
+    /// </remarks>
+    protected internal abstract ValueTask CreateResources();
+#warning Consider adding UpdateCPUState as well, for asynchronous resource reloading
+
+    /// <summary>
     /// Creates the necessary resource sets for this <see cref="DrawOperation{TGraphicsContext}"/>
     /// </summary>
-    protected abstract ValueTask CreateResources(TGraphicsContext context);
+    protected abstract void CreateGPUResources(TGraphicsContext context);
 
     /// <summary>
     /// The method that will be used to draw the component
     /// </summary>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
     /// <param name="context">The <typeparamref name="TGraphicsContext"/> for this <see cref="DrawOperation{TGraphicsContext}"/></param>
-    protected abstract ValueTask Draw(TimeSpan delta, TGraphicsContext context);
+    /// <param name="drawTransformation">External transformation parameters to apply to this <see cref="DrawOperation{TGraphicsContext}"/></param>
+    protected abstract void Draw(TimeSpan delta, TGraphicsContext context, DrawTransformation drawTransformation);
 
     /// <summary>
-    /// This method is called automatically when this <see cref="DrawOperation{TGraphicsContext}"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(TimeSpan, TGraphicsContext)"/>
+    /// This method is called automatically when this <see cref="DrawOperation{TGraphicsContext}"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(TimeSpan, TGraphicsContext, DrawTransformation)"/>
     /// </summary>
     /// <param name="context">The <typeparamref name="TGraphicsContext"/> for this <see cref="DrawOperation{TGraphicsContext}"/></param>
-    protected abstract ValueTask UpdateGPUState(TGraphicsContext context);
+    protected abstract void UpdateGPUState(TGraphicsContext context);
 
     #endregion
 
