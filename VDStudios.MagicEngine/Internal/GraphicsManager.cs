@@ -33,7 +33,14 @@ public abstract class GraphicsManager : GameObject
     /// <returns></returns>
     protected abstract InputSnapshotBuffer CreateNewEmptyInputSnapshotBuffer();
 
-    internal InputSnapshot FetchSnapshot()
+    /// <summary>
+    /// Obtains an <see cref="InputSnapshot"/> of the input that was processed this frame
+    /// </summary>
+    /// <remarks>
+    /// This method should only be called once per frame, as it clears the current snapshot buffer
+    /// </remarks>
+    /// <returns></returns>
+    protected InputSnapshot FetchSnapshot()
     {
         if (inputSnapshot is null)
             lock (snapshotBuffer)
@@ -55,7 +62,7 @@ public abstract class GraphicsManager : GameObject
     /// <summary>
     /// Propagates input across all of <see cref="InputReady"/>'s subscribers
     /// </summary>
-    protected virtual void SubmitInput(CancellationToken ct = default)
+    protected virtual void SubmitInput(InputSnapshot snapshot, CancellationToken ct = default)
     {
         InputSemaphore.Wait(ct);
 
@@ -67,7 +74,7 @@ public abstract class GraphicsManager : GameObject
             {
                 try
                 {
-                    FireInputReady();
+                    FireInputReady(snapshot);
                 }
                 finally
                 {
@@ -85,7 +92,7 @@ public abstract class GraphicsManager : GameObject
     /// <summary>
     /// Propagates input across all of <see cref="InputReady"/>'s subscribers
     /// </summary>
-    protected virtual async ValueTask SubmitInputAsync(CancellationToken ct = default)
+    protected virtual async ValueTask SubmitInputAsync(InputSnapshot snapshot, CancellationToken ct = default)
     {
         if (InputSemaphore.Wait(50, ct) is false)
             await InputSemaphore.WaitAsync(ct);
@@ -99,7 +106,7 @@ public abstract class GraphicsManager : GameObject
             {
                 try
                 {
-                    FireInputReady();
+                    FireInputReady(snapshot);
                 }
                 finally
                 {
@@ -117,8 +124,8 @@ public abstract class GraphicsManager : GameObject
     /// <summary>
     /// Fires <see cref="InputReady"/>
     /// </summary>
-    protected void FireInputReady()
-        => InputReady?.Invoke(this, FetchSnapshot(), DateTime.Now);
+    protected void FireInputReady(InputSnapshot snapshot)
+        => InputReady?.Invoke(this, snapshot, DateTime.Now);
 
     /// <summary>
     /// Fired when this <see cref="GraphicsManager"/> has finished preparing user input

@@ -2,8 +2,11 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Security.Principal;
+using ImGuiNET;
 using SDL2.NET;
 using VDStudios.MagicEngine.Graphics;
+using VDStudios.MagicEngine.Graphics.SDL.GUI;
+using VDStudios.MagicEngine.Graphics.SDL.Internal;
 using VDStudios.MagicEngine.Input;
 
 namespace VDStudios.MagicEngine.Graphics.SDL;
@@ -13,6 +16,44 @@ namespace VDStudios.MagicEngine.Graphics.SDL;
 /// </summary>
 public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
 {
+    /// <summary>
+    /// The list of ImGUI Elements
+    /// </summary>
+    public ImGUIElementList ImGUIElements { get; } = new();
+    private readonly List<ImGUIElement> imGUIElementBuffer = new();
+    private readonly ImGuiController imGuiController;
+
+    private readonly static object ImGuiSync = new();
+
+    private void UpdateImGuiInput(InputSnapshot snapshot)
+    {
+        imGuiController.UpdateImGuiInput(snapshot);
+    }
+
+    private void RenderImGuiElements(TimeSpan delta)
+    {
+        lock (ImGUIElements.sync)
+        {
+            imGUIElementBuffer.Clear();
+            foreach (var el in ImGUIElements)
+                if (el.IsActive)
+                    imGUIElementBuffer.Add(el);
+        }
+
+        lock (ImGuiSync)
+        {
+            imGuiController.InitializeSDLRenderer(Renderer);
+            ImGui.NewFrame();
+            imGuiController.NewFrame();
+
+            for (int i = 0; i < imGUIElementBuffer.Count; i++)
+                imGUIElementBuffer[i].SubmitUI(delta);
+
+            ImGui.EndFrame();
+            imGuiController.RenderDrawData();
+        }
+    }
+
     /// <inheritdoc/>
     public override IntVector2 WindowSize { get; protected set; }
 
@@ -40,6 +81,7 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
     {
         WindowConfig = windowConfig ?? WindowConfig.Default;
         WindowActionQueue = new ConcurrentQueue<Action<Window>>();
+        imGuiController = new(this);
     }
 
     /// <inheritdoc/>
@@ -294,12 +336,19 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
                         //}
 
                         context.EndAndSubmitFrame();
+
+                        //RenderImGuiElements(delta);
                     }
 
                     Events.Update();
                 }
-                
-                SubmitInput();
+
+                var snapshot = FetchSnapshot();
+
+                SubmitInput(snapshot);
+
+                UpdateImGuiInput(snapshot);
+
                 // Code that does not require any resources and is not bothered if resources are suddenly released
 
                 frameCount++;
@@ -408,4 +457,13 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
     #endregion
 
     #endregion
+
+    /// <inheritdoc/>
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+
+        lock (ImGuiSync)
+            imGuiController.Shutdown();
+    }
 }

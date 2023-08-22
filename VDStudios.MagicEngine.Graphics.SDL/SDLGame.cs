@@ -25,6 +25,8 @@ public class SDLGame : Game
     {
         if (OperatingSystem.IsWindows())
             Hints.DisableThreadNaming.IsEnabled = true;
+
+        WindowConfig.Default.OpenGL(true).Vulkan(false).HighDPI(true);
     }
 
     /// <inheritdoc/>

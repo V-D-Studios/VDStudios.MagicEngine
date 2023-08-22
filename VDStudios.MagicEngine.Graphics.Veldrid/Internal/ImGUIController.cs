@@ -389,8 +389,8 @@ public class ImGuiController<TGraphicsContext> : IDisposable
         io.MouseDown[2] = middlePressed || snapshot.IsMouseDown(MouseButton.Middle);
 #endif
         io.MousePos = mousePosition;
-        io.MouseWheel = snapshot.WheelVerticalDelta;
-        io.MouseWheelH = snapshot.WheelHorizontalDelta;
+        io.MouseWheel = snapshot.WheelDelta.Y;
+        io.MouseWheelH = snapshot.WheelDelta.X;
 
         IReadOnlyList<uint> keyCharPresses = snapshot.KeyCharPresses;
         for (int i = 0; i < keyCharPresses.Count; i++)
@@ -402,7 +402,7 @@ public class ImGuiController<TGraphicsContext> : IDisposable
         foreach (var ke in snapshot.KeyEvents)
         {
             io.KeysDown[(int)ke.Scancode] = ke.IsPressed;
-            if (ke.Scancode == Scancode.LeftControl)
+            if (ke.Scancode == Scancode.LeftCtrl)
             {
                 _controlDown = ke.IsPressed;
             }
@@ -434,8 +434,8 @@ public class ImGuiController<TGraphicsContext> : IDisposable
         io.KeyMap[(int)ImGuiKey.RightArrow] = (int)Scancode.Right;
         io.KeyMap[(int)ImGuiKey.UpArrow] = (int)Scancode.Up;
         io.KeyMap[(int)ImGuiKey.DownArrow] = (int)Scancode.Down;
-        io.KeyMap[(int)ImGuiKey.PageUp] = (int)Scancode.Pageup;
-        io.KeyMap[(int)ImGuiKey.PageDown] = (int)Scancode.Pagedown;
+        io.KeyMap[(int)ImGuiKey.PageUp] = (int)Scancode.PageUp;
+        io.KeyMap[(int)ImGuiKey.PageDown] = (int)Scancode.PageDown;
         io.KeyMap[(int)ImGuiKey.Home] = (int)Scancode.Home;
         io.KeyMap[(int)ImGuiKey.End] = (int)Scancode.End;
         io.KeyMap[(int)ImGuiKey.Delete] = (int)Scancode.Delete;
