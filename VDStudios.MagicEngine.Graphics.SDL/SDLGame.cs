@@ -12,6 +12,17 @@ public class SDLGame : Game
     /// <inheritdoc/>
     public SDLGame()
     {
+        ConfigureEnvironment();
+    }
+
+    /// <summary>
+    /// Configures the environment surrounding this game
+    /// </summary>
+    /// <remarks>
+    /// The base implementation of this method sets SDL hints and default window flags
+    /// </remarks>
+    protected virtual void ConfigureEnvironment()
+    {
         if (OperatingSystem.IsWindows())
             Hints.DisableThreadNaming.IsEnabled = true;
     }
