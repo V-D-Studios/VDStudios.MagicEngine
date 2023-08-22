@@ -253,10 +253,6 @@ public delegate void SceneNodeEvent(Scene scene, TimeSpan timestamp, Node node);
 public delegate void GraphicsManagerRunStateChanged<TGraphicsContext>(GraphicsManager<TGraphicsContext> graphicsManager, TimeSpan timestamp, bool isRunning)
     where TGraphicsContext : GraphicsContext<TGraphicsContext>;
 
-#endregion
-
-#region GraphicsManager Delegates
-
 /// <summary>
 /// Represents an event in the game regarding a <see cref="GraphicsManager"/> having finished receiving input
 /// </summary>
