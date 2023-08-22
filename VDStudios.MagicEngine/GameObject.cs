@@ -35,7 +35,7 @@ public abstract class GameObject : IDisposable, IGameObject
     /// <param name="area">Logging information. The area the GameObject belongs to</param>
     /// <param name="facility">Logging information. The facility the GameObject operates for</param>
     /// <param name="game">The game this <see cref="GameObject"/> belongs to</param>
-    internal GameObject(Game game, string facility, string area)
+    public GameObject(Game game, string facility, string area)
     {
         ArgumentNullException.ThrowIfNull(game);
         ArgumentException.ThrowIfNullOrEmpty(area);
@@ -44,7 +44,6 @@ public abstract class GameObject : IDisposable, IGameObject
         Facility = facility;
         Game = game;
         Area = area;
-        Random = Game.Random;
         GameDeferredCallSchedule = Game.DeferredCallSchedule;
     }
 
@@ -59,7 +58,7 @@ public abstract class GameObject : IDisposable, IGameObject
     /// <remarks>
     /// The very same one as <see cref="Game.Random"/>
     /// </remarks>
-    protected Random Random { get; }
+    protected Random Random => Game.Random;
 
     /// <summary>
     /// The Game's <see cref="MagicEngine.DeferredExecutionSchedule"/>, can be used to defer calls in the update thread. Points to the same object as <see cref="Game.DeferredCallSchedule"/>
