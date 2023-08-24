@@ -14,15 +14,16 @@ public class CharacterAnimationContainer : IReadOnlyCollection<KeyValuePair<Char
 
     public int Count => _seqs.Length;
 
-    public void SwitchTo(CharacterAnimationKind kind)
+    public bool SwitchTo(CharacterAnimationKind kind)
     {
-        if (kind == CurrentKind) return;
+        if (kind == CurrentKind) return false;
         if (kind is > CharacterAnimationKind.DownLeft or < 0)
             throw new ArgumentException($"Unknown CharacterAnimationKind {kind}", nameof(kind));
 
         _stopwatch.Restart();
         CurrentAnimation.Reset();
         CurrentKind = kind;
+        return true;
     }
 
     public TimedSequence<Rectangle> this[CharacterAnimationKind kind] 
