@@ -114,8 +114,12 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// <param name="rotZ">The rotation along the z axis in worldspace for this operation</param>
     public void Transform(Vector3? translation = null, Vector3? scale = null, Vector4? rotX = null, Vector4? rotY = null, Vector4? rotZ = null)
     {
+        if (scale is not null)
+        {
+            Scale = scale.Value;
+            scaletrans = null;
+        }
         Translation = translation ?? Translation;
-        Scale = scale ?? Scale;
         RotationX = rotX ?? RotationX;
         RotationY = rotY ?? RotationY;
         RotationZ = rotZ ?? RotationZ;
