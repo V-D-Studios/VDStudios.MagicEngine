@@ -28,12 +28,12 @@ public class SDLGraphicsContext : GraphicsContext<SDLGraphicsContext>
     /// <summary>
     /// <see cref="GraphicsContext{TGraphicsContext}.Manager"/>'s Renderer
     /// </summary>
-    protected Renderer Renderer => SDLManager.Renderer;
+    public Renderer Renderer => SDLManager.Renderer;
 
     /// <summary>
     /// <see cref="GraphicsContext{TGraphicsContext}.Manager"/>'s Window
     /// </summary>
-    protected Window Window => SDLManager.Window;
+    public Window Window => SDLManager.Window;
 
     /// <inheritdoc/>
     public override void Update(TimeSpan delta)
