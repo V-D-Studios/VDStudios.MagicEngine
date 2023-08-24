@@ -1,18 +1,20 @@
 ﻿using System.Diagnostics;
+using SDL2.NET.SDLImage;
 using VDStudios.MagicEngine.DemoResources;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
+using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 
 namespace VDStudios.MagicEngine.SDL.Demo;
 
 public class PlayerNode : Node
 {
-    private readonly CharacterAnimationContainer Animations;
-    private PlayerRenderer? Renderer;
+    private readonly CharacterAnimationContainer AnimationContainer;
+    private TextureOperation? SpriteOperation;
 
     public PlayerNode(Game game) : base(game)
     {
-        Animations = new(8,
+        AnimationContainer = new(8,
             Helper.GetRectangles(AnimationDefinitions.Robin.Player.Idle.Frames), true,
             Helper.GetRectangles(AnimationDefinitions.Robin.Player.Active.Frames), true,
             Helper.GetRectangles(AnimationDefinitions.Robin.Player.Up.Frames), true,
@@ -25,16 +27,16 @@ public class PlayerNode : Node
             Helper.GetRectangles(AnimationDefinitions.Robin.Player.DownLeft.Frames), true
         );
 
-        foreach (var (_, a) in Animations)
+        foreach (var (_, a) in AnimationContainer)
             a.StartHang = a.EndHang = TimeSpan.FromSeconds(1d / 2);
     }
 
     protected override ValueTask<bool> Updating(TimeSpan delta)
     {
-        Debug.Assert(Renderer is not null, "PlayerNode.Renderer is unexpectedly null at the time of rendering");
+        Debug.Assert(SpriteOperation is not null, "PlayerNode.SpriteOperation is unexpectedly null at the time of updating");
 
-        if (Animations.CurrentAnimation.Update())
-            Renderer.View = Animations.CurrentAnimation.CurrentElement;
+        if (AnimationContainer.CurrentAnimation.Update())
+            SpriteOperation.View = AnimationContainer.CurrentAnimation.CurrentElement;
 
         return base.Updating(delta);
     }
@@ -43,8 +45,13 @@ public class PlayerNode : Node
     {
         if (scene.GetDrawOperationManager<SDLGraphicsContext>(out var dopm))
         {
-            Renderer = new PlayerRenderer(Game);
-            await dopm.AddDrawOperation(Renderer);
+            SpriteOperation = new TextureOperation(Game, c =>
+            {
+                using var stream = new MemoryStream(Animations.Robin);
+                return Image.LoadTexture(c.Renderer, stream);
+            }, AnimationContainer.CurrentAnimation.CurrentElement);
+
+            await dopm.AddDrawOperation(SpriteOperation);
         }
         else
             Debug.Fail("The attached scene did not have a DrawOperationManager for SDLGraphicsContext");
