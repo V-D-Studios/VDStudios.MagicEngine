@@ -5,7 +5,7 @@ using VDStudios.MagicEngine.Internal;
 namespace VDStudios.MagicEngine.Graphics;
 
 /// <summary>
-/// Represents a list of <see cref="DrawOperation{TGraphicsContext}"/> objects belonging to a <see cref="IDrawableNode{TGraphicsContext}"/> and their general behaviour
+/// Represents a list of <see cref="DrawOperation{TGraphicsContext}"/> objects belonging to a <see cref="Scene"/> and their general behaviour
 /// </summary>
 public class DrawOperationManager<TGraphicsContext> : GameObject
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
@@ -15,26 +15,20 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     /// <summary>
     /// Instantiates a new object of type <see cref="DrawOperationManager{TGraphicsContext}"/>
     /// </summary>
-    /// <param name="owner">The <see cref="IDrawableNode{TGraphicsContext}"/> that owns this <see cref="DrawOperationManager{TGraphicsContext}"/></param>
-    public DrawOperationManager(IDrawableNode<TGraphicsContext> owner)
+    /// <param name="owner">The <see cref="Scene"/> that owns this <see cref="DrawOperationManager{TGraphicsContext}"/></param>
+    public DrawOperationManager(Scene owner)
         : base(owner.Game, "Rendering & Game Scene", "Draw Operations")
     {
-        if (owner is not Node n)
-            throw new InvalidOperationException($"The owner of a DrawOperationManager must be a node");
-
         Owner = owner;
-        nodeOwner = n;
-        _serv = new(n._nodeServices);
+        Services = new(owner.Services);
     }
-
-    private readonly Node nodeOwner;
 
     #region Public Properties
 
     /// <summary>
-    /// The <see cref="IDrawableNode{TGraphicsContext}"/> that owns this <see cref="DrawOperationManager{TGraphicsContext}"/>
+    /// The <see cref="Scene"/> that owns this <see cref="DrawOperationManager{TGraphicsContext}"/>
     /// </summary>
-    public IDrawableNode<TGraphicsContext> Owner { get; }
+    public Scene Owner { get; }
 
     /// <summary>
     /// Represents the <see cref="DrawOperation{TGraphicsContext}"/>s that belong to this <see cref="DrawOperationManager{TGraphicsContext}"/>
@@ -55,15 +49,7 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     /// Services to this <see cref="Node"/> will cascade down from the root <see cref="Scene"/>, if not overriden.
     /// </remarks>
     /// <exception cref="InvalidOperationException">Thrown if this node is not attached to a root <see cref="Scene"/>, directly or indirectly</exception>
-    public ServiceCollection Services
-    {
-        get
-        {
-            nodeOwner.ThrowIfNotAttached();
-            return _serv;
-        }
-    }
-    private readonly ServiceCollection _serv;
+    public ServiceCollection Services { get; private set; }
 
     #endregion
 
@@ -187,7 +173,7 @@ public sealed class DrawOperationManagerDrawQueueDelegate<TGraphicsContext> : Dr
     private readonly DrawQueueSelector _drawQueueSelector;
 
     /// <inheritdoc/>
-    public DrawOperationManagerDrawQueueDelegate(IDrawableNode<TGraphicsContext> owner, DrawQueueSelector drawQueueSelector) : base(owner)
+    public DrawOperationManagerDrawQueueDelegate(Scene owner, DrawQueueSelector drawQueueSelector) : base(owner)
     {
         ArgumentNullException.ThrowIfNull(drawQueueSelector);
         _drawQueueSelector = drawQueueSelector;

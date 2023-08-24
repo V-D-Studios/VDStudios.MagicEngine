@@ -116,42 +116,51 @@ public abstract class Scene : GameObject, IDisposable
     /// </remarks>
     public NodeList Children { get; internal set; }
 
-    private readonly ConcurrentDictionary<Type, ConcurrentBag<object>> drawablenodes_dict = new();
+    private readonly ConcurrentDictionary<Type, object> drawopmanager_dict = new();
 
     /// <summary>
-    /// Gets the <see cref="IDrawableNode{TGraphicsContext}"/> that are <see cref="IDrawableNode{TGraphicsContext}"/>
+    /// Attempts to find a <see cref="DrawOperationManager{TGraphicsContext}"/> for <typeparamref name="TGraphicsContext"/> in this <see cref="Scene"/>.
     /// </summary>
-    /// <typeparam name="TGraphicsContext">The <see cref="GraphicsContext{TSelf}"/> that defines the <see cref="IDrawableNode{TGraphicsContext}"/></typeparam>
-    public IEnumerable<IDrawableNode<TGraphicsContext>> GetDrawableNodes<TGraphicsContext>()
+    /// <remarks>
+    /// If the <see cref="DrawOperationManager{TGraphicsContext}"/> is not found, consider calling <see cref="RegisterDrawOperationManager{TGraphicsContext}(DrawOperationManager{TGraphicsContext})"/>
+    /// </remarks>
+    /// <returns><see langword="true"/> if a <see cref="DrawOperationManager{TGraphicsContext}"/> for context <typeparamref name="TGraphicsContext"/> is found, <see langword="false"/> otherwise</returns>
+    public bool GetDrawOperationManager<TGraphicsContext>([MaybeNullWhen(false)] [NotNullWhen(true)] out DrawOperationManager<TGraphicsContext>? drawOperationManager)
         where TGraphicsContext : GraphicsContext<TGraphicsContext>
     {
-        if (drawablenodes_dict.TryGetValue(typeof(IDrawableNode<TGraphicsContext>), out var bag))
-            foreach (var t in bag)
-            {
-                if (t is IDrawableNode<TGraphicsContext> dn)
-                    yield return dn;
-                else
-                    Debug.Fail("At least one of the values in a DrawableNode bag was not a DrawableNode of the expected type");
-            }
+        if (drawopmanager_dict.TryGetValue(typeof(TGraphicsContext), out var value))
+        {
+            Debug.Assert(value is DrawOperationManager<TGraphicsContext>);
+            drawOperationManager = (DrawOperationManager<TGraphicsContext>)value;
+            return true;
+        }
+
+        drawOperationManager = default;
+        return false;
     }
+
+    /// <summary>
+    /// Attempts to register <paramref name="drawOperationManager"/> under context <typeparamref name="TGraphicsContext"/> for this <see cref="Scene"/>
+    /// </summary>
+    /// <remarks>
+    /// Can later be retrieved via <see cref="GetDrawOperationManager{TGraphicsContext}(out DrawOperationManager{TGraphicsContext}?)"/>
+    /// </remarks>
+    /// <returns><see langword="true"/> if a <see cref="DrawOperationManager{TGraphicsContext}"/> for context <typeparamref name="TGraphicsContext"/> was registered, <see langword="false"/> if one was already present</returns>
+    public bool RegisterDrawOperationManager<TGraphicsContext>(DrawOperationManager<TGraphicsContext> drawOperationManager)
+        where TGraphicsContext : GraphicsContext<TGraphicsContext>
+        => drawopmanager_dict.TryAdd(typeof(TGraphicsContext), drawOperationManager ?? throw new ArgumentNullException(nameof(drawOperationManager)));
+
+    /// <summary>
+    /// Attempts to remove a <see cref="DrawOperationManager{TGraphicsContext}"/> registered for <typeparamref name="TGraphicsContext"/>
+    /// </summary>
+    /// <returns><see langword="true"/> if a <see cref="DrawOperationManager{TGraphicsContext}"/> for context <typeparamref name="TGraphicsContext"/> was removed, <see langword="false"/> if one was not found</returns>
+    public bool RemoveDrawOperationManager<TGraphicsContext>()
+        where TGraphicsContext : GraphicsContext<TGraphicsContext>
+        => drawopmanager_dict.TryRemove(typeof(TGraphicsContext), out _);
 
     internal int RegisterNodeInScene(Node child)
     {
         var id = Children.Add(child);
-
-        foreach (var x in child.GetType().FindInterfaces((t, c) => t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(IDrawableNode<>), null))
-        {
-            var prop = x.GetProperty("DrawOperationManager")!.GetValue(child) 
-                ?? throw new InvalidOperationException("The IDrawableNode does not have a DrawOperationManager");
-
-            var owner = prop.GetType().GetProperty("Owner")!.GetValue(prop)
-                ?? throw new InvalidOperationException("The DrawOperationManager of this IDrawableNode does not have an owner");
-
-            if (owner != child)
-                throw new InvalidOperationException("This IDrawableNode's DrawOperationManager is not owned by the node that holds the object");
-
-            drawablenodes_dict.GetOrAdd(x, gm => new ConcurrentBag<object>()).Add(child);
-        }
         return id;
     }
 

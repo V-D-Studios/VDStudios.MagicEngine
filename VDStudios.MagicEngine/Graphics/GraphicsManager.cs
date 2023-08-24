@@ -346,6 +346,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
 
         try
         {
+            bool nodopwarn = false;
             var framelock = FrameLock;
             var drawlock = DrawLock;
             var winlock = WindowShownLock;
@@ -400,9 +401,20 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
                             else
                             {
                                 drawOpBuffer.Clear();
-                                foreach (var drawable in Game.CurrentScene.GetDrawableNodes<TGraphicsContext>())
-                                    foreach (var dop in drawable.DrawOperationManager.GetDrawOperations(this))
+                                if (Game.CurrentScene.GetDrawOperationManager<TGraphicsContext>(out var dopm) is false)
+                                {
+                                    if (nodopwarn is false)
+                                    {
+                                        Log?.Warning($"The current Scene does not have a DrawOperationManager for context of type {(typeof(TGraphicsContext))}");
+                                        nodopwarn = true;
+                                    }
+                                }
+                                else
+                                {
+                                    nodopwarn = false;
+                                    foreach (var dop in dopm.GetDrawOperations(this))
                                         drawOpBuffer.Add(dop);
+                                }
 
                                 if (drawOpBuffer.Count <= 0)
                                     Log?.Verbose("No draw operations were registered");

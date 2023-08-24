@@ -5,14 +5,13 @@ using VDStudios.MagicEngine.Graphics.SDL;
 
 namespace VDStudios.MagicEngine.SDL.Demo;
 
-public class PlayerNode : Node, IDrawableNode<SDLGraphicsContext>
+public class PlayerNode : Node
 {
     private readonly CharacterAnimationContainer Animations;
     private PlayerRenderer? Renderer;
 
     public PlayerNode(Game game) : base(game)
     {
-        DrawOperationManager = new DrawOperationManager<SDLGraphicsContext>(this);
         Animations = new(8,
             Helper.GetRectangles(AnimationDefinitions.Robin.Player.Idle.Frames), true,
             Helper.GetRectangles(AnimationDefinitions.Robin.Player.Active.Frames), true,
@@ -42,9 +41,14 @@ public class PlayerNode : Node, IDrawableNode<SDLGraphicsContext>
 
     protected override async ValueTask Attaching(Scene scene)
     {
-        Renderer = await DrawOperationManager.AddDrawOperation(new PlayerRenderer(Game));
+        if (scene.GetDrawOperationManager<SDLGraphicsContext>(out var dopm))
+        {
+            Renderer = new PlayerRenderer(Game);
+            await dopm.AddDrawOperation(Renderer);
+        }
+        else
+            Debug.Fail("The attached scene did not have a DrawOperationManager for SDLGraphicsContext");
+
         await base.Attaching(scene);
     }
-
-    public DrawOperationManager<SDLGraphicsContext> DrawOperationManager { get; }
 }
