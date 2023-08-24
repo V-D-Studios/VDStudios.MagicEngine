@@ -17,6 +17,16 @@ public class TimedSequence<T>
     public bool Reverse { get; set; }
 
     /// <summary>
+    /// The amount of time to wait, or hang for when the Sequence reaches its 0th element
+    /// </summary>
+    public TimeSpan? StartHang { get; set; }
+
+    /// <summary>
+    /// The amount of time to wait, or hang for when the Sequence reaches its last element, right before it loops or reverses
+    /// </summary>
+    public TimeSpan? EndHang { get; set; }
+
+    /// <summary>
     /// The previous index of this <see cref="TimedSequence{T}"/>
     /// </summary>
     public int PrevIndex { get; private set; }
@@ -89,10 +99,29 @@ public class TimedSequence<T>
     /// <summary>
     /// Checks if this <see cref="TimedSequence{T}"/> should update
     /// </summary>
-    public void Update()
+    /// <returns><see langword="true"/> If the sequence stepped, <see langword="false"/> otherwise</returns>
+    public bool Update()
     {
-        if (_timer.Elapsed > Interval)
+        TimeSpan intr = Index is 0 && StartHang is TimeSpan st ? st : Index == _items.Length && EndHang is TimeSpan en ? en : Interval;
+
+        if (_timer.Elapsed > intr)
+        {
             Step();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Resets the state of this <see cref="TimedSequence{T}"/>
+    /// </summary>
+    public void Reset()
+    {
+        Index = 0;
+        IsReversing = true;
+        PrevIndex = NextStep().index;
+        IsReversing = false;
+        NextIndex = NextStep().index;
     }
 
     /// <summary>
@@ -120,5 +149,6 @@ public class TimedSequence<T>
         _timer = timer ?? throw new ArgumentNullException(nameof(timer));
         _items = items.ToImmutableArray();
         Interval = interval;
+        Reset();
     }
 }

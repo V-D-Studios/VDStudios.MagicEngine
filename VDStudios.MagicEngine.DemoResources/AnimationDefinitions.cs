@@ -132,12 +132,15 @@ public static class AnimationDefinitions
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static (int X, int Y, int Width, int Height)[] GenAnim(int xOffset, int yOffset)
-            => new (int X, int Y, int Width, int Height)[]
+        {
+            var x = new (int X, int Y, int Width, int Height)[]
             {
-                (0 * 32 + xOffset * 32, 0 * 32 + yOffset * 32, 32, 32),
-                (1 * 32 + xOffset * 32, 0 * 32 + yOffset * 32, 32, 32),
-                (2 * 32 + xOffset * 32, 0 * 32 + yOffset * 32, 32, 32),
-                (3 * 32 + xOffset * 32, 0 * 32 + yOffset * 32, 32, 32)
+                (0 * 32 + xOffset * 128, 0 * 32 + yOffset * 32, 32, 32),
+                (1 * 32 + xOffset * 128, 0 * 32 + yOffset * 32, 32, 32),
+                (2 * 32 + xOffset * 128, 0 * 32 + yOffset * 32, 32, 32),
+                (3 * 32 + xOffset * 128, 0 * 32 + yOffset * 32, 32, 32)
             };
+            return x;
+        }
     }
 }

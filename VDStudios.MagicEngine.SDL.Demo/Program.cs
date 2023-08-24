@@ -12,20 +12,3 @@ internal class Program
         await game.StartGame(g => new TestScene(g));
     }
 }
-
-public enum CharacterAnimationKind
-{
-    Up,
-    Down,
-    Left,
-    Right,
-    UpRight,
-    DownRight,
-    UpLeft,
-    DownLeft
-}
-
-public class AnimationContainer
-{
-
-}

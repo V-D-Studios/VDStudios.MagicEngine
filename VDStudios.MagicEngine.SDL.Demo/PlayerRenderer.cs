@@ -15,6 +15,8 @@ public class PlayerRenderer : DrawOperation<SDLGraphicsContext>
     private Texture? RobinTexture;
     private readonly Vector2 SpriteSize = new(32, 32);
 
+    public Rectangle View { get; set; }
+
     protected override ValueTask CreateResources() => ValueTask.CompletedTask;
 
     protected override void CreateGPUResources(SDLGraphicsContext context)
@@ -39,7 +41,7 @@ public class PlayerRenderer : DrawOperation<SDLGraphicsContext>
         Transform(scale: new Vector3(4, 4, 1));
 
         var dest = this.CreateDestinationRectangle(SpriteSize, target.Transformation).ToRectangle();
-        RobinTexture.Render(new Rectangle(32, 32, 0, 0), dest);
+        RobinTexture.Render(View, dest);
     }
 
     protected override void UpdateGPUState(SDLGraphicsContext context)
