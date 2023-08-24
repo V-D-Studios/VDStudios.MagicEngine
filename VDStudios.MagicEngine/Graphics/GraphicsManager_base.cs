@@ -68,6 +68,8 @@ public abstract class GraphicsManager : GameObject
     internal readonly SemaphoreSlim initLock = new(1, 1);
     private Task? InputPropagationTask;
 
+    internal ulong FrameCount { get; private set; }
+
     /// <summary>
     /// Propagates input across all of <see cref="InputReady"/>'s subscribers
     /// </summary>
@@ -222,6 +224,12 @@ public abstract class GraphicsManager : GameObject
     }
 
     #endregion
+
+    /// <summary>
+    /// Creates a new <see cref="GraphicsManagerFrameTimer"/> with <paramref name="frameInterval"/> as its lapse
+    /// </summary>
+    public GraphicsManagerFrameTimer GetFrameTimer(uint frameInterval)
+        => new(this, frameInterval);
 
     /// <summary>
     /// Waits for a <see cref="SemaphoreSlim"/> lock to be unlocked and adquires the lock if possible
@@ -434,4 +442,9 @@ public abstract class GraphicsManager : GameObject
     /// The main running method of this <see cref="GraphicsManager{TGraphicsContext}"/>. This method is expected to be called once and return, having initialized a Thread or scheduled a long running Task for <see cref="GraphicsManager{TGraphicsContext}.Run"/>
     /// </summary>
     protected abstract void Launch();
+
+    /// <summary>
+    /// Notifies this <see cref="GraphicsManager{TGraphicsContext}"/> that a new Frame has finished
+    /// </summary>
+    protected void CountFrame() => FrameCount++;
 }

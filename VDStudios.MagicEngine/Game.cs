@@ -464,6 +464,12 @@ public abstract class Game : IGameObject
 
     #region Run
 
+    /// <summary>
+    /// Creates a new <see cref="GameFrameTimer"/> with <paramref name="frameInterval"/> as its lapse
+    /// </summary>
+    public GameFrameTimer GetFrameTimer(uint frameInterval)
+        => new(this, frameInterval);
+
     internal ulong FrameCount { get; private set; }
 
     /// <summary>

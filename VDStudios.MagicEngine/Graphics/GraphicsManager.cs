@@ -359,8 +359,6 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
             var drawOpBuffer = new List<DrawOperation<TGraphicsContext>>();
             TimeSpan delta = default;
 
-            ulong frameCount = 0;
-
             var (ww, wh) = WindowSize;
 
             Log?.Information("Entering main rendering loop");
@@ -470,7 +468,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
 
                 // Code that does not require any resources and is not bothered if resources are suddenly released
 
-                frameCount++;
+                CountFrame();
                 delta = sw.Elapsed;
                 DeltaAverageKeeper.Push(1000 / (sw.ElapsedMilliseconds + 0.0000001f));
 
