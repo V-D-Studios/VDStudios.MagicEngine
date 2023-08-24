@@ -9,7 +9,7 @@ namespace VDStudios.MagicEngine;
 /// <typeparam name="T">The type of element this sequence has</typeparam>
 public class TimedSequence<T>
 {
-    private readonly Stopwatch _timer = new();
+    private readonly Stopwatch _timer;
 
     /// <summary>
     /// Whether this <see cref="TimedSequence{T}"/> travels backwards upon reaching the end
@@ -107,8 +107,17 @@ public class TimedSequence<T>
     /// </summary>
     /// <param name="interval">The amount of time before performing a step</param>
     /// <param name="items">The items to create this <see cref="TimedSequence{T}"/> over</param>
-    public TimedSequence(TimeSpan interval, IEnumerable<T> items)
+    public TimedSequence(TimeSpan interval, IEnumerable<T> items) : this(new(), interval, items) { }
+
+    /// <summary>
+    /// Creates a new instance of class <see cref="TimedSequence{T}"/> over <paramref name="items"/>
+    /// </summary>
+    /// <param name="timer">The Stopwatch that will measure time for this <see cref="TimedSequence{T}"/></param>
+    /// <param name="interval">The amount of time before performing a step</param>
+    /// <param name="items">The items to create this <see cref="TimedSequence{T}"/> over</param>
+    public TimedSequence(Stopwatch timer, TimeSpan interval, IEnumerable<T> items)
     {
+        _timer = timer ?? throw new ArgumentNullException(nameof(timer));
         _items = items.ToImmutableArray();
         Interval = interval;
     }
