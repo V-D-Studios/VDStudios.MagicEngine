@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\VDStudios.MagicEngine\VDStudios.MagicEngine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="Animations.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
