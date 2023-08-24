@@ -37,9 +37,8 @@ public abstract class GraphicsManager : GameObject
     /// Obtains an <see cref="InputSnapshot"/> of the input that was processed this frame
     /// </summary>
     /// <remarks>
-    /// This method should only be called once per frame, as it clears the current snapshot buffer
+    /// The produced <see cref="InputSnapshot"/> is cached, and must be cleared before every frame through <see cref="ClearSnapshot"/>
     /// </remarks>
-    /// <returns></returns>
     protected InputSnapshot FetchSnapshot()
     {
         if (inputSnapshot is null)
@@ -52,6 +51,17 @@ public abstract class GraphicsManager : GameObject
                 }
 
         return inputSnapshot;
+    }
+
+    /// <summary>
+    /// Clears the cached <see cref="InputSnapshot"/>, so that <see cref="FetchSnapshot"/> may produce a new one
+    /// </summary>
+    protected void ClearSnapshot()
+    {
+        if (inputSnapshot is not null)
+            lock (snapshotBuffer)
+                if (inputSnapshot is not null)
+                    inputSnapshot = null;
     }
 
     private readonly SemaphoreSlim InputSemaphore = new(1, 1);
@@ -422,10 +432,7 @@ public abstract class GraphicsManager : GameObject
     protected virtual void Starting() { }
 
     /// <summary>
-    /// The main running method of this <see cref="GraphicsManager{TGraphicsContext}"/>. This method is expected to be called once and return, having initialized a Thread or scheduled a long running Task. 
+    /// The main running method of this <see cref="GraphicsManager{TGraphicsContext}"/>. This method is expected to be called once and return, having initialized a Thread or scheduled a long running Task for <see cref="GraphicsManager{TGraphicsContext}.Run"/>
     /// </summary>
-    /// <remarks>
-    /// This is a very advanced method, the entire state of the GraphicsManager is dependent on this method and thus must be understood perfectly. This method will be called strictly once, as it is expected the rendering loop to start externally with it
-    /// </remarks>
     protected abstract void Launch();
 }
