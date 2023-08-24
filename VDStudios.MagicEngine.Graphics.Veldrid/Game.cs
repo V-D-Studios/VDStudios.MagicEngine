@@ -4,6 +4,7 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
 using VDStudios.MagicEngine.Exceptions;
+using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 using VDStudios.MagicEngine.Logging;
 

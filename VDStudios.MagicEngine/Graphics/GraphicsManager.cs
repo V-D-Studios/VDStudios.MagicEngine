@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Input;
-using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Graphics;
 

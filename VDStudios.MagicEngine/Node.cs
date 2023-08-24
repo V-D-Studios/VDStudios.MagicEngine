@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using VDStudios.MagicEngine.Exceptions;
+using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;

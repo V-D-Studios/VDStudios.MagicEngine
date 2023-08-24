@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Graphics;
 

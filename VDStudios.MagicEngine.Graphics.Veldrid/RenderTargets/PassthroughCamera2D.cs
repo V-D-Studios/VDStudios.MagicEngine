@@ -1,5 +1,4 @@
 ﻿using VDStudios.MagicEngine.Graphics.Veldrid.Internal;
-using VDStudios.MagicEngine.Internal;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.RenderTargets;

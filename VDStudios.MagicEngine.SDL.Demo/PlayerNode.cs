@@ -43,6 +43,8 @@ public class PlayerNode : Node
 
     protected override async ValueTask Attaching(Scene scene)
     {
+        Game.MainGraphicsManager.InputReady += MainGraphicsManager_InputReady;
+
         if (scene.GetDrawOperationManager<SDLGraphicsContext>(out var dopm))
         {
             SpriteOperation = new TextureOperation(Game, c =>
@@ -57,5 +59,10 @@ public class PlayerNode : Node
             Debug.Fail("The attached scene did not have a DrawOperationManager for SDLGraphicsContext");
 
         await base.Attaching(scene);
+    }
+
+    private void MainGraphicsManager_InputReady(GraphicsManager graphicsManager, Input.InputSnapshot inputSnapshot, DateTime timestamp)
+    {
+        throw new NotImplementedException();
     }
 }

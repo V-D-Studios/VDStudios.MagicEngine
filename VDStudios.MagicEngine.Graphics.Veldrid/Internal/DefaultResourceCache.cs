@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using VDStudios.MagicEngine;
-using VDStudios.MagicEngine.Internal;
 using Veldrid;
 using Veldrid.SPIRV;
 

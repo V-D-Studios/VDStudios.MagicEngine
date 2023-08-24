@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using VDStudios.MagicEngine.Internal;
+using VDStudios.MagicEngine.Graphics;
 
 namespace VDStudios.MagicEngine.Input;
 

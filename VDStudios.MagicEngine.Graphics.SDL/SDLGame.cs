@@ -1,6 +1,5 @@
 ﻿using SDL2.Bindings;
 using SDL2.NET;
-using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Graphics.SDL;
 

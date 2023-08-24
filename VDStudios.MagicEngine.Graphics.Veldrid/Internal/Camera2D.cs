@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using VDStudios.MagicEngine.Internal;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.Internal;

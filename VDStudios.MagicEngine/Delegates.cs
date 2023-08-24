@@ -1,6 +1,5 @@
 ﻿using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Input;
-using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine;
 

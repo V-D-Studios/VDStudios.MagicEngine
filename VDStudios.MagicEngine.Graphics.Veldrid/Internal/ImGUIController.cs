@@ -2,7 +2,6 @@
 using System.Runtime.CompilerServices;
 using ImGuiNET;
 using VDStudios.MagicEngine.Input;
-using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.Internal;
 /// <summary>

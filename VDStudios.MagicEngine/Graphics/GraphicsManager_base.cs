@@ -2,16 +2,15 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Input;
 
-namespace VDStudios.MagicEngine.Internal;
+namespace VDStudios.MagicEngine.Graphics;
 
 /// <summary>
 /// Represents an abstract GraphicsManager that is not tied to a specific GraphicsContext.
 /// </summary>
 /// <remarks>
-/// This class cannot be instanced outside this library, as it is not meant to be used outside of this library.
+/// This class cannot be instanced, and cannot be inherited outside this library
 /// </remarks>
 public abstract class GraphicsManager : GameObject
 {
@@ -234,7 +233,7 @@ public abstract class GraphicsManager : GameObject
     /// <param name="waitlock">The object that can be used to release the semaphore through an using statement</param>
     /// <returns><see langword="true"/> if <paramref name="semaphore"/>'s lock was adquired, <see langword="false"/> otherwise</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static bool WaitOn(SemaphoreSlim semaphore, Func<bool> condition, [NotNullWhen(true)] [MaybeNullWhen(false)] out WaitLockDisposable waitlock, int syncWait = 15, CancellationToken ct = default)
+    protected static bool WaitOn(SemaphoreSlim semaphore, Func<bool> condition, [NotNullWhen(true)][MaybeNullWhen(false)] out WaitLockDisposable waitlock, int syncWait = 15, CancellationToken ct = default)
     {
         if (!semaphore.Wait(syncWait, ct))
         {
@@ -308,7 +307,7 @@ public abstract class GraphicsManager : GameObject
 
     internal async ValueTask<bool> WaitForInitAsync(int millisecondsTimeout = -1, CancellationToken ct = default)
     {
-        if (millisecondsTimeout is <= 50 and >= 0) 
+        if (millisecondsTimeout is <= 50 and >= 0)
         {
             if (initLock.Wait(millisecondsTimeout, ct))
             {
@@ -352,9 +351,9 @@ public abstract class GraphicsManager : GameObject
     ///// </remarks>
     //public GraphicsManager<TGraphicsContext>RunStateChanged? RunStateChanged;
 
-    
-    
-    
+
+
+
     /// <summary>
     /// Performs task such as Creating and Setting up the Window
     /// </summary>
