@@ -17,10 +17,4 @@
     <PackageReference Include="coverlet.collector" Version="3.2.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\VDStudios.MagicEngine.Demo\VDStudios.MagicEngine.Demo.csproj" />
-    <ProjectReference Include="..\VDStudios.MagicEngine.Extensions\VDStudios.MagicEngine.Extensions.csproj" />
-    <ProjectReference Include="..\VDStudios.MagicEngine\VDStudios.MagicEngine.csproj" />
-  </ItemGroup>
-
 </Project>

@@ -24,12 +24,30 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     #region Transformation
 
     /// <summary>
+    /// The transformation matrix that represents the current scaling properties in this <see cref="DrawOperation{TGraphicsContext}"/>
+    /// </summary>
+    /// <remarks>
+    /// <see cref="VertexTransformation"/> already includes this transformation and should not be mixed externally
+    /// </remarks>
+    public Matrix4x4 ScaleTransformation
+    {
+        get
+        {
+            if (scaletrans is not Matrix4x4 t)
+                scaletrans = t = Matrix4x4.CreateScale(Scale);
+            ScaleTransformationChanged?.Invoke(this, Game.TotalTime);
+            return t;
+        }
+    }
+    private Matrix4x4? scaletrans = Matrix4x4.Identity;
+
+    /// <summary>
     /// The transformation matrix that represents the current transformation properties in this <see cref="DrawOperation{TGraphicsContext}"/>
     /// </summary>
     /// <remarks>
     /// This transformation can be used to represent the current world properties of the drawing operation, for example, it's position and rotation in relation to the world itself
     /// </remarks>
-    protected Matrix4x4 VertexTransformation
+    public Matrix4x4 VertexTransformation
     {
         get
         {
@@ -46,6 +64,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
                     Matrix4x4.CreateRotationX(rotx, new(cpxx, cpxy, cpxz)) *
                     Matrix4x4.CreateRotationY(roty, new(cpyx, cpyy, cpyz)) *
                     Matrix4x4.CreateRotationZ(rotz, new(cpzx, cpzy, cpzz));
+                VertexTransformationChanged?.Invoke(this, Game.TotalTime);
             }
             return t;
         }
@@ -62,9 +81,25 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
         {
             colTrans = value;
             NotifyPendingGPUUpdate();
+            ColorTransformationChanged?.Invoke(this, Game.TotalTime);
         }
     }
     private ColorTransformation colTrans;
+
+    /// <summary>
+    /// Fired when <see cref="ColorTransformation"/> changes
+    /// </summary>
+    public event DrawOperationEvent<TGraphicsContext>? ColorTransformationChanged;
+
+    /// <summary>
+    /// Fired when <see cref="VertexTransformation"/> changes
+    /// </summary>
+    public event DrawOperationEvent<TGraphicsContext>? VertexTransformationChanged;
+
+    /// <summary>
+    /// Fired when <see cref="ScaleTransformation"/> changes
+    /// </summary>
+    public event DrawOperationEvent<TGraphicsContext>? ScaleTransformationChanged;
 
     /// <summary>
     /// Adjusts the transformation parameters and calculates the appropriate transformation matrix for this <see cref="DrawOperation{TGraphicsContext}"/>
@@ -189,14 +224,14 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     private bool pendingGpuUpdate = true;
 
     /// <summary>
-    /// Flags this <see cref="DrawOperation{TGraphicsContext}"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, TGraphicsContext, DrawTransformation)"/> call
+    /// Flags this <see cref="DrawOperation{TGraphicsContext}"/> as needing to update GPU data before the next <see cref="Draw(TimeSpan, TGraphicsContext, RenderTarget{TGraphicsContext})"/> call
     /// </summary>
     /// <remarks>
     /// Multiple calls to this method will not result in <see cref="UpdateGPUState(TGraphicsContext)"/> being called multiple times
     /// </remarks>
     protected void NotifyPendingGPUUpdate() => pendingGpuUpdate = true;
 
-    internal void InternalDraw(TimeSpan delta, TGraphicsContext context, DrawTransformation drawTransformation)
+    internal void InternalDraw(TimeSpan delta, TGraphicsContext context, RenderTarget<TGraphicsContext> target)
     {
         Debug.Assert(context is not null, "The GraphicsContext is unexpectedly null");
         ThrowIfDisposed();
@@ -214,7 +249,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
                 pendingGpuUpdate = false;
                 UpdateGPUState(context);
             }
-            Draw(delta, context, drawTransformation);
+            Draw(delta, context, target);
         }
         finally
         {
@@ -245,11 +280,11 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// </summary>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
     /// <param name="context">The <typeparamref name="TGraphicsContext"/> for this <see cref="DrawOperation{TGraphicsContext}"/></param>
-    /// <param name="drawTransformation">External transformation parameters to apply to this <see cref="DrawOperation{TGraphicsContext}"/></param>
-    protected abstract void Draw(TimeSpan delta, TGraphicsContext context, DrawTransformation drawTransformation);
+    /// <param name="target"></param>
+    protected abstract void Draw(TimeSpan delta, TGraphicsContext context, RenderTarget<TGraphicsContext> target);
 
     /// <summary>
-    /// This method is called automatically when this <see cref="DrawOperation{TGraphicsContext}"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(TimeSpan, TGraphicsContext, DrawTransformation)"/>
+    /// This method is called automatically when this <see cref="DrawOperation{TGraphicsContext}"/> is going to be drawn for the first time, and after <see cref="NotifyPendingGPUUpdate"/> is called. Whenever applicable, this method ALWAYS goes before <see cref="Draw(TimeSpan, TGraphicsContext, RenderTarget{TGraphicsContext})"/>
     /// </summary>
     /// <param name="context">The <typeparamref name="TGraphicsContext"/> for this <see cref="DrawOperation{TGraphicsContext}"/></param>
     protected abstract void UpdateGPUState(TGraphicsContext context);

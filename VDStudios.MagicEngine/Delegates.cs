@@ -262,3 +262,27 @@ public delegate void GraphicsManagerRunStateChanged<TGraphicsContext>(GraphicsMa
 public delegate void GraphicsManagerInputEventHandler(GraphicsManager graphicsManager, InputSnapshot inputSnapshot, DateTime timestamp);
 
 #endregion
+
+#region DrawOperation Delegates
+
+/// <summary>
+/// Represents an event regarding a <see cref="DrawOperation{TGraphicsContext}"/>
+/// </summary>
+/// <typeparam name="TGraphicsContext">The <see cref="GraphicsContext{TSelf}"/> of the <see cref="DrawOperation{TGraphicsContext}"/></typeparam>
+/// <param name="drawOperation">The <see cref="DrawOperation{TGraphicsContext}"/> that triggered the event</param>
+/// <param name="timestamp">The amount of time that has passed since the library's initialization and this event firing</param>
+public delegate void DrawOperationEvent<TGraphicsContext>(DrawOperation<TGraphicsContext> drawOperation, TimeSpan timestamp)
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>;
+
+/// <summary>
+/// Represents an event regarding a <see cref="DrawOperation{TGraphicsContext}"/>
+/// </summary>
+/// <typeparam name="TGraphicsContext">The <see cref="GraphicsContext{TSelf}"/> of the <see cref="DrawOperation{TGraphicsContext}"/></typeparam>
+/// <typeparam name="TData">The type of extra data regarding the event</typeparam>
+/// <param name="drawOperation">The <see cref="DrawOperation{TGraphicsContext}"/> that triggered the event</param>
+/// <param name="timestamp">The amount of time that has passed since the library's initialization and this event firing</param>
+/// <param name="data">Extra data regarding the event</param>
+public delegate void DrawOperationEvent<TGraphicsContext, TData>(DrawOperation<TGraphicsContext> drawOperation, TData data, TimeSpan timestamp)
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>;
+
+#endregion

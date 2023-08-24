@@ -283,7 +283,7 @@ public abstract class VeldridDrawOperation : DrawOperation<VeldridGraphicsContex
                 pendingGpuUpdate = false;
                 await UpdateGPUState(device, cl);
             }
-            await Draw(delta, cl, device, target).ConfigureAwait(false);
+            await Draw(delta, cl, TODO, device, target).ConfigureAwait(false);
         }
         finally
         {

@@ -82,6 +82,7 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
         WindowConfig = windowConfig ?? WindowConfig.Default;
         WindowActionQueue = new ConcurrentQueue<Action<Window>>();
         imGuiController = new(this);
+        WindowView = Matrix4x4.Identity;
     }
 
     /// <inheritdoc/>
@@ -247,6 +248,10 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
                 var flags = w.Flags;
                 IsWindowAvailable = flags.HasFlag(WindowFlags.Shown);
                 HasFocus = flags.HasFlag(WindowFlags.InputFocus);
+
+                Log?.Debug("Reading WindowSize");
+                var (ww, wh) = w.Size;
+                WindowSize = new IntVector2(ww, wh);
             });
 
             var (ww, wh) = WindowSize;
@@ -444,7 +449,6 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
             //ImGuiController.WindowResized(ww, wh);
 
             WindowSize = new IntVector2(newSize.Width, newSize.Height);
-            WindowView = Matrix4x4.CreateScale(wh / (float)ww, 1, 1);
         }
         finally
         {

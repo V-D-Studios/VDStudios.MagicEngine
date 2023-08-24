@@ -17,6 +17,11 @@ public abstract class RenderTarget<TGraphicsContext>
     }
 
     /// <summary>
+    /// The <see cref="DrawTransformation"/> for this <see cref="RenderTarget{TGraphicsContext}"/>
+    /// </summary>
+    public virtual DrawTransformation Transformation { get; protected set; }
+
+    /// <summary>
     /// The <see cref="GraphicsManager{TGraphicsContext}"/> that owns this <see cref="RenderTarget{TGraphicsContext}"/>
     /// </summary>
     public GraphicsManager<TGraphicsContext> Manager { get; }
@@ -37,7 +42,7 @@ public abstract class RenderTarget<TGraphicsContext>
     public abstract void RenderDrawOperation(TimeSpan delta, TGraphicsContext context, DrawOperation<TGraphicsContext> drawOperation);
 
     /// <summary>
-    /// Signals this <see cref="RenderTarget{TGraphicsContext}"/> that the frame previously started by <see cref="BeginFrame(TGraphicsContext)"/> should be flushed
+    /// Signals this <see cref="RenderTarget{TGraphicsContext}"/> that the frame previously started by <see cref="BeginFrame(TimeSpan, TGraphicsContext)"/> should be flushed
     /// </summary>
     /// <param name="context">The <typeparamref name="TGraphicsContext"/> that contains the info for this target</param>
     public abstract void EndFrame(TGraphicsContext context);
@@ -47,8 +52,7 @@ public abstract class RenderTarget<TGraphicsContext>
     /// </summary>
     /// <param name="drawOperation">The <see cref="DrawOperation{TGraphicsContext}"/> to invoke</param>
     /// <param name="context">The context to pass to <see cref="DrawOperation{TGraphicsContext}"/></param>
-    /// <param name="drawTransformation">Transformation parameters to pass to <paramref name="drawOperation"/></param>
     /// <param name="delta">The amount of time it took to render the last frame</param>
-    protected void InvokeDrawOperation(TimeSpan delta, DrawOperation<TGraphicsContext> drawOperation, TGraphicsContext context, DrawTransformation drawTransformation)
-        => drawOperation.InternalDraw(delta, context, drawTransformation);
+    protected void InvokeDrawOperation(TimeSpan delta, DrawOperation<TGraphicsContext> drawOperation, TGraphicsContext context)
+        => drawOperation.InternalDraw(delta, context, this);
 }

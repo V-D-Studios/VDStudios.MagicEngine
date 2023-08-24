@@ -10,7 +10,7 @@ namespace VDStudios.MagicEngine;
 public static class AssortedExtensions
 {
     /// <summary>
-    /// Represents the largest prime number that is less than <see cref="uint.MaxValue"/>
+    /// Represents the largest prime number that is less than <see cref="ulong.MaxValue"/>
     /// </summary>
     public const ulong PrimeNumberNearestToUInt64MaxValue = 18446744073709551557;
 

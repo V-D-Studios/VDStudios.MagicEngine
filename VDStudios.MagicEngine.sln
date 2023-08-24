@@ -65,6 +65,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SDL2.Bindings", "dependenci
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.MagicEngine.SDL.Demo", "VDStudios.MagicEngine.SDL.Demo\VDStudios.MagicEngine.SDL.Demo.csproj", "{D0256451-0E45-4C47-8AE4-6CEF4AE16848}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VDStudios.MagicEngine.DemoResources", "VDStudios.MagicEngine.DemoResources\VDStudios.MagicEngine.DemoResources.csproj", "{1B8CBDEE-922A-4281-8137-6ACEF26D4801}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -155,6 +157,10 @@ Global
 		{D0256451-0E45-4C47-8AE4-6CEF4AE16848}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D0256451-0E45-4C47-8AE4-6CEF4AE16848}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D0256451-0E45-4C47-8AE4-6CEF4AE16848}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B8CBDEE-922A-4281-8137-6ACEF26D4801}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B8CBDEE-922A-4281-8137-6ACEF26D4801}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B8CBDEE-922A-4281-8137-6ACEF26D4801}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B8CBDEE-922A-4281-8137-6ACEF26D4801}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -185,6 +191,7 @@ Global
 		{D5C8497F-AAA6-4D52-A9B5-5DC9969CADF6} = {4B5B3459-0802-4454-8C97-1B4B619F2AB6}
 		{419531AA-97B0-4714-B5A4-2952D04C3DBA} = {4B5B3459-0802-4454-8C97-1B4B619F2AB6}
 		{D0256451-0E45-4C47-8AE4-6CEF4AE16848} = {17FF4568-701D-45F9-A612-A3637713FC3E}
+		{1B8CBDEE-922A-4281-8137-6ACEF26D4801} = {17FF4568-701D-45F9-A612-A3637713FC3E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6D4206DF-0B60-4CA8-978E-45BF879850A9}

@@ -60,6 +60,19 @@ public struct FloatRectangle : IEquatable<FloatRectangle>, IFormattable
     }
 
     /// <summary>
+    /// Creates a new <see cref="FloatRectangle"/>
+    /// </summary>
+    /// <param name="position">The position of this rectangle</param>
+    /// <param name="size">The width and height of this rectangle</param>
+    public FloatRectangle(Vector2 position, Vector2 size)
+    {
+        X = position.X;
+        Y = position.Y;
+        Width = size.Width();
+        Height = size.Height();
+    }
+
+    /// <summary>
     /// Creates a <see cref="FloatRectangle"/> from <paramref name="vector"/>
     /// </summary>
     /// <remarks>

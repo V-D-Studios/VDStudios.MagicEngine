@@ -11,12 +11,15 @@ public class PassthroughRenderTarget : SDLRenderTarget
     public PassthroughRenderTarget(SDLGraphicsManager manager) : base(manager) { }
 
     /// <inheritdoc/>
-    public override void BeginFrame(TimeSpan delta, SDLGraphicsContext context) { }
+    public override void BeginFrame(TimeSpan delta, SDLGraphicsContext context) 
+    {
+        Transformation = new DrawTransformation(Matrix4x4.Identity, context.Manager.WindowView);
+    }
 
     /// <inheritdoc/>
     public override void RenderDrawOperation(TimeSpan delta, SDLGraphicsContext context, DrawOperation<SDLGraphicsContext> drawOperation)
     {
-        InvokeDrawOperation(delta, drawOperation, context, new DrawTransformation(Matrix4x4.Identity, context.Manager.WindowView));
+        InvokeDrawOperation(delta, drawOperation, context);
     }
 
     /// <inheritdoc/>

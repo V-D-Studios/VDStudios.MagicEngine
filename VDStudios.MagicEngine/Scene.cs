@@ -140,7 +140,18 @@ public abstract class Scene : GameObject, IDisposable
         var id = Children.Add(child);
 
         foreach (var x in child.GetType().FindInterfaces((t, c) => t.IsConstructedGenericType && t.GetGenericTypeDefinition() == typeof(IDrawableNode<>), null))
+        {
+            var prop = x.GetProperty("DrawOperationManager")!.GetValue(child) 
+                ?? throw new InvalidOperationException("The IDrawableNode does not have a DrawOperationManager");
+
+            var owner = prop.GetType().GetProperty("Owner")!.GetValue(prop)
+                ?? throw new InvalidOperationException("The DrawOperationManager of this IDrawableNode does not have an owner");
+
+            if (owner != child)
+                throw new InvalidOperationException("This IDrawableNode's DrawOperationManager is not owned by the node that holds the object");
+
             drawablenodes_dict.GetOrAdd(x, gm => new ConcurrentBag<object>()).Add(child);
+        }
         return id;
     }
 

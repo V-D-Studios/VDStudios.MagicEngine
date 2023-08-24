@@ -61,12 +61,13 @@ public class SDLCamera2D : SDLRenderTarget
     public override void BeginFrame(TimeSpan delta, SDLGraphicsContext context)
     {
         current = Interpolator.Interpolate(current, goal.Transformation, (float)delta.TotalMilliseconds);
+        Transformation = new DrawTransformation(current, Manager.WindowView);
     }
 
     /// <inheritdoc/>
     public override void RenderDrawOperation(TimeSpan delta, SDLGraphicsContext context, DrawOperation<SDLGraphicsContext> drawOperation)
     {
-        InvokeDrawOperation(delta, drawOperation, context, new DrawTransformation(current, Manager.WindowView));
+        InvokeDrawOperation(delta, drawOperation, context);
     }
 
     /// <inheritdoc/>

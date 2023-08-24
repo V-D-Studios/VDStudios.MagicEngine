@@ -16,7 +16,7 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     /// Instantiates a new object of type <see cref="DrawOperationManager{TGraphicsContext}"/>
     /// </summary>
     /// <param name="owner">The <see cref="IDrawableNode{TGraphicsContext}"/> that owns this <see cref="DrawOperationManager{TGraphicsContext}"/></param>
-    protected DrawOperationManager(IDrawableNode<TGraphicsContext> owner)
+    public DrawOperationManager(IDrawableNode<TGraphicsContext> owner)
         : base(owner.Game, "Rendering & Game Scene", "Draw Operations")
     {
         if (owner is not Node n)
