@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using VDStudios.MagicEngine.World2D;
 
 namespace VDStudios.MagicEngine.Graphics.SDL.RenderTargets;
 
@@ -19,6 +20,11 @@ public class SDLCamera2D : SDLRenderTarget
     /// The <see cref="IInterpolator"/> that will be used to interpolate between the camera's current position and its goal
     /// </summary>
     public IInterpolator Interpolator { get; }
+
+    /// <summary>
+    /// A Target for this <see cref="SDLCamera2D"/> to follow
+    /// </summary>
+    public IWorldMobile2D? Target { get; set; }
 
     /// <inheritdoc/>
     public SDLCamera2D(SDLGraphicsManager manager, IInterpolator? interpolator = default) : base(manager)
@@ -60,6 +66,11 @@ public class SDLCamera2D : SDLRenderTarget
     /// <inheritdoc/>
     public override void BeginFrame(TimeSpan delta, SDLGraphicsContext context)
     {
+        if (Target is IWorldMobile2D target)
+        {
+
+            goal.Transform(translation: new((context.Window.Size.ToVector2() / 2) - target.Position, 0), new Vector3(1, 1, 1));
+        }
         current = Interpolator.Interpolate(current, goal.Transformation, (float)delta.TotalMilliseconds);
         Transformation = new DrawTransformation(current, Manager.WindowView);
     }
