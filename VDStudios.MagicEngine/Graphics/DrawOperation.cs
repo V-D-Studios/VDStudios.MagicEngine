@@ -271,7 +271,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// <remarks>
     /// This method is only called once, during registration
     /// </remarks>
-    protected internal abstract ValueTask CreateResources();
+    protected internal abstract ValueTask CreateResourcesAsync();
 #warning Consider adding UpdateCPUState as well, for asynchronous resource reloading
 
     /// <summary>

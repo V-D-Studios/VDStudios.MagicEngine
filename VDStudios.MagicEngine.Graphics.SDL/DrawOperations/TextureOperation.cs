@@ -34,7 +34,7 @@ public class TextureOperation : DrawOperation<SDLGraphicsContext>
     public Rectangle View { get; set; }
 
     /// <inheritdoc/>
-    protected override ValueTask CreateResources() => ValueTask.CompletedTask;
+    protected override ValueTask CreateResourcesAsync() => ValueTask.CompletedTask;
 
     /// <inheritdoc/>
     protected override void CreateGPUResources(SDLGraphicsContext context)

@@ -129,7 +129,7 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
             DrawOperations.Add(operation);
             gm_dict.GetOrAdd(graphicsManager, gm => new DrawOperationList<TGraphicsContext>()).Add(operation);
             operation.AboutToDispose += Operation_AboutToDispose;
-            await operation.CreateResources();
+            await operation.CreateResourcesAsync();
         }
         catch
         {
