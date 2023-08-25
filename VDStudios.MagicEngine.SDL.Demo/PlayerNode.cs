@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using SDL2.NET;
 using SDL2.NET.Input;
+using SDL2.NET.SDLFont;
 using SDL2.NET.SDLImage;
 using VDStudios.MagicEngine.DemoResources;
 using VDStudios.MagicEngine.Graphics;
@@ -16,6 +18,8 @@ public class PlayerNode : Node, IWorldMobile2D
 {
     private readonly CharacterAnimationContainer AnimationContainer;
     private TextureOperation? SpriteOperation;
+    private TextOperation? TextOperation;
+    private GraphicsManagerFrameTimer GMTimer;
 
     public float Speed { get; } = .3f;
     public Vector2 Direction { get; private set; } = Vector2.Zero;
@@ -44,11 +48,15 @@ public class PlayerNode : Node, IWorldMobile2D
             = AnimationContainer.Active.StartHang
             = AnimationContainer.Active.EndHang
             = TimeSpan.FromSeconds(1d / 2);
+
+        GMTimer = new(Game.MainGraphicsManager, 10);
     }
 
     protected override ValueTask<bool> Updating(TimeSpan delta)
     {
         Debug.Assert(SpriteOperation is not null, "PlayerNode.SpriteOperation is unexpectedly null at the time of updating");
+        Debug.Assert(TextOperation is not null, "PlayerNode.TextOperation is unexpectedly null at the time of updating");
+        Debug.Assert(ParentScene is not null, "PlayerNode.ParentScene is unexpectedly null at the time of updating");
 
         if (Keyboard.KeyStates[Scancode.W].IsPressed)
             Direction += Directions.Up;
@@ -69,6 +77,12 @@ public class PlayerNode : Node, IWorldMobile2D
 
         Direction = default;
 
+        if (GMTimer.Clocks > 0)
+        {
+            TextOperation.SetTextBlended($"Robin: {Position}\nCamera: {Vector2.Transform(default, ((DemoScene)ParentScene).Camera.CurrentView)}", RgbaVector.Black.ToRGBAColor(), 16);
+            GMTimer.Restart();
+        }
+
         return base.Updating(delta);
     }
 
@@ -81,6 +95,9 @@ public class PlayerNode : Node, IWorldMobile2D
                 using var stream = new MemoryStream(Animations.Robin);
                 return Image.LoadTexture(c.Renderer, stream);
             }, AnimationContainer.CurrentAnimation.CurrentElement);
+
+            using var stream = new MemoryStream(Fonts.CascadiaCode);
+            TextOperation = new TextOperation(new TTFont(stream, 16), Game);
 
             await dopm.AddDrawOperation(SpriteOperation);
         }

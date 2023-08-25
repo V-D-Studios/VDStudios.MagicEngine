@@ -5,19 +5,27 @@
 /// </summary>
 public readonly record struct GameFrameTimer(Game Game, uint Lapse)
 {
+    private readonly ulong Start = Game.FrameCount;
+
     /// <summary>
     /// The amount of frames to wait before the timer is triggered
     /// </summary>
     /// <remarks>
     /// The timer will only be considered triggered if checked in the exact it is triggered, thus it needs to be checked every frame
     /// </remarks>
-    public uint Lapse { get; } = Lapse + (uint)(Game.FrameCount % Lapse);
+    public uint Lapse { get; } = Lapse;
 
     /// <summary>
-    /// Whether or not this <see cref="GameFrameTimer"/> is triggered this frame
+    /// The amount of times <see cref="Lapse"/> has elapsed
+    /// </summary>
+    public uint Clocks => (uint)((Game.FrameCount - Start) / Lapse);
+
+    /// <summary>
+    /// Creates a new <see cref="GameFrameTimer"/> that contains the same parameters as this one, but begins counting from the moment this call completes
     /// </summary>
     /// <remarks>
-    /// The timer will only be considered triggered if checked in the exact it is triggered, thus it needs to be checked every frame
+    /// It's usually a good idea to replace the old GameFrameTimer with this one
     /// </remarks>
-    public bool IsTriggered => Game.FrameCount % Lapse == 0;
+    public GameFrameTimer RestartNew()
+        => new(Game, Lapse);
 }

@@ -16,12 +16,21 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Animations.resx</DependentUpon>
     </Compile>
+    <Compile Update="Fonts.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Fonts.resx</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Update="Animations.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Animations.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Fonts.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Fonts.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 

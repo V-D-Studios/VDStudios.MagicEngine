@@ -17,6 +17,11 @@ public class SDLCamera2D : SDLRenderTarget
     private Matrix4x4 current = Matrix4x4.Identity;
 
     /// <summary>
+    /// The current Transformation Matrix that represents this <see cref="SDLCamera2D"/>'s view
+    /// </summary>
+    public Matrix4x4 CurrentView => current;
+
+    /// <summary>
     /// The <see cref="IInterpolator"/> that will be used to interpolate between the camera's current position and its goal
     /// </summary>
     public IInterpolator Interpolator { get; }

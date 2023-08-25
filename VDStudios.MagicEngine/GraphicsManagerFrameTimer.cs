@@ -7,19 +7,27 @@ namespace VDStudios.MagicEngine;
 /// </summary>
 public readonly record struct GraphicsManagerFrameTimer(GraphicsManager GraphicsManager, uint Lapse)
 {
+    private readonly ulong Start = GraphicsManager.FrameCount;
+
     /// <summary>
     /// The amount of frames to wait before the timer is triggered
     /// </summary>
     /// <remarks>
     /// The timer will only be considered triggered if checked in the exact it is triggered, thus it needs to be checked every frame
     /// </remarks>
-    public uint Lapse { get; } = Lapse + (uint)(GraphicsManager.FrameCount % Lapse);
+    public uint Lapse { get; } = Lapse;
 
     /// <summary>
-    /// Whether or not this <see cref="GraphicsManagerFrameTimer"/> is triggered this frame
+    /// The amount of times <see cref="Lapse"/> has elapsed
+    /// </summary>
+    public uint Clocks => (uint)((GraphicsManager.FrameCount - Start) / Lapse);
+
+    /// <summary>
+    /// Creates a new <see cref="GraphicsManagerFrameTimer"/> that contains the same parameters as this one, but begins counting from the moment this call completes
     /// </summary>
     /// <remarks>
-    /// The timer will only be considered triggered if checked in the exact it is triggered, thus it needs to be checked every frame
+    /// It's usually a good idea to replace the old GraphicsManagerFrameTimer with this one
     /// </remarks>
-    public bool IsTriggered => GraphicsManager.FrameCount % Lapse == 0;
+    public GraphicsManagerFrameTimer RestartNew()
+        => new(GraphicsManager, Lapse);
 }

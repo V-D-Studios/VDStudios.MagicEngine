@@ -10,6 +10,18 @@ namespace VDStudios.MagicEngine;
 public static class AssortedExtensions
 {
     /// <summary>
+    /// Restarts the timer, setting <see cref="GameFrameTimer.Clocks"/> back to 0 and starting the count anew by producing a new one
+    /// </summary>
+    public static void Restart(ref this GameFrameTimer timer)
+        => timer = timer.RestartNew();
+
+    /// <summary>
+    /// Restarts the timer, setting <see cref="GameFrameTimer.Clocks"/> back to 0 and starting the count anew by producing a new one
+    /// </summary>
+    public static void Restart(ref this GraphicsManagerFrameTimer timer)
+        => timer = timer.RestartNew();
+
+    /// <summary>
     /// Represents the largest prime number that is less than <see cref="ulong.MaxValue"/>
     /// </summary>
     public const ulong PrimeNumberNearestToUInt64MaxValue = 18446744073709551557;
