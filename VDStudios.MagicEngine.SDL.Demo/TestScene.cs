@@ -1,10 +1,9 @@
 ﻿using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
-using VDStudios.MagicEngine.Graphics.SDL.RenderTargets;
 
 namespace VDStudios.MagicEngine.SDL.Demo;
 
-public class TestScene : Scene
+public class TestScene : DemoScene
 {
     public TestScene(Game game) : base(game)
     {
@@ -12,9 +11,10 @@ public class TestScene : Scene
 
     protected override async ValueTask Beginning()
     {
+        await base.Beginning();
         RegisterDrawOperationManager(new DrawOperationManager<SDLGraphicsContext>(this));
-        var manager = ((SDLGraphicsManager)Game.MainGraphicsManager);
-        manager.RenderTargets.Add(new SDLCamera2D(manager));
-        await Attach(new PlayerNode(Game));
+        var pnode = new PlayerNode(Game);
+        await Attach(pnode);
+        Camera.Target = pnode;
     }
 }
