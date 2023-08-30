@@ -1,8 +1,10 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Input;
+using VDStudios.MagicEngine.Internal;
 
 namespace VDStudios.MagicEngine.Graphics;
 
@@ -38,7 +40,8 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// </summary>
     public GraphicsManager(Game game) : base(game)
     {
-        RenderTargets = new(this);
+        renderTargets = new();
+        Debug.Assert(CreateRenderTargetList(0), "CreateRenderTargetList unexpectedly returned false within the constructor when creating RenderLevel 0");
 
         framelockWaiter = new(FrameLock);
         drawlockWaiter = new(DrawLock);
@@ -58,10 +61,92 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// </summary>
     public bool PauseOnInputLoss { get; set; }
 
+    private readonly List<uint> renderTargetLevels = new();
+    private readonly Dictionary<uint, RenderTargetList<TGraphicsContext>> renderTargets;
+
     /// <summary>
-    /// This <see cref="GraphicsManager{TGraphicsContext}"/>'s render targets
+    /// Gets this <see cref="GraphicsManager{TGraphicsContext}"/>'s render targets for level <paramref name="renderLevel"/>
     /// </summary>
-    public RenderTargetList<TGraphicsContext> RenderTargets { get; }
+    /// <remarks>
+    /// RenderLevels are a concept that permit different layers of <see cref="RenderTarget{TGraphicsContext}"/>s to work together seamlessly. These levels are ordered by their numeric key. One example of render levels would be a level 0 used for background rendering that is rendered using special targets and is always rendered first (below), level 1 for normal game objects using a camera render target, and level 2 for GUI elements using yet another set of RenderTargets (like a single render target that does not transform the operation at all)
+    /// </remarks>
+    /// <returns>The <see cref="RenderTargetList{TGraphicsContext}"/> associated to <paramref name="renderLevel"/>, or <see langword="null"/> if no <see cref="RenderTargetList{TGraphicsContext}"/> exists for <paramref name="renderLevel"/></returns>
+    public RenderTargetList<TGraphicsContext>? GetRenderTargetList(uint renderLevel)
+    {
+        lock (renderTargetLevels)
+            return renderTargets.TryGetValue(renderLevel, out var v) ? v : null;
+    }
+
+    /// <summary>
+    /// Gets this <see cref="GraphicsManager{TGraphicsContext}"/>'s render targets for level <paramref name="renderLevel"/>, or creates one such list if it doesn't exist
+    /// </summary>
+    /// <remarks>
+    /// RenderLevels are a concept that permit different layers of <see cref="RenderTarget{TGraphicsContext}"/>s to work together seamlessly. These levels are ordered by their numeric key. One example of render levels would be a level 0 used for background rendering that is rendered using special targets and is always rendered first (below), level 1 for normal game objects using a camera render target, and level 2 for GUI elements using yet another set of RenderTargets (like a single render target that does not transform the operation at all)
+    /// </remarks>
+    /// <returns>The <see cref="RenderTargetList{TGraphicsContext}"/> associated to <paramref name="renderLevel"/>, or <see langword="null"/> if no <see cref="RenderTargetList{TGraphicsContext}"/> exists for <paramref name="renderLevel"/></returns>
+    public RenderTargetList<TGraphicsContext> GetOrCreateRenderTargetList(uint renderLevel)
+    {
+        lock (renderTargetLevels)
+            return renderTargets.TryGetValue(renderLevel, out var v) ? v : AddRenderTargetList(renderLevel);
+    }
+
+    /// <summary>
+    /// Throws a new <see cref="ArgumentException"/> if this <see cref="GraphicsManager"/> does not have a <see cref="RenderTargetList{TGraphicsContext}"/> for RenderLevel <paramref name="renderLevel"/>. Does nothing otherwise.
+    /// </summary>
+    /// <exception cref="ArgumentException"></exception>
+    public void ThrowIfRenderLevelNotRegistered(uint renderLevel)
+    {
+        if (GetRenderTargetList(renderLevel) is null)
+            throw new ArgumentException($"The target GraphicsManager does not have a RenderLevel {renderLevel}", nameof(renderLevel));
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="RenderTargetList{TGraphicsContext}"/> for level <paramref name="renderLevel"/>
+    /// </summary>
+    /// <remarks>
+    /// RenderLevels are a concept that permit different layers of <see cref="RenderTarget{TGraphicsContext}"/>s to work together seamlessly. These levels are ordered by their numeric key. One example of render levels would be a level 0 used for background rendering that is rendered using special targets and is always rendered first (below), level 1 for normal game objects using a camera render target, and level 2 for GUI elements using yet another set of RenderTargets (like a single render target that does not transform the operation at all)
+    /// </remarks>
+    /// <param name="renderLevel">The render level for the <see cref="RenderTargetList{TGraphicsContext}"/> to be created</param>
+    /// <returns><see langword="true"/> if the <see cref="RenderTargetList{TGraphicsContext}"/> was succesfully created, <see langword="false"/> if a <see cref="RenderTargetList{TGraphicsContext}"/> for that <paramref name="renderLevel"/> already existed</returns>
+    public bool CreateRenderTargetList(uint renderLevel)
+    {
+        lock (renderTargetLevels)
+        {
+            if (renderTargets.ContainsKey(renderLevel))
+                return false;
+            AddRenderTargetList(renderLevel);
+            return true;
+        }
+    }
+
+    private RenderTargetList<TGraphicsContext> AddRenderTargetList(uint renderLevel)
+    {
+        var rtl = new RenderTargetList<TGraphicsContext>(this);
+        renderTargets.Add(renderLevel, rtl);
+        renderTargetLevels.Add(renderLevel);
+        renderTargetLevels.Sort();
+        return rtl;
+    }
+
+    /// <summary>
+    /// Copies all RenderTargetLists in this <see cref="GraphicsManager{TGraphicsContext}"/> over into <paramref name="buffer"/>
+    /// </summary>
+    /// <remarks>
+    /// This method clears <paramref name="buffer"/> before using it
+    /// </remarks>
+    protected void BufferRenderTargets(List<(uint Level, RenderTargetList<TGraphicsContext> Targets)> buffer)
+    {
+        lock (renderTargetLevels)
+        {
+            buffer.Clear();
+            foreach (var i in renderTargetLevels)
+            {
+                var rtl = GetRenderTargetList(i);
+                Debug.Assert(rtl != null, "GetRenderTargets returned a null value for a Render Target Level that was registered");
+                buffer.Add((i, rtl));
+            }
+        }
+    }
 
     /// <summary>
     /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager{TGraphicsContext}"/> is running
@@ -292,6 +377,15 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     protected virtual void WindowSizeChanged(IntVector2 oldSize, IntVector2 newSize) { }
 
     /// <summary>
+    /// Creates a <see cref="IDrawQueue{TGraphicsContext}"/> to be used by this <see cref="GraphicsManager{TGraphicsContext}"/>
+    /// </summary>
+    /// <remarks>
+    /// This method is called only once per <see cref="Run"/> call, which should be only once per each <see cref="GraphicsManager{TGraphicsContext}"/>'s lifespan
+    /// </remarks>
+    protected virtual IDrawQueue<TGraphicsContext> CreateDrawQueue()
+        => new DrawQueue<TGraphicsContext>();
+
+    /// <summary>
     /// Fetches a graphics context for rendering. This can either be a reused context or a brand new one.
     /// </summary>
     /// <remarks>
@@ -329,7 +423,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     protected readonly Func<bool> IsNotRenderingCheck;
 
     /// <summary>
-    /// 
+    /// The main method of this <see cref="GraphicsManager{TGraphicsContext}"/>. Maintains its current status as well as performs the actual drawings and other vital tasks. Ideally should run on its own thread launched by <see cref="GraphicsManager.Launch"/>
     /// </summary>
     protected void Run()
     {
@@ -355,8 +449,8 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
             var isNotRendering = IsNotRenderingCheck;
 
             var sw = new Stopwatch();
-            var drawqueue = new DrawQueue<TGraphicsContext>();
-            var drawOpBuffer = new List<DrawOperation<TGraphicsContext>>();
+            var drawqueue = CreateDrawQueue();
+            var renderTargetBuffer = new List<(uint Level, RenderTargetList<TGraphicsContext> Targets)>();
             TimeSpan delta = default;
 
             var (ww, wh) = WindowSize;
@@ -393,38 +487,46 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
                         if (!WaitOn(drawlock, condition: isRunning, out var drawlockwaiter)) break; // Frame Render Stage 1: General Drawing
                         using (drawlockwaiter)
                         {
-                            if (RenderTargets.Count <= 0)
-                                Log?.Debug("This GraphicsManager has no render targets");
+                            BufferRenderTargets(renderTargetBuffer);
+                            if (renderTargetBuffer.Count <= 0)
+                                Log?.Debug("This GraphicsManager has no render levels nor render targets");
                             else
                             {
-                                drawOpBuffer.Clear();
-                                if (Game.CurrentScene.GetDrawOperationManager<TGraphicsContext>(out var dopm) is false)
+                                for (int i = 0; i < renderTargetBuffer.Count; i++)
                                 {
-                                    if (nodopwarn is false)
-                                    {
-                                        Log?.Warning($"The current Scene does not have a DrawOperationManager for context of type {(typeof(TGraphicsContext))}");
-                                        nodopwarn = true;
-                                    }
-                                }
-                                else
-                                {
-                                    nodopwarn = false;
-                                    foreach (var dop in dopm.GetDrawOperations(this))
-                                        drawOpBuffer.Add(dop);
-                                }
+                                    drawqueue.Clear();
+                                    var (renderLevel, renderTargets) = renderTargetBuffer[i];
+                                    if (renderTargets.Count <= 0)
+                                        Log?.Debug("The RenderTargetList for RenderLevel {level} has no render targets", renderLevel);
 
-                                if (drawOpBuffer.Count <= 0)
-                                    Log?.Verbose("No draw operations were registered");
-                                else
-                                {
-                                    lock (RenderTargets)
+                                    if (Game.CurrentScene.GetDrawOperationManager<TGraphicsContext>(out var dopm) is false)
                                     {
-                                        foreach (var target in RenderTargets)
+                                        if (nodopwarn is false)
                                         {
-                                            target.BeginFrame(delta, context);
-                                            foreach (var dop in drawOpBuffer)
-                                                target.RenderDrawOperation(delta, context, dop);
-                                            target.EndFrame(context);
+                                            Log?.Warning($"The current Scene does not have a DrawOperationManager for context of type {(typeof(TGraphicsContext))}");
+                                            nodopwarn = true;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        nodopwarn = false;
+                                        foreach (var dop in dopm.GetDrawOperations(this, renderLevel))
+                                            dopm.AddToDrawQueue(drawqueue, dop);
+
+                                        if (drawqueue.Count <= 0)
+                                            Log?.Verbose("No draw operations were registered for RenderLevel {level}", renderLevel);
+                                        else
+                                        {
+                                            lock (renderTargets)
+                                            {
+                                                foreach (var target in renderTargets)
+                                                {
+                                                    target.BeginFrame(delta, context);
+                                                    while (drawqueue.TryDequeue(out var dop)) 
+                                                        target.RenderDrawOperation(delta, context, dop);
+                                                    target.EndFrame(context);
+                                                }
+                                            }
                                         }
                                     }
                                 }

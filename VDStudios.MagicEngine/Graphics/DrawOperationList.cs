@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace VDStudios.MagicEngine.Graphics;
@@ -7,25 +8,24 @@ namespace VDStudios.MagicEngine.Graphics;
 /// Represents a list of <see cref="DrawOperation{TGraphicsContext}"/>s in a <see cref="Game"/>
 /// </summary>
 /// <remarks>
-/// This class cannot be inherited. This class cannot be instanced by user code. <see cref="DrawOperationList{TGraphicsContext}"/> is not very performant, and should not be used in hot paths
+/// This class cannot be inherited. This class cannot be instanced by user code.
 /// </remarks>
-public sealed class DrawOperationList<TGraphicsContext> : IReadOnlyCollection<DrawOperation<TGraphicsContext>>
+public sealed class DrawOperationList<TGraphicsContext> 
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
-    private readonly Dictionary<Guid, DrawOperation<TGraphicsContext>> Ops = new();
+    private readonly Dictionary<uint, HashSet<DrawOperation<TGraphicsContext>>> Ops = new();
+    private readonly Dictionary<DrawOperation<TGraphicsContext>, uint> renderLevels = new(); 
 
     #region Public
 
     /// <summary>
-    /// Queries this list for any <see cref="DrawOperation{TGraphicsContext}"/>s with an id of <paramref name="id"/>
+    /// The <see cref="GraphicsManager{TGraphicsContext}"/> that owns this <see cref="DrawOperationList{TGraphicsContext}"/>
     /// </summary>
-    /// <param name="id">The id to query</param>
-    /// <param name="drawOp">The <see cref="DrawOperation{TGraphicsContext}"/> that was found, or <c>null</c></param>
-    /// <returns><c>true</c> if a <see cref="DrawOperation{TGraphicsContext}"/> by <paramref name="id"/> was found, <c>false</c> otherwise</returns>
-    public bool TryFind(Guid id, [NotNullWhen(true)] out DrawOperation<TGraphicsContext>? drawOp)
+    public GraphicsManager<TGraphicsContext> Manager { get; }
+
+    internal DrawOperationList(GraphicsManager<TGraphicsContext> owner)
     {
-        lock (Ops)
-            return Ops.TryGetValue(id, out drawOp);
+        Manager = owner ?? throw new ArgumentNullException(nameof(owner));
     }
 
     /// <summary>
@@ -34,25 +34,46 @@ public sealed class DrawOperationList<TGraphicsContext> : IReadOnlyCollection<Dr
     public int Count => Ops.Count;
 
     /// <inheritdoc/>
-    public IEnumerator<DrawOperation<TGraphicsContext>> GetEnumerator() => Ops.Values.GetEnumerator();
-
-    /// <inheritdoc/>
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public IEnumerable<DrawOperation<TGraphicsContext>> Enumerate(uint renderLevel)
+    {
+        Manager.ThrowIfRenderLevelNotRegistered(renderLevel);
+        return GetHashSet(renderLevel);
+    }
 
     #endregion
 
     #region Internal
 
+    private HashSet<DrawOperation<TGraphicsContext>> GetHashSet(uint renderLevel)
+    {
+        HashSet<DrawOperation<TGraphicsContext>> hs;
+        if (Ops.ContainsKey(renderLevel) is false)
+        {
+            Ops.Add(renderLevel, hs = new HashSet<DrawOperation<TGraphicsContext>>());
+            return hs;
+        }
+        return Ops[renderLevel];
+    }
+
+    internal void Add(DrawOperation<TGraphicsContext> dop, uint renderLevel)
+    {
+        lock (Ops)
+        {
+            dop.VerifyManager(Manager);
+            Manager.ThrowIfRenderLevelNotRegistered(renderLevel);
+            GetHashSet(renderLevel).Add(dop);
+            renderLevels.Add(dop, renderLevel);
+        }
+    }
+
     internal void Remove(DrawOperation<TGraphicsContext> dop)
     {
         lock (Ops)
-            Ops.Remove(dop.Identifier);
-    }
-
-    internal void Add(DrawOperation<TGraphicsContext> dop)
-    {
-        lock (Ops)
-            Ops.Add(dop.Identifier, dop);
+            if (renderLevels.TryGetValue(dop, out uint renderLevel))
+            {
+                GetHashSet(renderLevel).Remove(dop);
+                renderLevels.Remove(dop);
+            }
     }
 
     #endregion

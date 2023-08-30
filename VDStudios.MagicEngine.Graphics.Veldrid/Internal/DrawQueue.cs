@@ -5,7 +5,7 @@ using VDStudios.MagicEngine.Graphics;
 
 namespace VDStudios.MagicEngine.Internal;
 
-internal sealed class DrawQueue<TGraphicsContext> : IDrawQueue<DrawOperation<TGraphicsContext>, TGraphicsContext>
+internal sealed class DrawQueue<TGraphicsContext> : IDrawQueueEnqueuer<DrawOperation<TGraphicsContext>, TGraphicsContext>
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     #region Fields

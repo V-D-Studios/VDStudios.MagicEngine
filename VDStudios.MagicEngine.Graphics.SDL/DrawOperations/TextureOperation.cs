@@ -56,7 +56,6 @@ public class TextureOperation : DrawOperation<SDLGraphicsContext>
     protected override void Draw(TimeSpan delta, SDLGraphicsContext context, RenderTarget<SDLGraphicsContext> target)
     {
         Debug.Assert(texture is not null);
-
         Transform(scale: new Vector3(4, 4, 1));
 
         var dest = this.CreateDestinationRectangle(View.Size.ToVector2(), target.Transformation).ToRectangle();

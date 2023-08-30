@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Internal;
 
@@ -30,14 +31,6 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     /// </summary>
     public Scene Owner { get; }
 
-    /// <summary>
-    /// Represents the <see cref="DrawOperation{TGraphicsContext}"/>s that belong to this <see cref="DrawOperationManager{TGraphicsContext}"/>
-    /// </summary>
-    /// <remarks>
-    /// To remove a <see cref="DrawOperation{TGraphicsContext}"/>, dispose it
-    /// </remarks>
-    public DrawOperationList<TGraphicsContext> DrawOperations { get; } = new();
-
     #endregion
 
     #region Services and Dependency Injection
@@ -55,13 +48,15 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
 
     #region Public Methods
 
+    #region Draw Operations
+
     /// <summary>
     /// Adds a new <see cref="DrawOperation{TGraphicsContext}"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager{TGraphicsContext}"/>
     /// </summary>
     /// <typeparam name="TDrawOp">The type of <see cref="DrawOperation{TGraphicsContext}"/> to instantiate and add</typeparam>
-    public async ValueTask<TDrawOp> AddDrawOperation<TDrawOp>(TDrawOp dop, GraphicsManager<TGraphicsContext>? graphicsManager = null) where TDrawOp : DrawOperation<TGraphicsContext>
+    public async ValueTask<TDrawOp> AddDrawOperation<TDrawOp>(TDrawOp dop, uint renderLevel = 0, GraphicsManager<TGraphicsContext>? graphicsManager = null) where TDrawOp : DrawOperation<TGraphicsContext>
     {
-        await InternalAddDrawOperation(dop, graphicsManager);
+        await InternalAddDrawOperation(dop, graphicsManager, renderLevel);
         return dop;
     }
 
@@ -69,10 +64,10 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     /// Adds a new <see cref="DrawOperation{TGraphicsContext}"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager{TGraphicsContext}"/>
     /// </summary>
     /// <typeparam name="TDrawOp">The type of <see cref="DrawOperation{TGraphicsContext}"/> to instantiate and add</typeparam>
-    public async ValueTask<TDrawOp> AddDrawOperation<TDrawOp>(GraphicsManager<TGraphicsContext>? graphicsManager = null) where TDrawOp : DrawOperation<TGraphicsContext>, new()
+    public async ValueTask<TDrawOp> AddDrawOperation<TDrawOp>(uint renderLevel = 0, GraphicsManager<TGraphicsContext>? graphicsManager = null) where TDrawOp : DrawOperation<TGraphicsContext>, new()
     {
         var dop = new TDrawOp();
-        await InternalAddDrawOperation(dop, graphicsManager);
+        await InternalAddDrawOperation(dop, graphicsManager, renderLevel);
         return dop;
     }
 
@@ -80,22 +75,24 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     /// Adds a new <see cref="DrawOperation{TGraphicsContext}"/> of type <typeparamref name="TDrawOp"/> into this <see cref="DrawOperationManager{TGraphicsContext}"/>
     /// </summary>
     /// <typeparam name="TDrawOp">The type of <see cref="DrawOperation{TGraphicsContext}"/> to instantiate and add</typeparam>
-    public async ValueTask<TDrawOp> AddDrawOperation<TDrawOp>(Func<TDrawOp> factory, GraphicsManager<TGraphicsContext>? graphicsManager = null) where TDrawOp : DrawOperation<TGraphicsContext>
+    public async ValueTask<TDrawOp> AddDrawOperation<TDrawOp>(Func<TDrawOp> factory, uint renderLevel = 0, GraphicsManager<TGraphicsContext>? graphicsManager = null) where TDrawOp : DrawOperation<TGraphicsContext>
     {
         var dop = factory();
-        await InternalAddDrawOperation(dop, graphicsManager);
+        await InternalAddDrawOperation(dop, graphicsManager, renderLevel);
         return dop;
     }
 
+    #endregion
+
     /// <summary>
-    /// Adds an object representing the <see cref="Node"/>'s drawing operations into the <see cref="IDrawQueue{TGraphicsContext}"/>. This method will be called from the respective <see cref="GraphicsManager{TGraphicsContext}"/>'s thread
+    /// Adds an object representing the <see cref="Node"/>'s drawing operations into the <see cref="IDrawQueueEnqueuer{TGraphicsContext}"/>. This method will be called from the respective <see cref="GraphicsManager{TGraphicsContext}"/>'s thread
     /// </summary>
     /// <remarks>
     /// By default, this method will enqueue <paramref name="operation"/> onto <paramref name="queue"/> with a priority of <c>1</c>
     /// </remarks>
     /// <param name="queue">The queue associated with <paramref name="operation"/> into which to add the draw operations</param>
     /// <param name="operation">A specific registered <see cref="DrawOperation{TGraphicsContext}"/></param>
-    public virtual void AddToDrawQueue(IDrawQueue<TGraphicsContext> queue, DrawOperation<TGraphicsContext> operation)
+    public virtual void AddToDrawQueue(IDrawQueueEnqueuer<TGraphicsContext> queue, DrawOperation<TGraphicsContext> operation)
     {
         queue.Enqueue(operation, operation.PreferredPriority);
     }
@@ -104,14 +101,15 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     /// Gets the <see cref="DrawOperation{TGraphicsContext}"/>s that belong to <paramref name="graphicsManager"/>
     /// </summary>
     /// <param name="graphicsManager">The <see cref="GraphicsManager{TGraphicsContext}"/> owning the draw operations</param>
-    public IEnumerable<DrawOperation<TGraphicsContext>> GetDrawOperations(GraphicsManager<TGraphicsContext> graphicsManager)
-        => gm_dict.TryGetValue(graphicsManager, out var drawOperations) ? drawOperations : Array.Empty<DrawOperation<TGraphicsContext>>();
+    /// <param name="renderLevel">The render level of the <see cref="DrawOperation{TGraphicsContext}"/>s to be gathered</param>
+    public IEnumerable<DrawOperation<TGraphicsContext>> GetDrawOperations(GraphicsManager<TGraphicsContext> graphicsManager, uint renderLevel)
+        => gm_dict.TryGetValue(graphicsManager, out var drawOperations) ? drawOperations.Enumerate(renderLevel) : Array.Empty<DrawOperation<TGraphicsContext>>();
 
     #endregion
 
     #region Internal
 
-    private async ValueTask InternalAddDrawOperation(DrawOperation<TGraphicsContext> operation, GraphicsManager<TGraphicsContext>? graphicsManager)
+    private async ValueTask InternalAddDrawOperation(DrawOperation<TGraphicsContext> operation, GraphicsManager<TGraphicsContext>? graphicsManager, uint renderLevel)
     {
         graphicsManager
             ??= Game.MainGraphicsManager is GraphicsManager<TGraphicsContext> mgm
@@ -121,13 +119,16 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
         GameMismatchException.ThrowIfMismatch(graphicsManager, operation, this);
 
         InternalLog?.Debug("Adding a new DrawOperation {objName}-{type}", operation.Name ?? "", operation.GetTypeName());
+
+        graphicsManager.ThrowIfRenderLevelNotRegistered(renderLevel);
+
         operation.SetOwner(this);
+        operation.AssignManager(graphicsManager);
         try
         {
             AddingDrawOperation(operation);
             operation.ThrowIfDisposed();
-            DrawOperations.Add(operation);
-            gm_dict.GetOrAdd(graphicsManager, gm => new DrawOperationList<TGraphicsContext>()).Add(operation);
+            gm_dict.GetOrAdd(graphicsManager, gm => new DrawOperationList<TGraphicsContext>(graphicsManager)).Add(operation, renderLevel);
             operation.AboutToDispose += Operation_AboutToDispose;
             await operation.CreateResourcesAsync();
         }
@@ -140,8 +141,12 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
 
     private void Operation_AboutToDispose(GameObject sender, TimeSpan timestamp)
     {
-        if (sender is not DrawOperation<TGraphicsContext> dop) throw new InvalidOperationException($"Sender GameObject was not a DrawOperation");
-        DrawOperations.Remove(dop);
+        Debug.Assert(sender is DrawOperation<TGraphicsContext>, "Sender GameObject was not a DrawOperation");
+        var dop = (sender as DrawOperation<TGraphicsContext>)!;
+        Debug.Assert(dop.Manager is not null, "DrawOperation's Manager is unexpectedly null");
+        if (gm_dict.TryGetValue(dop.Manager, out var list) is false)
+            Debug.Fail($"There is no DrawOperationList for manager {dop.Manager}");
+        list.Remove(dop);
     }
 
     #endregion
@@ -158,7 +163,7 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
 }
 
 /// <summary>
-/// Represents a <see cref="DrawOperationManager{TGraphicsContext}"/> that accepts a <see cref="DrawQueueSelector"/> delegate method to act in place of inheriting and overriding <see cref="AddToDrawQueue(IDrawQueue{TGraphicsContext}, DrawOperation{TGraphicsContext})"/>
+/// Represents a <see cref="DrawOperationManager{TGraphicsContext}"/> that accepts a <see cref="DrawQueueSelector"/> delegate method to act in place of inheriting and overriding <see cref="AddToDrawQueue(IDrawQueueEnqueuer{TGraphicsContext}, DrawOperation{TGraphicsContext})"/>
 /// </summary>
 public sealed class DrawOperationManagerDrawQueueDelegate<TGraphicsContext> : DrawOperationManager<TGraphicsContext>
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
@@ -166,9 +171,9 @@ public sealed class DrawOperationManagerDrawQueueDelegate<TGraphicsContext> : Dr
     /// <summary>
     /// Represents a method that can add <paramref name="operation"/> appropriately into <paramref name="queue"/>
     /// </summary>
-    /// <param name="queue">The <see cref="IDrawQueue{TGraphicsContext}"/> into which to add <paramref name="operation"/></param>
+    /// <param name="queue">The <see cref="IDrawQueueEnqueuer{TGraphicsContext}"/> into which to add <paramref name="operation"/></param>
     /// <param name="operation">The operation in question</param>
-    public delegate void DrawQueueSelector(IDrawQueue<TGraphicsContext> queue, DrawOperation<TGraphicsContext> operation);
+    public delegate void DrawQueueSelector(IDrawQueueEnqueuer<TGraphicsContext> queue, DrawOperation<TGraphicsContext> operation);
 
     private readonly DrawQueueSelector _drawQueueSelector;
 
@@ -180,6 +185,6 @@ public sealed class DrawOperationManagerDrawQueueDelegate<TGraphicsContext> : Dr
     }
 
     /// <inheritdoc/>
-    public override void AddToDrawQueue(IDrawQueue<TGraphicsContext> queue, DrawOperation<TGraphicsContext> operation)
+    public override void AddToDrawQueue(IDrawQueueEnqueuer<TGraphicsContext> queue, DrawOperation<TGraphicsContext> operation)
         => _drawQueueSelector.Invoke(queue, operation);
 }

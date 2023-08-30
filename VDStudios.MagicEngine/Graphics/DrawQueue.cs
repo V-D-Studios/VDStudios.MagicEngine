@@ -7,7 +7,7 @@ namespace VDStudios.MagicEngine.Graphics;
 /// A default implementation for a <see cref="IDrawQueue{TGraphicsContext}"/> backed by a <see cref="PriorityQueue{TElement, TPriority}"/>
 /// </summary>
 /// <typeparam name="TGraphicsContext">The <see cref="GraphicsContext{TSelf}"/> that this <see cref="DrawQueue{TGraphicsContext}"/> uses</typeparam>
-public class DrawQueue<TGraphicsContext> : IDrawQueue<TGraphicsContext>, IDrawQueueAccessor<TGraphicsContext>
+public class DrawQueue<TGraphicsContext> : IDrawQueue<TGraphicsContext>
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     private readonly PriorityQueue<DrawOperation<TGraphicsContext>, float> queue = new();
@@ -72,4 +72,11 @@ public class DrawQueue<TGraphicsContext> : IDrawQueue<TGraphicsContext>, IDrawQu
             sem.Release();
         }
     }
+
+    /// <inheritdoc/>
+    public void Clear()
+        => queue.Clear();
+
+    /// <inheritdoc/>
+    public int Count => queue.Count;
 }

@@ -339,7 +339,7 @@ public abstract class Game : IGameObject
     /// <param name="millisecondsDelay">The amount of milliseconds to delay for</param>
     protected abstract void Delay(uint millisecondsDelay);
 
-    private Task ProcessPendingGraphicsManagersTask;
+    private Task? ProcessPendingGraphicsManagersTask;
     private async Task ProcessPendingGraphicsManagers()
     {
         while (true)
@@ -352,10 +352,11 @@ public abstract class Game : IGameObject
 
     private async ValueTask AwaitPendingGraphicsManagersTaskIfFinished()
     {
+        Debug.Assert(ProcessPendingGraphicsManagersTask is not null, "ProcessPendingGraphicsManagersTask is unexpectedly null");
         if (ProcessPendingGraphicsManagersTask.IsCompleted)
         {
             await ProcessPendingGraphicsManagersTask;
-            //throw new GameException("ProcessPendingGraphicsManagersTask stopped unexpectedly. This is likely a library error");
+            throw new GameException("ProcessPendingGraphicsManagersTask stopped unexpectedly with no exceptions. This is likely a library error");
         }
     }
 

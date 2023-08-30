@@ -1,4 +1,6 @@
-﻿namespace VDStudios.MagicEngine.Graphics;
+﻿using System.Collections.Specialized;
+
+namespace VDStudios.MagicEngine.Graphics;
 
 /// <summary>
 /// A list that contains <see cref="RenderTarget{TRenderTargetContext}"/>

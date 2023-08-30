@@ -198,7 +198,6 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
         Registering(manager);
 
         Registered();
-        NotifyIsReady();
     }
 
     #endregion
