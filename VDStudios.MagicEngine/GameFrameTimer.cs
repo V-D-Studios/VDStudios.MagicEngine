@@ -21,6 +21,14 @@ public readonly record struct GameFrameTimer(Game Game, uint Lapse)
     public uint Clocks => (uint)((Game.FrameCount - Start) / Lapse);
 
     /// <summary>
+    /// Whether or not this timer is clocking at the current frame.
+    /// </summary>
+    /// <remarks>
+    /// This property is only reliable when called from within the Update thread, that is, from within a Node, Scene, or equivalent
+    /// </remarks>
+    public bool IsClocking => (Game.FrameCount - Start) % Lapse == 0;
+
+    /// <summary>
     /// Creates a new <see cref="GameFrameTimer"/> that contains the same parameters as this one, but begins counting from the moment this call completes
     /// </summary>
     /// <remarks>

@@ -23,6 +23,14 @@ public readonly record struct GraphicsManagerFrameTimer(GraphicsManager Graphics
     public uint Clocks => (uint)((GraphicsManager.FrameCount - Start) / Lapse);
 
     /// <summary>
+    /// Whether or not this timer is clocking at the current frame.
+    /// </summary>
+    /// <remarks>
+    /// This property is only reliable when called from within <see cref="GraphicsManager"/>'s rendering thread, that is, from within a <see cref="DrawOperation{TGraphicsContext}"/> belonging to this <see cref="GraphicsManager"/> or similar
+    /// </remarks>
+    public bool IsClocking => (GraphicsManager.FrameCount - Start) % Lapse == 0;
+
+    /// <summary>
     /// Creates a new <see cref="GraphicsManagerFrameTimer"/> that contains the same parameters as this one, but begins counting from the moment this call completes
     /// </summary>
     /// <remarks>
