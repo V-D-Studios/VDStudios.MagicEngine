@@ -103,7 +103,16 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     /// <param name="graphicsManager">The <see cref="GraphicsManager{TGraphicsContext}"/> owning the draw operations</param>
     /// <param name="renderLevel">The render level of the <see cref="DrawOperation{TGraphicsContext}"/>s to be gathered</param>
     public IEnumerable<DrawOperation<TGraphicsContext>> GetDrawOperations(GraphicsManager<TGraphicsContext> graphicsManager, uint renderLevel)
-        => gm_dict.TryGetValue(graphicsManager, out var drawOperations) ? drawOperations.Enumerate(renderLevel) : Array.Empty<DrawOperation<TGraphicsContext>>();
+    {
+        if (gm_dict.TryGetValue(graphicsManager, out var drawOperations))
+        {
+            lock (drawOperations)
+                foreach (var dop in drawOperations.Enumerate(renderLevel))
+                    yield return dop;
+        }
+        else
+            yield break;
+    }
 
     #endregion
 
@@ -128,7 +137,9 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
         {
             AddingDrawOperation(operation);
             operation.ThrowIfDisposed();
-            gm_dict.GetOrAdd(graphicsManager, gm => new DrawOperationList<TGraphicsContext>(graphicsManager)).Add(operation, renderLevel);
+            var dol = gm_dict.GetOrAdd(graphicsManager, gm => new DrawOperationList<TGraphicsContext>(graphicsManager));
+            lock (dol)
+                dol.Add(operation, renderLevel);
             operation.AboutToDispose += Operation_AboutToDispose;
             await operation.CreateResourcesAsync();
         }
@@ -146,7 +157,8 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
         Debug.Assert(dop.Manager is not null, "DrawOperation's Manager is unexpectedly null");
         if (gm_dict.TryGetValue(dop.Manager, out var list) is false)
             Debug.Fail($"There is no DrawOperationList for manager {dop.Manager}");
-        list.Remove(dop);
+        lock (list)
+            list.Remove(dop);
     }
 
     #endregion
