@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -17,9 +18,33 @@ namespace VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 public class TextOperation : DrawOperation<SDLGraphicsContext>
 {
     private readonly record struct TextRenderCacheKey(byte Mode, int Size, string Text, RGBAColor Color, RGBAColor Foreground);
-    private readonly TTFont FontData;
     private Texture? texture;
     private Texture? txtbf;
+
+    private TTFont __font;
+
+    /// <summary>
+    /// The current <see cref="TTFont"/> for this <see cref="TextOperation"/>
+    /// </summary>
+    /// <remarks>
+    /// Changing this will result in the current text being re-rendered
+    /// </remarks>
+    public TTFont Font
+    {
+        get => __font;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (((IHandle)value).Handle == 0)
+                throw new ArgumentException("The value object points to a null native pointer", nameof(value));
+            if (((IHandle)value).Handle != ((IHandle)__font).Handle)
+            {
+                __font = value;
+                texture = null;
+                NotifyPendingGPUUpdate();
+            }
+        }
+    }
 
     /// <summary>
     /// The Text that is currently set to be rendered by this <see cref="TextOperation"/>
@@ -35,7 +60,7 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
     /// <param name="game">The <see cref="Game"/> this <see cref="TextOperation"/> belongs to</param>
     public TextOperation(TTFont font, Game game) : base(game)
     {
-        FontData = font ?? throw new ArgumentNullException(nameof(font));
+        __font = font ?? throw new ArgumentNullException(nameof(font));
     }
 
     /// <summary>
@@ -44,14 +69,15 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
     public void SetTextBlended(string text, RGBAColor color, int? size = null)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var k = new TextRenderCacheKey(0, size ?? FontData.Size, text, color, default);
+        var k = new TextRenderCacheKey(0, size ?? __font.Size, text, color, default);
 
         if (k != CurrentKey)
         {
             CurrentKey = k;
             if (size is int s)
-                FontData.Size = s;
+                __font.Size = s;
             texture = null;
+            NotifyPendingGPUUpdate();
         }
     }
 
@@ -61,14 +87,15 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
     public void SetTextShaded(string text, RGBAColor foreground, RGBAColor background, int? size = null)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var k = new TextRenderCacheKey(1, size ?? FontData.Size, text, foreground, background);
+        var k = new TextRenderCacheKey(1, size ?? __font.Size, text, foreground, background);
 
         if (k != CurrentKey)
         {
             CurrentKey = k;
             if (size is int s)
-                FontData.Size = s;
+                __font.Size = s;
             texture = null;
+            NotifyPendingGPUUpdate();
         }
     }
 
@@ -78,14 +105,15 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
     public void SetTextSolid(string text, RGBAColor color, int? size = null)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var k = new TextRenderCacheKey(2, size ?? FontData.Size, text, color, default);
+        var k = new TextRenderCacheKey(2, size ?? __font.Size, text, color, default);
 
         if (k != CurrentKey)
         {
             CurrentKey = k;
             if (size is int s)
-                FontData.Size = s;
+                __font.Size = s;
             texture = null;
+            NotifyPendingGPUUpdate();
         }
     }
 
@@ -101,12 +129,14 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
     /// <inheritdoc/>
     protected override void Draw(TimeSpan delta, SDLGraphicsContext context, RenderTarget<SDLGraphicsContext> target)
     {
-        Debug.Assert(texture is not null, "Texture was unexpectedly null at the time of drawing");
+        if (Text is null) return;
+        Debug.Assert(texture is not null || txtbf is not null, "Texture was unexpectedly null at the time of drawing");
+        var t = texture ?? txtbf!; // The analyzer warns about this, but one of the references must not be null at this time, or the assertion would fail
 
         Transform(scale: new Vector3(4, 4, 1));
 
-        var dest = this.CreateDestinationRectangle(texture.Size.ToVector2(), target.Transformation).ToRectangle();
-        texture.Render(null, dest);
+        var dest = this.CreateDestinationRectangle(t.Size.ToVector2(), target.Transformation).ToRectangle();
+        t.Render(null, dest);
     }
 
     /// <inheritdoc/>
@@ -117,12 +147,13 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
             var k = CurrentKey;
             txtbf?.Dispose();
             var (m, _, t, c1, c2) = k;
+            if (t is null) return;
             Debug.Assert(m is >= 0 and <= 2, "Unknown mode");
             using var srf = m switch
             {
-                0 => FontData.RenderTextBlended(t, c1, EncodingType.UTF8),
-                1 => FontData.RenderTextShaded(t, c1, c2, EncodingType.UTF8),
-                2 => FontData.RenderTextSolid(t, c1, EncodingType.UTF8),
+                0 => __font.RenderTextBlended(t, c1, EncodingType.Latin1),
+                1 => __font.RenderTextShaded(t, c1, c2, EncodingType.Latin1),
+                2 => __font.RenderTextSolid(t, c1, EncodingType.Latin1),
                 _ => throw new InvalidOperationException()
             };
             texture = new Texture(context.Renderer, srf);
