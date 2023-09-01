@@ -345,7 +345,10 @@ public abstract class Game : IGameObject
         while (true)
         {
             if (graphicsManagersAwaitingSetup.TryDequeue(out var gm))
+            {
                 gm.InternalStart();
+                ActiveGraphicsManagers.Add(gm);
+            }
             await Task.Delay(100);
         }
     }
@@ -485,6 +488,11 @@ public abstract class Game : IGameObject
         TimeSpan delta = default;
         uint remaining = default;
         Scene scene;
+        GameFrameTimer graphicManagerCheckTimer = new(this, 100);
+
+#if FEATURE_INTERNAL_LOGGING
+        GameFrameTimer framerateWarningTimer = new(this, 16);
+#endif
 
         var sceneSetupList = new ValueTask[10];
 
@@ -526,12 +534,18 @@ public abstract class Game : IGameObject
             if (scene.IsBegun is false)
                 await scene.Begin().ConfigureAwait(false);
 
-            if (FrameCount++ % 100 == 0)
+            if (graphicManagerCheckTimer.IsClocking)
+            {
+                graphicManagerCheckTimer.Restart();
                 foreach (var manager in ActiveGraphicsManagers)
                     await manager.AwaitIfFaulted();
+            }
+
 #if FEATURE_INTERNAL_LOGGING
-            if (FrameCount % 16 == 0)
+            if (framerateWarningTimer.IsClocking)
             {
+                framerateWarningTimer.Restart();
+
                 if (_mspup.Average > _warningTicks)
                 {
                     _lastWarningTicks = _mspup.Average;
