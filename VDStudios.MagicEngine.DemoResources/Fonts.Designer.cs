@@ -63,6 +63,16 @@ namespace VDStudios.MagicEngine.DemoResources {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        public static byte[] Arial {
+            get {
+                object obj = ResourceManager.GetObject("Arial", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         public static byte[] CascadiaCode {
             get {
                 object obj = ResourceManager.GetObject("CascadiaCode", resourceCulture);
