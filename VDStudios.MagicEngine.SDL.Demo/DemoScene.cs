@@ -12,6 +12,7 @@ public abstract class DemoScene : Scene
     {
         var manager = ((SDLGraphicsManager)Game.MainGraphicsManager);
         manager.GetOrCreateRenderTargetList(0).Add(_cam = new SDLCamera2D(manager));
+        manager.GetOrCreateRenderTargetList(1).Add(new PassthroughRenderTarget(manager));
         return ValueTask.CompletedTask;
     }
 
