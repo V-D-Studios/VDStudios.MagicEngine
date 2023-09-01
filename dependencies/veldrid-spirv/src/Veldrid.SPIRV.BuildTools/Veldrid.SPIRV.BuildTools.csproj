@@ -9,6 +9,7 @@
     <PackageId>Veldrid.SPIRV.BuildTools</PackageId>
     <Description>Build-time plugin which compiles multiple shader variants, as defined in a configuration file.</Description>
     <PackageTags>Veldrid Shader SPIR-V GLSL HLSL MSL ESSL Graphics OpenGL Vulkan Direct3D Metal Game</PackageTags>
+    <Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
