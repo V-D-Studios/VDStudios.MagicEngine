@@ -77,9 +77,10 @@ public class PlayerNode : Node, IWorldMobile2D
 
         Direction = default;
 
-        if (GMTimer.Clocks > 0)
+        if (GMTimer.HasClocked)
         {
-            TextOperation.SetTextBlended($"Robin: {Position}\nCamera: {Vector2.Transform(default, ((DemoScene)ParentScene).Camera.CurrentView)}", RgbaVector.Black.ToRGBAColor(), 16);
+            //$"Robin: {Position} - Camera: {Vector2.Transform(default, ((DemoScene)ParentScene).Camera.CurrentView)}"
+            TextOperation.SetTextBlended("a", RgbaVector.Black.ToRGBAColor(), 16);
             GMTimer.Restart();
         }
 
@@ -96,10 +97,11 @@ public class PlayerNode : Node, IWorldMobile2D
                 return Image.LoadTexture(c.Renderer, stream);
             }, AnimationContainer.CurrentAnimation.CurrentElement);
 
-            using var stream = new MemoryStream(Fonts.CascadiaCode);
+            using var stream = new MemoryStream(Fonts.Arial);
             TextOperation = new TextOperation(new TTFont(stream, 16), Game);
 
             await dopm.AddDrawOperation(SpriteOperation);
+            await dopm.AddDrawOperation(TextOperation);
         }
         else
             Debug.Fail("The attached scene did not have a DrawOperationManager for SDLGraphicsContext");
