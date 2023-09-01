@@ -32,29 +32,35 @@
 	<Deterministic>False</Deterministic>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <DebugType>embedded</DebugType>
+    <DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
+    <Deterministic>False</Deterministic>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <DebugType>embedded</DebugType>
+    <DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
+    <Deterministic>False</Deterministic>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
 	<DebugType>embedded</DebugType>
 	<DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
 	<Deterministic>False</Deterministic>
   </PropertyGroup>
 
-	<!-- This copies all .dll files from the lib folder to the project output root folder -->
-	<ItemGroup>
-		<ContentWithTargetPath Include="lib\*.dll">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<TargetPath>%(Filename)%(Extension)</TargetPath>
-		</ContentWithTargetPath>
-		<None Include="lib\*.dll" />
-	</ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <DebugType>embedded</DebugType>
+    <DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
+    <Deterministic>False</Deterministic>
+  </PropertyGroup>
 
-	<!-- This copies all .txt files from the lib folder to the project output Licenses folder -->
-	<ItemGroup>
-		<ContentWithTargetPath Include="lib\Licenses\*.txt">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<TargetPath>Licenses\%(Filename)%(Extension)</TargetPath>
-		</ContentWithTargetPath>
-		<None Include="lib\*.txt" />
-	</ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <DebugType>embedded</DebugType>
+    <DefineConstants>$(DefineConstants);FEATURE_INTERNAL_LOGGING;VALIDATE_USAGE</DefineConstants>
+    <Deterministic>False</Deterministic>
+  </PropertyGroup>
 	
 	<ItemGroup>
 	  <PackageReference Include="ConfigureAwait.Fody" Version="3.3.2">
