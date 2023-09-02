@@ -189,8 +189,9 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
     /// <inheritdoc/>
     protected override void BeforeRun()
     {
-        Window = new Window(Game.GameTitle, 800, 600, WindowConfig);
-        Renderer = new WindowRenderer(Window);
+        Window.CreateWindowAndRenderer(Game.GameTitle, 800, 600, out var win, out var ren, configuration: WindowConfig);
+        Window = win;
+        Renderer = ren;
 
         Window.Closed += Window_Closed;
         Window.SizeChanged += Window_SizeChanged;
