@@ -4,7 +4,7 @@ using System.Numerics;
 namespace VDStudios.MagicEngine.Graphics;
 
 /// <summary>
-/// Represents an operation that is ready to be drawn. This object is automatically disposed of when deregistered, and must have a reference to it held by the owning <see cref="IDrawableNode{TGraphicsContext}"/>. Otherwise, this object will be collected and disposed of
+/// Represents an operation that is ready to be drawn. This object is automatically deregistered when disposed of
 /// </summary>
 /// <remarks>
 /// Try to keep an object created from this class cached somewhere in a node, as they incur a number of allocations that should be avoided in a HotPath like the rendering sequence
