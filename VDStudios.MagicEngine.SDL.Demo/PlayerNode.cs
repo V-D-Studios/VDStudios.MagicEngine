@@ -18,8 +18,9 @@ namespace VDStudios.MagicEngine.SDL.Demo;
 public class PlayerNode : Node, IWorldMobile2D
 {
     private readonly CharacterAnimationContainer AnimationContainer;
-    private TextureOperation? SpriteOperation;
-    private TextOperation? TextOperation;
+    private TextureOperation? RobinSprite;
+    private TextOperation? RobinPositionReport;
+    private TextOperation? CameraPositionReport;
     private GraphicsManagerFrameTimer GMTimer;
 
     public float Speed { get; } = .3f;
@@ -55,8 +56,9 @@ public class PlayerNode : Node, IWorldMobile2D
 
     protected override ValueTask<bool> Updating(TimeSpan delta)
     {
-        Debug.Assert(SpriteOperation is not null, "PlayerNode.SpriteOperation is unexpectedly null at the time of updating");
-        Debug.Assert(TextOperation is not null, "PlayerNode.TextOperation is unexpectedly null at the time of updating");
+        Debug.Assert(RobinSprite is not null, "PlayerNode.SpriteOperation is unexpectedly null at the time of updating");
+        Debug.Assert(RobinPositionReport is not null, "PlayerNode.TextOperation is unexpectedly null at the time of updating");
+        Debug.Assert(CameraPositionReport is not null, "PlayerNode.TextOperation is unexpectedly null at the time of updating");
         Debug.Assert(ParentScene is not null, "PlayerNode.ParentScene is unexpectedly null at the time of updating");
 
         if (Keyboard.KeyStates[Scancode.W].IsPressed)
@@ -72,17 +74,23 @@ public class PlayerNode : Node, IWorldMobile2D
 
         if (AnimationContainer.CurrentAnimation.Update()
             || AnimationContainer.SwitchTo(Helper.TryGetFromDirection(Direction, out var dir) ? dir : CharacterAnimationKind.Idle))
-            SpriteOperation.View = AnimationContainer.CurrentAnimation.CurrentElement;
+            RobinSprite.View = AnimationContainer.CurrentAnimation.CurrentElement;
 
-        SpriteOperation.Transform(translation: new Vector3(Position, 0));
+        RobinSprite.TransformationState.Transform(translation: new Vector3(Position, 0));
 
         Direction = default;
 
         if (GMTimer.HasClocked)
         {
-            TextOperation.SetTextBlended($"Robin: {Position: 0000.00;-0000.00} - Camera: {Vector2.Transform(default, ((DemoScene)ParentScene).Camera.CurrentView): 0000.00;-0000.00}", RgbaVector.Black.ToRGBAColor(), 16);
+            var goal = ((DemoScene)ParentScene).Camera.Goal;
+            var scale = goal.Scale;
+            var position = goal.Translation;
+
+            RobinPositionReport.SetTextBlended($"Robin: {Position: 0000.00;-0000.00}", RgbaVector.Black.ToRGBAColor(), 16);
+            CameraPositionReport.SetTextBlended($"Camera, Position: {position: 0000.00;-0000.00}, Scale: {scale: 0000.00;-0000.00}", RgbaVector.Red.ToRGBAColor(), 16);
             GMTimer.Restart();
         }
+        RobinSprite.TransformationState.Transform(scale: new Vector3(1, 1, 1));
 
         return base.Updating(delta);
     }
@@ -91,16 +99,20 @@ public class PlayerNode : Node, IWorldMobile2D
     {
         if (scene.GetDrawOperationManager<SDLGraphicsContext>(out var dopm))
         {
-            SpriteOperation = new TextureOperation(Game, c =>
+            RobinSprite = new TextureOperation(Game, c =>
             {
                 using var stream = new MemoryStream(Animations.Robin);
                 return Image.LoadTexture(c.Renderer, stream);
             }, AnimationContainer.CurrentAnimation.CurrentElement);
 
-            TextOperation = new TextOperation(new TTFont(RWops.CreateFromMemory(new PinnedArray<byte>(Fonts.CascadiaCode), true, true), 16), Game);
+            RobinPositionReport = new TextOperation(new TTFont(RWops.CreateFromMemory(new PinnedArray<byte>(Fonts.CascadiaCode), true, true), 16), Game);
+            CameraPositionReport = new TextOperation(new TTFont(RWops.CreateFromMemory(new PinnedArray<byte>(Fonts.CascadiaCode), true, true), 16), Game);
 
-            await dopm.AddDrawOperation(SpriteOperation);
-            await dopm.AddDrawOperation(TextOperation, 1);
+            await dopm.AddDrawOperation(RobinSprite);
+            await dopm.AddDrawOperation(RobinPositionReport, 1);
+            await dopm.AddDrawOperation(CameraPositionReport, 1);
+            CameraPositionReport.TransformationState.Transform(translation: new Vector3(0, 20, 0));
+            //RobinSprite.TransformationState.Transform(scale: new Vector3(4, 4, 1));
         }
         else
             Debug.Fail("The attached scene did not have a DrawOperationManager for SDLGraphicsContext");
