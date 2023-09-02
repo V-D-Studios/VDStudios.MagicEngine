@@ -238,6 +238,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     {
         Debug.Assert(context is not null, "The GraphicsContext is unexpectedly null");
         ThrowIfDisposed();
+        ThrowIfExternalExceptionPresent();
         sync.Wait();
         try
         {

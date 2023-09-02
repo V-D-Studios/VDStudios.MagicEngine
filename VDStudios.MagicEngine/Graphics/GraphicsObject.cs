@@ -24,6 +24,44 @@ public abstract class GraphicsObject<TGraphicsContext> : GameObject
     /// </remarks>
     public GraphicsManager<TGraphicsContext>? Manager { get; private set; }
 
+    private List<Exception>? exceptions;
+
+    /// <summary>
+    /// Notifies this <see cref="GraphicsObject{TGraphicsContext}"/> that an exception that potentially corrupts this object's state has been thrown and should be aggregated to be thrown in the Graphics Thread
+    /// </summary>
+    /// <remarks>
+    /// If an exception occurs from a member that is supposed to manipulate a <see cref="GraphicsObject{TGraphicsContext}"/> from outside its respective GraphicsThread (if any), it should be passed to this method and re-thrown. So that if an exception would cause the object's state to be corrupted in the Graphics thread, the exception can be thrown there as well, and avoid obscure exceptions or bugs.
+    /// </remarks>
+    protected void AggregateExternalException(Exception e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        lock (Sync)
+            (exceptions ??= new()).Add(e);
+    }
+
+    /// <summary>
+    /// Checks if there are any exceptions aggregated by <see cref=AggregateExternalException(Exception)"/>, and if so, throws an <see cref="AggregateException"/> containing them.
+    /// </summary>
+    /// <remarks>
+    /// If an exception occurs from a member that is supposed to manipulate a <see cref="GraphicsObject{TGraphicsContext}"/> from outside its respective GraphicsThread (if any), it should be passed to <see cref="AggregateExternalException(Exception)"/> and re-thrown. So that if an exception would cause the object's state to be corrupted in the Graphics thread, the exception can be thrown there as well, and avoid obscure exceptions or bugs.
+    /// </remarks>
+    /// <exception cref="AggregateException"></exception>
+    protected void ThrowIfExternalExceptionPresent()
+    {
+        lock (Sync)
+            if (exceptions != null && exceptions.Count > 0)
+            {
+                try
+                {
+                    throw new AggregateException("Exceptions have been thrown in members that manipulate this object from outside threads, and this object's state has been corrupted.", exceptions);
+                }
+                finally
+                {
+                    exceptions.Clear();
+                }
+            }
+    }
+
     private bool isRegistered = false;
 
     internal void AssignManager(GraphicsManager<TGraphicsContext> manager)
