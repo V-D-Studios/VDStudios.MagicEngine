@@ -181,7 +181,7 @@ public abstract class GameObject : IDisposable, IGameObject
     /// <remarks>
     /// While .NET allows fire-and-forget async methods in these events (<c><see langword="async void"/></c>), this is *NOT* recommended, as it's almost guaranteed the <see cref="GameObject"/> will be fully disposed before the async portion of your code gets a chance to run
     /// </remarks>
-    public event GeneralGameEvent<GameObject>? AboutToDispose;
+    public event GameObjectEvent<GameObject>? AboutToDispose;
 
     #endregion
 }

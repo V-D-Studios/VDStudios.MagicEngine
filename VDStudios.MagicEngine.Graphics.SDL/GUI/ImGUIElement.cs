@@ -48,7 +48,7 @@ public abstract class ImGUIElement : GameObject, IDisposable
     /// <summary>
     /// 
     /// </summary>
-    public GeneralGameEvent<ImGUIElement>? DataContextChanged;
+    public GameObjectEvent<ImGUIElement>? DataContextChanged;
 
     #endregion
 
@@ -106,7 +106,7 @@ public abstract class ImGUIElement : GameObject, IDisposable
     /// <summary>
     /// Fired when <see cref="IsActive"/> changes
     /// </summary>
-    public GeneralGameEvent<bool, ImGUIElement>? IsActiveChanged;
+    public GameObjectEvent<bool, ImGUIElement>? IsActiveChanged;
 
     #endregion
 

@@ -155,7 +155,7 @@ public abstract class SharedDrawResource : GraphicsObject
     /// <remarks>
     /// While .NET allows fire-and-forget async methods in these events (<c>async void</c>), this is *NOT* recommended, as it's almost guaranteed the <see cref="SharedDrawResource"/> will be fully disposed before the async portion of your code gets a chance to run
     /// </remarks>
-    public event GeneralGameEvent<SharedDrawResource>? AboutToDispose;
+    public event GameObjectEvent<SharedDrawResource>? AboutToDispose;
 
     #endregion
 }
