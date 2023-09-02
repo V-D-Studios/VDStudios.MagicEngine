@@ -4,6 +4,7 @@ using SDL2.NET;
 using SDL2.NET.Input;
 using SDL2.NET.SDLFont;
 using SDL2.NET.SDLImage;
+using SDL2.NET.Utilities;
 using VDStudios.MagicEngine.DemoResources;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
@@ -49,7 +50,7 @@ public class PlayerNode : Node, IWorldMobile2D
             = AnimationContainer.Active.EndHang
             = TimeSpan.FromSeconds(1d / 2);
 
-        GMTimer = new(Game.MainGraphicsManager, 10);
+        GMTimer = new(Game.MainGraphicsManager, 30);
     }
 
     protected override ValueTask<bool> Updating(TimeSpan delta)
@@ -79,8 +80,7 @@ public class PlayerNode : Node, IWorldMobile2D
 
         if (GMTimer.HasClocked)
         {
-            //$"Robin: {Position} - Camera: {Vector2.Transform(default, ((DemoScene)ParentScene).Camera.CurrentView)}"
-            TextOperation.SetTextBlended("a", RgbaVector.Black.ToRGBAColor(), 16);
+            TextOperation.SetTextBlended($"Robin: {Position: 0000.00;-0000.00} - Camera: {Vector2.Transform(default, ((DemoScene)ParentScene).Camera.CurrentView): 0000.00;-0000.00}", RgbaVector.Black.ToRGBAColor(), 16);
             GMTimer.Restart();
         }
 
@@ -97,8 +97,7 @@ public class PlayerNode : Node, IWorldMobile2D
                 return Image.LoadTexture(c.Renderer, stream);
             }, AnimationContainer.CurrentAnimation.CurrentElement);
 
-            using var stream = new MemoryStream(Fonts.Arial);
-            TextOperation = new TextOperation(new TTFont(stream, 16), Game);
+            TextOperation = new TextOperation(new TTFont(RWops.CreateFromMemory(new PinnedArray<byte>(Fonts.CascadiaCode), true, true), 16), Game);
 
             await dopm.AddDrawOperation(SpriteOperation);
             await dopm.AddDrawOperation(TextOperation);
