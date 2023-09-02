@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using Serilog;
 using VDStudios.MagicEngine.Internal;
 using VDStudios.MagicEngine.Logging;
@@ -15,8 +16,19 @@ public abstract class GameObject : IDisposable, IGameObject
 {
     private object? ____sync;
     private readonly Lazy<ILogger> logSync;
-    internal readonly string Facility;
-    internal readonly string Area;
+
+    /// <inheritdoc/>
+    public string Facility { get; }
+    
+    /// <inheritdoc/>
+    public string Area { get; }
+
+    /// <inheritdoc/>
+    public GameObjectId Id { get; } = GameObjectId.NewId();
+
+    /// <inheritdoc/>
+    public string IdString => idstr ??= Id.ToString()!;
+    private string? idstr;
 
     /// <summary>
     /// The synchronization object that belongs to this <see cref="GameObject"/>
@@ -75,7 +87,7 @@ public abstract class GameObject : IDisposable, IGameObject
         {
 #if FEATURE_INTERNAL_LOGGING
             lock (logSync)
-                return __inlog ??= new GameLogger(Game.InternalLogger, Area, Facility, Name, GetType());
+                return __inlog ??= new GameLogger(Game.InternalLogger, this);
 #else
             return null;
 #endif
@@ -97,7 +109,7 @@ public abstract class GameObject : IDisposable, IGameObject
     /// <param name="facility"></param>
     /// <returns></returns>
     protected virtual ILogger CreateLogger(ILogger gameLogger, string area, string facility)
-        => new GameLogger(gameLogger, area, facility, Name, GetType());
+        => new GameLogger(gameLogger, this);
 
     /// <inheritdoc/>
     public Game Game { get; }

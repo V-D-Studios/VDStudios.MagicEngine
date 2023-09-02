@@ -35,9 +35,9 @@ public abstract class Game : IGameObject
         Logger = ConfigureLogger(new LoggerConfiguration()).CreateLogger();
 #if FEATURE_INTERNAL_LOGGING
         InternalLogger = ConfigureInternalLogger(new LoggerConfiguration()).CreateLogger();
-        InternalLog = new GameLogger(InternalLogger, "Game", "Global", "Game Object", GetType());
+        InternalLog = new GameLogger(InternalLogger, this);
 #endif
-        Log = new GameLogger(Logger, "Game", "Global", "Game Object", GetType());
+        Log = new GameLogger(Logger, this);
         ActiveGraphicsManagers = new();
         UpdateFrameThrottle = TimeSpan.FromMilliseconds(5);
         Random = CreateRNG();
@@ -696,6 +696,12 @@ public abstract class Game : IGameObject
     Game IGameObject.Game => this;
     bool IGameObject.IsDisposed => false;
     string? IGameObject.Name => GameTitle;
+    string IGameObject.Facility => "Global";
+    string IGameObject.Area => "Game";
+
+    string IGameObject.IdString => idstr ??= ((IGameObject)this).Id.ToString()!;
+    GameObjectId IGameObject.Id { get; } = GameObjectId.NewId();
+    private string? idstr;
 
     #endregion
 
