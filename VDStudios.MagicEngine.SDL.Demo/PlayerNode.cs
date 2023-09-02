@@ -100,7 +100,7 @@ public class PlayerNode : Node, IWorldMobile2D
             TextOperation = new TextOperation(new TTFont(RWops.CreateFromMemory(new PinnedArray<byte>(Fonts.CascadiaCode), true, true), 16), Game);
 
             await dopm.AddDrawOperation(SpriteOperation);
-            await dopm.AddDrawOperation(TextOperation);
+            await dopm.AddDrawOperation(TextOperation, 1);
         }
         else
             Debug.Fail("The attached scene did not have a DrawOperationManager for SDLGraphicsContext");
