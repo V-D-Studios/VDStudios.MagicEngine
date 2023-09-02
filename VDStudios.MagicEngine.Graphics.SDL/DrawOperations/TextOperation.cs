@@ -19,6 +19,7 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
 {
     private readonly record struct TextRenderCacheKey(byte Mode, int Size, string Text, RGBAColor Color, RGBAColor Foreground);
     private Texture? texture;
+    private Surface? surface;
     private Texture? txtbf;
 
     private TTFont __font;
@@ -73,9 +74,9 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
 
         if (k != CurrentKey)
         {
-            CurrentKey = k;
             if (size is int s)
                 __font.Size = s;
+            CurrentKey = k;
             texture = null;
             NotifyPendingGPUUpdate();
         }
@@ -91,9 +92,9 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
 
         if (k != CurrentKey)
         {
-            CurrentKey = k;
             if (size is int s)
                 __font.Size = s;
+            CurrentKey = k;
             texture = null;
             NotifyPendingGPUUpdate();
         }
@@ -109,9 +110,9 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
 
         if (k != CurrentKey)
         {
-            CurrentKey = k;
             if (size is int s)
                 __font.Size = s;
+            CurrentKey = k;
             texture = null;
             NotifyPendingGPUUpdate();
         }
@@ -133,8 +134,6 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
         Debug.Assert(texture is not null || txtbf is not null, "Texture was unexpectedly null at the time of drawing");
         var t = texture ?? txtbf!; // The analyzer warns about this, but one of the references must not be null at this time, or the assertion would fail
 
-        Transform(scale: new Vector3(4, 4, 1));
-
         var dest = this.CreateDestinationRectangle(t.Size.ToVector2(), target.Transformation).ToRectangle();
         t.Render(null, dest);
     }
@@ -145,18 +144,24 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
         if (texture is null)
         {
             var k = CurrentKey;
+            
             txtbf?.Dispose();
+            txtbf = null;
+
+            surface?.Dispose();
+            surface = null;
+
             var (m, _, t, c1, c2) = k;
             if (t is null) return;
             Debug.Assert(m is >= 0 and <= 2, "Unknown mode");
-            using var srf = m switch
+            surface = m switch
             {
-                0 => __font.RenderTextBlended(t, c1, EncodingType.Latin1),
-                1 => __font.RenderTextShaded(t, c1, c2, EncodingType.Latin1),
-                2 => __font.RenderTextSolid(t, c1, EncodingType.Latin1),
+                0 => __font.RenderTextBlended(t, c1, EncodingType.Unicode),
+                1 => __font.RenderTextShaded(t, c1, c2, EncodingType.Unicode),
+                2 => __font.RenderTextSolid(t, c1, EncodingType.Unicode),
                 _ => throw new InvalidOperationException()
             };
-            texture = new Texture(context.Renderer, srf);
+            texture = new Texture(context.Renderer, surface);
             txtbf = texture;
         }
     }
