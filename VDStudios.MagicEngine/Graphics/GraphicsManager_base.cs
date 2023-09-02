@@ -136,7 +136,7 @@ public abstract class GraphicsManager : GameObject
     /// Fires <see cref="InputReady"/>
     /// </summary>
     protected void FireInputReady(InputSnapshot snapshot)
-        => InputReady?.Invoke(this, snapshot, DateTime.Now);
+        => InputReady?.Invoke(this, snapshot, Game.TotalTime);
 
     /// <summary>
     /// Fired when this <see cref="GraphicsManager"/> has finished preparing user input
