@@ -234,21 +234,11 @@ public abstract class Node : GameObject, IDisposable
     /// </remarks>
     /// <returns>The newly installed <see cref="FunctionalComponent"/></returns>
     /// <typeparam name="TComponent">The type of FunctionalComponent to instance and install</typeparam>
-    public TComponent Install<TComponent>() where TComponent : FunctionalComponent
+    public TComponent Install<TComponent>(TComponent component) where TComponent : FunctionalComponent
     {
-        TComponent comp;
-        var ctorQuery = new Type[] { GetType() };
-
-        var ctor = typeof(TComponent).GetConstructor(System.Reflection.BindingFlags.Public, ctorQuery) ??
-            typeof(TComponent).GetConstructor(System.Reflection.BindingFlags.Public, NodeConstructorQuery) ??
-            throw new InvalidOperationException($"FunctionalComponent of type {typeof(TComponent).FullName} does not have a constructor accepting a single Node or {GetType().Name}");
-
-        comp = (TComponent)ctor.Invoke(null, new object[] { this })!;
-        InternalInstall(comp);
-        return comp;
+        InternalInstall(component);
+        return component;
     }
-    private static readonly Type[] NodeConstructorQuery = new Type[] { typeof(Node) };
-
     /// <summary>
     /// Instances and installs the <see cref="FunctionalComponent"/> returned by <paramref name="factory"/> into this <see cref="Node"/>
     /// </summary>
