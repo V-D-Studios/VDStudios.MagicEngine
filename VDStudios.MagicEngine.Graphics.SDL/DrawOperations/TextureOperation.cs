@@ -25,6 +25,11 @@ public class TextureOperation : DrawOperation<SDLGraphicsContext>
         View = view ?? View;
     }
 
+    /// <summary>
+    /// The color of the outline of the target rectangle where the texture will be rendered. Set to <see langword="null"/> to not render the outline
+    /// </summary>
+    public RGBAColor? TextureOutlineColor { get; set; }
+
     private Texture? texture;
     private readonly Func<SDLGraphicsContext, Texture> TextureFactory;
 
@@ -58,6 +63,8 @@ public class TextureOperation : DrawOperation<SDLGraphicsContext>
         Debug.Assert(texture is not null);
         var dest = this.CreateDestinationRectangle(View.Size.ToVector2(), target.Transformation).ToRectangle();
         texture.Render(View, dest);
+        if (TextureOutlineColor is RGBAColor color) 
+            context.Renderer.DrawRectangle(dest, color);
     }
 
     /// <inheritdoc/>
