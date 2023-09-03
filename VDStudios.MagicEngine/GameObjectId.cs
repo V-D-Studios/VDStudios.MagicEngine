@@ -32,7 +32,7 @@ public readonly struct GameObjectId : IFormattable, IEquatable<GameObjectId>
     }
 
     [field: FieldOffset(0)]
-    internal readonly uint Raw;
+    internal readonly int Raw;
     /// <summary>
     /// The Hour at which this <see cref="GameObject"/> was created
     /// </summary>
@@ -83,5 +83,5 @@ public readonly struct GameObjectId : IFormattable, IEquatable<GameObjectId>
 
     /// <inheritdoc/>
     public override int GetHashCode()
-        => Raw.GetHashCode();
+        => Raw;
 }

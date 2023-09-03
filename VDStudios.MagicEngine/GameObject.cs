@@ -30,6 +30,15 @@ public abstract class GameObject : IDisposable, IGameObject
     public string IdString => idstr ??= Id.ToString()!;
     private string? idstr;
 
+    /// <inheritdoc/>
+    public override string ToString()
+        => tostr ??= $"{base.ToString()}:{IdString}";
+    private string? tostr;
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+        => Id.Raw;
+
     /// <summary>
     /// The synchronization object that belongs to this <see cref="GameObject"/>
     /// </summary>
