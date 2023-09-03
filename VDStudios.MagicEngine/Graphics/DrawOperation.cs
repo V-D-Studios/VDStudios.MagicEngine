@@ -152,6 +152,19 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// </remarks>
     protected void NotifyPendingGPUUpdate() => pendingGpuUpdate = true;
 
+    /// <summary>
+    /// Forces this <see cref="DrawOperation{TGraphicsContext}"/> to update its GPU state immediately
+    /// </summary>
+    /// <remarks>
+    /// Automatically unflags this <see cref="DrawOperation{TGraphicsContext}"/> from needing to be updated again
+    /// </remarks>
+    /// <param name="context">The <typeparamref name="TGraphicsContext"/> this <see cref="DrawOperation{TGraphicsContext}"/> uses</param>
+    protected void ForceGPUUpdate(TGraphicsContext context)
+    {
+        pendingGpuUpdate = false;
+        UpdateGPUState(context);
+    }
+
     internal void InternalDraw(TimeSpan delta, TGraphicsContext context, RenderTarget<TGraphicsContext> target)
     {
         Debug.Assert(context is not null, "The GraphicsContext is unexpectedly null");
@@ -167,10 +180,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
             } 
 
             if (pendingGpuUpdate)
-            {
-                pendingGpuUpdate = false;
-                UpdateGPUState(context);
-            }
+                ForceGPUUpdate(context);
             Draw(delta, context, target);
         }
         finally
