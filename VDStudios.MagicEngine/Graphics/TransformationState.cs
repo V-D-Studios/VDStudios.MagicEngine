@@ -33,6 +33,24 @@ public sealed class TransformationState
     private Matrix4x4? scaletrans = Matrix4x4.Identity;
 
     /// <summary>
+    /// The transformation matrix that represents the current translation properties in this <see cref="TransformationState"/>
+    /// </summary>
+    /// <remarks>
+    /// <see cref="VertexTransformation"/> already includes this transformation and should not be mixed externally
+    /// </remarks>
+    public Matrix4x4 TranslationTransformation
+    {
+        get
+        {
+            if (transtrans is not Matrix4x4 t)
+                transtrans = t = Matrix4x4.CreateTranslation(Translation);
+            TranslationTransformationChanged?.Invoke(this);
+            return t;
+        }
+    }
+    private Matrix4x4? transtrans = Matrix4x4.Identity;
+
+    /// <summary>
     /// The transformation matrix that represents the current transformation properties in this <see cref="TransformationState"/>
     /// </summary>
     /// <remarks>
@@ -73,6 +91,11 @@ public sealed class TransformationState
     public event GeneralGameEvent<TransformationState>? ScaleTransformationChanged;
 
     /// <summary>
+    /// Fired when <see cref="TranslationTransformation"/> changes
+    /// </summary>
+    public event GeneralGameEvent<TransformationState>? TranslationTransformationChanged;
+
+    /// <summary>
     /// Adjusts the transformation parameters and calculates the appropriate transformation matrix for this <see cref="TransformationState"/>
     /// </summary>
     /// <remarks>
@@ -85,16 +108,37 @@ public sealed class TransformationState
     /// <param name="rotZ">The rotation along the z axis in worldspace for this operation</param>
     public void Transform(Vector3? translation = null, Vector3? scale = null, Vector4? rotX = null, Vector4? rotY = null, Vector4? rotZ = null)
     {
-        if (scale is not null)
+        if (scale is not null && scale.Value != Scale)
         {
             Scale = scale.Value;
             scaletrans = null;
+            vertrans = null;
         }
-        Translation = translation ?? Translation;
-        RotationX = rotX ?? RotationX;
-        RotationY = rotY ?? RotationY;
-        RotationZ = rotZ ?? RotationZ;
-        vertrans = null;
+
+        if (translation is not null && translation.Value != Translation)
+        {
+            Translation = translation.Value;
+            transtrans = null;
+            vertrans = null;
+        }
+
+        if (rotX is not null && rotX.Value != RotationX)
+        {
+            RotationX = rotX.Value;
+            vertrans = null;
+        }
+
+        if (rotY is not null && rotY.Value != RotationY)
+        {
+            RotationY = rotY.Value;
+            vertrans = null;
+        }
+
+        if (rotZ is not null && rotZ.Value != RotationZ)
+        {
+            RotationZ = rotZ.Value;
+            vertrans = null;
+        }
     }
 
     /// <summary>
