@@ -220,7 +220,7 @@ public delegate void FunctionalComponentReadinessChangedEvent(FunctionalComponen
 public delegate void FunctionalComponentEvent(FunctionalComponent component, TimeSpan timestamp);
 
 /// <summary>
-/// Represents an event in the game regarding a <see cref="FunctionalComponent"/>'s <see cref="FunctionalComponent.Owner"/>
+/// Represents an event in the game regarding a <see cref="FunctionalComponent"/>'s <see cref="FunctionalComponent.AttachedNode"/>
 /// </summary>
 /// <param name="component">The component that experienced the change</param>
 /// <param name="timestamp">The amount of time that has passed since the game starting and this event firing</param>

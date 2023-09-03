@@ -19,7 +19,7 @@ public abstract class FunctionalComponent : GameObject
     /// <param name="node">The node this <see cref="FunctionalComponent"/> is going to be attached to</param>
     public FunctionalComponent(Node node) : base(node.Game, "Node Functionality", "Update")
     {
-        Owner = node;
+        AttachedNode = node;
     }
 
     #endregion
@@ -29,13 +29,13 @@ public abstract class FunctionalComponent : GameObject
     #region Reaction Methods
 
     /// <summary>
-    /// This method is automatically called when this component's <see cref="Owner"/> is attached to a <see cref="Scene"/>
+    /// This method is automatically called when this component's <see cref="AttachedNode"/> is attached to a <see cref="Scene"/>
     /// </summary>
     /// <param name="scene">The <see cref="Scene"/> this component's node is being attached to</param>
     protected internal virtual void NodeAttachedToScene(Scene scene) { }
 
     /// <summary>
-    /// This method is automatically called when this component's <see cref="Owner"/> is detached from a <see cref="Scene"/>
+    /// This method is automatically called when this component's <see cref="AttachedNode"/> is detached from a <see cref="Scene"/>
     /// </summary>
     protected internal virtual void NodeDetachedFromScene() { }
 
@@ -55,7 +55,7 @@ public abstract class FunctionalComponent : GameObject
     /// <summary>
     /// The <see cref="Node"/> this <see cref="FunctionalComponent"/> is currently attached to, if any
     /// </summary>
-    public Node Owner { get; }
+    public Node AttachedNode { get; }
 
     #endregion
 
@@ -66,15 +66,15 @@ public abstract class FunctionalComponent : GameObject
     /// </summary>
     /// <param name="node">The node this component is currently being attached to</param>
     /// <remarks>
-    /// <see cref="Owner"/> will be set after this method is called, and <see cref="Node.ComponentInstalled"/> will fire after that
+    /// <see cref="AttachedNode"/> will be set after this method is called, and <see cref="Node.ComponentInstalled"/> will fire after that
     /// </remarks>
     protected internal virtual void Installing(Node node) { }
 
     /// <summary>
-    /// This method is called automatically when this component's functionality is detached from <see cref="Owner"/>
+    /// This method is called automatically when this component's functionality is detached from <see cref="AttachedNode"/>
     /// </summary>
     /// <remarks>
-    /// <see cref="Owner"/> will be null'd after this method is called, and <see cref="Node.ComponentUninstalled"/> will fire after that, and finally the Component will be disposed
+    /// <see cref="AttachedNode"/> will be null'd after this method is called, and <see cref="Node.ComponentUninstalled"/> will fire after that, and finally the Component will be disposed
     /// </remarks>
     protected internal virtual void Uninstalling() { }
 
@@ -105,7 +105,7 @@ public abstract class FunctionalComponent : GameObject
 
     internal void InternalUninstall()
     {
-        InternalLog?.Debug("Installing from node {name}-{type}", Owner.Name, Owner.GetTypeName());
+        InternalLog?.Debug("Installing from node {name}-{type}", AttachedNode.Name, AttachedNode.GetTypeName());
         Uninstalling();
     }
 

@@ -269,7 +269,7 @@ public abstract class Node : GameObject, IDisposable
     /// <exception cref="ArgumentException">If the component is not installed in this <see cref="Node"/></exception>
     public void Uninstall(FunctionalComponent component)
     {
-        if (!ReferenceEquals(component.Owner, this))
+        if (!ReferenceEquals(component.AttachedNode, this))
             throw new ArgumentException("The specified component is not installed in this Node", nameof(component));
 
         ComponentUninstalling(component);
