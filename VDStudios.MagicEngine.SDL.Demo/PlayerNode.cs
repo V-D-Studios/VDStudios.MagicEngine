@@ -21,11 +21,13 @@ public class PlayerNode : Node, IWorldMobile2D
     private TextureOperation? RobinSprite;
     private TextOperation? RobinPositionReport;
     private TextOperation? CameraPositionReport;
+    private DelegateOperation? MidPointViewer;
     private GraphicsManagerFrameTimer GMTimer;
 
     public float Speed { get; } = .3f;
     public Vector2 Direction { get; private set; } = Vector2.Zero;
     public Vector2 Position { get; private set; } = default;
+    public Vector2 Size { get; private set; } = new(32, 32);
 
     public PlayerNode(Game game) : base(game)
     {
@@ -90,7 +92,6 @@ public class PlayerNode : Node, IWorldMobile2D
             CameraPositionReport.SetTextBlended($"Camera, Position: {position: 0000.00;-0000.00}, Scale: {scale: 0000.00;-0000.00}", RgbaVector.Red.ToRGBAColor(), 16);
             GMTimer.Restart();
         }
-        RobinSprite.TransformationState.Transform(scale: new Vector3(1, 1, 1));
 
         return base.Updating(delta);
     }
@@ -107,10 +108,22 @@ public class PlayerNode : Node, IWorldMobile2D
 
             RobinPositionReport = new TextOperation(new TTFont(RWops.CreateFromMemory(new PinnedArray<byte>(Fonts.CascadiaCode), true, true), 16), Game);
             CameraPositionReport = new TextOperation(new TTFont(RWops.CreateFromMemory(new PinnedArray<byte>(Fonts.CascadiaCode), true, true), 16), Game);
+            MidPointViewer = new DelegateOperation(Game, (dop, ts, c, r) =>
+            {
+                var ws = c.Window.Size;
+                var x = ws.Width / 2 - 16;
+                var y = ws.Height / 2 - 16;
+
+                c.Renderer.DrawRectangle(new Rectangle(32, 32, x, y), RgbaVector.Yellow.ToRGBAColor());
+            });
 
             await dopm.AddDrawOperation(RobinSprite);
             await dopm.AddDrawOperation(RobinPositionReport, 1);
             await dopm.AddDrawOperation(CameraPositionReport, 1);
+            await dopm.AddDrawOperation(MidPointViewer, 1);
+
+            RobinSprite.TextureOutlineColor = RgbaVector.Blue.ToRGBAColor();
+
             CameraPositionReport.TransformationState.Transform(translation: new Vector3(0, 20, 0));
             //RobinSprite.TransformationState.Transform(scale: new Vector3(4, 4, 1));
         }
