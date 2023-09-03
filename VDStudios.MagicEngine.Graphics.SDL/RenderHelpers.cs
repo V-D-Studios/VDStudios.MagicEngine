@@ -43,8 +43,8 @@ public static class RenderHelpers
     /// <returns>The <see cref="FloatRectangle"/> to be used as the destination. Consider calling <see cref="ToRectangle(FloatRectangle)"/> on it</returns>
     public static FloatRectangle CreateDestinationRectangle(this DrawOperation<SDLGraphicsContext> dop, Vector2 sourceSize, DrawTransformation transformation)
     {
-        var pos = Vector2.Transform(Vector2.Zero, dop.TransformationState.VertexTransformation * transformation.View * transformation.Projection);
-        var size = Vector2.Transform(sourceSize, dop.TransformationState.ScaleTransformation * transformation.View * transformation.Projection);
+        var size = Vector2.Transform(sourceSize, transformation.Projection) * transformation.ViewScale.ToVector2() * dop.TransformationState.Scale.ToVector2();
+        var pos = Vector2.Transform(Vector2.Zero, transformation.Projection) + dop.TransformationState.Translation.ToVector2() + transformation.ViewTranslation.ToVector2();
         return new FloatRectangle(pos, size);
     }
 

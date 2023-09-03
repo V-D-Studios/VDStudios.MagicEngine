@@ -13,7 +13,7 @@ public class PassthroughRenderTarget : SDLRenderTarget
     /// <inheritdoc/>
     public override void BeginFrame(TimeSpan delta, SDLGraphicsContext context) 
     {
-        Transformation = new DrawTransformation(Matrix4x4.Identity, context.Manager.WindowView);
+        Transformation = new DrawTransformation(Matrix4x4.Identity, context.Manager.WindowView, default, Vector3.One);
     }
 
     /// <inheritdoc/>

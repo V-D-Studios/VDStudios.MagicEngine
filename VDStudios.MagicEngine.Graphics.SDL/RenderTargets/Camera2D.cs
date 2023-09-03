@@ -14,6 +14,7 @@ namespace VDStudios.MagicEngine.Graphics.SDL.RenderTargets;
 public class SDLCamera2D : SDLRenderTarget
 {
     private Matrix4x4 current = Matrix4x4.Identity;
+    private Vector3 cscale = Vector3.One;
 
     /// <summary>
     /// The current transformation goal for this <see cref="SDLCamera2D"/>
@@ -29,6 +30,11 @@ public class SDLCamera2D : SDLRenderTarget
     /// The <see cref="IInterpolator"/> that will be used to interpolate between the camera's current position and its goal
     /// </summary>
     public IInterpolator Interpolator { get; }
+
+    /// <summary>
+    /// A value that will be used to scale interpolation speeds when multiplied against delta time <see cref="TimeSpan.TotalSeconds"/>
+    /// </summary>
+    public float InterpolationCoeficient { get; } = 1;
 
     /// <summary>
     /// A Target for this <see cref="SDLCamera2D"/> to follow
@@ -75,10 +81,14 @@ public class SDLCamera2D : SDLRenderTarget
     /// <inheritdoc/>
     public override void BeginFrame(TimeSpan delta, SDLGraphicsContext context)
     {
+        Move(scale: new(4f, 4f, 1));
         if (Target is IWorldMobile2D target)
-            Goal.Transform(translation: new((context.Window.Size.ToVector2() / 4) - target.Position / 2, 0), scale: new Vector3(1, 1, 1));
-        current = Interpolator.Interpolate(current, Goal.VertexTransformation, (float)delta.TotalMilliseconds);
-        Transformation = new DrawTransformation(current, Manager.WindowView);
+            Goal.Transform(translation: new Vector3(-target.Position + Manager.WindowSize.ToVector2() / 2 - target.Size / 2 * Goal.Scale.ToVector2(), 0) / Goal.Scale);
+
+        var t = ((float)delta.TotalSeconds) * InterpolationCoeficient;
+        current = Interpolator.Interpolate(current, Goal.VertexTransformation, t);
+        cscale = Interpolator.Interpolate(cscale, Goal.Scale, t);
+        Transformation = new DrawTransformation(current, Matrix4x4.Identity, current.Translation, cscale);
     }
 
     /// <inheritdoc/>
