@@ -359,8 +359,13 @@ public abstract class GraphicsManager : GameObject
     ///// </remarks>
     //public GraphicsManager<TGraphicsContext>RunStateChanged? RunStateChanged;
 
-
-
+    /// <summary>
+    /// Takes a screenshot of the screen at the end of the current frame and uploads it to <see cref="Stream"/>
+    /// </summary>
+    /// <param name="output">The output <see cref="Stream"/> into which to write the image</param>
+    /// <param name="format">The file format of the resulting image</param>
+    /// <param name="jpegQuality">The JPEG quality, where [0; 33] is Lowest quality, [34; 66] is Middle quality, [67; 100] is Highest quality. If <paramref name="format"/> is not <see cref="ScreenshotImageFormat.JPG"/>, this parameter is ignored</param>
+    public abstract ValueTask TakeScreenshot(Stream output, ScreenshotImageFormat format, int jpegQuality = 100);
 
     /// <summary>
     /// Performs task such as Creating and Setting up the Window

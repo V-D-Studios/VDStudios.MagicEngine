@@ -269,6 +269,11 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     protected virtual void BeforeFrameRelease() { }
 
     /// <summary>
+    /// This method is called automatically every frame this <see cref="GraphicsManager{TGraphicsContext}"/> is active, right the frame is submited through the <see cref="GraphicsContext{TSelf}.EndAndSubmitFrame"/>
+    /// </summary>
+    protected virtual void BeforeSubmitFrame() { }
+    
+    /// <summary>
     /// This method is called automatically every frame this <see cref="GraphicsManager{TGraphicsContext}"/> is active, right after <see cref="WindowShownLock"/> is locked
     /// </summary>
     protected virtual void RunningWindowLocked(TimeSpan delta) { }
@@ -555,6 +560,8 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
                         //        }
                         //    }
                         //}
+
+                        BeforeSubmitFrame();
 
                         context.EndAndSubmitFrame();
 

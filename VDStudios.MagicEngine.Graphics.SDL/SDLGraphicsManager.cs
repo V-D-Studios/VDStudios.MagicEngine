@@ -4,10 +4,12 @@ using System.Numerics;
 using System.Security.Principal;
 using ImGuiNET;
 using SDL2.NET;
+using SDL2.NET.SDLImage;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL.GUI;
 using VDStudios.MagicEngine.Graphics.SDL.Internal;
 using VDStudios.MagicEngine.Input;
+using static SDL2.Bindings.SDL;
 
 namespace VDStudios.MagicEngine.Graphics.SDL;
 
@@ -355,5 +357,75 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
 
         lock (ImGuiSync)
             imGuiController.Shutdown();
+    }
+
+    internal record class ScreenshotRequest(Stream Output, ScreenshotImageFormat Format, int JpegQuality)
+    {
+        public readonly SemaphoreSlim Semaphore = new(0, 1);
+        public Surface? Surface;
+        public Task? UploadTask;
+
+        public void FireUploadScreenshotTask()
+        {
+            UploadTask = Task.Run(() =>
+            {
+                try
+                {
+                    Debug.Assert(Surface is not null, "Surface was unexpectedly null at the time of uploading screenshot");
+                    using var rwops = RWops.CreateFromStream(Output);
+                    if (Format is ScreenshotImageFormat.BMP)
+                        Surface.SaveBMP(rwops);
+                    else if (Format is ScreenshotImageFormat.PNG)
+                        Surface.SavePNG(rwops);
+                    else if (Format is ScreenshotImageFormat.JPG)
+                        Surface.SaveJPG(rwops, JpegQuality);
+                }
+                finally
+                {
+                    Surface = null;
+                    Semaphore.Release();
+                }
+            });
+        }
+    }
+
+    private Surface CreateScreenshotSurface()
+    {
+        var winsize = WindowSize;
+        var srf = new Surface(winsize.X, winsize.Y, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+        Renderer.ReadPixels(PixelFormat.Unknown, srf.GetPixels(out _), srf.Pitch);
+        return srf;
+    }
+
+    internal readonly Queue<ScreenshotRequest> screenshotRequests = new();
+
+    /// <inheritdoc/>
+    public override async ValueTask TakeScreenshot(Stream output, ScreenshotImageFormat format, int jpegQuality = 100)
+    {
+        var req = new ScreenshotRequest(output, format, jpegQuality);
+        lock (screenshotRequests)
+            screenshotRequests.Enqueue(req);
+
+        await req.Semaphore.WaitAsync();
+
+        Debug.Assert(req.UploadTask is not null, "UploadTask was unexpectedly null after the semaphore release");
+        await req.UploadTask;
+    }
+
+    /// <inheritdoc/>
+    protected override void BeforeSubmitFrame()
+    {
+        if (screenshotRequests.Count > 0)
+            lock (screenshotRequests)
+                if (screenshotRequests.Count > 0)
+                {
+                    var srf = CreateScreenshotSurface(); // We let the GC finalize this surface
+                    while (screenshotRequests.TryDequeue(out var req)) 
+                    {
+                        Debug.Assert(srf is not null, "Screenshot Surface was not properly created");
+                        req.Surface = srf;
+                        req.FireUploadScreenshotTask();
+                    }
+                }
     }
 }
