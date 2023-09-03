@@ -56,7 +56,7 @@ public class PlayerNode : Node, IWorldMobile2D
         GMTimer = new(Game.MainGraphicsManager, 30);
     }
 
-    protected override ValueTask<bool> Updating(TimeSpan delta)
+    protected override async ValueTask<bool> Updating(TimeSpan delta)
     {
         Debug.Assert(RobinSprite is not null, "PlayerNode.SpriteOperation is unexpectedly null at the time of updating");
         Debug.Assert(RobinPositionReport is not null, "PlayerNode.TextOperation is unexpectedly null at the time of updating");
@@ -71,6 +71,14 @@ public class PlayerNode : Node, IWorldMobile2D
             Direction += Directions.Down;
         if (Keyboard.KeyStates[Scancode.D].IsPressed)
             Direction += Directions.Right;
+
+        if (Keyboard.KeyStates[Scancode.F12].IsPressed)
+        {
+            var scdir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "MagicEngine Screenshots");
+            Directory.CreateDirectory(scdir);
+            using var stream = File.Open(Path.Combine(scdir, $"{Guid.NewGuid()}.png"), FileMode.Create);
+            await RobinSprite.Manager!.TakeScreenshot(stream, Utility.ScreenshotImageFormat.PNG);
+        }
 
         Position += Direction * Speed;
 
@@ -93,7 +101,7 @@ public class PlayerNode : Node, IWorldMobile2D
             GMTimer.Restart();
         }
 
-        return base.Updating(delta);
+        return await base.Updating(delta);
     }
 
     protected override async ValueTask Attaching(Scene scene)
