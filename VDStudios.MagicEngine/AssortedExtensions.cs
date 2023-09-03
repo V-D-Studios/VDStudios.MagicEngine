@@ -70,6 +70,13 @@ public static class AssortedExtensions
     }
 
     /// <summary>
+    /// Creates a new <see cref="Vector2"/> with the <see cref="Vector3.X"/> and <see cref="Vector3.Y"/> values of <paramref name="vec"/>
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector2 ToVector2(this Vector3 vec)
+        => new(vec.X, vec.Y);
+
+    /// <summary>
     /// This method serves a shorthand for calling <see cref="object.GetType"/> on <paramref name="obj"/> and taking <see cref="MemberInfo.Name"/>
     /// </summary>
     /// <param name="obj">The object to get the type name from</param>
