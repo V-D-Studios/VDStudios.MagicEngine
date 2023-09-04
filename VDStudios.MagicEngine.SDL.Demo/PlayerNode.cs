@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
-using Nito.AsyncEx;
 using SDL2.NET;
 using SDL2.NET.Input;
 using SDL2.NET.SDLFont;
