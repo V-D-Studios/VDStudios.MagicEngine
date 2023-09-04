@@ -24,51 +24,54 @@ public class GameMismatchException : Exception
     {
         int latest = 0;
         Debug.Assert(objects.Length == objectExpressions.Length, "objects and objectExpressions have different lengths");
-        StringBuilder sb = new();
-        StringBuilder games = new();
-        Dictionary<Game, int> dict = new();
-
-        for (int i = 0; i < objects.Length; i++)
+        using (SharedObjectPools.StringBuilderPool.Rent(out var sb))
+        using (SharedObjectPools.StringBuilderPool.Rent(out var games))
         {
-            sb.Append($"{objectExpressions[i]} {objects[i].GetType()}");
-            if (objects[i].Name is string name)
-                sb.Append($" ({name})");
-            else
-                sb.Append(" belonging to detected game #");
+            Dictionary<Game, int> dict = new();
 
-            sb.AppendLine(GetLocalGameId(objects[i].Game).ToString());
-        }
+            for (int i = 0; i < objects.Length; i++)
+            {
+                sb.Append($"{objectExpressions[i]} {objects[i].GetType()}");
+                if (objects[i].Name is string name)
+                    sb.Append($" ({name})");
+                else
+                    sb.Append(" belonging to detected game #");
 
-        games.Append("Games detected in this mismatch:\n\n");
-        foreach (var (k, v) in dict)
-            games.Append($"- {k.GetType()}: #{v}");
+                sb.AppendLine(GetLocalGameId(objects[i].Game).ToString());
+            }
 
-        return $"{games}\n\n------------\n\n{sb}";
+            games.Append("Games detected in this mismatch:\n\n");
+            foreach (var (k, v) in dict)
+                games.Append($"- {k.GetType()}: #{v}");
 
-        int GetLocalGameId(Game game)
-        {
-            if (dict.TryGetValue(game, out int value) is false)
-                dict[game] = value = latest++;
-            return value;
+            return $"{games}\n\n------------\n\n{sb}";
+
+            int GetLocalGameId(Game game)
+            {
+                if (dict.TryGetValue(game, out int value) is false)
+                    dict[game] = value = latest++;
+                return value;
+            }
         }
     }
 
     private static string BuildMessage(IGameObject[] objects, string[] objectExpressions)
     {
         Debug.Assert(objects.Length == objectExpressions.Length, "objects and objectExpressions have different lengths");
-        StringBuilder sb = new();
-
-        sb.Append("The following GameObjects have a mismatching game: ");
-        for (int i = 0; i < objects.Length; i++)
+        using (SharedObjectPools.StringBuilderPool.Rent(out var sb))
         {
-            sb.Append($"{objectExpressions[i]} {objects[i].GetType()}");
-            if (objects[i].Name is string name)
-                sb.Append($" ({name})");
-            else
-                sb.Append("; ");
-        }
+            sb.Append("The following GameObjects have a mismatching game: ");
+            for (int i = 0; i < objects.Length; i++)
+            {
+                sb.Append($"{objectExpressions[i]} {objects[i].GetType()}");
+                if (objects[i].Name is string name)
+                    sb.Append($" ({name})");
+                else
+                    sb.Append("; ");
+            }
 
-        return sb.ToString();
+            return sb.ToString();
+        }
     }
 
     /// <summary>
