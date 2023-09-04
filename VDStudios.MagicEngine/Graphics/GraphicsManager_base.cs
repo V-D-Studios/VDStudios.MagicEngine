@@ -12,7 +12,7 @@ namespace VDStudios.MagicEngine.Graphics;
 /// <remarks>
 /// This class cannot be instanced, and cannot be inherited outside this library
 /// </remarks>
-public abstract class GraphicsManager : GameObject
+public abstract class GraphicsManager : DisposableGameObject
 {
     internal GraphicsManager(Game game) : base(game, "Graphics & Input", "Rendering")
     {

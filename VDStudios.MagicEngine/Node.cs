@@ -12,7 +12,7 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// A <see cref="Node"/> can be an entity, a bullet, code to update another <see cref="Node"/>'s values, or any kind of active game object that is not a <see cref="FunctionalComponent"/>. To make a <see cref="Node"/> drawable, have it implement one of <see cref="IDrawableNode"/>. A <see cref="Node"/> is responsible for updating its own <see cref="FunctionalComponent"/>s
 /// </remarks>
-public abstract class Node : GameObject, IDisposable
+public abstract class Node : DisposableGameObject, IDisposable
 {
     #region Constructors
 

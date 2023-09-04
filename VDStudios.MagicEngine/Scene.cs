@@ -14,7 +14,7 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// A scene can be the MainMenu, a Room, a Dungeon, and any number of things. It is a self-contained state of the <see cref="Game"/>. It's allowed to share states across <see cref="Scene"/>s, but doing so and managing it is your responsibility
 /// </remarks>
-public abstract class Scene : GameObject, IDisposable
+public abstract class Scene : DisposableGameObject, IDisposable
 {
     #region Construction
 

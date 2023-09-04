@@ -9,7 +9,7 @@ namespace VDStudios.MagicEngine;
 /// <remarks>
 /// <see cref="FunctionalComponent"/>s update in respect to the <see cref="Node"/> they're installed onto. That is, rather than update themselves, <see cref="FunctionalComponent"/> should work to update the <see cref="Node"/> they're installed onto
 /// </remarks>
-public abstract class FunctionalComponent : GameObject
+public abstract class FunctionalComponent : DisposableGameObject
 {
     #region Construction
 

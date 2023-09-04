@@ -9,7 +9,7 @@ namespace VDStudios.MagicEngine.Graphics;
 /// <remarks>
 /// This class cannot be instanced or inherited by user code
 /// </remarks>
-public abstract class GraphicsObject<TGraphicsContext> : GameObject
+public abstract class GraphicsObject<TGraphicsContext> : DisposableGameObject
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     internal GraphicsObject(Game game, string facility) : base(game, facility, "Rendering")
@@ -40,7 +40,7 @@ public abstract class GraphicsObject<TGraphicsContext> : GameObject
     }
 
     /// <summary>
-    /// Checks if there are any exceptions aggregated by <see cref=AggregateExternalException(Exception)"/>, and if so, throws an <see cref="AggregateException"/> containing them.
+    /// Checks if there are any exceptions aggregated by <see cref="AggregateExternalException(Exception)"/>, and if so, throws an <see cref="AggregateException"/> containing them.
     /// </summary>
     /// <remarks>
     /// If an exception occurs from a member that is supposed to manipulate a <see cref="GraphicsObject{TGraphicsContext}"/> from outside its respective GraphicsThread (if any), it should be passed to <see cref="AggregateExternalException(Exception)"/> and re-thrown. So that if an exception would cause the object's state to be corrupted in the Graphics thread, the exception can be thrown there as well, and avoid obscure exceptions or bugs.

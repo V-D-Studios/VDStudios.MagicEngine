@@ -9,7 +9,7 @@ namespace VDStudios.MagicEngine.Graphics;
 /// <remarks>
 /// Try to keep an object created from this class cached somewhere in a node, as they incur a number of allocations that should be avoided in a HotPath like the rendering sequence
 /// </remarks>
-public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphicsContext>, IDisposable
+public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphicsContext>
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     #region Transformation

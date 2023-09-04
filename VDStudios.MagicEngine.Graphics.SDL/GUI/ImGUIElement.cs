@@ -8,7 +8,7 @@ namespace VDStudios.MagicEngine.Graphics.SDL.GUI;
 /// <remarks>
 /// This object is removed from the GUI tree when disposed
 /// </remarks>
-public abstract class ImGUIElement : GameObject, IDisposable
+public abstract class ImGUIElement : DisposableGameObject, IDisposable
 {
     #region Construction
 
