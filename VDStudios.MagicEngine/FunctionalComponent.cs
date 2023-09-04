@@ -50,7 +50,7 @@ public abstract class FunctionalComponent : GameObject
     /// <summary>
     /// Represents the internal Component Index in the currently attached node
     /// </summary>
-    public int Id { get; internal set; }
+    public int ComponentId { get; internal set; }
 
     /// <summary>
     /// The <see cref="Node"/> this <see cref="FunctionalComponent"/> is currently attached to, if any
@@ -99,13 +99,13 @@ public abstract class FunctionalComponent : GameObject
 
     internal void InternalInstall(Node node)
     {
-        InternalLog?.Debug("Installing onto node {name}-{type}", node.Name, node.GetTypeName());
+        InternalLog?.Debug("Installing onto node {name}-{type}", node, node.GetTypeName());
         Installing(node);
     }
 
     internal void InternalUninstall()
     {
-        InternalLog?.Debug("Installing from node {name}-{type}", AttachedNode.Name, AttachedNode.GetTypeName());
+        InternalLog?.Debug("Uninstalling from node {name}-{type}", AttachedNode, AttachedNode.GetTypeName());
         Uninstalling();
     }
 

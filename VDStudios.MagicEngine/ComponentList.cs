@@ -31,7 +31,7 @@ public sealed class ComponentList : IReadOnlyList<FunctionalComponent>
     /// Gets the <see cref="FunctionalComponent"/> currently located at <paramref name="index"/>
     /// </summary>
     /// <remarks>Indexing the FunctionalComponent list locks the collection and the owner <see cref="FunctionalComponent"/></remarks>
-    /// <param name="index">The <see cref="FunctionalComponent.Id"/> in question</param>
+    /// <param name="index">The <see cref="FunctionalComponent.ComponentId"/> in question</param>
     /// <returns>The <see cref="FunctionalComponent"/> located at <paramref name="index"/></returns>
     public FunctionalComponent this[int index]
     {

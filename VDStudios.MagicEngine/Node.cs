@@ -283,7 +283,7 @@ public abstract class Node : GameObject, IDisposable
         ComponentInstalling(comp);
         comp.InternalInstall(this);
 
-        comp.Id = Components.Add(comp);
+        comp.ComponentId = Components.Add(comp);
 
         ComponentInstalled?.Invoke(this, comp, Game.TotalTime);
     }
