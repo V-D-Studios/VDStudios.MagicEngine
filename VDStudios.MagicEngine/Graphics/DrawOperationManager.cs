@@ -21,7 +21,7 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
         : base(owner.Game, "Rendering & Game Scene", "Draw Operations")
     {
         Owner = owner;
-        Services = new(owner.Services);
+        Services = new ChildServiceCollection<DrawOperationManager<TGraphicsContext>>(Owner.Services, this);
     }
 
     #region Public Properties
@@ -36,12 +36,11 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     #region Services and Dependency Injection
 
     /// <summary>
-    /// The <see cref="ServiceCollection"/> for this <see cref="Node"/>
+    /// The <see cref="ServiceCollection"/> for this <see cref="DrawOperationManager{TGraphicsContext}"/>
     /// </summary>
     /// <remarks>
-    /// Services to this <see cref="Node"/> will cascade down from the root <see cref="Scene"/>, if not overriden.
+    /// Services to this <see cref="DrawOperationManager{TGraphicsContext}"/> will cascade down from its <see cref="Owner"/> <see cref="Scene"/>, if not overriden.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">Thrown if this node is not attached to a root <see cref="Scene"/>, directly or indirectly</exception>
     public ServiceCollection Services { get; private set; }
 
     #endregion
@@ -164,6 +163,14 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
     #endregion
 
     #region Reaction Methods
+    
+    /// <summary>
+    /// Registers relevant services into this <see cref="DrawOperationManager{TGraphicsContext}"/>'s <see cref="ServiceCollection"/> <see cref="Services"/>
+    /// </summary>
+    /// <remarks>
+    /// This method is automatically called when this <see cref="DrawOperation{TGraphicsContext}"/> is being registered onto <see cref="Owner"/> through <see cref="Scene.RegisterDrawOperationManager{TGraphicsContext}(DrawOperationManager{TGraphicsContext})"/>
+    /// </remarks>
+    protected internal virtual void RegisteringServices(IServiceRegistrar registrar) { }
 
     /// <summary>
     /// This method is called automatically when a new <see cref="DrawOperation{TGraphicsContext}"/> is being added onto this <see cref="DrawOperationManager{TGraphicsContext}"/>

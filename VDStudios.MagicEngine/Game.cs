@@ -38,11 +38,13 @@ public abstract class Game : IGameObject
         InternalLogger = ConfigureInternalLogger(new LoggerConfiguration()).CreateLogger();
         InternalLog = new GameLogger(InternalLogger, this);
 #endif
+
         Log = new GameLogger(Logger, this);
         ActiveGraphicsManagers = new();
         UpdateFrameThrottle = TimeSpan.FromMilliseconds(5);
         Random = CreateRNG();
         DeferredCallSchedule = new DeferredExecutionSchedule(out DeferredExecutionScheduleUpdater);
+        GameServices = new GameServiceCollection(this);
 
 #if FEATURE_INTERNAL_LOGGING
         Log.Debug("Compiled with \"FEATURE_INTERNAL_LOGGING\" enabled");
@@ -116,7 +118,15 @@ public abstract class Game : IGameObject
     /// <summary>
     /// The <see cref="ServiceCollection"/> for the entire game
     /// </summary>
-    public ServiceCollection GameServices { get; } = new(null);
+    public ServiceCollection GameServices { get; }
+
+    /// <summary>
+    /// Registers relevant services into this <see cref="Game"/>'s <see cref="ServiceCollection"/> <see cref="Services"/>
+    /// </summary>
+    /// <remarks>
+    /// This method is automatically called once when this <see cref="Game"/> starts running
+    /// </remarks>
+    protected virtual void RegisteringServices(IServiceRegistrar registrar) { }
 
     #endregion
 
@@ -496,6 +506,9 @@ public abstract class Game : IGameObject
 #endif
 
         var sceneSetupList = new ValueTask[10];
+
+        Log.Information("Registering Game Services");
+        RegisteringServices((GameServiceCollection)GameServices);
 
         Log.Information("Entering Main Update Loop");
         while (lifetime.ShouldRun)

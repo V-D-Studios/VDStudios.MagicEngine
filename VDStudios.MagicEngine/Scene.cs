@@ -29,7 +29,7 @@ public abstract class Scene : DisposableGameObject, IDisposable
         Game.StopScenes += OnGameStopScenes;
         lock (Game.scenesAwaitingSetup)
             Game.scenesAwaitingSetup.Enqueue(this, (int)QueryConfigurationAsynchronousTendency());
-        Services = new(Game.GameServices);
+        Services = new ChildServiceCollection<Scene>(Game.GameServices, this);
     }
 
     /// <summary>
@@ -54,10 +54,16 @@ public abstract class Scene : DisposableGameObject, IDisposable
     /// </remarks>
     protected virtual ValueTask ConfigureScene() => ValueTask.CompletedTask;
 
-    internal ValueTask InternalConfigure()
+    internal async ValueTask InternalConfigure()
     {
         InternalLog?.Information("Configuring");
-        return ConfigureScene();
+
+        InternalLog?.Information("Registering Scene Services");
+        RegisteringServices((ChildServiceCollection<Scene>)Services);
+        ((ChildServiceCollection<Scene>)Services).DisableRegistration();
+
+        InternalLog?.Information("Calling ConfigureScene");
+        await ConfigureScene();
     }
 
     #endregion
@@ -105,6 +111,14 @@ public abstract class Scene : DisposableGameObject, IDisposable
     /// </remarks>
     public ServiceCollection Services { get; }
 
+    /// <summary>
+    /// Registers relevant services into this <see cref="Scene"/>'s <see cref="ServiceCollection"/> <see cref="Services"/>
+    /// </summary>
+    /// <remarks>
+    /// This method is automatically called when this <see cref="Scene"/> is being configured, after <see cref="ConfigureScene"/> is called
+    /// </remarks>
+    protected virtual void RegisteringServices(IServiceRegistrar registrar) { }
+
     #endregion
 
     #region Child Nodes
@@ -149,7 +163,27 @@ public abstract class Scene : DisposableGameObject, IDisposable
     /// <returns><see langword="true"/> if a <see cref="DrawOperationManager{TGraphicsContext}"/> for context <typeparamref name="TGraphicsContext"/> was registered, <see langword="false"/> if one was already present</returns>
     public bool RegisterDrawOperationManager<TGraphicsContext>(DrawOperationManager<TGraphicsContext> drawOperationManager)
         where TGraphicsContext : GraphicsContext<TGraphicsContext>
-        => drawopmanager_dict.TryAdd(typeof(TGraphicsContext), drawOperationManager ?? throw new ArgumentNullException(nameof(drawOperationManager)));
+    {
+        if (drawopmanager_dict.TryAdd(typeof(TGraphicsContext), drawOperationManager ?? throw new ArgumentNullException(nameof(drawOperationManager))))
+        {
+            if (((ChildServiceCollection<Scene>)Services).IsRegistrationDisabled is false)
+                throw new InvalidOperationException("Cannot add DrawOperationManagers to a scene before the Scene is configured and its services have been registered. Consider adding the DrawOperationManagers in ConfigureScene instead.");
+
+            if (drawOperationManager.Services is ChildServiceCollection<DrawOperationManager<TGraphicsContext>> dopServices)
+            {
+                if (dopServices.IsRegistrationDisabled)
+                    throw new ArgumentException("This DrawOperationManager has already been assigned to a Scene before", nameof(drawOperationManager));
+
+                drawOperationManager.RegisteringServices(dopServices);
+            }
+            else
+                Debug.Fail($"drawOperationManager.Services was unexpectedly not of type {typeof(ChildServiceCollection<DrawOperationManager<TGraphicsContext>>)}");
+
+            return true;
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Attempts to remove a <see cref="DrawOperationManager{TGraphicsContext}"/> registered for <typeparamref name="TGraphicsContext"/>

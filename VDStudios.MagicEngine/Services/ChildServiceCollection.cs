@@ -71,6 +71,8 @@ public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, ISe
     internal void DisableRegistration()
         => RegistrationDisabled = true;
 
+    internal bool IsRegistrationDisabled => RegistrationDisabled;
+
     private bool RegistrationDisabled;
 
     private void ThrowIfRegistrationDisabled()
