@@ -81,7 +81,6 @@ public class SDLCamera2D : SDLRenderTarget
     /// <inheritdoc/>
     public override void BeginFrame(TimeSpan delta, SDLGraphicsContext context)
     {
-        Move(scale: new(4f, 4f, 1));
         if (Target is IWorldMobile2D target)
             Goal.Transform(translation: new Vector3(-target.Position + Manager.WindowSize.ToVector2() / 2 - target.Size / 2 * Goal.Scale.ToVector2(), 0) / Goal.Scale);
 
