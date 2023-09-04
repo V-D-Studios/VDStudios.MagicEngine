@@ -352,28 +352,6 @@ public abstract class Node : DisposableGameObject, IDisposable
 
     #endregion
 
-    #region Services and Dependency Injection
-
-    internal readonly ServiceCollection _nodeServices = new(null);
-
-    /// <summary>
-    /// The <see cref="ServiceCollection"/> for this <see cref="Node"/>
-    /// </summary>
-    /// <remarks>
-    /// Services to this <see cref="Node"/> will cascade down from the root <see cref="Scene"/>, if not overriden.
-    /// </remarks>
-    /// <exception cref="InvalidOperationException">Thrown if this node is not attached to a root <see cref="Scene"/>, directly or indirectly</exception>
-    public ServiceCollection Services
-    {
-        get
-        {
-            ThrowIfNotAttached();
-            return _nodeServices;
-        }
-    }
-
-    #endregion
-
     #region Attachment and Node Tree
 
     #region Public Properties
@@ -435,8 +413,6 @@ public abstract class Node : DisposableGameObject, IDisposable
 
         ParentScene = rootScene;
 
-        _nodeServices.SetPrev(rootScene.Services);
-
         IsReady = true;
     }
 
@@ -452,7 +428,6 @@ public abstract class Node : DisposableGameObject, IDisposable
 
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfNotAttached();
-        _nodeServices.SetPrev(null);
         IsReady = false;
         InternalLog?.Information("Detaching from {name}-{type}", ps!.Name, ps.GetTypeName());
 

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace VDStudios.MagicEngine.Services;
@@ -8,9 +9,9 @@ namespace VDStudios.MagicEngine.Services;
 /// </summary>
 public sealed class ServiceScope : ServiceCollection, IDisposable
 {
-    private readonly ServiceCollection serviceCollection;
-    private readonly List<object>? services;
-    private readonly List<IDisposable>? disposables;
+    private readonly ISingletonHavingServiceCollection serviceCollection;
+    private readonly ConcurrentDictionary<Type, object> scopeds = new();
+    private readonly List<IDisposable> disposables = new();
     private bool enabled;
 
     internal void Enable()
@@ -25,25 +26,14 @@ public sealed class ServiceScope : ServiceCollection, IDisposable
             throw new ObjectDisposedException(nameof(ServiceScope));
     }
 
-    internal ServiceScope(ServiceCollection collection) : base(collection)
+    internal ServiceScope(ISingletonHavingServiceCollection collection) : base(collection.ThisAsServiceCollection())
     {
         ArgumentNullException.ThrowIfNull(collection);
         serviceCollection = collection;
     }
 
-    private TService VerifyService<TService>(ServiceInfo info) where TService : class
-        => (TService)VerifyService(info);
-
-    private object VerifyService(ServiceInfo info)
-        => info.Type is ServiceLifetime.Scoped or ServiceLifetime.Transient
-            ? throw new InvalidOperationException("Scoped and Transient services must be obtained from a ServiceScope")
-            : info.Factory(this);
-
-    void IDisposable.Dispose()
-        => Dispose();
-
     /// <inheritdoc/>
-    public new void Dispose()
+    public void Dispose()
     {
         AssertEnabled();
         ThrowIfDisabled();
@@ -52,29 +42,43 @@ public sealed class ServiceScope : ServiceCollection, IDisposable
         if (disposables is null || disposables.Count is 0) return;
 
         List<Exception>? excs = null;
-        foreach (var disp in disposables)
-            try
-            {
-                disp.Dispose();
-            }
-            catch (Exception e)
-            {
-                (excs ??= new()).Add(e);
-            }
+        lock (disposables) 
+            foreach (var disp in disposables)
+                try
+                {
+                    disp.Dispose();
+                }
+                catch (Exception e)
+                {
+                    (excs ??= new()).Add(e);
+                }
+
+        disposables.Clear();
+        scopeds.Clear();
+        if (excs is not null && excs.Count > 0)
+            throw new AggregateException(excs);
     }
 
     internal override object VerifyService(ServiceInfo info)
     {
-        throw new NotImplementedException();
+        object service = info.Lifetime == ServiceLifetime.Scoped
+            ? scopeds.GetOrAdd(info.Type, info.Factory, this)
+            : info.Lifetime == ServiceLifetime.Singleton
+            ? serviceCollection.FetchSingleton(info)
+            : info.Lifetime == ServiceLifetime.Transient
+            ? info.Factory(info.Type, this)
+            : throw new InvalidOperationException($"Unknown ServiceLifetime {info.Lifetime}");
+
+        if (service is IDisposable disp)
+            lock (disposables)
+                disposables.Add(disp);
+
+        return service;
     }
 
     internal override ServiceInfo InternalGetService(Type type)
-    {
-        throw new NotImplementedException();
-    }
+        => serviceCollection.ThisAsServiceCollection().InternalGetService(type);
 
     internal override bool InternalTryGetService(Type type, [MaybeNullWhen(false), NotNullWhen(true)] out ServiceInfo info)
-    {
-        throw new NotImplementedException();
-    }
+        => serviceCollection.ThisAsServiceCollection().InternalTryGetService(type, out info);
 }

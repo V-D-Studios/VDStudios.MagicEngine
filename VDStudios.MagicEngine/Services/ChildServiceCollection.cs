@@ -1,16 +1,34 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace VDStudios.MagicEngine.Services;
 
 /// <summary>
-/// Represents a collection of services for the Game
+/// Represents a collection of services that, following the Game -> Scene structure, allows for its services to be overriden, or new services not available Game wide to be added
 /// </summary>
-public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar, ISingletonHavingServiceCollection
+public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, IServiceRegistrar, ISingletonHavingServiceCollection
+    where TGameObject : GameObject
 {
     Dictionary<Type, object> ISingletonHavingServiceCollection.InstantiatedSingletons { get; } = new();
 
-    internal GameServiceCollection(Game game) : base(game) { }
+    /// <summary>
+    /// The <typeparamref name="TGameObject"/> that owns this <see cref="ChildServiceCollection{TGameObject}"/>
+    /// </summary>
+    public TGameObject Owner { get; }
+
+    /// <summary>
+    /// The <see cref="ServiceCollection"/> that acts as a parent to this <see cref="ChildServiceCollection{TGameObject}"/>
+    /// </summary>
+    public ServiceCollection Parent { get; }
+
+    internal ChildServiceCollection(ServiceCollection parent, TGameObject gameObject) : base(gameObject)
+    {
+        ArgumentNullException.ThrowIfNull(gameObject);
+        ArgumentNullException.ThrowIfNull(parent);
+        Parent = parent;
+        Owner = gameObject;
+    }
 
     /// <inheritdoc/>
     internal override object VerifyService(ServiceInfo info)
@@ -30,7 +48,7 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
         Debug.Assert(type.IsClass, "Service type is not a class type");
 
         lock (ServiceDictionary)
-            if (ServiceDictionary.TryGetValue(type, out var info))
+            if (ServiceDictionary.TryGetValue(type, out var info) || Parent.InternalTryGetService(type, out info))
                 return info;
 
         throw ThrowForNotFound(type);
@@ -42,7 +60,10 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
         Debug.Assert(type.IsClass, "Service type is not a class type");
 
         lock (ServiceDictionary)
-            return ServiceDictionary.TryGetValue(type, out info);
+            if (ServiceDictionary.TryGetValue(type, out info))
+                return true;
+
+        return Parent.InternalTryGetService(type, out info);
     }
 
     #region Registration
@@ -55,55 +76,29 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
     private void ThrowIfRegistrationDisabled()
     {
         if (RegistrationDisabled)
-            throw new InvalidOperationException("Services can no longer be registered on this GameServiceCollection");
+            throw new InvalidOperationException("Services can no longer be registered on this SceneServiceCollection");
     }
 
     #region Register
 
-    /// <summary>
-    /// Registers or overrides a service
-    /// </summary>
-    /// <param name="service">The service to register</param>
     void IServiceRegistrar.RegisterService(object service)
     {
         ((IServiceRegistrar)this).RegisterService(service.GetType(), (_, _) => service);
     }
 
-    /// <summary>
-    /// Registers or overrides a service of behind type <paramref name="interfaceType"/>
-    /// </summary>
-    /// <param name="service">The service to register</param>
-    /// <param name="interfaceType">The type of service that abstract <paramref name="service"/> away</param>
     void IServiceRegistrar.RegisterService(Type interfaceType, object service)
         => ((IServiceRegistrar)this).RegisterService(interfaceType, (_, _) => service);
 
-    /// <summary>
-    /// Registers or overrides a service of type <typeparamref name="TService"/> as a singleton instance
-    /// </summary>
-    /// <typeparam name="TService">The type of service to register</typeparam>
-    /// <param name="service">The service to register</param>
-    void IServiceRegistrar.RegisterService<TService>(TService service)
+    void IServiceRegistrar.RegisterService<TService>(TService service) 
         => ((IServiceRegistrar)this).RegisterService<TService>((_, _) => service);
 
-    /// <summary>
-    /// Registers or overrides a service of type <typeparamref name="TService"/> behind <typeparamref name="TInterface"/> as a singleton instance
-    /// </summary>
-    /// <typeparam name="TService">The type of service to register</typeparam>
-    /// <typeparam name="TInterface">The type of service that abstract <paramref name="service"/> away</typeparam>
-    /// <param name="service">The service to register</param>
-    void IServiceRegistrar.RegisterService<TInterface, TService>(TService service)
+    void IServiceRegistrar.RegisterService<TInterface, TService>(TService service) 
         => ((IServiceRegistrar)this).RegisterService<TInterface, TService>((_, _) => service);
 
     #endregion
 
     #region Register Factory
 
-    /// <summary>
-    /// Registers or overrides a service that will be constructed through <paramref name="serviceFactory"/>
-    /// </summary>
-    /// <param name="type">The type of the service that will be created</param>
-    /// <param name="serviceFactory">The factory of the objects that offer the service</param>
-    /// <param name="lifetime">The lifetime of the service</param>
     void IServiceRegistrar.RegisterService(Type type, Func<Type, ServiceCollection, object> serviceFactory, ServiceLifetime lifetime)
     {
         ThrowIfRegistrationDisabled();
@@ -114,12 +109,6 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
             ServiceDictionary[type] = new(type, serviceFactory, lifetime);
     }
 
-    /// <summary>
-    /// Registers or overrides a service of type <typeparamref name="TService"/> that will be constructed through <paramref name="serviceFactory"/>
-    /// </summary>
-    /// <typeparam name="TService">The type of service to register</typeparam>
-    /// <param name="serviceFactory">The factory of the objects that offer the service</param>
-    /// <param name="lifetime">The lifetime of the service</param>
     void IServiceRegistrar.RegisterService<TService>(Func<Type, ServiceCollection, TService> serviceFactory, ServiceLifetime lifetime)
     {
         ThrowIfRegistrationDisabled();
@@ -127,13 +116,6 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
             ServiceDictionary[typeof(TService)] = new(typeof(TService), serviceFactory, lifetime);
     }
 
-    /// <summary>
-    /// Registers or overrides a service of type <typeparamref name="TService"/> behind <typeparamref name="TInterface"/> that will be constructed through <paramref name="serviceFactory"/>
-    /// </summary>
-    /// <typeparam name="TService">The type of service to register</typeparam>
-    /// <typeparam name="TInterface">The type of service that abstract <paramref name="serviceFactory"/> away</typeparam>
-    /// <param name="serviceFactory">The factory of the objects that offer the service</param>
-    /// <param name="lifetime">The lifetime of the service</param>
     void IServiceRegistrar.RegisterService<TInterface, TService>(Func<Type, ServiceCollection, TService> serviceFactory, ServiceLifetime lifetime)
     {
         ThrowIfRegistrationDisabled();
