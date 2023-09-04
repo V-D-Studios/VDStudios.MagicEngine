@@ -13,6 +13,7 @@ public class TestScene : DemoScene
     {
         await base.Beginning();
         RegisterDrawOperationManager(new DrawOperationManager<SDLGraphicsContext>(this));
+        await Attach(new InputReactorNode(Game));
         var pnode = new PlayerNode(Game);
         await Attach(pnode);
         Camera.Target = pnode;

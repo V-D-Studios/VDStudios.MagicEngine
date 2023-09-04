@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using Nito.AsyncEx;
 using SDL2.NET;
 using SDL2.NET.Input;
 using SDL2.NET.SDLFont;
@@ -15,7 +16,7 @@ using Scancode = SDL2.NET.Scancode;
 
 namespace VDStudios.MagicEngine.SDL.Demo;
 
-public class PlayerNode : Node, IWorldMobile2D
+public class PlayerNode : EntityNode, IWorldMobile2D
 {
     private readonly CharacterAnimationContainer AnimationContainer;
     private TextureOperation? RobinSprite;
@@ -23,11 +24,6 @@ public class PlayerNode : Node, IWorldMobile2D
     private TextOperation? CameraPositionReport;
     private DelegateOperation? MidPointViewer;
     private GraphicsManagerFrameTimer GMTimer;
-
-    public float Speed { get; } = .3f;
-    public Vector2 Direction { get; private set; } = Vector2.Zero;
-    public Vector2 Position { get; private set; } = default;
-    public Vector2 Size { get; private set; } = new(32, 32);
 
     public PlayerNode(Game game) : base(game)
     {
@@ -63,23 +59,6 @@ public class PlayerNode : Node, IWorldMobile2D
         Debug.Assert(CameraPositionReport is not null, "PlayerNode.TextOperation is unexpectedly null at the time of updating");
         Debug.Assert(ParentScene is not null, "PlayerNode.ParentScene is unexpectedly null at the time of updating");
 
-        if (Keyboard.KeyStates[Scancode.W].IsPressed)
-            Direction += Directions.Up;
-        if (Keyboard.KeyStates[Scancode.A].IsPressed)
-            Direction += Directions.Left;
-        if (Keyboard.KeyStates[Scancode.S].IsPressed)
-            Direction += Directions.Down;
-        if (Keyboard.KeyStates[Scancode.D].IsPressed)
-            Direction += Directions.Right;
-
-        if (Keyboard.KeyStates[Scancode.F12].IsPressed)
-        {
-            var scdir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "MagicEngine Screenshots");
-            Directory.CreateDirectory(scdir);
-            using var stream = File.Open(Path.Combine(scdir, $"{Guid.NewGuid()}.png"), FileMode.Create);
-            await RobinSprite.Manager!.TakeScreenshot(stream, Utility.ScreenshotImageFormat.PNG);
-        }
-
         Position += Direction * Speed;
 
         if (AnimationContainer.CurrentAnimation.Update()
@@ -87,6 +66,13 @@ public class PlayerNode : Node, IWorldMobile2D
             RobinSprite.View = AnimationContainer.CurrentAnimation.CurrentElement;
 
         RobinSprite.TransformationState.Transform(translation: new Vector3(Position, 0));
+        ((DemoScene)ParentScene).Camera.Goal.Transform(scale: new(4, 4, 1));
+        RobinSprite.TextureEdgeOutline = new(RgbaVector.Blue.ToRGBAColor(), 2, true);
+        RobinSprite.TextureCenterOutline = new(RgbaVector.Orange.ToRGBAColor(), 2, true);
+        RobinSprite.TextureTopLeftOutline = new(RgbaVector.DarkRed.ToRGBAColor(), 2, true);
+        RobinSprite.TextureTopRightOutline = new(RgbaVector.Grey.ToRGBAColor(), 2, true);
+        RobinSprite.TextureBottomRightOutline = new(RgbaVector.Pink.ToRGBAColor(), 2, true);
+        RobinSprite.TextureBottomLeftOutline = new(RgbaVector.Green.ToRGBAColor(), 2, true);
 
         Direction = default;
 
@@ -130,10 +116,39 @@ public class PlayerNode : Node, IWorldMobile2D
             await dopm.AddDrawOperation(CameraPositionReport, 1);
             await dopm.AddDrawOperation(MidPointViewer, 1);
 
-            RobinSprite.TextureOutlineColor = RgbaVector.Blue.ToRGBAColor();
-
             CameraPositionReport.TransformationState.Transform(translation: new Vector3(0, 20, 0));
-            //RobinSprite.TransformationState.Transform(scale: new Vector3(4, 4, 1));
+
+            InputManagerComponent.Instance.AddKeyBinding(Scancode.W, s => 
+            {
+                Direction += Directions.Up;
+                return ValueTask.CompletedTask;
+            });
+            
+            InputManagerComponent.Instance.AddKeyBinding(Scancode.A, s => 
+            {
+                Direction += Directions.Left;
+                return ValueTask.CompletedTask;
+            });
+            
+            InputManagerComponent.Instance.AddKeyBinding(Scancode.S, s => 
+            {
+                Direction += Directions.Down;
+                return ValueTask.CompletedTask;
+            });
+            
+            InputManagerComponent.Instance.AddKeyBinding(Scancode.D, s => 
+            {
+                Direction += Directions.Right;
+                return ValueTask.CompletedTask;
+            });
+
+            InputManagerComponent.Instance.AddKeyBinding(Scancode.F12, async s =>
+            {
+                var scdir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "MagicEngine Screenshots");
+                Directory.CreateDirectory(scdir);
+                using var stream = File.Open(Path.Combine(scdir, $"{Guid.NewGuid()}.png"), FileMode.Create);
+                await RobinSprite.Manager!.TakeScreenshot(stream, Utility.ScreenshotImageFormat.PNG);
+            });
         }
         else
             Debug.Fail("The attached scene did not have a DrawOperationManager for SDLGraphicsContext");
