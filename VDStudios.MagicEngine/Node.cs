@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Graphics;
-using VDStudios.MagicEngine.Internal;
+using VDStudios.MagicEngine.Services;
 
 namespace VDStudios.MagicEngine;
 
@@ -452,6 +452,7 @@ public abstract class Node : GameObject, IDisposable
 
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfNotAttached();
+        _nodeServices.SetPrev(null);
         IsReady = false;
         InternalLog?.Information("Detaching from {name}-{type}", ps!.Name, ps.GetTypeName());
 

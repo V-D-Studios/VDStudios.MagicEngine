@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using VDStudios.MagicEngine.Exceptions;
-using VDStudios.MagicEngine.Internal;
+using VDStudios.MagicEngine.Services;
 
 namespace VDStudios.MagicEngine.Graphics;
 

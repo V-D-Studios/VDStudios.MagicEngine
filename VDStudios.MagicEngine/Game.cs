@@ -7,6 +7,7 @@ using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 using VDStudios.MagicEngine.Logging;
+using VDStudios.MagicEngine.Services;
 
 namespace VDStudios.MagicEngine;
 

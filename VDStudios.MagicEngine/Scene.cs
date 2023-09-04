@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
+using VDStudios.MagicEngine.Services;
 
 namespace VDStudios.MagicEngine;
 
