@@ -1,7 +1,7 @@
 ﻿using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.RenderTargets;
 
-namespace VDStudios.MagicEngine.SDL.Demo;
+namespace VDStudios.MagicEngine.SDL.Demo.Scenes;
 
 public abstract class DemoScene : Scene
 {
@@ -10,7 +10,7 @@ public abstract class DemoScene : Scene
 
     protected override ValueTask Beginning()
     {
-        var manager = ((SDLGraphicsManager)Game.MainGraphicsManager);
+        var manager = (SDLGraphicsManager)Game.MainGraphicsManager;
         manager.GetOrCreateRenderTargetList(0).Add(_cam = new SDLCamera2D(manager));
         manager.GetOrCreateRenderTargetList(1).Add(new PassthroughRenderTarget(manager));
         return ValueTask.CompletedTask;

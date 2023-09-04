@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using SDL2.NET;
+using VDStudios.MagicEngine.SDL.Demo.Utilities;
 
 namespace VDStudios.MagicEngine.SDL.Demo;
 

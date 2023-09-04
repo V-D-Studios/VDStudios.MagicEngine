@@ -1,7 +1,7 @@
 ﻿using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
 
-namespace VDStudios.MagicEngine.SDL.Demo;
+namespace VDStudios.MagicEngine.SDL.Demo.Scenes;
 
 public class TestScene : DemoScene
 {

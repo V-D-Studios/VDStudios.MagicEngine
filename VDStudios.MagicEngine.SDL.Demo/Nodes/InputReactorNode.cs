@@ -1,4 +1,4 @@
-﻿namespace VDStudios.MagicEngine.SDL.Demo;
+﻿namespace VDStudios.MagicEngine.SDL.Demo.Nodes;
 
 public class InputReactorNode : Node
 {

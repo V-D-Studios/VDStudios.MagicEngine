@@ -2,9 +2,10 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using SDL2.NET.Input;
+using VDStudios.MagicEngine.SDL.Demo.Nodes;
 using Scancode = SDL2.NET.Scancode;
 
-namespace VDStudios.MagicEngine.SDL.Demo;
+namespace VDStudios.MagicEngine.SDL.Demo.FunctionalComponents;
 
 public class InputManagerComponent : FunctionalComponent
 {
@@ -13,7 +14,7 @@ public class InputManagerComponent : FunctionalComponent
     private readonly ConcurrentDictionary<Scancode, KeyBindingAction> keyBindings = new();
     private readonly SemaphoreSlim keySemaphore = new(1, 1);
 
-    public InputManagerComponent(InputReactorNode node) : base(node) 
+    public InputManagerComponent(InputReactorNode node) : base(node)
     {
         if (inst is not null)
             throw new InvalidOperationException("InputManagerComponent already has an active instance attached to an InputReactorNode");
@@ -54,7 +55,7 @@ public class InputManagerComponent : FunctionalComponent
         }
     }
 
-    public bool AddKeyBinding(Scancode scancode, KeyBindingAction binding) 
+    public bool AddKeyBinding(Scancode scancode, KeyBindingAction binding)
         => keyBindings.TryAdd(scancode, binding);
 
     public bool RemoveKeyBinding(Scancode scancode)

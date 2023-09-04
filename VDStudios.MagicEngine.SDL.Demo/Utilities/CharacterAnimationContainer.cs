@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using SDL2.NET;
 
-namespace VDStudios.MagicEngine.SDL.Demo;
+namespace VDStudios.MagicEngine.SDL.Demo.Utilities;
 
 public class CharacterAnimationContainer : IReadOnlyCollection<KeyValuePair<CharacterAnimationKind, TimedSequence<Rectangle>>>
 {
@@ -26,7 +26,7 @@ public class CharacterAnimationContainer : IReadOnlyCollection<KeyValuePair<Char
         return true;
     }
 
-    public TimedSequence<Rectangle> this[CharacterAnimationKind kind] 
+    public TimedSequence<Rectangle> this[CharacterAnimationKind kind]
         => kind is > CharacterAnimationKind.DownLeft or < 0 ? throw new ArgumentException($"Unknown CharacterAnimationKind {kind}", nameof(kind)) : _seqs[(int)kind];
 
     public CharacterAnimationContainer(TimeSpan interval, IEnumerable<Rectangle> idle, bool doesIdleReverse, IEnumerable<Rectangle> active, bool doesActiveReverse, IEnumerable<Rectangle> up, bool doesUpReverse, IEnumerable<Rectangle> down, bool doesDownReverse, IEnumerable<Rectangle> left, bool doesLeftReverse, IEnumerable<Rectangle> right, bool doesRightReverse, IEnumerable<Rectangle> upRight, bool doesUpRightReverse, IEnumerable<Rectangle> downRight, bool doesDownRightReverse, IEnumerable<Rectangle> upLeft, bool doesUpLeftReverse, IEnumerable<Rectangle> downLeft, bool doesDownLeftReverse)
@@ -48,7 +48,7 @@ public class CharacterAnimationContainer : IReadOnlyCollection<KeyValuePair<Char
         CurrentKind = CharacterAnimationKind.Idle;
     }
 
-    public CharacterAnimationContainer(double intervalsPerSecond, IEnumerable<Rectangle> idle, bool doesIdleReverse, IEnumerable<Rectangle> active, bool doesActiveReverse, IEnumerable<Rectangle> up, bool doesUpReverse, IEnumerable<Rectangle> down, bool doesDownReverse, IEnumerable<Rectangle> left, bool doesLeftReverse, IEnumerable<Rectangle> right, bool doesRightReverse, IEnumerable<Rectangle> upRight, bool doesUpRightReverse, IEnumerable<Rectangle> downRight, bool doesDownRightReverse, IEnumerable<Rectangle> upLeft, bool doesUpLeftReverse, IEnumerable<Rectangle> downLeft, bool doesDownLeftReverse) 
+    public CharacterAnimationContainer(double intervalsPerSecond, IEnumerable<Rectangle> idle, bool doesIdleReverse, IEnumerable<Rectangle> active, bool doesActiveReverse, IEnumerable<Rectangle> up, bool doesUpReverse, IEnumerable<Rectangle> down, bool doesDownReverse, IEnumerable<Rectangle> left, bool doesLeftReverse, IEnumerable<Rectangle> right, bool doesRightReverse, IEnumerable<Rectangle> upRight, bool doesUpRightReverse, IEnumerable<Rectangle> downRight, bool doesDownRightReverse, IEnumerable<Rectangle> upLeft, bool doesUpLeftReverse, IEnumerable<Rectangle> downLeft, bool doesDownLeftReverse)
     : this(TimeSpan.FromSeconds(1d / intervalsPerSecond), idle, doesIdleReverse, active, doesActiveReverse, up, doesUpReverse, down, doesDownReverse, left, doesLeftReverse, right, doesRightReverse, upRight, doesUpRightReverse, downRight, doesDownRightReverse, upLeft, doesUpLeftReverse, downLeft, doesDownLeftReverse)
     { }
 
@@ -57,19 +57,19 @@ public class CharacterAnimationContainer : IReadOnlyCollection<KeyValuePair<Char
     public TimedSequence<Rectangle> Active => this[CharacterAnimationKind.Active];
 
     public TimedSequence<Rectangle> Up => this[CharacterAnimationKind.Up];
-    
+
     public TimedSequence<Rectangle> Down => this[CharacterAnimationKind.Down];
-    
+
     public TimedSequence<Rectangle> Left => this[CharacterAnimationKind.Left];
-    
+
     public TimedSequence<Rectangle> Right => this[CharacterAnimationKind.Right];
-    
+
     public TimedSequence<Rectangle> UpRight => this[CharacterAnimationKind.UpRight];
-    
+
     public TimedSequence<Rectangle> DownRight => this[CharacterAnimationKind.DownRight];
-    
+
     public TimedSequence<Rectangle> UpLeft => this[CharacterAnimationKind.UpLeft];
-    
+
     public TimedSequence<Rectangle> DownLeft => this[CharacterAnimationKind.DownLeft];
 
     public IEnumerator<KeyValuePair<CharacterAnimationKind, TimedSequence<Rectangle>>> GetEnumerator()

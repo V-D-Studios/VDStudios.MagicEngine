@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using VDStudios.MagicEngine.World2D;
 
-namespace VDStudios.MagicEngine.SDL.Demo;
+namespace VDStudios.MagicEngine.SDL.Demo.Nodes;
 
 public abstract class EntityNode : Node, IWorldMobile2D
 {

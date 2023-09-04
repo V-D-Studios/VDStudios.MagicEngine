@@ -10,10 +10,13 @@ using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 using VDStudios.MagicEngine.Input;
+using VDStudios.MagicEngine.SDL.Demo.FunctionalComponents;
+using VDStudios.MagicEngine.SDL.Demo.Scenes;
+using VDStudios.MagicEngine.SDL.Demo.Utilities;
 using VDStudios.MagicEngine.World2D;
 using Scancode = SDL2.NET.Scancode;
 
-namespace VDStudios.MagicEngine.SDL.Demo;
+namespace VDStudios.MagicEngine.SDL.Demo.Nodes;
 
 public class PlayerNode : EntityNode, IWorldMobile2D
 {
@@ -42,7 +45,7 @@ public class PlayerNode : EntityNode, IWorldMobile2D
         foreach (var (_, a) in AnimationContainer)
             a.EndHang = TimeSpan.FromSeconds(1d / 6);
 
-        AnimationContainer.Idle.StartHang 
+        AnimationContainer.Idle.StartHang
             = AnimationContainer.Idle.EndHang
             = AnimationContainer.Active.StartHang
             = AnimationContainer.Active.EndHang
@@ -117,25 +120,25 @@ public class PlayerNode : EntityNode, IWorldMobile2D
 
             CameraPositionReport.TransformationState.Transform(translation: new Vector3(0, 20, 0));
 
-            InputManagerComponent.Instance.AddKeyBinding(Scancode.W, s => 
+            InputManagerComponent.Instance.AddKeyBinding(Scancode.W, s =>
             {
                 Direction += Directions.Up;
                 return ValueTask.CompletedTask;
             });
-            
-            InputManagerComponent.Instance.AddKeyBinding(Scancode.A, s => 
+
+            InputManagerComponent.Instance.AddKeyBinding(Scancode.A, s =>
             {
                 Direction += Directions.Left;
                 return ValueTask.CompletedTask;
             });
-            
-            InputManagerComponent.Instance.AddKeyBinding(Scancode.S, s => 
+
+            InputManagerComponent.Instance.AddKeyBinding(Scancode.S, s =>
             {
                 Direction += Directions.Down;
                 return ValueTask.CompletedTask;
             });
-            
-            InputManagerComponent.Instance.AddKeyBinding(Scancode.D, s => 
+
+            InputManagerComponent.Instance.AddKeyBinding(Scancode.D, s =>
             {
                 Direction += Directions.Right;
                 return ValueTask.CompletedTask;
