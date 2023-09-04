@@ -62,11 +62,24 @@ public class ObjectPool<T> : IDisposable where T : class
     /// <remarks>
     /// This method will throw an <see cref="InvalidOperationException"/> if the pool is exhausted and the growht is set to 0
     /// </remarks>
-    /// <returns>The rented object</returns>
-    public T Rent()
+    /// <returns>A wrapper around the rented object</returns>
+    public ObjectPoolDisposalWrapper<T> Rent()
     {
         GrowIfEmpty();
-        return !Pool.TryPop(out var result) ? throw new InvalidOperationException("This ObjectPool is exhausted") : result;
+        return new(!Pool.TryPop(out var result) ? throw new InvalidOperationException("This ObjectPool is exhausted") : result, this);
+    }
+
+    /// <summary>
+    /// Tries to rent an object from the pool; will throw if the pool is exhausted and has a growht factor of 0
+    /// </summary>
+    /// <remarks>
+    /// This method will throw an <see cref="InvalidOperationException"/> if the pool is exhausted and the growht is set to 0
+    /// </remarks>
+    /// <returns>The rented object</returns>
+    public ObjectPoolDisposalWrapper<T> Rent(out T obj)
+    {
+        GrowIfEmpty();
+        return new ObjectPoolDisposalWrapper<T>(!Pool.TryPop(out var result) ? throw new InvalidOperationException("This ObjectPool is exhausted") : result, this).GetItem(out obj);
     }
 
     /// <summary>
@@ -74,10 +87,17 @@ public class ObjectPool<T> : IDisposable where T : class
     /// </summary>
     /// <param name="obj">The rented object, or <c>null</c></param>
     /// <returns>Whether the object was succesfully rented or not</returns>
-    public bool TryRent([NotNullWhen(true)] out T? obj)
+    public bool TryRent([NotNullWhen(true)] out ObjectPoolDisposalWrapper<T> obj)
     {
         GrowIfEmpty();
-        return Pool.TryPop(out obj);
+        if (Pool.TryPop(out var o))
+        {
+            obj = new(o, this);
+            return true;
+        }
+
+        obj = default;
+        return false;
     }
 
     /// <summary>
