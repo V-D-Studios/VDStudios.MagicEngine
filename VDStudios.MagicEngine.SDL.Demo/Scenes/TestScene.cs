@@ -1,4 +1,5 @@
-﻿using SDL2.NET;
+﻿using System.Numerics;
+using SDL2.NET;
 using SDL2.NET.SDLImage;
 using SDL2.NET.Utilities;
 using VDStudios.MagicEngine.DemoResources;
@@ -28,16 +29,24 @@ public class TestScene : DemoSceneBase
         var hnode = new HUDNode(Game);
         await Attach(hnode);
 
-        var tnode = new SingleSpriteEntityNode(new TextureOperation(
-        Game, c =>
+        int trees = Random.Next(500, 1000);
+        for (int i = 0; i < trees; i++)
         {
-            using var rwop = RWops.CreateFromMemory(new PinnedArray<byte>(Animations.Baum));
-            return Image.LoadTexture(c.Renderer, rwop);
-        }));
-        await Attach(tnode);
+            var tnode = new SingleSpriteEntityNode(new TextureOperation(
+            Game, c =>
+            {
+                using var rwop = RWops.CreateFromMemory(new PinnedArray<byte>(Animations.Baum));
+                return Image.LoadTexture(c.Renderer, rwop);
+            }));
+            await Attach(tnode);
+            tnode.Position = new Vector2(spread(), spread());
+            //tnode.EnableDebugOutlinesDefaultColor();
 
-        tnode.EnableDebugOutlinesDefaultColor();
-        pnode.EnableDebugOutlinesDefaultColor();
+            int spread()
+                => 32 * Random.Next(0, 96) * (Random.Next(0, 100) > 50 ? -1 : 1);
+        }
+
+        //pnode.EnableDebugOutlinesDefaultColor();
 
         Camera.Move(scale: new(2, 2, 1));
 
