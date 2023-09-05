@@ -397,7 +397,20 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
         return srf;
     }
 
+    internal readonly HashSet<SDLFrameHook> framehooks = new();
     internal readonly Queue<ScreenshotRequest> screenshotRequests = new();
+
+    /// <inheritdoc/>
+    public override SDLFrameHook AttachFramehook()
+    {
+        Log.Verbose("Attaching new Framehook");
+        SDLFrameHook fh;
+        fh = new(this, Log);
+        lock (framehooks)
+            framehooks.Add(fh);
+        Log.Information("Hooked new framehook {hook}", fh);
+        return fh;
+    }
 
     /// <inheritdoc/>
     public override async ValueTask TakeScreenshot(Stream output, ScreenshotImageFormat format, int jpegQuality = 100)
@@ -415,17 +428,32 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
     /// <inheritdoc/>
     protected override void BeforeSubmitFrame()
     {
+        Surface? srf = null;
+
         if (screenshotRequests.Count > 0)
             lock (screenshotRequests)
                 if (screenshotRequests.Count > 0)
                 {
-                    var srf = CreateScreenshotSurface(); // We let the GC finalize this surface
+                    srf ??= CreateScreenshotSurface(); // We let the GC finalize this surface
+
                     while (screenshotRequests.TryDequeue(out var req)) 
                     {
                         Debug.Assert(srf is not null, "Screenshot Surface was not properly created");
                         req.Surface = srf;
                         req.FireUploadScreenshotTask();
                     }
+                }
+
+        if (framehooks.Count > 0)
+            lock (framehooks)
+                if (framehooks.Count > 0)
+                {
+                    foreach (var fh in framehooks)
+                        if (fh.FrameSkipTimer.HasClocked)
+                        {
+                            fh.FrameSkipTimer.Restart();
+                            fh.frameQueue.Enqueue(srf ??= CreateScreenshotSurface());
+                        }
                 }
     }
 }
