@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Internal;
+using VDStudios.MagicEngine.SDL.Demo.Scenes;
 
 namespace VDStudios.MagicEngine.SDL.Demo;
 

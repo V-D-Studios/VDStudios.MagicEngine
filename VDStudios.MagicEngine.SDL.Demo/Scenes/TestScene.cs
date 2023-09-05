@@ -1,5 +1,8 @@
 ﻿using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
+using VDStudios.MagicEngine.SDL.Demo.Nodes;
+using VDStudios.MagicEngine.SDL.Demo.Services;
+using VDStudios.MagicEngine.Services;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Scenes;
 
@@ -13,7 +16,6 @@ public class TestScene : DemoScene
     {
         await base.Beginning();
         RegisterDrawOperationManager(new DrawOperationManager<SDLGraphicsContext>(this));
-        await Attach(new InputReactorNode(Game));
         var pnode = new PlayerNode(Game);
         await Attach(pnode);
         Camera.Target = pnode;

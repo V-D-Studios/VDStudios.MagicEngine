@@ -10,8 +10,8 @@ using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 using VDStudios.MagicEngine.Input;
-using VDStudios.MagicEngine.SDL.Demo.FunctionalComponents;
 using VDStudios.MagicEngine.SDL.Demo.Scenes;
+using VDStudios.MagicEngine.SDL.Demo.Services;
 using VDStudios.MagicEngine.SDL.Demo.Utilities;
 using VDStudios.MagicEngine.World2D;
 using Scancode = SDL2.NET.Scancode;
@@ -120,36 +120,30 @@ public class PlayerNode : EntityNode, IWorldMobile2D
 
             CameraPositionReport.TransformationState.Transform(translation: new Vector3(0, 20, 0));
 
-            InputManagerComponent.Instance.AddKeyBinding(Scancode.W, s =>
+            var inman = scene.Services.GetService<InputManagerService>();
+
+            inman.AddKeyBinding(Scancode.W, s =>
             {
                 Direction += Directions.Up;
                 return ValueTask.CompletedTask;
             });
 
-            InputManagerComponent.Instance.AddKeyBinding(Scancode.A, s =>
+            inman.AddKeyBinding(Scancode.A, s =>
             {
                 Direction += Directions.Left;
                 return ValueTask.CompletedTask;
             });
 
-            InputManagerComponent.Instance.AddKeyBinding(Scancode.S, s =>
+            inman.AddKeyBinding(Scancode.S, s =>
             {
                 Direction += Directions.Down;
                 return ValueTask.CompletedTask;
             });
 
-            InputManagerComponent.Instance.AddKeyBinding(Scancode.D, s =>
+            inman.AddKeyBinding(Scancode.D, s =>
             {
                 Direction += Directions.Right;
                 return ValueTask.CompletedTask;
-            });
-
-            InputManagerComponent.Instance.AddKeyBinding(Scancode.F12, async s =>
-            {
-                var scdir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "MagicEngine Screenshots");
-                Directory.CreateDirectory(scdir);
-                using var stream = File.Open(Path.Combine(scdir, $"{Guid.NewGuid()}.png"), FileMode.Create);
-                await RobinSprite.Manager!.TakeScreenshot(stream, Utility.ScreenshotImageFormat.PNG);
             });
         }
         else
