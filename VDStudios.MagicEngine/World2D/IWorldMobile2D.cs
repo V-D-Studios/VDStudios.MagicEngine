@@ -16,15 +16,10 @@ namespace VDStudios.MagicEngine.World2D;
 public interface IWorldMobile2D : IWorldObject2D
 {
     /// <summary>
-    /// The speed at which the object is moving in the direction of <see cref="Direction"/>
+    /// The speed at which the object is moving in the direction of <see cref="IWorldObject2D.Direction"/>
     /// </summary>
     /// <remarks>
     /// The interpretation, or the unit of this value, is completely implementation dependent
     /// </remarks>
     public float Speed { get; }
-
-    /// <summary>
-    /// The direction in which the object is moving at <see cref="Speed"/>
-    /// </summary>
-    public Vector2 Direction { get; }
 }

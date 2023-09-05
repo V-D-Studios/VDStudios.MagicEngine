@@ -8,7 +8,7 @@ using VDStudios.MagicEngine.Services;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Scenes;
 
-public abstract class DemoScene : Scene
+public abstract class DemoSceneBase : Scene
 {
     private SDLCamera2D? _cam;
     public SDLCamera2D Camera => _cam ?? throw new InvalidOperationException("Cannot access this Scene's Camera before the Scene is begun");
@@ -53,7 +53,7 @@ public abstract class DemoScene : Scene
     }
 
     /// <inheritdoc/>
-    protected DemoScene(Game game) : base(game)
+    protected DemoSceneBase(Game game) : base(game)
     {
     }
 }

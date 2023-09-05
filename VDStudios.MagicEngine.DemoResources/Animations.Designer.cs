@@ -63,6 +63,16 @@ namespace VDStudios.MagicEngine.DemoResources {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        public static byte[] Baum {
+            get {
+                object obj = ResourceManager.GetObject("Baum", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         public static byte[] Robin {
             get {
                 object obj = ResourceManager.GetObject("Robin", resourceCulture);

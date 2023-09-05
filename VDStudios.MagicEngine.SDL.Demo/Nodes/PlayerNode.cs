@@ -4,7 +4,6 @@ using System.Numerics;
 using SDL2.NET.Input;
 using SDL2.NET.SDLImage;
 using VDStudios.MagicEngine.DemoResources;
-using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 using VDStudios.MagicEngine.Input;
@@ -16,14 +15,20 @@ using Scancode = SDL2.NET.Scancode;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Nodes;
 
-public class PlayerNode : EntityNode, IWorldMobile2D
+public class PlayerNode : SingleSpriteEntityNode, IWorldMobile2D
 {
-    private readonly CharacterAnimationContainer AnimationContainer;
-    private TextureOperation? RobinSprite;
+    public float Speed { get; } = .3f;
 
-    public PlayerNode(Game game) : base(game)
+    private static TextureOperation CreateRobinSprite(Game game)
+        => new(game, c =>
+        {
+            using var stream = new MemoryStream(Animations.Robin);
+            return Image.LoadTexture(c.Renderer, stream);
+        });
+
+    private static CharacterAnimationContainer CreateAnimationContainer()
     {
-        AnimationContainer = new(8,
+        var animContainer = new CharacterAnimationContainer(8,
             Helper.GetRectangles(AnimationDefinitions.Robin.Player.Idle.Frames), true,
             Helper.GetRectangles(AnimationDefinitions.Robin.Player.Active.Frames), true,
             Helper.GetRectangles(AnimationDefinitions.Robin.Player.Up.Frames), true,
@@ -36,37 +41,26 @@ public class PlayerNode : EntityNode, IWorldMobile2D
             Helper.GetRectangles(AnimationDefinitions.Robin.Player.DownLeft.Frames), true
         );
 
-        foreach (var (_, a) in AnimationContainer)
+        foreach (var (_, a) in animContainer)
             a.EndHang = TimeSpan.FromSeconds(1d / 6);
 
-        AnimationContainer.Idle.StartHang
-            = AnimationContainer.Idle.EndHang
-            = AnimationContainer.Active.StartHang
-            = AnimationContainer.Active.EndHang
+        animContainer.Idle.StartHang
+            = animContainer.Idle.EndHang
+            = animContainer.Active.StartHang
+            = animContainer.Active.EndHang
             = TimeSpan.FromSeconds(1d / 2);
+
+        return animContainer;
     }
+
+    public PlayerNode(Game game) :
+        base(CreateRobinSprite(game), CreateAnimationContainer())
+    { }
 
     protected override async ValueTask<bool> Updating(TimeSpan delta)
     {
-        await base.Updating(delta);
-
-        Debug.Assert(RobinSprite is not null, "PlayerNode.SpriteOperation is unexpectedly null at the time of updating");
-
         Position += Direction * Speed;
-
-        if (AnimationContainer.CurrentAnimation.Update()
-            || AnimationContainer.SwitchTo(Helper.TryGetFromDirection(Direction, out var dir) ? dir : CharacterAnimationKind.Idle))
-            RobinSprite.View = AnimationContainer.CurrentAnimation.CurrentElement;
-
-        RobinSprite.TransformationState.Transform(translation: new Vector3(Position, 0));
-        ((DemoScene)ParentScene).Camera.Goal.Transform(scale: new(4, 4, 1));
-        RobinSprite.TextureEdgeOutline = new(RgbaVector.Blue.ToRGBAColor(), 2, true);
-        RobinSprite.TextureCenterOutline = new(RgbaVector.Orange.ToRGBAColor(), 2, true);
-        RobinSprite.TextureTopLeftOutline = new(RgbaVector.DarkRed.ToRGBAColor(), 2, true);
-        RobinSprite.TextureTopRightOutline = new(RgbaVector.Grey.ToRGBAColor(), 2, true);
-        RobinSprite.TextureBottomRightOutline = new(RgbaVector.Pink.ToRGBAColor(), 2, true);
-        RobinSprite.TextureBottomLeftOutline = new(RgbaVector.Green.ToRGBAColor(), 2, true);
-
+        await base.Updating(delta);
         Direction = default;
 
         return true;
@@ -74,18 +68,11 @@ public class PlayerNode : EntityNode, IWorldMobile2D
 
     protected override async ValueTask Attaching(Scene scene)
     {
+        await base.Attaching(scene);
         scene.Services.GetService<GameState>().PlayerNode = this;
 
         if (scene.GetDrawOperationManager<SDLGraphicsContext>(out var dopm))
         {
-            RobinSprite = new TextureOperation(Game, c =>
-            {
-                using var stream = new MemoryStream(Animations.Robin);
-                return Image.LoadTexture(c.Renderer, stream);
-            }, AnimationContainer.CurrentAnimation.CurrentElement);
-
-            await dopm.AddDrawOperation(RobinSprite);
-
             var inman = scene.Services.GetService<InputManagerService>();
 
             inman.AddKeyBinding(Scancode.W, s =>
@@ -114,7 +101,5 @@ public class PlayerNode : EntityNode, IWorldMobile2D
         }
         else
             Debug.Fail("The attached scene did not have a DrawOperationManager for SDLGraphicsContext");
-
-        await base.Attaching(scene);
     }
 }

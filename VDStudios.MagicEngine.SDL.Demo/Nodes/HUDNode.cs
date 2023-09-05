@@ -35,7 +35,7 @@ public class HUDNode : Node
 
         if (GMTimer.HasClocked)
         {
-            var goal = ((DemoScene)ParentScene).Camera.Goal;
+            var goal = ((DemoSceneBase)ParentScene).Camera.Goal;
             var scale = goal.Scale;
             var position = goal.Translation;
 

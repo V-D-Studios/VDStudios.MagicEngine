@@ -16,4 +16,5 @@ public interface IWorldObject2D
     /// The size of the world object
     /// </summary>
     public Vector2 Size { get; }
+    Vector2 Direction { get; }
 }
