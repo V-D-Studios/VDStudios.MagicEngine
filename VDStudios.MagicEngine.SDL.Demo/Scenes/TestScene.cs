@@ -16,8 +16,13 @@ public class TestScene : DemoScene
     {
         await base.Beginning();
         RegisterDrawOperationManager(new DrawOperationManager<SDLGraphicsContext>(this));
+        
         var pnode = new PlayerNode(Game);
         await Attach(pnode);
+
+        var hnode = new HUDNode(Game);
+        await Attach(hnode);
+
         Camera.Target = pnode;
     }
 }

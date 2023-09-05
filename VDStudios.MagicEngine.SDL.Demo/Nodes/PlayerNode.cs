@@ -1,10 +1,8 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
-using SDL2.NET;
 using SDL2.NET.Input;
-using SDL2.NET.SDLFont;
 using SDL2.NET.SDLImage;
-using SDL2.NET.Utilities;
 using VDStudios.MagicEngine.DemoResources;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
@@ -22,10 +20,6 @@ public class PlayerNode : EntityNode, IWorldMobile2D
 {
     private readonly CharacterAnimationContainer AnimationContainer;
     private TextureOperation? RobinSprite;
-    private TextOperation? RobinPositionReport;
-    private TextOperation? CameraPositionReport;
-    private DelegateOperation? MidPointViewer;
-    private GraphicsManagerFrameTimer GMTimer;
 
     public PlayerNode(Game game) : base(game)
     {
@@ -50,16 +44,13 @@ public class PlayerNode : EntityNode, IWorldMobile2D
             = AnimationContainer.Active.StartHang
             = AnimationContainer.Active.EndHang
             = TimeSpan.FromSeconds(1d / 2);
-
-        GMTimer = new(Game.MainGraphicsManager, 30);
     }
 
     protected override async ValueTask<bool> Updating(TimeSpan delta)
     {
+        await base.Updating(delta);
+
         Debug.Assert(RobinSprite is not null, "PlayerNode.SpriteOperation is unexpectedly null at the time of updating");
-        Debug.Assert(RobinPositionReport is not null, "PlayerNode.TextOperation is unexpectedly null at the time of updating");
-        Debug.Assert(CameraPositionReport is not null, "PlayerNode.TextOperation is unexpectedly null at the time of updating");
-        Debug.Assert(ParentScene is not null, "PlayerNode.ParentScene is unexpectedly null at the time of updating");
 
         Position += Direction * Speed;
 
@@ -78,22 +69,13 @@ public class PlayerNode : EntityNode, IWorldMobile2D
 
         Direction = default;
 
-        if (GMTimer.HasClocked)
-        {
-            var goal = ((DemoScene)ParentScene).Camera.Goal;
-            var scale = goal.Scale;
-            var position = goal.Translation;
-
-            RobinPositionReport.SetTextBlended($"Robin: {Position: 0000.00;-0000.00}", RgbaVector.Black.ToRGBAColor(), 16);
-            CameraPositionReport.SetTextBlended($"Camera, Position: {position: 0000.00;-0000.00}, Scale: {scale: 0000.00;-0000.00}", RgbaVector.Red.ToRGBAColor(), 16);
-            GMTimer.Restart();
-        }
-
-        return await base.Updating(delta);
+        return true;
     }
 
     protected override async ValueTask Attaching(Scene scene)
     {
+        scene.Services.GetService<GameState>().PlayerNode = this;
+
         if (scene.GetDrawOperationManager<SDLGraphicsContext>(out var dopm))
         {
             RobinSprite = new TextureOperation(Game, c =>
@@ -102,23 +84,7 @@ public class PlayerNode : EntityNode, IWorldMobile2D
                 return Image.LoadTexture(c.Renderer, stream);
             }, AnimationContainer.CurrentAnimation.CurrentElement);
 
-            RobinPositionReport = new TextOperation(new TTFont(RWops.CreateFromMemory(new PinnedArray<byte>(Fonts.CascadiaCode), true, true), 16), Game);
-            CameraPositionReport = new TextOperation(new TTFont(RWops.CreateFromMemory(new PinnedArray<byte>(Fonts.CascadiaCode), true, true), 16), Game);
-            MidPointViewer = new DelegateOperation(Game, (dop, ts, c, r) =>
-            {
-                var ws = c.Window.Size;
-                var x = ws.Width / 2 - 16;
-                var y = ws.Height / 2 - 16;
-
-                c.Renderer.DrawRectangle(new Rectangle(32, 32, x, y), RgbaVector.Yellow.ToRGBAColor());
-            });
-
             await dopm.AddDrawOperation(RobinSprite);
-            await dopm.AddDrawOperation(RobinPositionReport, 1);
-            await dopm.AddDrawOperation(CameraPositionReport, 1);
-            await dopm.AddDrawOperation(MidPointViewer, 1);
-
-            CameraPositionReport.TransformationState.Transform(translation: new Vector3(0, 20, 0));
 
             var inman = scene.Services.GetService<InputManagerService>();
 
