@@ -79,7 +79,7 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
     /// <param name="service">The service to register</param>
     void IServiceRegistrar.RegisterService(object service)
     {
-        ((IServiceRegistrar)this).RegisterService(service.GetType(), (_, _) => service);
+        ((IServiceRegistrar)this).RegisterService(service.GetType(), (_, _) => service, ServiceLifetime.Singleton);
     }
 
     /// <summary>
@@ -88,7 +88,7 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
     /// <param name="service">The service to register</param>
     /// <param name="interfaceType">The type of service that abstract <paramref name="service"/> away</param>
     void IServiceRegistrar.RegisterService(Type interfaceType, object service)
-        => ((IServiceRegistrar)this).RegisterService(interfaceType, (_, _) => service);
+        => ((IServiceRegistrar)this).RegisterService(interfaceType, (_, _) => service, ServiceLifetime.Singleton);
 
     /// <summary>
     /// Registers or overrides a service of type <typeparamref name="TService"/> as a singleton instance
@@ -96,7 +96,7 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
     /// <typeparam name="TService">The type of service to register</typeparam>
     /// <param name="service">The service to register</param>
     void IServiceRegistrar.RegisterService<TService>(TService service)
-        => ((IServiceRegistrar)this).RegisterService<TService>((_, _) => service);
+        => ((IServiceRegistrar)this).RegisterService<TService>((_, _) => service, ServiceLifetime.Singleton);
 
     /// <summary>
     /// Registers or overrides a service of type <typeparamref name="TService"/> behind <typeparamref name="TInterface"/> as a singleton instance
@@ -105,7 +105,7 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
     /// <typeparam name="TInterface">The type of service that abstract <paramref name="service"/> away</typeparam>
     /// <param name="service">The service to register</param>
     void IServiceRegistrar.RegisterService<TInterface, TService>(TService service)
-        => ((IServiceRegistrar)this).RegisterService<TInterface, TService>((_, _) => service);
+        => ((IServiceRegistrar)this).RegisterService<TInterface, TService>((_, _) => service, ServiceLifetime.Singleton);
 
     #endregion
 
