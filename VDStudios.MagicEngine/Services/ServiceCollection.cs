@@ -73,4 +73,7 @@ public abstract class ServiceCollection : GameObject
     /// <returns>An object representing the requested service</returns>
     public object GetService(Type type)
         => VerifyService(InternalGetService(type));
+
+    internal virtual bool HasService(Type type)
+        => ServiceDictionary.ContainsKey(type);
 }

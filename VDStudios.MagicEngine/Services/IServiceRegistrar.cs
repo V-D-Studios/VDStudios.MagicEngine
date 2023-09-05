@@ -60,5 +60,6 @@ public interface IServiceRegistrar
     /// <typeparam name="TService">The type of service to register</typeparam>
     /// <param name="serviceFactory">The factory of the objects that offer the service</param>
     /// <param name="lifetime">The lifetime of the service</param>
-    public void RegisterService<TService>(Func<Type, ServiceCollection, TService> serviceFactory, ServiceLifetime lifetime = ServiceLifetime.Scoped) where TService : class;
+    public void RegisterService<TService>(Func<Type, ServiceCollection, TService> serviceFactory, ServiceLifetime lifetime = ServiceLifetime.Scoped) 
+        where TService : class;
 }

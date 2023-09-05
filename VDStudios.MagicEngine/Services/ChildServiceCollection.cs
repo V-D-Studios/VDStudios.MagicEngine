@@ -68,6 +68,9 @@ public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, ISe
 
     #region Registration
 
+    internal override bool HasService(Type type)
+        => base.HasService(type) || Parent.HasService(type);
+
     internal void DisableRegistration()
         => RegistrationDisabled = true;
 
@@ -83,19 +86,17 @@ public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, ISe
 
     #region Register
 
-    void IServiceRegistrar.RegisterService(object service)
-    {
-        ((IServiceRegistrar)this).RegisterService(service.GetType(), (_, _) => service);
-    }
+    void IServiceRegistrar.RegisterService(object service) 
+        => ((IServiceRegistrar)this).RegisterService(service.GetType(), (_, _) => service, ServiceLifetime.Singleton);
 
-    void IServiceRegistrar.RegisterService(Type interfaceType, object service)
-        => ((IServiceRegistrar)this).RegisterService(interfaceType, (_, _) => service);
+    void IServiceRegistrar.RegisterService(Type interfaceType, object service) 
+        => ((IServiceRegistrar)this).RegisterService(interfaceType, (_, _) => service, ServiceLifetime.Singleton);
 
     void IServiceRegistrar.RegisterService<TService>(TService service) 
-        => ((IServiceRegistrar)this).RegisterService<TService>((_, _) => service);
+        => ((IServiceRegistrar)this).RegisterService((_, _) => service, ServiceLifetime.Singleton);
 
     void IServiceRegistrar.RegisterService<TInterface, TService>(TService service) 
-        => ((IServiceRegistrar)this).RegisterService<TInterface, TService>((_, _) => service);
+        => ((IServiceRegistrar)this).RegisterService<TInterface, TService>((_, _) => service, ServiceLifetime.Singleton);
 
     #endregion
 
@@ -107,6 +108,9 @@ public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, ISe
         if (type.IsValueType)
             throw new ArgumentException("type cannot be a ValueType", nameof(type));
 
+        if (lifetime == ServiceLifetime.Singleton && Parent.HasService(type))
+            throw new ArgumentException($"Cannot override a singleton Service. Service type: {type}", nameof(lifetime));
+
         lock (ServiceDictionary)
             ServiceDictionary[type] = new(type, serviceFactory, lifetime);
     }
@@ -114,6 +118,10 @@ public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, ISe
     void IServiceRegistrar.RegisterService<TService>(Func<Type, ServiceCollection, TService> serviceFactory, ServiceLifetime lifetime)
     {
         ThrowIfRegistrationDisabled();
+
+        if (lifetime == ServiceLifetime.Singleton && Parent.HasService(typeof(TService)))
+            throw new ArgumentException($"Cannot override a singleton Service. Service type: {typeof(TService)}", nameof(lifetime));
+
         lock (ServiceDictionary)
             ServiceDictionary[typeof(TService)] = new(typeof(TService), serviceFactory, lifetime);
     }
@@ -121,6 +129,10 @@ public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, ISe
     void IServiceRegistrar.RegisterService<TInterface, TService>(Func<Type, ServiceCollection, TService> serviceFactory, ServiceLifetime lifetime)
     {
         ThrowIfRegistrationDisabled();
+
+        if (lifetime == ServiceLifetime.Singleton && Parent.HasService(typeof(TInterface)))
+            throw new ArgumentException($"Cannot override a singleton Service. Service type: {typeof(TInterface)}", nameof(lifetime));
+
         lock (ServiceDictionary)
             ServiceDictionary[typeof(TInterface)] = new(typeof(TInterface), serviceFactory, lifetime);
     }
