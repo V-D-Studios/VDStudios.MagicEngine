@@ -6,9 +6,9 @@ namespace VDStudios.MagicEngine.Services;
 /// <summary>
 /// Represents a collection of services for the Game
 /// </summary>
-public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar, ISingletonHavingServiceCollection
+public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
 {
-    Dictionary<Type, object> ISingletonHavingServiceCollection.InstantiatedSingletons { get; } = new();
+    private readonly Dictionary<Type, object> InstantiatedSingletons = new();
 
     internal GameServiceCollection(Game game) : base(game) { }
 
@@ -17,7 +17,7 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
     {
         var s = info.Lifetime is not ServiceLifetime.Singleton
                 ? throw new InvalidOperationException("Scoped and Transient services must be obtained from a ServiceScope")
-                : ((ISingletonHavingServiceCollection)this).FetchSingleton(info);
+                : FetchSingleton(info);
 
         return s.GetType().IsAssignableTo(info.Type) is false
             ? throw new InvalidOperationException($"Object registered under type {info.Type} is not compatible since it's of type {s.GetType()}")
@@ -43,6 +43,19 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
 
         lock (ServiceDictionary)
             return ServiceDictionary.TryGetValue(type, out info);
+    }
+
+    internal override object FetchSingleton(ServiceInfo info)
+    {
+        lock (InstantiatedSingletons)
+            if (InstantiatedSingletons.TryGetValue(info.Type, out var obj))
+                return obj;
+            else
+            {
+                var o = info.Factory(info.Type, this);
+                InstantiatedSingletons.Add(info.Type, o);
+                return o;
+            }
     }
 
     #region Registration

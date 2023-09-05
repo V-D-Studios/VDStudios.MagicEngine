@@ -8,7 +8,22 @@ namespace VDStudios.MagicEngine.Services;
 /// </summary>
 public abstract class ServiceCollection : GameObject
 {
-    internal ServiceCollection(IGameObject ownerObject) : base(ownerObject.Game, "Updating", "Services") { }
+    internal ServiceCollection(IGameObject ownerObject) : base(ownerObject.Game, "Updating", "Services")
+    {
+        scopePool = new(pool => new ServiceScope(this), static s => { }, 2);
+    }
+    
+    /// <summary>
+    /// Creates a new <see cref="ServiceScope"/> for this <see cref="ServiceCollection"/>, through which services with a lifetime of <see cref="ServiceLifetime.Scoped"/> or <see cref="ServiceLifetime.Transient"/> can be created
+    /// </summary>
+    /// <returns></returns>
+    public ServiceScope CreateScope()
+    {
+        scopePool.Rent().GetItem(out var scope);
+        scope.Enable();
+        return scope;
+    }
+    internal readonly ObjectPool<ServiceScope> scopePool;
 
     internal readonly Dictionary<Type, ServiceInfo> ServiceDictionary = new();
 
@@ -23,6 +38,8 @@ public abstract class ServiceCollection : GameObject
     internal abstract ServiceInfo InternalGetService(Type type);
 
     internal abstract bool InternalTryGetService(Type type, [NotNullWhen(true)][MaybeNullWhen(false)] out ServiceInfo info);
+
+    internal abstract object FetchSingleton(ServiceInfo info);
 
     /// <summary>
     /// Tries to fetch the requested service from this collection or from upwards of the tree

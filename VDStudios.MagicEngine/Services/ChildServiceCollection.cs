@@ -7,10 +7,10 @@ namespace VDStudios.MagicEngine.Services;
 /// <summary>
 /// Represents a collection of services that, following the Game -> Scene structure, allows for its services to be overriden, or new services not available Game wide to be added
 /// </summary>
-public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, IServiceRegistrar, ISingletonHavingServiceCollection
+public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, IServiceRegistrar
     where TGameObject : GameObject
 {
-    Dictionary<Type, object> ISingletonHavingServiceCollection.InstantiatedSingletons { get; } = new();
+    private Dictionary<Type, object> InstantiatedSingletons { get; } = new();
 
     /// <summary>
     /// The <typeparamref name="TGameObject"/> that owns this <see cref="ChildServiceCollection{TGameObject}"/>
@@ -35,7 +35,7 @@ public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, ISe
     {
         var s = info.Lifetime is not ServiceLifetime.Singleton
                 ? throw new InvalidOperationException("Scoped and Transient services must be obtained from a ServiceScope")
-                : ((ISingletonHavingServiceCollection)this).FetchSingleton(info);
+                : FetchSingleton(info);
 
         return s.GetType().IsAssignableTo(info.Type) is false
             ? throw new InvalidOperationException($"Object registered under type {info.Type} is not compatible since it's of type {s.GetType()}")
@@ -64,6 +64,19 @@ public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, ISe
                 return true;
 
         return Parent.InternalTryGetService(type, out info);
+    }
+
+    internal override object FetchSingleton(ServiceInfo info)
+    {
+        lock (InstantiatedSingletons)
+            if (InstantiatedSingletons.TryGetValue(info.Type, out var obj))
+                return obj;
+            else
+            {
+                var o = info.Factory(info.Type, this);
+                InstantiatedSingletons.Add(info.Type, o);
+                return o;
+            }
     }
 
     #region Registration

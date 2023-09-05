@@ -7,9 +7,12 @@ namespace VDStudios.MagicEngine.Services;
 /// <summary>
 /// Represents a scope that manages <see cref="ServiceLifetime.Transient"/> and <see cref="ServiceLifetime.Scoped"/> services from a <see cref="ServiceCollection"/>
 /// </summary>
+/// <remarks>
+/// Do not maintain a reference to this object after disposing it. Instances are recycled, and while most of the time using it after disposing it will throw an exception, if it's already been assigned elsewhere, using it might create hard to diagnose bugs and exception throws
+/// </remarks>
 public sealed class ServiceScope : ServiceCollection, IDisposable
 {
-    private readonly ISingletonHavingServiceCollection serviceCollection;
+    private readonly ServiceCollection serviceCollection;
     private readonly ConcurrentDictionary<Type, object> scopeds = new();
     private readonly List<IDisposable> disposables = new();
     private bool enabled;
@@ -26,7 +29,7 @@ public sealed class ServiceScope : ServiceCollection, IDisposable
             throw new ObjectDisposedException(nameof(ServiceScope));
     }
 
-    internal ServiceScope(ISingletonHavingServiceCollection collection) : base(collection.ThisAsServiceCollection())
+    internal ServiceScope(ServiceCollection collection) : base(collection)
     {
         ArgumentNullException.ThrowIfNull(collection);
         serviceCollection = collection;
@@ -55,6 +58,9 @@ public sealed class ServiceScope : ServiceCollection, IDisposable
 
         disposables.Clear();
         scopeds.Clear();
+
+        serviceCollection.scopePool.Return(this);
+
         if (excs is not null && excs.Count > 0)
             throw new AggregateException(excs);
     }
@@ -77,8 +83,11 @@ public sealed class ServiceScope : ServiceCollection, IDisposable
     }
 
     internal override ServiceInfo InternalGetService(Type type)
-        => serviceCollection.ThisAsServiceCollection().InternalGetService(type);
+        => serviceCollection.InternalGetService(type);
 
     internal override bool InternalTryGetService(Type type, [MaybeNullWhen(false), NotNullWhen(true)] out ServiceInfo info)
-        => serviceCollection.ThisAsServiceCollection().InternalTryGetService(type, out info);
+        => serviceCollection.InternalTryGetService(type, out info);
+
+    internal override object FetchSingleton(ServiceInfo info)
+        => serviceCollection.FetchSingleton(info);
 }
