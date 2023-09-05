@@ -6,6 +6,8 @@ using VDStudios.MagicEngine.Services;
 
 namespace VDStudios.MagicEngine;
 
+#pragma warning disable CS8774 // Member must have a non-null value when exiting.
+
 /// <summary>
 /// Represents an active object in the <see cref="Game"/>
 /// </summary>
@@ -162,6 +164,8 @@ public abstract class Node : DisposableGameObject, IDisposable
     /// </summary>
     /// <param name="delta">The amount of time that has passed since the last update batch call</param>
     /// <returns>Whether the update sequence should be propagated into this <see cref="Node"/>'s children. If this is false, Update handlers for children will also be skipped</returns>
+
+    [MemberNotNull(nameof(ParentScene))]
     protected virtual ValueTask<bool> Updating(TimeSpan delta) => ValueTask.FromResult(true);
 
     /// <summary>
@@ -312,6 +316,8 @@ public abstract class Node : DisposableGameObject, IDisposable
     /// <param name="component">The component that is about to be updated</param>
     /// <param name="delta">The amount of time that has passed since the last frame started and this one started</param>
     /// <returns><c>true</c> if the component should be updated, <c>false</c> otherwise</returns>
+    
+    [MemberNotNull(nameof(ParentScene))]
     protected virtual ValueTask<bool> ComponentUpdating(FunctionalComponent component, TimeSpan delta) => ValueTask.FromResult(true);
 
     #endregion
