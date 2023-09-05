@@ -11,7 +11,7 @@ public class DemoGame : SDLGame
     protected override void RegisteringServices(IServiceRegistrar registrar)
     {
         base.RegisteringServices(registrar);
-        registrar.RegisterService(new GameState());
+        registrar.RegisterService((t, c) => new GameState(c), ServiceLifetime.Singleton);
     }
 
     private static async Task Main(string[] args)

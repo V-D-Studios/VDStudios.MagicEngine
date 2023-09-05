@@ -8,7 +8,9 @@ using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 using VDStudios.MagicEngine.SDL.Demo.Nodes;
 using VDStudios.MagicEngine.SDL.Demo.Services;
+using VDStudios.MagicEngine.SDL.Demo.Utilities;
 using VDStudios.MagicEngine.Services;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Scenes;
 
@@ -23,8 +25,16 @@ public class TestScene : DemoSceneBase
         await base.Beginning();
         RegisterDrawOperationManager(new DrawOperationManager<SDLGraphicsContext>(this));
         
-        var pnode = new PlayerNode(Game);
+        var pnode = new MobileSingleSpriteEntityNode(
+            new(Game, c =>
+            {
+                using var stream = new MemoryStream(Animations.Robin);
+                return Image.LoadTexture(c.Renderer, stream);
+            }),
+            CreateRobinAnimationContainer()
+        );
         await Attach(pnode);
+        Services.GetService<GameState>().PlayerNode = pnode;
 
         var hnode = new HUDNode(Game);
         await Attach(hnode);
@@ -52,4 +62,32 @@ public class TestScene : DemoSceneBase
 
         Camera.Target = pnode;
     }
+
+    private static CharacterAnimationContainer CreateRobinAnimationContainer()
+    {
+        var animContainer = new CharacterAnimationContainer(8,
+            Helper.GetRectangles(AnimationDefinitions.Robin.Player.Idle.Frames), true,
+            Helper.GetRectangles(AnimationDefinitions.Robin.Player.Active.Frames), true,
+            Helper.GetRectangles(AnimationDefinitions.Robin.Player.Up.Frames), true,
+            Helper.GetRectangles(AnimationDefinitions.Robin.Player.Down.Frames), true,
+            Helper.GetRectangles(AnimationDefinitions.Robin.Player.Left.Frames), true,
+            Helper.GetRectangles(AnimationDefinitions.Robin.Player.Right.Frames), true,
+            Helper.GetRectangles(AnimationDefinitions.Robin.Player.UpRight.Frames), true,
+            Helper.GetRectangles(AnimationDefinitions.Robin.Player.DownRight.Frames), true,
+            Helper.GetRectangles(AnimationDefinitions.Robin.Player.UpLeft.Frames), true,
+            Helper.GetRectangles(AnimationDefinitions.Robin.Player.DownLeft.Frames), true
+        );
+
+        foreach (var (_, a) in animContainer)
+            a.EndHang = TimeSpan.FromSeconds(1d / 6);
+
+        animContainer.Idle.StartHang
+            = animContainer.Idle.EndHang
+            = animContainer.Active.StartHang
+            = animContainer.Active.EndHang
+            = TimeSpan.FromSeconds(1d / 2);
+
+        return animContainer;
+    }
+
 }
