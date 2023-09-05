@@ -3,7 +3,7 @@
 #region Update
 
 /// <summary>
-/// Represents a custom update procedure for a <see cref="Node"/>
+/// Represents a custom update procedure for a <see cref="Node"/> *after* its <see cref="Node.Updating(TimeSpan)"/> method has already been called
 /// </summary>
 /// <remarks>
 /// You're not supposed to use this class directly. Instead, use <see cref="NodeUpdater{TNode}"/>
@@ -16,7 +16,7 @@ public abstract class NodeUpdater
 }
 
 /// <summary>
-/// Represents a custom update procedure for a <see cref="Node"/>
+/// Represents a custom update procedure for a <see cref="Node"/> *after* its <see cref="Node.Updating(TimeSpan)"/> method has already been called
 /// </summary>
 /// <typeparam name="TNode">The type of <see cref="Node"/> this Updater will handle</typeparam>
 public sealed class NodeUpdater<TNode> : NodeUpdater where TNode : Node

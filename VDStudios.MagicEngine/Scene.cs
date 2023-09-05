@@ -231,6 +231,9 @@ public abstract class Scene : DisposableGameObject, IDisposable
     /// <summary>
     /// This method is automatically called when a Child node is being attached. It assigns a custom updater to the child node, or <c>null</c> to use <see cref="HandleChildUpdate(Node)"/> instead
     /// </summary>
+    /// <remarks>
+    /// A <see cref="NodeUpdater"/> performs a custom update procedure on a node *after* its <see cref="Node.Updating(TimeSpan)"/> method has already been called
+    /// </remarks>
     /// <param name="node">The <see cref="Node"/> that is being attached, and should be assigned an Updater</param>
     /// <returns>The <see cref="NodeUpdater"/> specific to <paramref name="node"/>, or <c>null</c> to use <see cref="HandleChildUpdate(Node)"/> instead</returns>
     protected internal virtual ValueTask<NodeUpdater?> AssignUpdater(Node node) => ValueTask.FromResult<NodeUpdater?>(null);
@@ -240,8 +243,11 @@ public abstract class Scene : DisposableGameObject, IDisposable
     #region Default Handlers
 
     /// <summary>
-    /// This method is automatically called when a Child node is about to be updated, and it has no custom handler set
+    /// This method is automatically called right after a child node has been updated, and it has no custom handler set
     /// </summary>
+    /// <remarks>
+    /// A <see cref="NodeUpdater"/> performs a custom update procedure on a node *after* its <see cref="Node.Updating(TimeSpan)"/> method has already been called
+    /// </remarks>
     /// <param name="node">The node about to be updated</param>
     protected virtual ValueTask HandleChildUpdate(Node node) => ValueTask.CompletedTask;
 
