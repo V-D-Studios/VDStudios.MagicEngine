@@ -28,7 +28,7 @@ public abstract class ServiceCollection : GameObject
     internal readonly Dictionary<Type, ServiceInfo> ServiceDictionary = new();
 
     internal static Exception ThrowForNotFound(Type type)
-        => new KeyNotFoundException($"Could not find a service for type {type} at any point of the node tree");
+        => new KeyNotFoundException($"Could not find a service for type {type}");
 
     internal abstract object VerifyService(ServiceInfo info);
 
