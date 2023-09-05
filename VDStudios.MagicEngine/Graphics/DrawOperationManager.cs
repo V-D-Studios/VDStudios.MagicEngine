@@ -126,7 +126,7 @@ public class DrawOperationManager<TGraphicsContext> : GameObject
 
         GameMismatchException.ThrowIfMismatch(graphicsManager, operation, this);
 
-        InternalLog?.Debug("Adding a new DrawOperation {objName}-{type}", operation.Name ?? "", operation.GetTypeName());
+        InternalLog?.Debug("Adding a new DrawOperation {opname}", operation);
 
         graphicsManager.ThrowIfRenderLevelNotRegistered(renderLevel);
 

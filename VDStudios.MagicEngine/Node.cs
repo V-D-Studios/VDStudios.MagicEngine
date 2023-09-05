@@ -396,7 +396,7 @@ public abstract class Node : DisposableGameObject, IDisposable
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfAttached();
 
-        InternalLog?.Information("Attaching to Scene {name}-{type}", rootScene.Name ?? "", rootScene.GetTypeName());
+        InternalLog?.Information("Attaching to Scene {name}", rootScene);
         if (!rootScene.FilterChildNode(this, out var reason))
             throw new ChildNodeRejectedException(reason, rootScene, this);
 
@@ -429,7 +429,7 @@ public abstract class Node : DisposableGameObject, IDisposable
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         ThrowIfNotAttached();
         IsReady = false;
-        InternalLog?.Information("Detaching from {name}-{type}", ps!.Name, ps.GetTypeName());
+        InternalLog?.Information("Detaching from {scene}", ps);
 
         await Detaching();
         updater = null;

@@ -32,8 +32,13 @@ public abstract class GameObject : IGameObject
 
     /// <inheritdoc/>
     public override string ToString()
-        => tostr ??= $"{base.ToString()}:{IdString}";
+        => tostr ??= $"{GetGameObjectName()} {IdString}";
     private string? tostr;
+
+    /// <inheritdoc/>
+    public string GetGameObjectName()
+        => ggonstr ??= $"{(Name is null ? "" : $"{Name}/")}{IGameObject.CreateGameObjectName(this)}";
+    private string? ggonstr;
 
     /// <inheritdoc/>
     public override int GetHashCode()

@@ -42,4 +42,16 @@ public interface IGameObject
     /// An optional name for debugging purposes
     /// </summary>
     public string? Name { get; }
+
+    /// <summary>
+    /// Gets an identifying name for this <see cref="GameObject"/> without its <see cref="Id"/>
+    /// </summary>
+    /// <remarks>
+    /// Usually, this looks like: <c><see cref="Name"/>-TypeName</c>
+    /// </remarks>
+    /// <returns></returns>
+    public string GetGameObjectName();
+
+    internal static string CreateGameObjectName(IGameObject obj)
+        => Helper.BuildTypeNameAsCSharpTypeExpression(obj.GetType());
 }

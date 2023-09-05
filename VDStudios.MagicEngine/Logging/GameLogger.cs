@@ -15,20 +15,22 @@ internal sealed class GameLogger : ILogger
     /// <summary>
     /// The default template
     /// </summary>
-    public const string Template = "[{Timestamp:HH:mm:ss} {Level:u3}]{{{Area} -> {Facility}, {ObjName}-{Author} ({ObjId})}}{NewLine} > {Message:lj}{NewLine}{Exception}";
+    public const string Template = "[{Timestamp:HH:mm:ss} {Level:u3}]{{{Area} -> {Facility}, \"{ObjName}\"/{ObjType} ({ObjId})}}{NewLine} > {Message:lj}{NewLine}{Exception}{NewLine}";
 
     public static string DefaultGameObjectIdString { get; } = default(GameObjectId).ToString()!;
 
     private readonly ILogger Logger;
     private readonly IGameObject Obj;
+    private readonly string TypeString;
 
     internal GameLogger(ILogger logger, IGameObject obj)
     {
         Logger = logger;
         Obj = obj;
+        TypeString = IGameObject.CreateGameObjectName(obj);
     }
 
-    public static void Write(ILogger Logger, LogEvent logEvent, string Facility, string Area, Type OwningType, string? ObjName, string id)
+    public static void Write(ILogger Logger, LogEvent logEvent, string Facility, string Area, Type OwningType, string typeString, string? ObjName, string id)
     {
         if (Logger.BindProperty("Facility", Facility, false, out var prop))
             logEvent.AddPropertyIfAbsent(prop);
@@ -40,10 +42,10 @@ internal sealed class GameLogger : ILogger
         else if (Logger.BindProperty("Area", "Unknown", false, out prop))
             logEvent.AddPropertyIfAbsent(prop);
 
-        if (Logger.BindProperty("Author", OwningType.Name, false, out prop))
+        if (Logger.BindProperty("ObjTypeFull", OwningType.AssemblyQualifiedName, false, out prop))
             logEvent.AddPropertyIfAbsent(prop);
 
-        if (Logger.BindProperty("AuthorFull", OwningType.AssemblyQualifiedName, false, out prop))
+        if (Logger.BindProperty("ObjType", typeString, false, out prop))
             logEvent.AddPropertyIfAbsent(prop);
 
         if (Logger.BindProperty("ObjName", ObjName ?? "Unnamed", false, out prop))
@@ -61,5 +63,5 @@ internal sealed class GameLogger : ILogger
     /// <param name="logEvent">The event to write</param>
     /// <exception cref="NotImplementedException"></exception>
     public void Write(LogEvent logEvent)
-        => Write(Logger, logEvent, Obj.Facility, Obj.Area, Obj.GetType(), Obj.Name, Obj.IdString);
+        => Write(Logger, logEvent, Obj.Facility, Obj.Area, Obj.GetType(), TypeString, Obj.Name, Obj.IdString);
 }

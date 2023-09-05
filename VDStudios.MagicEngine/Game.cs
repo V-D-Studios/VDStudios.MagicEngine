@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Xml.Linq;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -48,6 +49,9 @@ public abstract class Game : IGameObject
 
 #if FEATURE_INTERNAL_LOGGING
         Log.Debug("Compiled with \"FEATURE_INTERNAL_LOGGING\" enabled");
+#if INTERNAL_LOG_FRAMEDROPS
+        Log.Debug("Compiled with \"INTERNAL_LOG_FRAMEDROPS\" enabled");
+#endif
 #endif
 #if VALIDATE_USAGE
         Log.Debug("Compiled with \"VALIDATE_USAGE\" enabled");
@@ -55,9 +59,10 @@ public abstract class Game : IGameObject
 #if FORCE_GM_NOPARALLEL
         Log.Debug("Compiled with \"FORCE_GM_NOPARALLEL\" enabled");
 #endif
+
     }
 
-    #endregion
+#endregion
 
     #region Properties
 
@@ -72,13 +77,18 @@ public abstract class Game : IGameObject
             if (_uft == value)
                 return;
             _uft = UpdateFrameThrottleChanging(_uft, value) ?? value;
+#if FEATURE_INTERNAL_LOGGING && INTERNAL_LOG_FRAMEDROPS
             _warningTicks = (value * 1.5).Ticks;
+#endif
         }
     }
     private TimeSpan _uft;
+
+#if FEATURE_INTERNAL_LOGGING && INTERNAL_LOG_FRAMEDROPS
     private long _warningTicks; // This is the amount of average elapsed ticks that would issue a warning
     private long _lastWarningTicks;
     private int _consecutiveWarnings;
+#endif
 
     private readonly Stopwatch runtimewatch = new();
     /// <summary>
@@ -217,7 +227,7 @@ public abstract class Game : IGameObject
     }
     private Scene? nextScene;
 
-    #endregion
+#endregion
 
     #region Methods
 
@@ -555,7 +565,7 @@ public abstract class Game : IGameObject
                     await manager.AwaitIfFaulted();
             }
 
-#if FEATURE_INTERNAL_LOGGING
+#if FEATURE_INTERNAL_LOGGING && INTERNAL_LOG_FRAMEDROPS
             if (framerateWarningTimer.IsClocking)
             {
                 framerateWarningTimer.Restart();
@@ -705,6 +715,8 @@ public abstract class Game : IGameObject
     /// </summary>
     public event GameGraphicsManagerCreatedEvent? MainGraphicsManagerCreated;
 
+    #endregion
+
     #region IGameObject
 
     Game IGameObject.Game => this;
@@ -717,7 +729,9 @@ public abstract class Game : IGameObject
     GameObjectId IGameObject.Id { get; } = GameObjectId.NewId();
     private string? idstr;
 
-    #endregion
+    string IGameObject.GetGameObjectName()
+        => ggonstr ??= $"{(((IGameObject)this).Name is null ? "" : $"{((IGameObject)this).Name}-")}{IGameObject.CreateGameObjectName(this)}";
+    private string? ggonstr;
 
     #endregion
 }
