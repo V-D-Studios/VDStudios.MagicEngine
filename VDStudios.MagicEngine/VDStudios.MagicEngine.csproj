@@ -4,8 +4,8 @@
 	<TargetFramework>net7.0</TargetFramework>
 	<ImplicitUsings>enable</ImplicitUsings>
 	<Nullable>enable</Nullable>
-	<GenerateDocumentationFile>True</GenerateDocumentationFile>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<GenerateDocumentationFile>True</GenerateDocumentationFile>
 	<SignAssembly>False</SignAssembly>
 	<RepositoryType>git</RepositoryType>
 	<RepositoryUrl>https://github.com/V-D-Studios/VDStudios.MagicEngine</RepositoryUrl>
