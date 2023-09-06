@@ -14,10 +14,10 @@ public class DemoGame : SDLGame
         registrar.RegisterService((t, c) => new GameState(c), ServiceLifetime.Singleton);
     }
 
-    private static async Task Main(string[] args)
+    private static Task Main(string[] args)
     {
         var game = new DemoGame();
-        await game.StartGame(g => new TestScene(g));
+        return game.StartGame(g => new TestScene(g));
     }
 }
 

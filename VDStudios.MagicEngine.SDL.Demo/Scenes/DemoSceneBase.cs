@@ -52,6 +52,15 @@ public abstract class DemoSceneBase : Scene
         return Attach(inputReactor);
     }
 
+    //List<Task> task = new();
+    //SDLFrameHook? hook;
+    //protected override async ValueTask<bool> Updating(TimeSpan delta)
+    //{
+    //    if()
+
+    //    return true;
+    //}
+
     /// <inheritdoc/>
     protected DemoSceneBase(Game game) : base(game)
     {

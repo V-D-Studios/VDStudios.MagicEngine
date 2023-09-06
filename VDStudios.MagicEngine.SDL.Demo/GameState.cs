@@ -4,7 +4,6 @@ using VDStudios.MagicEngine.SDL.Demo.Nodes;
 using VDStudios.MagicEngine.SDL.Demo.Services;
 using VDStudios.MagicEngine.Services;
 using VDStudios.MagicEngine.World2D;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace VDStudios.MagicEngine.SDL.Demo;
 
@@ -41,7 +40,15 @@ public class GameState : GameObject
                 PlayerNode.Direction += Directions.Right;
             return ValueTask.CompletedTask;
         });
+
+        inman.AddKeyBinding(Scancode.F9, s =>
+        {
+            IsRecording = !IsRecording;
+            return ValueTask.CompletedTask;
+        });
     }
+    
+    public bool IsRecording { get; private set; }
 
     public IWorldMobile2D? PlayerNode { get; set; }
 }
