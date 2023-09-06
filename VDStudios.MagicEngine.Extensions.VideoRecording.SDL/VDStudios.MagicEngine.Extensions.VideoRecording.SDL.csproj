@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\VDStudios.MagicEngine.Extensions.VideoRecording\VDStudios.MagicEngine.Extensions.VideoRecording.csproj" />
+    <ProjectReference Include="..\VDStudios.MagicEngine.Graphics.SDL\VDStudios.MagicEngine.Graphics.SDL.csproj" />
+  </ItemGroup>
+
 </Project>
