@@ -35,7 +35,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Box2D", "Box2D", "{FEFA65EA
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependencies", "Dependencies", "{CDCDD0D1-DA85-4D0F-A5C9-08C59FB1AA22}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VDStudios.MagicEngine.Physics.Box2D", "VDStudios.MagicEngine.Physics.Box2D\VDStudios.MagicEngine.Physics.Box2D.csproj", "{84554694-D2B4-482A-833F-B4A95921F0C7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.MagicEngine.Physics.Box2D", "VDStudios.MagicEngine.Physics.Box2D\VDStudios.MagicEngine.Physics.Box2D.csproj", "{84554694-D2B4-482A-833F-B4A95921F0C7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Extensions", "Extensions", "{3B5F5C60-7293-4ACB-B208-EE45983C2D34}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VDStudios.MagicEngine.Extensions.VideoRecording", "VDStudios.MagicEngine.Extensions.VideoRecording\VDStudios.MagicEngine.Extensions.VideoRecording.csproj", "{06F28C43-02BB-4CC6-8D23-E12F42FCC315}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Video Recording", "Video Recording", "{DF83F9D3-48E8-4224-8278-1731A44C0DA3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VDStudios.MagicEngine.Extensions.VideoRecording.SDL", "VDStudios.MagicEngine.Extensions.VideoRecording.SDL\VDStudios.MagicEngine.Extensions.VideoRecording.SDL.csproj", "{D54964A5-0122-4A79-B286-1CA80BE78347}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -155,6 +163,30 @@ Global
 		{84554694-D2B4-482A-833F-B4A95921F0C7}.Release|x64.Build.0 = Release|Any CPU
 		{84554694-D2B4-482A-833F-B4A95921F0C7}.Release|x86.ActiveCfg = Release|Any CPU
 		{84554694-D2B4-482A-833F-B4A95921F0C7}.Release|x86.Build.0 = Release|Any CPU
+		{06F28C43-02BB-4CC6-8D23-E12F42FCC315}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06F28C43-02BB-4CC6-8D23-E12F42FCC315}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06F28C43-02BB-4CC6-8D23-E12F42FCC315}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{06F28C43-02BB-4CC6-8D23-E12F42FCC315}.Debug|x64.Build.0 = Debug|Any CPU
+		{06F28C43-02BB-4CC6-8D23-E12F42FCC315}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{06F28C43-02BB-4CC6-8D23-E12F42FCC315}.Debug|x86.Build.0 = Debug|Any CPU
+		{06F28C43-02BB-4CC6-8D23-E12F42FCC315}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06F28C43-02BB-4CC6-8D23-E12F42FCC315}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06F28C43-02BB-4CC6-8D23-E12F42FCC315}.Release|x64.ActiveCfg = Release|Any CPU
+		{06F28C43-02BB-4CC6-8D23-E12F42FCC315}.Release|x64.Build.0 = Release|Any CPU
+		{06F28C43-02BB-4CC6-8D23-E12F42FCC315}.Release|x86.ActiveCfg = Release|Any CPU
+		{06F28C43-02BB-4CC6-8D23-E12F42FCC315}.Release|x86.Build.0 = Release|Any CPU
+		{D54964A5-0122-4A79-B286-1CA80BE78347}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D54964A5-0122-4A79-B286-1CA80BE78347}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D54964A5-0122-4A79-B286-1CA80BE78347}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D54964A5-0122-4A79-B286-1CA80BE78347}.Debug|x64.Build.0 = Debug|Any CPU
+		{D54964A5-0122-4A79-B286-1CA80BE78347}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D54964A5-0122-4A79-B286-1CA80BE78347}.Debug|x86.Build.0 = Debug|Any CPU
+		{D54964A5-0122-4A79-B286-1CA80BE78347}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D54964A5-0122-4A79-B286-1CA80BE78347}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D54964A5-0122-4A79-B286-1CA80BE78347}.Release|x64.ActiveCfg = Release|Any CPU
+		{D54964A5-0122-4A79-B286-1CA80BE78347}.Release|x64.Build.0 = Release|Any CPU
+		{D54964A5-0122-4A79-B286-1CA80BE78347}.Release|x86.ActiveCfg = Release|Any CPU
+		{D54964A5-0122-4A79-B286-1CA80BE78347}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -172,6 +204,9 @@ Global
 		{FEFA65EA-80FA-4957-A0AF-3CB9E46BC6E7} = {F6B4DFFC-79B2-4676-AA6D-0E68C91D3F98}
 		{CDCDD0D1-DA85-4D0F-A5C9-08C59FB1AA22} = {FEFA65EA-80FA-4957-A0AF-3CB9E46BC6E7}
 		{84554694-D2B4-482A-833F-B4A95921F0C7} = {FEFA65EA-80FA-4957-A0AF-3CB9E46BC6E7}
+		{06F28C43-02BB-4CC6-8D23-E12F42FCC315} = {DF83F9D3-48E8-4224-8278-1731A44C0DA3}
+		{DF83F9D3-48E8-4224-8278-1731A44C0DA3} = {3B5F5C60-7293-4ACB-B208-EE45983C2D34}
+		{D54964A5-0122-4A79-B286-1CA80BE78347} = {DF83F9D3-48E8-4224-8278-1731A44C0DA3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6D4206DF-0B60-4CA8-978E-45BF879850A9}
