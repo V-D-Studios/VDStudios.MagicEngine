@@ -66,9 +66,30 @@ public abstract class GraphicsManager : DisposableGameObject
     private readonly SemaphoreSlim InputSemaphore = new(1, 1);
 
     internal readonly SemaphoreSlim initLock = new(1, 1);
+
     private Task? InputPropagationTask;
 
     internal ulong FrameCount { get; private set; }
+
+    /// <summary>
+    /// The object that maintains the information that is fed to <see cref="FramesPerSecond"/>
+    /// </summary>
+    protected readonly FloatAverageKeeper DeltaAverageKeeper = new(10);
+    
+    /// <summary>
+    /// Whether the <see cref="GraphicsManager{TGraphicsContext}"/> should stop rendering when it loses input focus
+    /// </summary>
+    public bool PauseOnInputLoss { get; set; }
+
+    /// <summary>
+    /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager{TGraphicsContext}"/> is running
+    /// </summary>
+    public float FramesPerSecond => DeltaAverageKeeper.Average;
+
+    /// <summary>
+    /// The current Window's Size
+    /// </summary>
+    public abstract IntVector2 WindowSize { get; protected set; }
 
     /// <summary>
     /// Propagates input across all of <see cref="InputReady"/>'s subscribers
@@ -460,4 +481,11 @@ public abstract class GraphicsManager : DisposableGameObject
     /// Notifies this <see cref="GraphicsManager{TGraphicsContext}"/> that a new Frame has finished
     /// </summary>
     protected void CountFrame() => FrameCount++;
+
+    /// <summary>
+    /// Attempts to get the target framerate of this <see cref="GraphicsManager{TGraphicsContext}"/> 
+    /// </summary>
+    /// <param name="targetFrameRate">The target framerate if this method returns <see langword="true"/>. <see langword="default"/> otherwise</param>
+    /// <returns><see langword="true"/> if this method was able to adquire a target framerate value. <see langword="false"/> otherwise.</returns>
+    public abstract bool TryGetTargetFrameRate([MaybeNullWhen(false)] [NotNullWhen(true)] out TimeSpan targetFrameRate);
 }

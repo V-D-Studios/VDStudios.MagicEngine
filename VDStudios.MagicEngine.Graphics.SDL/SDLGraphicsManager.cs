@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Security.Principal;
 using ImGuiNET;
@@ -344,6 +345,20 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
         }
 
         WindowSizeChanged(timestamp, newSize);
+    }
+
+    /// <inheritdoc/>
+    public override bool TryGetTargetFrameRate([MaybeNullWhen(false), NotNullWhen(true)] out TimeSpan targetFrameRate)
+    {
+        int rate;
+        if (window is null || (rate = Window.DisplayMode.Value.RefreshRate) <= 0)
+        {
+            targetFrameRate = default;
+            return false;
+        }
+
+        targetFrameRate = TimeSpan.FromSeconds(1d / rate);
+        return true;
     }
 
     #endregion

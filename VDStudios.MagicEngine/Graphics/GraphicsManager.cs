@@ -53,13 +53,7 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     }
 
     #endregion
-
     #region Public Properties
-
-    /// <summary>
-    /// Whether the <see cref="GraphicsManager{TGraphicsContext}"/> should stop rendering when it loses input focus
-    /// </summary>
-    public bool PauseOnInputLoss { get; set; }
 
     private readonly List<uint> renderTargetLevels = new();
     private readonly Dictionary<uint, RenderTargetList<TGraphicsContext>> renderTargets;
@@ -147,16 +141,6 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
             }
         }
     }
-
-    /// <summary>
-    /// Represents the current Frames-per-second value calculated while this <see cref="GraphicsManager{TGraphicsContext}"/> is running
-    /// </summary>
-    public float FramesPerSecond => DeltaAverageKeeper.Average;
-
-    /// <summary>
-    /// The object that maintains the information that is fed to <see cref="FramesPerSecond"/>
-    /// </summary>
-    protected readonly FloatAverageKeeper DeltaAverageKeeper = new(10);
 
     #endregion
 
@@ -332,11 +316,6 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// Locked while <see cref="FrameLock"/> is locked
     /// </remarks>
     protected readonly SemaphoreSlim DrawLock = new(1, 1);
-
-    /// <summary>
-    /// The current Window's Size
-    /// </summary>
-    public abstract IntVector2 WindowSize { get; protected set; }
 
     /// <summary>
     /// Handles the Window's size changing
