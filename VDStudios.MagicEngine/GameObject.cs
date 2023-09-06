@@ -42,7 +42,7 @@ public abstract class GameObject : IGameObject
 
     /// <inheritdoc/>
     public override int GetHashCode()
-        => Id.Raw;
+        => Id.Raw.GetHashCode();
 
     /// <summary>
     /// The synchronization object that belongs to this <see cref="GameObject"/>
