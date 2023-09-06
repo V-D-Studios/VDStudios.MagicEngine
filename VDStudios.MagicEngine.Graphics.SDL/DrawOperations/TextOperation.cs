@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using SDL2.NET;
 using SDL2.NET.SDLFont;
-using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.SDL.Demo;
 
 namespace VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
@@ -66,11 +65,29 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
     }
 
     /// <summary>
+    /// Schedules the operation to not render anything
+    /// </summary>
+    public void ClearText()
+    {
+        if (CurrentKey.Text is not null and not "")
+        {
+            CurrentKey = default;
+            texture = null;
+            NotifyPendingGPUUpdate();
+        }
+    }
+
+    /// <summary>
     /// Schedules the operation to render <paramref name="text"/> blended
     /// </summary>
     public void SetTextBlended(string text, RGBAColor color, int? size = null)
     {
-        ArgumentNullException.ThrowIfNull(text);
+        if (text is null or "")
+        {
+            ClearText();
+            return;
+        }
+
         var k = new TextRenderCacheKey(0, size ?? __font.Size, text, color, default);
 
         if (k != CurrentKey)
@@ -88,6 +105,12 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
     /// </summary>
     public void SetTextShaded(string text, RGBAColor foreground, RGBAColor background, int? size = null)
     {
+        if (text is null or "")
+        {
+            ClearText();
+            return;
+        }
+
         ArgumentNullException.ThrowIfNull(text);
         var k = new TextRenderCacheKey(1, size ?? __font.Size, text, foreground, background);
 
@@ -106,6 +129,12 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
     /// </summary>
     public void SetTextSolid(string text, RGBAColor color, int? size = null)
     {
+        if (text is null or "")
+        {
+            ClearText();
+            return;
+        }
+
         ArgumentNullException.ThrowIfNull(text);
         var k = new TextRenderCacheKey(2, size ?? __font.Size, text, color, default);
 
@@ -156,7 +185,8 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
             surface = null;
 
             var (m, _, t, c1, c2) = k;
-            if (t is null) return;
+            if (t is null or "") return;
+
             Debug.Assert(m is >= 0 and <= 2, "Unknown mode");
             surface = m switch
             {
