@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Buffers.Text;
+using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
@@ -8,62 +10,58 @@ namespace VDStudios.MagicEngine;
 /// Represents an unique Id given to every <see cref="GameObject"/> for varied purposes, primarily debugging and logging
 /// </summary>
 [StructLayout(LayoutKind.Explicit)]
-public readonly struct GameObjectId : IFormattable, IEquatable<GameObjectId>
+public readonly struct GameObjectId : IEquatable<GameObjectId>
 {
     /// <summary>
     /// Creates a new <see cref="GameObjectId"/>
     /// </summary>
     /// <returns></returns>
-    public static unsafe GameObjectId NewId()
-    {
-        Unsafe.SkipInit(out byte s);
-        Span<byte> bytes = new(ref s);
-        RandomNumberGenerator.Fill(bytes);
-        var dt = DateTime.Now;
-        return new((byte)dt.Hour, (byte)dt.Minute, (byte)dt.Second, s);
-    }
+    public static unsafe GameObjectId NewId() 
+        => new(DateTime.Now);
 
-    private GameObjectId(byte h, byte m, byte s, byte salt)
+    private unsafe GameObjectId(DateTime dt)
     {
-        HourCreated = h;
-        MinuteCreated = m;
-        SecondCreated = s;
-        Salt = salt;
+        TimeStamp = (uint)(dt - DateTime.UnixEpoch).TotalSeconds;
+        RandomNumberGenerator.Fill(MemoryMarshal.Cast<uint, byte>(new Span<uint>(ref salt)));
     }
 
     [field: FieldOffset(0)]
-    internal readonly int Raw;
-    /// <summary>
-    /// The Hour at which this <see cref="GameObject"/> was created
-    /// </summary>
-    [field: FieldOffset(0)]
-    public byte HourCreated { get; }
-
-    /// <summary>
-    /// The Minute at which this <see cref="GameObject"/> was created
-    /// </summary>
-    [field: FieldOffset(1)]
-    public byte MinuteCreated { get; }
-
-    /// <summary>
-    /// The Second at which this <see cref="GameObject"/> was created
-    /// </summary>
-    [field: FieldOffset(2)]
-    public byte SecondCreated { get; }
+    internal readonly ulong Raw;
 
     /// <summary>
     /// A Random Salt value for this <see cref="GameObject"/>
     /// </summary>
-    [field: FieldOffset(3)]
-    public byte Salt { get; }
+    public uint Salt => salt;
+    [FieldOffset(0)] private readonly uint salt;
 
-    /// <inheritdoc/>
-    public readonly string ToString(string? format, IFormatProvider? formatProvider)
-        => $"x:{Raw.ToString(format, formatProvider)}";
+    /// <summary>
+    /// The Timestamp of this Id. <c>(<see cref="DateTime.Now"/> - <see cref="DateTime.UnixEpoch"/>)</c> -> <see cref="TimeSpan.TotalSeconds"/>
+    /// </summary>
+    [field: FieldOffset(4)]
+    public uint TimeStamp { get; }
 
     /// <inheritdoc/>
     public override string ToString()
-        => ToString("X", null);
+    {
+        if (BitConverter.IsLittleEndian is false)
+            throw new NotSupportedException("BigEndian is not supported. Figure out how it looks against LittleEndian and just flip the bytes in this method or smth. Library error, contact author.");
+
+        const string charpool = "0123456789ABCDEFGHJKLMNPQRSTWXYZ";
+        Span<char> chars = stackalloc char[15];
+        chars[0] = 'x';
+        chars[1] = ':';
+        int i = 2;
+        var v = Raw;
+        while (v > 0)
+        {
+            chars[i++] = charpool[(int)(v % (ulong)charpool.Length)];
+            v /= (ulong)charpool.Length;
+        }
+
+        for (; i < chars.Length; i++) chars[i] = 'ñ';
+
+        return new string(chars);
+    }
 
     /// <inheritdoc/>
     public readonly bool Equals(GameObjectId other)
@@ -83,5 +81,5 @@ public readonly struct GameObjectId : IFormattable, IEquatable<GameObjectId>
 
     /// <inheritdoc/>
     public override int GetHashCode()
-        => Raw;
+        => Raw.GetHashCode();
 }
