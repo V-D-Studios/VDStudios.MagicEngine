@@ -10,7 +10,7 @@ namespace VDStudios.MagicEngine.Graphics.SDL;
 /// </summary>
 public class SDLFrameHook : FrameHook
 {
-    private readonly ILogger Log;
+    private readonly ILogger ManagerLog;
 
     /// <summary>
     /// Creates a new <see cref="SDLFrameHook"/> hooked to <paramref name="owner"/>
@@ -18,7 +18,7 @@ public class SDLFrameHook : FrameHook
     public SDLFrameHook(SDLGraphicsManager owner, ILogger log) : base(owner) 
     {
         FrameSkipTimer = new(owner, 0);
-        Log = log;
+        ManagerLog = log;
     }
 
     /// <summary>
@@ -55,20 +55,14 @@ public class SDLFrameHook : FrameHook
         return frameQueue.TryDequeue(out frame);
     }
 
-    void ThrowIfDisposed()
-    {
-        if (disposed)
-            throw new ObjectDisposedException(nameof(SDLFrameHook));
-    }
-
-    bool disposed;
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)
     {
-        disposed = true;
         var owner = ((SDLGraphicsManager)Owner);
         lock (owner)
             owner.framehooks.Remove(this);
-        Log.Information("Removed Framehook {hook}", this);
+        ManagerLog.Information("Removed Framehook {hook}", this);
+
+        base.Dispose(disposing);
     }
 }
