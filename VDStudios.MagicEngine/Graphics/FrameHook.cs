@@ -14,6 +14,16 @@ public abstract class FrameHook : DisposableGameObject
     protected readonly GraphicsManager Owner;
 
     /// <summary>
+    /// Represents the amount of bits per pixel a Frame from <see cref="Owner"/> has
+    /// </summary>
+    public required uint BitsPerPixel { get; init; }
+
+    /// <summary>
+    /// Represents the amount of bytes per pixel a Frame from <see cref="Owner"/> has
+    /// </summary>
+    public required uint BytesPerPixel { get; init; }
+
+    /// <summary>
     /// Creates a new object of type <see cref="FrameHook"/>
     /// </summary>
     protected FrameHook(GraphicsManager owner) : base(owner.Game, "Graphics & Input", "Video Recording")

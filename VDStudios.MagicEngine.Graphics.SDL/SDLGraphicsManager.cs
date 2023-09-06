@@ -420,7 +420,14 @@ public class SDLGraphicsManager : GraphicsManager<SDLGraphicsContext>
     {
         Log.Verbose("Attaching new Framehook");
         SDLFrameHook fh;
-        fh = new(this, Log);
+
+        using var pxf = new PixelFormatData(Window.PixelFormat);
+        fh = new(this, Log)
+        {
+            BytesPerPixel = (uint)pxf.BytesPerPixel,
+            BitsPerPixel = (uint)pxf.BitsPerPixel
+        };
+
         lock (framehooks)
             framehooks.Add(fh);
         Log.Information("Hooked new framehook {hook}", fh);
