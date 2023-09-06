@@ -368,6 +368,14 @@ public abstract class GraphicsManager : DisposableGameObject
     public abstract ValueTask TakeScreenshot(Stream output, ScreenshotImageFormat format, int jpegQuality = 100);
 
     /// <summary>
+    /// Creates a new <see cref="FrameHook"/>, attaches it to this <see cref="GraphicsManager{TGraphicsContext}"/> and returns it for consumption
+    /// </summary>
+    /// <remarks>
+    /// Dispose of the <see cref="FrameHook"/> to disconnect it from this <see cref="GraphicsManager{TGraphicsContext}"/>
+    /// </remarks>
+    public abstract FrameHook AttachFramehook();
+
+    /// <summary>
     /// Performs task such as Creating and Setting up the Window
     /// </summary>
     protected abstract void SetupGraphicsManager();
