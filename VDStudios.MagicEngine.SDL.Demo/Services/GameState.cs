@@ -3,15 +3,14 @@ using SDL2.NET;
 using VDStudios.MagicEngine.Extensions.VideoRecording.SDL;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.SDL.Demo.Nodes;
-using VDStudios.MagicEngine.SDL.Demo.Services;
 using VDStudios.MagicEngine.Services;
 using VDStudios.MagicEngine.World2D;
 
-namespace VDStudios.MagicEngine.SDL.Demo;
+namespace VDStudios.MagicEngine.SDL.Demo.Services;
 
 public class GameState : GameObject
 {
-    public GameState(ServiceCollection services) : base(services.Game, "Global", "State") 
+    public GameState(ServiceCollection services) : base(services.Game, "Global", "State")
     {
         var inman = services.GetService<InputManagerService>();
 

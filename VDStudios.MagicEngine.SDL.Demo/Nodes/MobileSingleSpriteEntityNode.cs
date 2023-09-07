@@ -23,13 +23,11 @@ public class MobileSingleSpriteEntityNode : SingleSpriteEntityNode, IWorldMobile
         base(textureOperation, animationContainer)
     { }
 
-    protected override async ValueTask<bool> Updating(TimeSpan delta)
+    protected override async ValueTask EntityUpdating(TimeSpan delta)
     {
         Position += Direction * Speed;
-        await base.Updating(delta);
+        await base.EntityUpdating(delta);
         Direction = default;
-
-        return true;
     }
 
     protected override async ValueTask Attaching(Scene scene)

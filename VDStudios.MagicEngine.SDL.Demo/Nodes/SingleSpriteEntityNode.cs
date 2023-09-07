@@ -17,19 +17,18 @@ public class SingleSpriteEntityNode : EntityNode, IWorldObject2D
     {
         Sprite = sprite;
         AnimationContainer = animationContainer;
+        EntityDrawOperations.Add(Sprite);
     }
 
-    protected override async ValueTask<bool> Updating(TimeSpan delta)
+    protected override ValueTask EntityUpdating(TimeSpan delta)
     {
-        await base.Updating(delta);
-        
         Sprite.TransformationState.Transform(translation: new Vector3(Position, 0));
 
         if (AnimationContainer is not null && (AnimationContainer.CurrentAnimation.Update()
             || AnimationContainer.SwitchTo(Helper.TryGetFromDirection(Direction, out var dir) ? dir : CharacterAnimationKind.Idle)))
             Sprite.View = AnimationContainer.CurrentAnimation.CurrentElement;
 
-        return true;
+        return ValueTask.CompletedTask;
     }
 
     protected override async ValueTask Attaching(Scene scene)

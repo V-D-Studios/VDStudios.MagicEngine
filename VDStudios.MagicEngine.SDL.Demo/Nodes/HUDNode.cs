@@ -8,6 +8,7 @@ using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 using VDStudios.MagicEngine.SDL.Demo.Scenes;
+using VDStudios.MagicEngine.SDL.Demo.Services;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Nodes;
 
@@ -67,6 +68,8 @@ public class HUDNode : Node
             await dopm.AddDrawOperation(CameraPositionReport, 1);
             await dopm.AddDrawOperation(RecordingNotif, 1);
             await dopm.AddDrawOperation(MidPointViewer, 1);
+
+            MidPointViewer.IsActive = false;
 
             CameraPositionReport.TransformationState.Transform(translation: new Vector3(0, 20, 0));
             RecordingNotif.TransformationState.Transform(translation: new Vector3(0, 40, 0));
