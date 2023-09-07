@@ -24,6 +24,7 @@ public class SDLRecorder : Recorder<SDLFrameHook>
     protected override IAviVideoStream CreateVideoStream(AviWriter writer, SDLFrameHook hook)
     {
         var vs = base.CreateVideoStream(writer, hook);
+        vs.Codec = CodecIds.X264;
         vs.BitsPerPixel = (BitsPerPixel)hook.BitsPerPixel;
         return vs;
     }

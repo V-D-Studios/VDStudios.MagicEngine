@@ -103,10 +103,11 @@ public abstract class Recorder<TFrameHook> : DisposableGameObject
     /// <returns></returns>
     protected virtual AviWriter CreateAviWriter()
     {
-        decimal fps = Manager.TryGetTargetFrameRate(out var tfr) ? (decimal)tfr.TotalSeconds : 1M / 30;
+        decimal fps = Manager.TryGetTargetFrameRate(out var tfr) ? 1M / (decimal)tfr.TotalSeconds : 30;
         return new AviWriter(Output, true)
         {
-            FramesPerSecond = fps
+            FramesPerSecond = fps,
+            EmitIndex1 = true
         };
     }
 
@@ -124,7 +125,7 @@ public abstract class Recorder<TFrameHook> : DisposableGameObject
         ThrowIfDisposed();
         lock (Sync)
         {
-            if (Hook is null)
+            if (Hook is not null)
                 return false;
 
             Hook = Manager.AttachFramehook() as TFrameHook ?? throw new InvalidOperationException("The manager this recorder is recording did not return a compatible FrameHook");
@@ -167,10 +168,10 @@ public abstract class Recorder<TFrameHook> : DisposableGameObject
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)
     {
+        Stop();
+
         if (DisposeOutputStream)
             Output.Dispose();
-
-        Stop();
 
         base.Dispose(disposing);
     }
