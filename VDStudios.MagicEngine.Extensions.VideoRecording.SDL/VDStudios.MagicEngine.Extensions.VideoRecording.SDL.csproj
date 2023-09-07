@@ -20,7 +20,6 @@
 	<Copyright>V%26D Studios ️©️ 2023</Copyright>
 	<Version>$(AssemblyVersion)</Version>
 	<FileVersion>$(AssemblyVersion)</FileVersion>
-	<AssemblyVersion>1.0.*</AssemblyVersion>
 	<Platforms>AnyCPU;x64;x86</Platforms>
 	  
   </PropertyGroup>
