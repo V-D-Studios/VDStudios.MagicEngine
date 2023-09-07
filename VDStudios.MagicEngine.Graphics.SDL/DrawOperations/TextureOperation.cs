@@ -39,6 +39,11 @@ public class TextureOperation : DrawOperation<SDLGraphicsContext>
     }
 
     /// <summary>
+    /// The Width and Height of the Texture in this <see cref="TextureOperation"/> in pixels
+    /// </summary>
+    public Size TextureSize => texture?.Size ?? throw new InvalidOperationException("Cannot get the size before this Operation's resources are created");
+
+    /// <summary>
     /// The color of the outline of the target rectangle where the texture will be rendered. Set to <see langword="null"/> to not render the outline
     /// </summary>
     public OutlineConfig? TextureEdgeOutline { get; set; }
