@@ -135,6 +135,20 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     #region Drawing
 
     /// <summary>
+    /// Whether or not this <see cref="DrawOperation{TGraphicsContext}"/> is active 
+    /// </summary>
+    /// <remarks>
+    /// If <see langword="false"/>, then Drawing and resource updating for this operation is skipped
+    /// </remarks>
+    public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// Fired when <see cref="IsActive"/> changes
+    /// </summary>
+
+    public event DrawOperationEvent<TGraphicsContext>? IsActiveChanged;
+
+    /// <summary>
     /// Represents this <see cref="DrawOperation{TGraphicsContext}"/>'s preferred priority. May or may not be honored depending on the <see cref="DrawOperationManager{TGraphicsContext}"/>
     /// </summary>
     public float PreferredPriority { get; set; }
@@ -170,6 +184,8 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
         Debug.Assert(context is not null, "The GraphicsContext is unexpectedly null");
         ThrowIfDisposed();
         ThrowIfExternalExceptionPresent();
+        if (IsActive is false) return;
+
         sync.Wait();
         try
         {
