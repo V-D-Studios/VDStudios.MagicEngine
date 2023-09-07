@@ -1,14 +1,13 @@
 ﻿using System.Numerics;
 using SDL2.NET;
 using VDStudios.MagicEngine.Graphics;
-using VDStudios.MagicEngine.Graphics.SDL;
 
-namespace VDStudios.MagicEngine.SDL.Demo;
+namespace VDStudios.MagicEngine.Graphics.SDL;
 
 /// <summary>
 /// A collection of extension methods to perform repetitive tasks related to rendering a texture on screen
 /// </summary>
-public static class RenderHelpers
+public static class SDLRenderHelpers
 {
     /// <summary>
     /// Applies a <see cref="DrawOperation{TGraphicsContext}"/>'s color transformation to <paramref name="texture"/>
@@ -26,10 +25,10 @@ public static class RenderHelpers
         if (color.Effects.HasFlag(ColorEffect.Overlay))
             texture.ColorAlpha = new RGBAColor((byte)(color.Overlay.X * 255), (byte)(color.Overlay.Y * 255), (byte)(color.Overlay.Z * 255), (byte)(color.Overlay.W * 255));
 
-        texture.Alpha = (byte)(color.Effects.HasFlag(ColorEffect.OpacityOverride) 
-            ? color.Opacity 
-            : color.Effects.HasFlag(ColorEffect.OpacityMultiply) 
-            ? (texture.Alpha / 255f) * color.Opacity 
+        texture.Alpha = (byte)(color.Effects.HasFlag(ColorEffect.OpacityOverride)
+            ? color.Opacity
+            : color.Effects.HasFlag(ColorEffect.OpacityMultiply)
+            ? texture.Alpha / 255f * color.Opacity
             : 1f
         );
     }
@@ -56,7 +55,7 @@ public static class RenderHelpers
     /// <param name="transformation">The <see cref="DrawTransformation"/> parameters</param>
     /// <returns>The <see cref="FloatRectangle"/> to be used as the destination. Consider calling <see cref="ToRectangle(FloatRectangle)"/> on it</returns>
     public static FloatRectangle CreateDestinationRectangle(this DrawOperation<SDLGraphicsContext> dop, Size sourceSize, DrawTransformation transformation)
-        => CreateDestinationRectangle(dop, sourceSize.ToVector2(), transformation);
+        => dop.CreateDestinationRectangle(sourceSize.ToVector2(), transformation);
 
     /// <summary>
     /// Converts a MagicEngine <see cref="FloatRectangle"/> into an SDL <see cref="Rectangle"/>

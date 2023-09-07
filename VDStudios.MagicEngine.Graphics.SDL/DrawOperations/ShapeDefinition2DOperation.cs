@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using SDL2.NET;
 using VDStudios.MagicEngine.Geometry;
-using VDStudios.MagicEngine.SDL.Demo;
 
 namespace VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 

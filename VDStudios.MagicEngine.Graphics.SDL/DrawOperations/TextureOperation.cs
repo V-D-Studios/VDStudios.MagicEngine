@@ -3,8 +3,6 @@ using System.Numerics;
 using SDL2.NET;
 using SDL2.NET.SDLImage;
 using VDStudios.MagicEngine.Graphics;
-using VDStudios.MagicEngine.Graphics.SDL;
-using VDStudios.MagicEngine.SDL.Demo;
 
 namespace VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 

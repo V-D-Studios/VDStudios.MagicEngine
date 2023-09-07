@@ -8,7 +8,6 @@ using System.Text;
 using System.Threading.Tasks;
 using SDL2.NET;
 using SDL2.NET.SDLFont;
-using VDStudios.MagicEngine.SDL.Demo;
 
 namespace VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 
