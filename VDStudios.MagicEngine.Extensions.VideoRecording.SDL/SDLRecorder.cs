@@ -1,4 +1,7 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Buffers;
+using System.Runtime.InteropServices;
+using SDL2.NET;
+using SDL2.NET.Utilities;
 using SharpAvi;
 using SharpAvi.Output;
 using VDStudios.MagicEngine.Graphics;
@@ -25,31 +28,25 @@ public class SDLRecorder : Recorder<SDLFrameHook>
     {
         var vs = base.CreateVideoStream(writer, hook);
         vs.Codec = CodecIds.X264;
-        vs.BitsPerPixel = (BitsPerPixel)hook.BitsPerPixel;
         return vs;
     }
 
     /// <inheritdoc/>
     public override ValueTask Update()
-        => new(Task.Run(async () =>
+        => new(Task.Run(() =>
         {
+            using var buffer = new MemoryStream();
             if (GetWriter(out var writer, out var hook, out var stream))
             {
-                bool att = false;
-                while (true)
+                while (hook.NextFrame(out var surface))
                 {
-                    if (hook.NextFrame(out var surface) is false)
-                    {
-                        if (att)
-                            break;
-                        att = true;
-                        await Task.Delay(15);
-                    }
-                    else
-                    {
-                        att = false;
-                        stream.WriteFrame(false, surface.GetPixels(out var bypp));
-                    }
+                    using var rwop = RWops.CreateFromStream(buffer);
+                    surface.SaveBMP(rwop);
+
+                    if (buffer.TryGetBuffer(out var b))
+                        stream.WriteFrame(false, b);
+
+                    buffer.Position = 0;
                 }
             }
         }));

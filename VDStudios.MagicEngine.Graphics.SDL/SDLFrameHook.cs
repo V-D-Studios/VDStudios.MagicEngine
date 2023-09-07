@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using SDL2.NET;
 using Serilog;
 
@@ -51,7 +52,11 @@ public class SDLFrameHook : FrameHook
     /// </summary>
     public bool NextFrame([NotNullWhen(true)] out Surface? frame)
     {
-        ThrowIfDisposed();
+        if (IsDisposed)
+        {
+            frame = null;
+            return false;
+        }
         return frameQueue.TryDequeue(out frame);
     }
 
