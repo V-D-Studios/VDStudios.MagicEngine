@@ -1,4 +1,6 @@
 ﻿using System.Collections.Concurrent;
+using System.Data;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using SDL2.NET.Input;
@@ -9,9 +11,11 @@ namespace VDStudios.MagicEngine.SDL.Demo.Services;
 
 public class InputManagerService
 {
-    public delegate ValueTask KeyBindingAction(Scancode scancode);
+    public delegate ValueTask KeyBindingAction(Scancode scancode, int repeat);
 
     private readonly ConcurrentDictionary<Scancode, KeyBindingAction> keyBindings = new();
+    private readonly Dictionary<Scancode, int> keyRepeats = new();
+
     private readonly SemaphoreSlim keySemaphore = new(1, 1);
 
     public InputManagerService(Game game, out InputReactorNode reactor) 
@@ -36,6 +40,8 @@ public class InputManagerService
 
         protected override async ValueTask<bool> Updating(TimeSpan delta)
         {
+            Debug.Assert(ParentScene is not null);
+
             if (Manager.keySemaphore.Wait(50) is false)
                 await Manager.keySemaphore.WaitAsync();
             try
@@ -44,7 +50,14 @@ public class InputManagerService
                 {
                     var ks = Keyboard.KeyStates[k];
                     if (ks.IsPressed)
-                        await a(k);
+                    {
+                        if (Manager.keyRepeats.TryGetValue(k, out int reps) is false)
+                            reps = 0;
+                        await a(k, reps);
+                        Manager.keyRepeats[k] = reps + 1;
+                    }
+                    else
+                        Manager.keyRepeats[k] = 0;
                 }
 
                 return true;

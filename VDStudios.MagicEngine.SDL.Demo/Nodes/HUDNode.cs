@@ -43,7 +43,7 @@ public class HUDNode : Node
 
         var state = ParentScene.Services.GetService<GameState>();
         Debug.Assert(state.PlayerNode is not null, "GameState.PlayerNode is unexpectedly null at the time of HUDNode updating");
-
+        
         if (GMTimer.HasClocked)
         {
             var goal = ((DemoSceneBase)ParentScene).Camera.Goal;
@@ -65,6 +65,7 @@ public class HUDNode : Node
         {
             await dopm.AddDrawOperation(RobinPositionReport, 1);
             await dopm.AddDrawOperation(CameraPositionReport, 1);
+            await dopm.AddDrawOperation(RecordingNotif, 1);
             await dopm.AddDrawOperation(MidPointViewer, 1);
 
             CameraPositionReport.TransformationState.Transform(translation: new Vector3(0, 20, 0));

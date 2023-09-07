@@ -1,4 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Internal;
 using VDStudios.MagicEngine.SDL.Demo.Scenes;
@@ -20,4 +22,3 @@ public class DemoGame : SDLGame
         return game.StartGame(g => new TestScene(g));
     }
 }
-

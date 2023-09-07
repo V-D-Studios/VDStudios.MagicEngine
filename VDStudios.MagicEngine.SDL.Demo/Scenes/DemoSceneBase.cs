@@ -17,30 +17,7 @@ public abstract class DemoSceneBase : Scene
     /// <inheritdoc/>
     protected override void RegisteringServices(IServiceRegistrar registrar)
     {
-        InputManagerService inman;
-        registrar.RegisterService(inman = new InputManagerService(Game, out inputReactor));
-
-        inman.AddKeyBinding(Scancode.F12, async s =>
-        {
-            var scdir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "MagicEngine Screenshots");
-            Directory.CreateDirectory(scdir);
-            if (Game.ActiveGraphicsManagers.Count > 1)
-            {
-                scdir = Path.Combine(scdir, DateTime.Now.ToString("yyyy-MM-dd hh_mm_ss_ffff"));
-                Directory.CreateDirectory(scdir);
-                int i = 0;
-                foreach (var manager in Game.ActiveGraphicsManagers)
-                {
-                    using var stream = File.Open(Path.Combine(scdir, $"Screen_{i}.png"), FileMode.Create);
-                    await manager.TakeScreenshot(stream, Utility.ScreenshotImageFormat.PNG);
-                }
-            }
-            else
-            {
-                using var stream = File.Open(Path.Combine(scdir, $"{DateTime.Now:yyyy-MM-dd hh_mm_ss_ffff}.png"), FileMode.Create);
-                await Game.MainGraphicsManager.TakeScreenshot(stream, Utility.ScreenshotImageFormat.PNG);
-            }
-        });
+        registrar.RegisterService(new InputManagerService(Game, out inputReactor));
     }
 
     protected override ValueTask Beginning()
