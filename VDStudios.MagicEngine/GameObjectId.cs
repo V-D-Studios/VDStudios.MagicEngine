@@ -56,8 +56,11 @@ public readonly struct GameObjectId : IEquatable<GameObjectId>, ISpanParsable<Ga
             throw new NotSupportedException("BigEndian is not supported. Figure out how it looks against LittleEndian and just flip the bytes in this method or smth. Library error, contact author.");
 
         Span<char> chars = stackalloc char[StringLength];
+
         chars[0] = 'x';
         chars[1] = ':';
+
+        for (int x = 2; x < chars.Length; x++) chars[x] = '0';
 
         int i = 2;
         var v = Raw;
@@ -70,8 +73,8 @@ public readonly struct GameObjectId : IEquatable<GameObjectId>, ISpanParsable<Ga
         var i2 = StringLength - i + 2;
         if (i2 == 2) return new string(chars);
 
-        chars[2..^i].CopyTo(chars[i2..]);
-        for (; i2 < i2 - i; i2++) chars[i2] = '0';
+        //chars[2..^i].CopyTo(chars[i2..]);
+        //for (; i2 < i2 - i; i2++) chars[i2] = '0';
 
         return new string(chars);
     }
