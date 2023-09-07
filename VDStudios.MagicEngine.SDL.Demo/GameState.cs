@@ -67,36 +67,42 @@ public class GameState : GameObject
             }
         });
 
-        inman.AddKeyBinding(Scancode.F9, (s, r) =>
-        {
-            if (r > 0)
-                return ValueTask.CompletedTask;
+        //inman.AddKeyBinding(Scancode.F9, (s, r) =>
+        //{
+        //    if (r > 0)
+        //        return ValueTask.CompletedTask;
 
-            lock (Sync)
-            {
-                if (recorder is null)
-                {
-                    var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "MagicEngine Recordings");
-                    Directory.CreateDirectory(dir);
+        //    lock (Sync)
+        //    {
+        //        if (recorder is null)
+        //        {
+        //            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "MagicEngine Recordings");
+        //            Directory.CreateDirectory(dir);
 
-                    recorder = new SDLRecorder(
-                            (SDLGraphicsManager)Game.MainGraphicsManager,
-                            File.OpenWrite(Path.Combine(dir, $"{DateTime.Now:yyyy-MM-dd hh_mm_ss_ffff}.avi")),
-                            true
-                        );
-                    recorder.Start();
-                }
-                else
-                {
-                    recorder.Dispose();
-                    recorder = null;
-                }
-            }
-            return ValueTask.CompletedTask;
-        });
+        //            recorder = new SDLRecorder(
+        //                    (SDLGraphicsManager)Game.MainGraphicsManager,
+        //                    File.OpenWrite(Path.Combine(dir, $"{DateTime.Now:yyyy-MM-dd hh_mm_ss_ffff}.avi")),
+        //                    true
+        //                );
+        //            recorder.Start();
+        //        }
+        //        else
+        //        {
+        //            recorder.Dispose();
+        //            recorder = null;
+        //        }
+        //    }
+        //    return ValueTask.CompletedTask;
+        //});
     }
 
     private SDLRecorder? recorder;
+
+    public bool TryGetRecorder([NotNullWhen(true)] out SDLRecorder? recorder)
+    {
+        recorder = this.recorder;
+        return IsRecording;
+    }
 
     public bool IsRecording => recorder is not null;
 

@@ -29,14 +29,23 @@ public abstract class DemoSceneBase : Scene
         return Attach(inputReactor);
     }
 
-    //List<Task> task = new();
-    //SDLFrameHook? hook;
-    //protected override async ValueTask<bool> Updating(TimeSpan delta)
-    //{
-    //    if()
+    private Task? rec;
+    protected override async ValueTask<bool> Updating(TimeSpan delta)
+    {
+        if (rec is null)
+        {
+            var state = Services.GetService<GameState>();
+            if (state.TryGetRecorder(out var recorder))
+                rec = recorder.Update().AsTask();
+        }
+        else if (rec.IsCompleted)
+        {
+            await rec;
+            rec = null;
+        }
 
-    //    return true;
-    //}
+        return true;
+    }
 
     /// <inheritdoc/>
     protected DemoSceneBase(Game game) : base(game)
