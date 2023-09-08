@@ -14,6 +14,12 @@ namespace VDStudios.MagicEngine;
 public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
 {
     /// <summary>
+    /// A report of the last frame in a <see cref="VeldridGraphicsContext"/>'s attached <see cref="VeldridGraphicsManager"/>
+    /// </summary>
+    /// <param name="DeltaSeconds">The total amount of seconds in the last frame's delta</param>
+    public readonly record struct VeldridFrameReport(float DeltaSeconds);
+
+    /// <summary>
     /// Creates a new object of type <see cref="VeldridGraphicsContext"/> with a given manager
     /// </summary>
     /// <param name="manager">The <see cref="VeldridGraphicsManager"/> that owns this <see cref="VeldridGraphicsContext"/></param>
@@ -24,6 +30,10 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
         GraphicsDevice = device;
         commandListPool = new(p => ResourceFactory.CreateCommandList(), _ => { });
         CommandList = ResourceFactory.CreateCommandList();
+        FrameReportBuffer = ResourceFactory.CreateBuffer(new BufferDescription(
+            DataStructuring.FitToUniformBuffer<VeldridFrameReport, uint>(),
+            BufferUsage.UniformBuffer
+        ));
     }
 
     private readonly ObjectPool<CommandList> commandListPool;
@@ -39,6 +49,11 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     public ResourceFactory ResourceFactory => GraphicsDevice.ResourceFactory;
 
     private readonly Dictionary<uint, Pipeline> pipelines = new();
+
+    /// <summary>
+    /// An uniform buffer containing ;
+    /// </summary>
+    public DeviceBuffer FrameReportBuffer { get; }
 
     /// <summary>
     /// The index of the default pipeline
@@ -153,6 +168,11 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     /// </remarks>
     public CommandList CommandList { get; }
 
+    /// <summary>
+    /// The <see cref="VeldridFrameReport"/> of the last frame
+    /// </summary>
+    public VeldridFrameReport FrameReport { get; private set; }
+
     internal void AssignCommandList(VeldridRenderTarget target)
     {
         var cl = commandListPool.Rent().Item;
@@ -167,16 +187,26 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
         target.cl.End();
         target.cl = null;
     }
-
+    
     /// <inheritdoc/>
-    public override void BeginFrame()
+    public override void Update(TimeSpan delta)
     {
+        FrameReport = new((float)delta.TotalSeconds);
+
         CommandList.Begin();
+
+        CommandList.UpdateBuffer(FrameReportBuffer, 0, FrameReport);
 
         lock (sharedDrawResources)
             foreach (var (_, sdr) in sharedDrawResources)
                 if (sdr.PendingGpuUpdate)
                     sdr.UpdateGPUState(this, CommandList);
+    }
+
+    /// <inheritdoc/>
+    public override void BeginFrame()
+    {
+        CommandList.ClearColorTarget(0, Manager.BackgroundColor.ToRgbaFloat())
     }
 
     /// <inheritdoc/>
@@ -195,7 +225,4 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
 
         commands.Clear();
     }
-
-    /// <inheritdoc/>
-    public override void Update(TimeSpan delta) { }
 }
