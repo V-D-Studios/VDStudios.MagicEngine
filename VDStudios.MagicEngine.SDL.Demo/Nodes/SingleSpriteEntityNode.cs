@@ -2,6 +2,7 @@
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
+using VDStudios.MagicEngine.SDL.Demo.Scenes;
 using VDStudios.MagicEngine.SDL.Demo.Utilities;
 using VDStudios.MagicEngine.World2D;
 
@@ -35,7 +36,7 @@ public class SingleSpriteEntityNode : EntityNode, IWorldObject2D
     {
         await base.Attaching(scene);
         if (scene.GetDrawOperationManager<SDLGraphicsContext>(out var dopm))
-            await dopm.AddDrawOperation(Sprite);
+            await dopm.AddDrawOperation(Sprite, RenderTargetList.Objects);
     }
 
     public void EnableDebugOutlinesDefaultColor()

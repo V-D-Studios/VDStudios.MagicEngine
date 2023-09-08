@@ -35,6 +35,9 @@ public class TestScene : DemoSceneBase
 
         Services.GetService<GameState>().PlayerNode = pnode;
 
+        var terrainNode = new TerrainNode(new TextureOperation(Game, txc.GetTexture("grass1").Factory));
+        await Attach(terrainNode);
+
         var hnode = new HUDNode(Game);
         await Attach(hnode);
 

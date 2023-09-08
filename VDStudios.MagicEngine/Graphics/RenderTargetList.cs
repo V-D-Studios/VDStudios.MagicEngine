@@ -31,6 +31,7 @@ public sealed class RenderTargetList<TGraphicsContext>
     /// <exception cref="ArgumentException">This exception is thrown if <paramref name="item"/>'s <see cref="RenderTarget{TRenderTargetContext}.Manager"/> is not the same as this object's <see cref="Manager"/></exception>
     public bool Add(RenderTarget<TGraphicsContext> item)
     {
+        Manager.ValidateRenderTarget(item);
         lock (this)
             return item.Manager != Manager ? throw new ArgumentException("The Manager of item is not the same as this list's manager", nameof(item)) : hashset.Add(item);
     }

@@ -64,10 +64,10 @@ public class HUDNode : Node
     {
         if (scene.GetDrawOperationManager<SDLGraphicsContext>(out var dopm))
         {
-            await dopm.AddDrawOperation(RobinPositionReport, 1);
-            await dopm.AddDrawOperation(CameraPositionReport, 1);
-            await dopm.AddDrawOperation(RecordingNotif, 1);
-            await dopm.AddDrawOperation(MidPointViewer, 1);
+            await dopm.AddDrawOperation(RobinPositionReport, RenderTargetList.GUI);
+            await dopm.AddDrawOperation(CameraPositionReport, RenderTargetList.GUI);
+            await dopm.AddDrawOperation(RecordingNotif, RenderTargetList.GUI);
+            await dopm.AddDrawOperation(MidPointViewer, RenderTargetList.GUI);
 
             MidPointViewer.IsActive = false;
 

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 using VDStudios.MagicEngine.Input;
 using VDStudios.MagicEngine.Internal;
 
@@ -121,6 +122,14 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
         renderTargetLevels.Sort();
         return rtl;
     }
+
+    /// <summary>
+    /// Validates that <paramref name="target"/> is valid for this <see cref="GraphicsManager{TGraphicsContext}"/>
+    /// </summary>
+    /// <remarks>
+    /// Should throw an exception if <paramref name="target"/> should not be allowed
+    /// </remarks>
+    protected internal virtual void ValidateRenderTarget(RenderTarget<TGraphicsContext> target) { }
 
     /// <summary>
     /// Copies all RenderTargetLists in this <see cref="GraphicsManager{TGraphicsContext}"/> over into <paramref name="buffer"/>
@@ -503,13 +512,20 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
                                         {
                                             lock (renderTargets)
                                             {
-                                                foreach (var target in renderTargets)
+                                                var enume = renderTargets.GetEnumerator();
+                                                while (enume.MoveNext())
+                                                    enume.Current.BeginFrame(delta, context);
+
+                                                while (drawqueue.TryDequeue(out var dop))
                                                 {
-                                                    target.BeginFrame(delta, context);
-                                                    while (drawqueue.TryDequeue(out var dop)) 
-                                                        target.RenderDrawOperation(delta, context, dop);
-                                                    target.EndFrame(context);
+                                                    enume.Reset();
+                                                    while (enume.MoveNext())
+                                                        enume.Current.RenderDrawOperation(delta, context, dop);
                                                 }
+
+                                                enume.Reset();
+                                                while (enume.MoveNext())
+                                                    enume.Current.EndFrame(context);
                                             }
                                         }
                                     }

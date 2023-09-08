@@ -12,7 +12,11 @@ namespace VDStudios.MagicEngine.Graphics;
 public abstract class GraphicsObject<TGraphicsContext> : DisposableGameObject
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
-    internal GraphicsObject(Game game, string facility) : base(game, facility, "Rendering")
+
+    /// <summary>
+    /// Instantiates a new object of type <see cref="GraphicsObject{TGraphicsContext}"/>
+    /// </summary>
+    public GraphicsObject(Game game, string facility) : base(game, facility, "Rendering")
     {
     }
 

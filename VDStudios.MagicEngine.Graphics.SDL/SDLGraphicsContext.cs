@@ -38,6 +38,7 @@ public class SDLGraphicsContext : GraphicsContext<SDLGraphicsContext>
     /// <inheritdoc/>
     public override void Update(TimeSpan delta)
     {
+
     }
 
     /// <inheritdoc/>
