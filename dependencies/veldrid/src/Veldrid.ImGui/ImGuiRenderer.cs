@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Reflection;
 using System.IO;
+using VDStudios.MagicEngine.Input;
 
 namespace Veldrid
 {
@@ -419,166 +420,165 @@ namespace Veldrid
             io.DeltaTime = deltaSeconds; // DeltaTime is in seconds.
         }
 
-        private bool TryMapKey(Key key, out ImGuiKey result)
+        private bool TryMapKey(Keycode key, out ImGuiKey result)
         {
-            ImGuiKey keyToImGuiKeyShortcut(Key keyToConvert, Key startKey1, ImGuiKey startKey2)
+            ImGuiKey keyToImGuiKeyShortcut(Keycode keyToConvert, Keycode startKey1, ImGuiKey startKey2)
             {
                 int changeFromStart1 = (int)keyToConvert - (int)startKey1;
                 return startKey2 + changeFromStart1;
             }
 
-            if (key >= Key.F1 && key <= Key.F12)
+            if (key >= Keycode.F1 && key <= Keycode.F12)
             {
-                result = keyToImGuiKeyShortcut(key, Key.F1, ImGuiKey.F1);
+                result = keyToImGuiKeyShortcut(key, Keycode.F1, ImGuiKey.F1);
                 return true;
             }
-            else if (key >= Key.Keypad0 && key <= Key.Keypad9)
+            else if (key >= Keycode.KeyPad0 && key <= Keycode.KeyPad9)
             {
-                result = keyToImGuiKeyShortcut(key, Key.Keypad0, ImGuiKey.Keypad0);
+                result = keyToImGuiKeyShortcut(key, Keycode.KeyPad0, ImGuiKey.Keypad0);
                 return true;
             }
-            else if (key >= Key.A && key <= Key.Z)
+            else if (key >= Keycode.A && key <= Keycode.Z)
             {
-                result = keyToImGuiKeyShortcut(key, Key.A, ImGuiKey.A);
+                result = keyToImGuiKeyShortcut(key, Keycode.A, ImGuiKey.A);
                 return true;
             }
-            else if (key >= Key.Number0 && key <= Key.Number9)
+            else if (key >= Keycode.Num0 && key <= Keycode.Num9)
             {
-                result = keyToImGuiKeyShortcut(key, Key.Number0, ImGuiKey._0);
+                result = keyToImGuiKeyShortcut(key, Keycode.Num0, ImGuiKey._0);
                 return true;
             }
 
             switch (key)
             {
-                case Key.ShiftLeft:
-                case Key.ShiftRight:
+                case Keycode.LeftShift:
+                case Keycode.RightShift:
                     result = ImGuiKey.ModShift;
                     return true;
-                case Key.ControlLeft:
-                case Key.ControlRight:
+                case Keycode.LeftCtrl:
+                case Keycode.RightCtrl:
                     result = ImGuiKey.ModCtrl;
                     return true;
-                case Key.AltLeft:
-                case Key.AltRight:
+                case Keycode.LeftAlt:
+                case Keycode.RightAlt:
                     result = ImGuiKey.ModAlt;
                     return true;
-                case Key.WinLeft:
-                case Key.WinRight:
+                case Keycode.LeftGUI:
+                case Keycode.RightGUI:
                     result = ImGuiKey.ModSuper;
                     return true;
-                case Key.Menu:
+                case Keycode.Menu:
                     result = ImGuiKey.Menu;
                     return true;
-                case Key.Up:
+                case Keycode.Up:
                     result = ImGuiKey.UpArrow;
                     return true;
-                case Key.Down:
+                case Keycode.Down:
                     result = ImGuiKey.DownArrow;
                     return true;
-                case Key.Left:
+                case Keycode.Left:
                     result = ImGuiKey.LeftArrow;
                     return true;
-                case Key.Right:
+                case Keycode.Right:
                     result = ImGuiKey.RightArrow;
                     return true;
-                case Key.Enter:
+                case Keycode.Return:
                     result = ImGuiKey.Enter;
                     return true;
-                case Key.Escape:
+                case Keycode.Escape:
                     result = ImGuiKey.Escape;
                     return true;
-                case Key.Space:
+                case Keycode.Space:
                     result = ImGuiKey.Space;
                     return true;
-                case Key.Tab:
+                case Keycode.Tab:
                     result = ImGuiKey.Tab;
                     return true;
-                case Key.BackSpace:
+                case Keycode.Backspace:
                     result = ImGuiKey.Backspace;
                     return true;
-                case Key.Insert:
+                case Keycode.Insert:
                     result = ImGuiKey.Insert;
                     return true;
-                case Key.Delete:
+                case Keycode.Delete:
                     result = ImGuiKey.Delete;
                     return true;
-                case Key.PageUp:
+                case Keycode.PageUp:
                     result = ImGuiKey.PageUp;
                     return true;
-                case Key.PageDown:
+                case Keycode.PageDown:
                     result = ImGuiKey.PageDown;
                     return true;
-                case Key.Home:
+                case Keycode.Home:
                     result = ImGuiKey.Home;
                     return true;
-                case Key.End:
+                case Keycode.End:
                     result = ImGuiKey.End;
                     return true;
-                case Key.CapsLock:
+                case Keycode.Capslock:
                     result = ImGuiKey.CapsLock;
                     return true;
-                case Key.ScrollLock:
+                case Keycode.ScrollLock:
                     result = ImGuiKey.ScrollLock;
                     return true;
-                case Key.PrintScreen:
+                case Keycode.PrintScreen:
                     result = ImGuiKey.PrintScreen;
                     return true;
-                case Key.Pause:
+                case Keycode.Pause:
                     result = ImGuiKey.Pause;
                     return true;
-                case Key.NumLock:
+                case Keycode.NumlockClear:
                     result = ImGuiKey.NumLock;
                     return true;
-                case Key.KeypadDivide:
+                case Keycode.KeyPadDivide:
                     result = ImGuiKey.KeypadDivide;
                     return true;
-                case Key.KeypadMultiply:
+                case Keycode.KeyPadMultiply:
                     result = ImGuiKey.KeypadMultiply;
                     return true;
-                case Key.KeypadSubtract:
+                case Keycode.KeyPadMemorySubtract:
                     result = ImGuiKey.KeypadSubtract;
                     return true;
-                case Key.KeypadAdd:
+                case Keycode.KeyPadMemoryAdd:
                     result = ImGuiKey.KeypadAdd;
                     return true;
-                case Key.KeypadDecimal:
+                case Keycode.KeyPadDecimal:
                     result = ImGuiKey.KeypadDecimal;
                     return true;
-                case Key.KeypadEnter:
+                case Keycode.KeyPadEnter:
                     result = ImGuiKey.KeypadEnter;
                     return true;
-                case Key.Tilde:
+                case Keycode.Backquote:
                     result = ImGuiKey.GraveAccent;
                     return true;
-                case Key.Minus:
+                case Keycode.Minus:
                     result = ImGuiKey.Minus;
                     return true;
-                case Key.Plus:
+                case Keycode.Equals:
                     result = ImGuiKey.Equal;
                     return true;
-                case Key.BracketLeft:
+                case Keycode.Leftbracket:
                     result = ImGuiKey.LeftBracket;
                     return true;
-                case Key.BracketRight:
+                case Keycode.Rightbracket:
                     result = ImGuiKey.RightBracket;
                     return true;
-                case Key.Semicolon:
+                case Keycode.Semicolon:
                     result = ImGuiKey.Semicolon;
                     return true;
-                case Key.Quote:
+                case Keycode.Quote:
                     result = ImGuiKey.Apostrophe;
                     return true;
-                case Key.Comma:
+                case Keycode.Comma:
                     result = ImGuiKey.Comma;
                     return true;
-                case Key.Period:
+                case Keycode.Period:
                     result = ImGuiKey.Period;
                     return true;
-                case Key.Slash:
+                case Keycode.Slash:
                     result = ImGuiKey.Slash;
                     return true;
-                case Key.BackSlash:
-                case Key.NonUSBackSlash:
+                case Keycode.Backslash:
                     result = ImGuiKey.Backslash;
                     return true;
                 default:
@@ -594,9 +594,9 @@ namespace Veldrid
             io.AddMouseButtonEvent(0, snapshot.IsMouseDown(MouseButton.Left));
             io.AddMouseButtonEvent(1, snapshot.IsMouseDown(MouseButton.Right));
             io.AddMouseButtonEvent(2, snapshot.IsMouseDown(MouseButton.Middle));
-            io.AddMouseButtonEvent(3, snapshot.IsMouseDown(MouseButton.Button1));
-            io.AddMouseButtonEvent(4, snapshot.IsMouseDown(MouseButton.Button2));
-            io.AddMouseWheelEvent(0f, snapshot.WheelDelta);
+            io.AddMouseButtonEvent(3, snapshot.IsMouseDown(MouseButton.X1));
+            io.AddMouseButtonEvent(4, snapshot.IsMouseDown(MouseButton.X2));
+            io.AddMouseWheelEvent(0f, snapshot.WheelDelta.Y);
 
             for (int i = 0; i < snapshot.KeyCharPresses.Count; i++)
             {
@@ -605,11 +605,9 @@ namespace Veldrid
 
             for (int i = 0; i < snapshot.KeyEvents.Count; i++)
             {
-                KeyEvent keyEvent = snapshot.KeyEvents[i];
+                KeyEventRecord keyEvent = snapshot.KeyEvents[i];
                 if (TryMapKey(keyEvent.Key, out ImGuiKey imguikey))
-                {
-                    io.AddKeyEvent(imguikey, keyEvent.Down);
-                }
+                    io.AddKeyEvent(imguikey, keyEvent.IsPressed);
             }
         }
 
