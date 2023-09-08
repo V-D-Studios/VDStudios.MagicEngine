@@ -20,6 +20,16 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     public readonly record struct VeldridFrameReport(float DeltaSeconds);
 
     /// <summary>
+    /// A set of Shaders
+    /// </summary>
+    /// <param name="VertexShader">The Vertex Shader</param>
+    /// <param name="FragmentShader">The Fragment Shader</param>
+    /// <param name="OtherShaders">Other shaders in this set. This array should not contain neither <paramref name="VertexShader"/> nor <paramref name="FragmentShader"/></param>
+    public readonly record struct ShaderSet(Shader VertexShader, Shader FragmentShader, Shader[]? OtherShaders);
+
+    private readonly record struct ShaderSetKey(string Name, ResourceLayout ResourceLayout);
+
+    /// <summary>
     /// Creates a new object of type <see cref="VeldridGraphicsContext"/> with a given manager
     /// </summary>
     /// <param name="manager">The <see cref="VeldridGraphicsManager"/> that owns this <see cref="VeldridGraphicsContext"/></param>
@@ -48,12 +58,9 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     /// </summary>
     public ResourceFactory ResourceFactory => GraphicsDevice.ResourceFactory;
 
-    private readonly Dictionary<uint, Pipeline> pipelines = new();
+    #region Pipelines
 
-    /// <summary>
-    /// An uniform buffer containing ;
-    /// </summary>
-    public DeviceBuffer FrameReportBuffer { get; }
+    private readonly Dictionary<uint, Pipeline> pipelines = new();
 
     /// <summary>
     /// The index of the default pipeline
@@ -78,7 +85,7 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     /// <exception cref="ArgumentException"></exception>
     public Pipeline GetPipeline(uint? index = null)
     {
-        lock (pipelines) 
+        lock (pipelines)
         {
             uint ind = index ?? DefaultPipelineIndex;
             if (pipelines.TryGetValue(ind, out var pipe))
@@ -106,6 +113,91 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
         }
     }
 
+    #endregion
+
+    #region Resource Layouts
+
+    private readonly Dictionary<string, ResourceLayout> resourceLayouts = new();
+
+    /// <summary>
+    /// Gets the resourceLayout 
+    /// </summary>
+    /// <param name="name">The name of the resourceLayout</param>
+    /// <exception cref="ArgumentException"></exception>
+    public ResourceLayout GetResourceLayout(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        lock (resourceLayouts)
+        {
+            return resourceLayouts.TryGetValue(name, out var rl)
+                ? rl
+                : throw new ArgumentException($"Could not find a resourceLayout by name {name}", nameof(name));
+        }
+    }
+
+    /// <summary>
+    /// Registers a resource layout into the provided name
+    /// </summary>
+    /// <param name="resourceLayout">The resource layout to be registered</param>
+    /// <param name="name">The name of the resource layout</param>
+    /// <param name="previous">If there was previously a resource layout registered under <paramref name="name"/>, this is that resource layout. Otherwise, <see langword="null"/></param>
+    public void RegisterResourceLayout(ResourceLayout resourceLayout, string name, out ResourceLayout? previous)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        lock (resourceLayouts)
+        {
+            resourceLayouts.Remove(name, out previous);
+            resourceLayouts.Add(name, resourceLayout);
+        }
+    }
+
+    #endregion
+
+    #region Shaders
+
+    private readonly Dictionary<ShaderSetKey, ShaderSet> shaders = new();
+
+    /// <summary>
+    /// Gets the shader set 
+    /// </summary>
+    /// <param name="name">The name of the shader</param>
+    /// <param name="layout">The <see cref="ResourceLayout"/> the set is registered under</param>
+    /// <exception cref="ArgumentException"></exception>
+    public ShaderSet GetShaderSet(string name, ResourceLayout layout)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(layout);
+        lock (shaders)
+        {
+            return shaders.TryGetValue(new(name, layout), out var rl)
+                ? rl
+                : throw new ArgumentException($"Could not find a shader by name {name} registered under the specified layout", nameof(name));
+        }
+    }
+
+    /// <summary>
+    /// Registers a resource layout into the provided name
+    /// </summary>
+    /// <param name="shader">The resource layout to be registered</param>
+    /// <param name="name">The name of the resource layout</param>
+    /// <param name="layout">The <see cref="ResourceLayout"/> the set is registered under</param>
+    /// <param name="previous">If there was previously a resource layout registered under <paramref name="name"/>, this is that resource layout. Otherwise, <see langword="null"/></param>
+    public void RegisterShaderSet(ShaderSet shader, string name, ResourceLayout layout, out ShaderSet previous)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(layout);
+        var k = new ShaderSetKey(name, layout);
+        lock (shaders)
+        {
+            shaders.Remove(k, out previous);
+            shaders.Add(k, shader);
+        }
+    }
+
+    #endregion
+
+    #region Shared Draw Resources
+
     private readonly Dictionary<string, SharedDrawResource> sharedDrawResources = new();
 
     /// <summary>
@@ -115,7 +207,7 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     /// <param name="name">The name of the resource</param>
     public void RegisterResource(string name, SharedDrawResource resource)
     {
-        lock (sharedDrawResources) 
+        lock (sharedDrawResources)
         {
             if (sharedDrawResources.ContainsKey(name))
                 throw new InvalidOperationException($"Cannot register new resource under '{name}', as another resource already has that name");
@@ -157,6 +249,13 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
             return false;
         }
     }
+
+    #endregion
+
+    /// <summary>
+    /// An uniform buffer containing data about the last frame
+    /// </summary>
+    public DeviceBuffer FrameReportBuffer { get; }
 
     private readonly List<CommandList> commands = new();
 
@@ -206,7 +305,8 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     /// <inheritdoc/>
     public override void BeginFrame()
     {
-        CommandList.ClearColorTarget(0, Manager.BackgroundColor.ToRgbaFloat())
+        CommandList.SetFramebuffer(GraphicsDevice.SwapchainFramebuffer);
+        CommandList.ClearColorTarget(0, Manager.BackgroundColor.ToRgbaFloat());
     }
 
     /// <inheritdoc/>
