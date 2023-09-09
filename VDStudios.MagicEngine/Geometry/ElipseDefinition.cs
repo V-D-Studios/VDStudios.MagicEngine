@@ -2,6 +2,10 @@
 using VDStudios.MagicEngine;
 
 namespace VDStudios.MagicEngine.Geometry;
+
+/// <summary>
+/// Represents the definition of a single elipse
+/// </summary>
 public class ElipseDefinition : ShapeDefinition2D
 {
     private readonly Vector2[] ___vertexBuffer;
