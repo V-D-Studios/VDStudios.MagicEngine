@@ -863,7 +863,7 @@ internal unsafe class OpenGLCommandExecutor
         for (uint element = 0; element < glResourceSet.Resources.Length; element++)
         {
             ResourceKind kind = layoutElements[element].Kind;
-            BindableResource resource = glResourceSet.Resources[(int)element];
+            IBindableResource resource = glResourceSet.Resources[(int)element];
 
             uint bufferOffset = 0;
             if (glResourceSet.Layout.IsDynamicBuffer(element))
@@ -1001,7 +1001,7 @@ internal unsafe class OpenGLCommandExecutor
                     }
                     break;
                 case ResourceKind.Sampler:
-                    OpenGLSampler glSampler = Util.AssertSubtype<BindableResource, OpenGLSampler>(resource);
+                    OpenGLSampler glSampler = Util.AssertSubtype<IBindableResource, OpenGLSampler>(resource);
                     glSampler.EnsureResourcesCreated();
                     if (pipeline.GetSamplerBindingInfo(slot, element, out OpenGLSamplerBindingSlotInfo samplerBindingInfo))
                     {

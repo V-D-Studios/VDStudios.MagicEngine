@@ -36,7 +36,7 @@ internal unsafe class VkResourceSet : ResourceSet
         _descriptorCounts = vkLayout.DescriptorResourceCounts;
         _descriptorAllocationToken = _gd.DescriptorPoolManager.Allocate(_descriptorCounts, dsl);
 
-        BindableResource[] boundResources = description.BoundResources;
+        IBindableResource[] boundResources = description.BoundResources;
         uint descriptorWriteCount = (uint)boundResources.Length;
         VkWriteDescriptorSet* descriptorWrites = stackalloc VkWriteDescriptorSet[(int)descriptorWriteCount];
         VkDescriptorBufferInfo* bufferInfos = stackalloc VkDescriptorBufferInfo[(int)descriptorWriteCount];
@@ -85,7 +85,7 @@ internal unsafe class VkResourceSet : ResourceSet
             }
             else if (type == VkDescriptorType.Sampler)
             {
-                VkSampler sampler = Util.AssertSubtype<BindableResource, VkSampler>(boundResources[i]);
+                VkSampler sampler = Util.AssertSubtype<IBindableResource, VkSampler>(boundResources[i]);
                 imageInfos[i].sampler = sampler.DeviceSampler;
                 descriptorWrites[i].pImageInfo = &imageInfos[i];
                 _refCounts.Add(sampler.RefCount);

@@ -3,7 +3,7 @@ namespace Veldrid.MTL;
 internal class MTLResourceSet : ResourceSet
 {
     private bool _disposed;
-    public new BindableResource[] Resources { get; }
+    public new IBindableResource[] Resources { get; }
     public new MTLResourceLayout Layout { get; }
 
     public MTLResourceSet(ref ResourceSetDescription description, MTLGraphicsDevice gd) : base(ref description)

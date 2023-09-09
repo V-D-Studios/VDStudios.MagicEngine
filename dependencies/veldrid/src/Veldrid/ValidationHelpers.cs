@@ -12,7 +12,7 @@ internal static class ValidationHelpers
         if (description.Layout is null)
             throw new NullReferenceException("There is no associated ResourceLayout in the provided ResourceSetDescription");
         ResourceLayoutElementDescription[] elements = description.Layout.Description.Elements;
-        BindableResource[] resources = description.BoundResources;
+        IBindableResource[] resources = description.BoundResources;
 
         if (elements.Length != resources.Length)
         {
@@ -55,7 +55,7 @@ internal static class ValidationHelpers
     }
 
     [Conditional("VALIDATE_USAGE")]
-    private static void ValidateResourceKind(ResourceKind kind, BindableResource resource, uint slot)
+    private static void ValidateResourceKind(ResourceKind kind, IBindableResource resource, uint slot)
     {
         switch (kind)
         {

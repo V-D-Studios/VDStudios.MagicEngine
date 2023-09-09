@@ -722,7 +722,7 @@ internal unsafe class MTLCommandList : CommandList
         for (int i = 0; i < mtlRS.Resources.Length; i++)
         {
             MTLResourceLayout.ResourceBindingInfo bindingInfo = layout.GetBindingInfo(i);
-            BindableResource resource = mtlRS.Resources[i];
+            IBindableResource resource = mtlRS.Resources[i];
             uint bufferOffset = 0;
             if (bindingInfo.DynamicBuffer)
             {
@@ -748,7 +748,7 @@ internal unsafe class MTLCommandList : CommandList
                     BindTexture(mtlTexViewRW, slot, bindingInfo.Slot, bindingInfo.Stages);
                     break;
                 case ResourceKind.Sampler:
-                    MTLSampler mtlSampler = Util.AssertSubtype<BindableResource, MTLSampler>(resource);
+                    MTLSampler mtlSampler = Util.AssertSubtype<IBindableResource, MTLSampler>(resource);
                     BindSampler(mtlSampler, slot, bindingInfo.Slot, bindingInfo.Stages);
                     break;
                 case ResourceKind.StructuredBufferReadOnly:
@@ -779,7 +779,7 @@ internal unsafe class MTLCommandList : CommandList
         for (int i = 0; i < mtlRS.Resources.Length; i++)
         {
             MTLResourceLayout.ResourceBindingInfo bindingInfo = layout.GetBindingInfo(i);
-            BindableResource resource = mtlRS.Resources[i];
+            IBindableResource resource = mtlRS.Resources[i];
             uint bufferOffset = 0;
             if (bindingInfo.DynamicBuffer)
             {
@@ -806,7 +806,7 @@ internal unsafe class MTLCommandList : CommandList
                     BindTexture(mtlTexViewRW, slot, bindingInfo.Slot, bindingInfo.Stages);
                     break;
                 case ResourceKind.Sampler:
-                    MTLSampler mtlSampler = Util.AssertSubtype<BindableResource, MTLSampler>(resource);
+                    MTLSampler mtlSampler = Util.AssertSubtype<IBindableResource, MTLSampler>(resource);
                     BindSampler(mtlSampler, slot, bindingInfo.Slot, bindingInfo.Stages);
                     break;
                 case ResourceKind.StructuredBufferReadOnly:

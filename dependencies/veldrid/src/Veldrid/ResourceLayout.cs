@@ -4,7 +4,7 @@ using System.Collections.Immutable;
 namespace Veldrid;
 
 /// <summary>
-/// A device resource which describes the layout and kind of <see cref="BindableResource"/> objects available
+/// A device resource which describes the layout and kind of <see cref="IBindableResource"/> objects available
 /// to a shader set.
 /// See <see cref="ResourceLayoutDescription"/>.
 /// </summary>

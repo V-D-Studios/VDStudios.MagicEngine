@@ -3,7 +3,7 @@
 namespace Veldrid;
 
 /// <summary>
-/// A device resource used to bind a particular set of <see cref="BindableResource"/> objects to a <see cref="CommandList"/>.
+/// A device resource used to bind a particular set of <see cref="IBindableResource"/> objects to a <see cref="CommandList"/>.
 /// See <see cref="ResourceSetDescription"/>.
 /// </summary>
 public abstract class ResourceSet : DeviceResource, IDisposable
@@ -34,6 +34,6 @@ public abstract class ResourceSet : DeviceResource, IDisposable
 
 #if VALIDATE_USAGE
     public ResourceLayout Layout { get; }
-    internal BindableResource[] Resources { get; }
+    internal IBindableResource[] Resources { get; }
 #endif
 }

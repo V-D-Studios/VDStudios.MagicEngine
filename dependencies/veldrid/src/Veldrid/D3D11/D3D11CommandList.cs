@@ -369,11 +369,11 @@ internal class D3D11CommandList : CommandList
         int samplerBase = GetSamplerBase(slot, graphics);
 
         D3D11ResourceLayout layout = d3d11RS.Layout;
-        BindableResource[] resources = d3d11RS.Resources;
+        IBindableResource[] resources = d3d11RS.Resources;
         uint dynamicOffsetIndex = 0;
         for (int i = 0; i < resources.Length; i++)
         {
-            BindableResource resource = resources[i];
+            IBindableResource resource = resources[i];
             uint bufferOffset = 0;
             if (layout.IsDynamicBuffer(i))
             {
@@ -415,7 +415,7 @@ internal class D3D11CommandList : CommandList
                     BindUnorderedAccessView(d3d11RWTexView.Target, null, d3d11RWTexView.UnorderedAccessView, uaBase + rbi.Slot, rbi.Stages, slot);
                     break;
                 case ResourceKind.Sampler:
-                    D3D11Sampler sampler = Util.AssertSubtype<BindableResource, D3D11Sampler>(resource);
+                    D3D11Sampler sampler = Util.AssertSubtype<IBindableResource, D3D11Sampler>(resource);
                     BindSampler(sampler, samplerBase + rbi.Slot, rbi.Stages);
                     break;
                 default: throw Illegal.Value<ResourceKind>();
@@ -423,7 +423,7 @@ internal class D3D11CommandList : CommandList
         }
     }
 
-    private D3D11BufferRange GetBufferRange(BindableResource resource, uint additionalOffset)
+    private D3D11BufferRange GetBufferRange(IBindableResource resource, uint additionalOffset)
     {
         if (resource is D3D11Buffer d3d11Buff)
         {

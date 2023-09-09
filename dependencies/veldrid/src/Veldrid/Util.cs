@@ -259,7 +259,7 @@ internal static class Util
         return (T[])array.Clone();
     }
 
-    public static DeviceBufferRange GetBufferRange(BindableResource resource, uint additionalOffset)
+    public static DeviceBufferRange GetBufferRange(IBindableResource resource, uint additionalOffset)
     {
         if (resource is DeviceBufferRange range)
         {
@@ -272,7 +272,7 @@ internal static class Util
         }
     }
 
-    public static bool GetDeviceBuffer(BindableResource resource, out DeviceBuffer buffer)
+    public static bool GetDeviceBuffer(IBindableResource resource, out DeviceBuffer buffer)
     {
         if (resource is DeviceBuffer db)
         {
@@ -289,7 +289,7 @@ internal static class Util
         return false;
     }
 
-    internal static TextureView GetTextureView(GraphicsDevice gd, BindableResource resource)
+    internal static TextureView GetTextureView(GraphicsDevice gd, IBindableResource resource)
     {
         if (resource is TextureView view)
         {

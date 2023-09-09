@@ -5,7 +5,7 @@ internal class OpenGLResourceSet : ResourceSet
     private bool _disposed;
 
     public new OpenGLResourceLayout Layout { get; }
-    public new BindableResource[] Resources { get; }
+    public new IBindableResource[] Resources { get; }
     public override string Name { get; set; }
 
     public override bool IsDisposed => _disposed;

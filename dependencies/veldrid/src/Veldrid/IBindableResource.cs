@@ -5,4 +5,4 @@
 /// See <see cref="DeviceBuffer"/>, <see cref="DeviceBufferRange"/>, <see cref="Texture"/>, <see cref="TextureView"/>
 /// and <see cref="Sampler"/>.
 /// </summary>
-public interface BindableResource { }
+public interface IBindableResource { }
