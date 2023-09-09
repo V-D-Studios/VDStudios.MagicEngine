@@ -100,6 +100,23 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
         new(position.X + size.X, position.Y)
     }, true);
 
+    /// <summary>
+    /// Fills <paramref name="output"/> with the vertices of a rectangle created with the given parameters
+    /// </summary>
+    /// <param name="position">The position of the Rectangle</param>
+    /// <param name="size">The size of the Rectangle, with <see cref="Vector2.X"/> being the width, and <see cref="Vector2.Y"/> being the height</param>
+    /// <param name="output">The span that will hold the data from the created rectangle</param>
+    public static void Rectangle(Vector2 position, Vector2 size, Span<Vector2> output)
+    {
+        if (output.Length < 4)
+            throw new ArgumentException("output must have a length of at least 4", nameof(output));
+
+        output[0] = position;
+        output[1] = new(position.X, position.Y + size.Y);
+        output[2] = position + size;
+        output[3] = new(position.X + size.X, position.Y);
+    }
+
     #endregion
 
     private readonly Vector2[] Vertices;
@@ -130,23 +147,6 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
         Vertices = new Vector2[vertices.Length];
         vertices.CopyTo(Vertices);
     }
-
-    /// <summary>
-    /// Applies <paramref name="transformation"/> to each vertex in this <see cref="PolygonDefinition"/>
-    /// </summary>
-    /// <param name="transformation">The transformation matrix to apply to every vertex</param>
-    public void Transform(Matrix3x2 transformation)
-    {
-        for (int i = 0; i < Vertices.Length; i++)
-        {
-            ref var vertex = ref Vertices[i];
-            vertex = Vector2.Transform(vertex, transformation);
-        }
-        version++;
-    }
-
-    /// <inheritdoc/>
-    public override bool ForceRegenerate() => false;
 
     /// <inheritdoc/>
     public bool Equals(object? other, IEqualityComparer comparer)

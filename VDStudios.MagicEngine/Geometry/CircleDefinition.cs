@@ -7,41 +7,12 @@ namespace VDStudios.MagicEngine.Geometry;
 /// </summary>
 public class CircleDefinition : ShapeDefinition2D
 {
-    private Vector2[] ___vertexBuffer = Array.Empty<Vector2>();
-    private bool ___regenRequired = true;
-
-    private Span<Vector2> VertexBuffer
-    {
-        get
-        {
-            int sub = Subdivisions;
-            if (___regenRequired)
-            {
-                if (___vertexBuffer.Length < sub)
-                    ___vertexBuffer = new Vector2[sub];
-                GenerateVertices(CenterPoint, Radius, sub, ___vertexBuffer.AsSpan(0, sub));
-                ___regenRequired = false;
-            }
-            return ___vertexBuffer.AsSpan(0, sub);
-        }
-    }
+    private readonly Vector2[] VertexBuffer;
 
     /// <summary>
     /// The center point of the circle
     /// </summary>
-    public Vector2 CenterPoint
-    {
-        get => cenp;
-        set
-        {
-            if (value == cenp)
-                return;
-            cenp = value;
-            ___regenRequired = true;
-            version++;
-        }
-    }
-    private Vector2 cenp;
+    public Vector2 CenterPoint { get; }
 
     /// <summary>
     /// The radius of the circle
@@ -51,33 +22,13 @@ public class CircleDefinition : ShapeDefinition2D
     /// <summary>
     /// The amount of subdivisions the produced polygon will have
     /// </summary>
-    public int Subdivisions
-    {
-        get => subdiv;
-        set
-        {
-            if (value < 3)
-                throw new ArgumentException("A Circumference's subdivision count cannot be less than 3", nameof(value));
-            subdiv = value;
-            ___regenRequired = true;
-            version++;
-        }
-    }
-    private int subdiv;
+    public int Subdivisions { get; }
 
     /// <inheritdoc/>
     public override int Count => Subdivisions;
 
     /// <inheritdoc/>
     public override Vector2 this[int index] => VertexBuffer[index];
-
-    /// <inheritdoc/>
-    public override bool ForceRegenerate()
-    {
-        ___regenRequired = true;
-        ForceUpdate();
-        return true;
-    }
 
     /// <summary>
     /// Instances a new object of type <see cref="CircleDefinition"/>
@@ -87,9 +38,18 @@ public class CircleDefinition : ShapeDefinition2D
     /// <param name="subdivisions">The amount of vertices the circle will have. Must be larger than 3</param>
     public CircleDefinition(Vector2 centerPoint, Radius radius, int subdivisions = 30) : base(true)
     {
+        if (subdivisions < 3)
+            throw new ArgumentException("A Circumference's subdivision count cannot be less than 3", nameof(subdivisions));
+
+        if (radius.Value <= 0)
+            throw new ArgumentException("A Circumference's Radius cannot be less or equal to 0", nameof(subdivisions));
+
         CenterPoint = centerPoint;
         Radius = radius;
         Subdivisions = subdivisions;
+
+        VertexBuffer = new Vector2[Subdivisions];
+        GenerateVertices(CenterPoint, Radius, Subdivisions, VertexBuffer.AsSpan());
     }
 
     /// <summary>
@@ -117,11 +77,11 @@ public class CircleDefinition : ShapeDefinition2D
 
     /// <inheritdoc/>
     public override ReadOnlySpan<Vector2> AsSpan(int start, int length)
-        => VertexBuffer.Slice(start, length);
+        => VertexBuffer.AsSpan(start, length);
 
     /// <inheritdoc/>
     public override ReadOnlySpan<Vector2> AsSpan(int start)
-        => VertexBuffer.Slice(start);
+        => VertexBuffer.AsSpan()[start..];
 
     /// <inheritdoc/>
     public override ReadOnlySpan<Vector2> AsSpan()
@@ -144,14 +104,14 @@ public class CircleDefinition : ShapeDefinition2D
     public override Vector2[] ToArray()
     {
         var ret = new Vector2[VertexBuffer.Length];
-        VertexBuffer.CopyTo(ret);
+        VertexBuffer.CopyTo(ret.AsSpan());
         return ret;
     }
 
     /// <inheritdoc/>
     public override bool TryCopyTo(Span<Vector2> destination)
     {
-        return VertexBuffer.TryCopyTo(destination);
+        return VertexBuffer.AsSpan().TryCopyTo(destination);
     }
 
     /// <inheritdoc/>

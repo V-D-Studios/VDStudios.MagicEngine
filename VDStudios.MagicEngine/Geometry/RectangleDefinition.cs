@@ -51,10 +51,6 @@ public class RectangleDefinition : ShapeDefinition2D
     }
 
     /// <inheritdoc/>
-    public override bool ForceRegenerate()
-        => false;
-
-    /// <inheritdoc/>
     public override ReadOnlySpan<Vector2> AsSpan(int start, int length)
         => vertices.AsSpan(start, length);
 

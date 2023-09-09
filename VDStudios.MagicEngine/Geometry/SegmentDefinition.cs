@@ -9,32 +9,9 @@ namespace VDStudios.MagicEngine.Geometry;
 public class SegmentDefinition : ShapeDefinition2D
 {
     private readonly Vector2[] ___vertices = new Vector2[4];
-    private bool ___regenRequired;
 
     private Span<Vector2> Vertices
-    {
-        get
-        {
-            if (___regenRequired)
-            {
-                var x = Width / 100f;
-                ___vertices[0] = PointA * (1 - x);
-                ___vertices[1] = PointA * (1 + x);
-                ___vertices[2] = PointB * (1 + x);
-                ___vertices[3] = PointB * (1 - x);
-                ___regenRequired = false;
-            }
-
-            return ___vertices;
-        }
-    }
-
-    /// <inheritdoc/>
-    public override void ForceUpdate()
-    {
-        ___regenRequired = true;
-        base.ForceUpdate();
-    }
+        => ___vertices;
 
     /// <summary>
     /// Instances a new object of type <see cref="SegmentDefinition"/>
@@ -47,66 +24,35 @@ public class SegmentDefinition : ShapeDefinition2D
         PointA = a;
         PointB = b;
         Width = width;
-        ___regenRequired = true;
-    }
 
-    /// <inheritdoc/>
-    public override bool ForceRegenerate()
-    {
-        ___regenRequired = true;
-        ForceUpdate();
-        return true;
+        Matrix3x2 rotation = Matrix3x2.CreateRotation(GeometryMath.Angle(a, b), a);
+        var clampedB = Vector2.Transform(b, -rotation);
+
+        Span<Vector2> buff = stackalloc Vector2[4];
+
+        PolygonDefinition.Rectangle(a, new(Vector2.Distance(a, clampedB), width), buff);
+
+        for (int i = 0; i < 4; i++)
+            ___vertices[i] = Vector2.Transform(buff[i], rotation);
     }
 
     /// <summary>
     /// The starting point of the segment
     /// </summary>
-    public Vector2 PointA
-    {
-        get => __pointA;
-        set
-        {
-            if (value == __pointA) return;
-            __pointA = value;
-            ___regenRequired = true;
-        }
-    }
-    private Vector2 __pointA;
+    public Vector2 PointA { get; }
 
     /// <summary>
     /// The ending point of the segment
     /// </summary>
-    public Vector2 PointB
-    {
-        get => __pointB;
-        set
-        {
-            if (value == __pointB) return;
-            __pointB = value;
-            ___regenRequired = true;
-        }
-    }
-    private Vector2 __pointB;
+    public Vector2 PointB { get; }
 
     /// <summary>
     /// The width of the segment
     /// </summary>
-    public float Width
-    {
-        get => __width;
-        set
-        {
-            if (value == __width) return;
-            if (value <= 0f) throw new ArgumentOutOfRangeException(nameof(value), value, "Width cannot be less than 0");
-            __width = value;
-            ___regenRequired = true;
-        }
-    }
-    private float __width;
+    public float Width { get; }
 
 #warning Add variable width along the points
 #warning Add the option to add an amount of vertices to the end of the lines for smoothing, where 0 would be a flat line, and one would make the segment end with a triangle
-#warning Add methods to set all members at once, to reduce unnecessary regenerations
 
     /// <inheritdoc/>
     public override ReadOnlySpan<Vector2> AsSpan(int start, int length)
@@ -126,21 +72,7 @@ public class SegmentDefinition : ShapeDefinition2D
 
     /// <inheritdoc/>
     public override IEnumerator<Vector2> GetEnumerator()
-    {
-        var verts = Vertices;
-        int count = verts.Length;
-        var buffer = ArrayPool<Vector2>.Shared.Rent(count);
-        verts.CopyTo(buffer);
-        try
-        {
-            for (int i = 0; i < count; i++)
-                yield return buffer[i];
-        }
-        finally
-        {
-            ArrayPool<Vector2>.Shared.Return(buffer);
-        }
-    }
+        => ((IEnumerable<Vector2>)___vertices).GetEnumerator();
 
     /// <inheritdoc/>
     public override Vector2[] ToArray()
@@ -164,7 +96,6 @@ public class SegmentDefinition : ShapeDefinition2D
 
     /// <inheritdoc/>
     public override int Count => 4;
-
 
     /// <inheritdoc/>
     public override int GetTriangulationLength(ElementSkip vertexSkip = default)

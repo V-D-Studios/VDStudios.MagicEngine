@@ -9,40 +9,12 @@ namespace VDStudios.MagicEngine.Geometry;
 public abstract class ShapeDefinition2D : IReadOnlyList<Vector2>
 {
     /// <summary>
-    /// Used for concurrency purposes, and to query for changes
-    /// </summary>
-    protected int version = 0;
-
-    /// <summary>
-    /// Used for concurrency purposes, and to query for changes
-    /// </summary>
-    public int Version => version;
-
-    /// <summary>
     /// Instances a new object of type ShapeDefinition
     /// </summary>
-    /// <param name="isConvex"></param>
     public ShapeDefinition2D(bool isConvex)
     {
         IsConvex = isConvex;
     }
-
-    /// <summary>
-    /// Notifies the shape that there has been an update it may not be aware of
-    /// </summary>
-    /// <remarks>
-    /// Use and implement with care. If using this method becomes necessary, it's likely an indication of a bug. a <see cref="ShapeDefinition2D"/> should be capable of accounting its state for itself
-    /// </remarks>
-    public virtual void ForceUpdate() => version++;
-
-    /// <summary>
-    /// Forces this <see cref="ShapeDefinition2D"/> that it must discard its current vertex list and regenerate a new one, if applicable.
-    /// </summary>
-    /// <remarks>
-    /// If this method is applicable, and the vertices are regenerated, <see cref="Version"/> will increment
-    /// </remarks>
-    /// <returns><see langword="true"/> if the vertices are regenerated, <see langword="false"/> otherwise</returns>
-    public abstract bool ForceRegenerate();
 
     /// <summary>
     /// A name given to this <see cref="PolygonDefinition"/> for debugging purposes

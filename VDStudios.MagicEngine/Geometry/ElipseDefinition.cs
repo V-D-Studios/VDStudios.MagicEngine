@@ -4,40 +4,14 @@ using VDStudios.MagicEngine;
 namespace VDStudios.MagicEngine.Geometry;
 public class ElipseDefinition : ShapeDefinition2D
 {
-    private Vector2[] ___vertexBuffer = Array.Empty<Vector2>();
-    private bool ___regenRequired = true;
-
+    private readonly Vector2[] ___vertexBuffer;
     private Span<Vector2> VertexBuffer
-    {
-        get
-        {
-            if (___regenRequired)
-            {
-                if (___vertexBuffer.Length < Subdivisions)
-                    ___vertexBuffer = new Vector2[Subdivisions];
-                GenerateVertices(CenterPoint, RadiusX, RadiusY, Subdivisions, ___vertexBuffer.AsSpan(0, Subdivisions));
-                ___regenRequired = false;
-            }
-            return ___vertexBuffer.AsSpan(0, Subdivisions);
-        }
-    }
+        => ___vertexBuffer;
 
     /// <summary>
     /// The center point of the elipse
     /// </summary>
-    public Vector2 CenterPoint
-    {
-        get => cenp;
-        set
-        {
-            if (value == cenp)
-                return;
-            cenp = value;
-            ___regenRequired = true;
-            version++;
-        }
-    }
-    private Vector2 cenp;
+    public Vector2 CenterPoint { get; }
 
     /// <summary>
     /// The radius of the elipse along the x axis
@@ -52,33 +26,13 @@ public class ElipseDefinition : ShapeDefinition2D
     /// <summary>
     /// The amount of subdivisions the produced polygon will have
     /// </summary>
-    public int Subdivisions
-    {
-        get => subdiv;
-        set
-        {
-            if (value < 3)
-                throw new ArgumentException("A Circumference's subdivision count cannot be less than 3", nameof(value));
-            subdiv = value;
-            ___regenRequired = true;
-            version++;
-        }
-    }
-    private int subdiv;
+    public int Subdivisions { get; }
 
     /// <inheritdoc/>
     public override int Count => Subdivisions;
 
     /// <inheritdoc/>
     public override Vector2 this[int index] => VertexBuffer[index];
-
-    /// <inheritdoc/>
-    public override bool ForceRegenerate()
-    {
-        ___regenRequired = true;
-        ForceUpdate();
-        return true;
-    }
 
     /// <summary>
     /// Instances a new object of type <see cref="ElipseDefinition"/>
@@ -93,6 +47,12 @@ public class ElipseDefinition : ShapeDefinition2D
         RadiusX = radiusX;
         RadiusY = radiusY;
         Subdivisions = subdivisions;
+
+        if (subdivisions < 3)
+            throw new ArgumentException("A Circumference's subdivision count cannot be less than 3", nameof(subdivisions));
+
+        ___vertexBuffer = new Vector2[Subdivisions];
+        GenerateVertices(CenterPoint, RadiusX, RadiusY, Subdivisions, ___vertexBuffer.AsSpan(0, Subdivisions));
     }
 
     /// <summary>

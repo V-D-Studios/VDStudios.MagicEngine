@@ -10,28 +10,10 @@ namespace VDStudios.MagicEngine.Geometry;
 /// </remarks>
 public class DonutDefinition : ShapeDefinition2D
 {
-    private Vector2[] ___vertexBuffer = Array.Empty<Vector2>();
-    private bool ___regenRequired = true;
+    private readonly Vector2[] ___vertexBuffer;
 
     private Span<Vector2> VertexBuffer
-    {
-        get
-        {
-            if (___regenRequired)
-            {
-                if (___vertexBuffer.Length < Count)
-                    ___vertexBuffer = new Vector2[Count];
-
-                var inner = SliceInnerCircle(___vertexBuffer);
-                var outer = SliceOuterCircle(___vertexBuffer);
-
-                CircleDefinition.GenerateVertices(CenterPoint, InnerRadius, InnerSubdivisions, inner);
-                CircleDefinition.GenerateVertices(CenterPoint, OuterRadius, OuterSubdivisions, outer);
-                ___regenRequired = false;
-            }
-            return ___vertexBuffer.AsSpan(0, Count);
-        }
-    }
+        => ___vertexBuffer;
 
     /// <summary>
     /// The index at which the outer circle's vertices start
@@ -65,99 +47,33 @@ public class DonutDefinition : ShapeDefinition2D
     /// <summary>
     /// The center point of the circle
     /// </summary>
-    public Vector2 CenterPoint
-    {
-        get => cenp;
-        set
-        {
-            if (value == cenp)
-                return;
-            cenp = value;
-            ___regenRequired = true;
-            version++;
-        }
-    }
-    private Vector2 cenp;
+    public Vector2 CenterPoint { get; }
 
     /// <summary>
     /// The radius of the outer circle
     /// </summary>
-    public Radius OuterRadius
-    {
-        get => orad;
-        set
-        {
-            if (value == orad) return;
-            if (value <= irad) throw new ArgumentException("The outer circle's radius cannot be smaller than or equal to the inner circle's radius", nameof(value));
-            ___regenRequired = true;
-            orad = value;
-        }
-    }
-    private Radius orad;
+    public Radius OuterRadius { get; }
 
     /// <summary>
     /// The radius of the inner circle
     /// </summary>
-    public Radius InnerRadius
-    {
-        get => irad;
-        set
-        {
-            if (value == irad) return;
-            if (value >= orad) throw new ArgumentException("The inner circle's radius cannot be larger than or equal to the outer circle's radius", nameof(value));
-            ___regenRequired = true;
-            irad = value;
-        }
-    }
-    private Radius irad;
+    public Radius InnerRadius { get; }
 
     /// <summary>
     /// The amount of subdivisions the produced polygon will have
     /// </summary>
-    public int OuterSubdivisions
-    {
-        get => osubdiv;
-        set
-        {
-            if (value < 3)
-                throw new ArgumentException("A Circumference's subdivision count cannot be less than 3", nameof(value));
-            osubdiv = value;
-            ___regenRequired = true;
-            version++;
-        }
-    }
-    private int osubdiv;
+    public int OuterSubdivisions { get; }
 
     /// <summary>
     /// The amount of subdivisions the produced polygon will have
     /// </summary>
-    public int InnerSubdivisions
-    {
-        get => isubdiv;
-        set
-        {
-            if (value < 3)
-                throw new ArgumentException("A Circumference's subdivision count cannot be less than 3", nameof(value));
-            isubdiv = value;
-            ___regenRequired = true;
-            version++;
-        }
-    }
-    private int isubdiv;
+    public int InnerSubdivisions { get; }
 
     /// <inheritdoc/>
     public override int Count => InnerSubdivisions + OuterSubdivisions;
 
     /// <inheritdoc/>
     public override Vector2 this[int index] => VertexBuffer[index];
-
-    /// <inheritdoc/>
-    public override bool ForceRegenerate()
-    {
-        ___regenRequired = true;
-        ForceUpdate();
-        return true;
-    }
 
     /// <summary>
     /// Instances a new object of type <see cref="DonutDefinition"/>
@@ -174,6 +90,21 @@ public class DonutDefinition : ShapeDefinition2D
         InnerRadius = innerRadius; // OuterRadius will already be set, so the check will work as intended.
         OuterSubdivisions = outerSubdivisions;
         InnerSubdivisions = innerSubdivisions;
+
+        if (OuterRadius <= InnerRadius) 
+            throw new ArgumentException("The outer circle's radius cannot be smaller than or equal to the inner circle's radius", nameof(outerRadius));
+        if (OuterSubdivisions < 3)
+            throw new ArgumentException("A Circumference's subdivision count cannot be less than 3", nameof(outerSubdivisions));
+        if (InnerSubdivisions < 3)
+            throw new ArgumentException("A Circumference's subdivision count cannot be less than 3", nameof(innerSubdivisions));
+
+        ___vertexBuffer = new Vector2[Count];
+
+        var inner = SliceInnerCircle(___vertexBuffer);
+        var outer = SliceOuterCircle(___vertexBuffer);
+
+        CircleDefinition.GenerateVertices(CenterPoint, InnerRadius, InnerSubdivisions, inner);
+        CircleDefinition.GenerateVertices(CenterPoint, OuterRadius, OuterSubdivisions, outer);
     }
 
     /// <inheritdoc/>
