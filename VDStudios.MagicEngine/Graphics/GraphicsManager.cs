@@ -446,8 +446,6 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
             var renderTargetBuffer = new List<(uint Level, RenderTargetList<TGraphicsContext> Targets)>();
             TimeSpan delta = default;
 
-            var (ww, wh) = WindowSize;
-
             Log?.Information("Entering main rendering loop");
             while (IsRunning) // Running Loop
             {
