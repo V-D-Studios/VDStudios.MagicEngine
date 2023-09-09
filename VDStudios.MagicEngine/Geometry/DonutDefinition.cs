@@ -6,7 +6,7 @@ namespace VDStudios.MagicEngine.Geometry;
 /// Represents the definition of a donut shape: A larger circle with a smaller circle inside, the area between the two representing the area of the shape, excluding the inner circle's area
 /// </summary>
 /// <remarks>
-/// The vertices for this <see cref="DonutDefinition"/> are stored first coming the vertices of the inner circle, followed by the vertices of the outer circle. This shape is special, and is only triangulated properly because <see cref="DrawLibrary.Geometry.Shape2DTriangulatedIndexGenerator"/> performs a special check!
+/// The vertices for this <see cref="DonutDefinition"/> are stored first coming the vertices of the inner circle, followed by the vertices of the outer circle. 
 /// </remarks>
 public class DonutDefinition : ShapeDefinition2D
 {
@@ -215,13 +215,77 @@ public class DonutDefinition : ShapeDefinition2D
         return VertexBuffer.TryCopyTo(destination);
     }
 
+    /// <inheritdoc/>
     public override int GetTriangulationLength(ElementSkip vertexSkip = default)
     {
-        throw new NotImplementedException();
+        var isp = InnerCircleSpan.Length;
+        var osp = OuterCircleSpan.Length;
+
+        return isp == osp
+            ? isp * 7
+            : throw new NotSupportedException("Triangulating Donut shapes with mismatching inner and outer circle spans is not supported");
     }
 
-    public override void Triangulate(Span<uint> outputIndices, ElementSkip vertexSkip = default)
+    /// <inheritdoc/>
+    public override int Triangulate(Span<uint> outputIndices, ElementSkip vertexSkip = default)
     {
-        throw new NotImplementedException();
+        var isp = InnerCircleSpan.Length;
+        var osp = OuterCircleSpan.Length;
+        var istart = checked((ushort)InnerCircleStart);
+        var ostart = checked((ushort)OuterCircleStart);
+        int bufind = 0;
+
+        if (isp == osp)
+        {
+            for (ushort i = 0; i < osp; i++)
+            {
+                ushort in1 = (ushort)((i + 1) % osp + istart);
+                ushort ou0 = (ushort)(i + ostart);
+
+                outputIndices[bufind++] = in1;
+                outputIndices[bufind++] = ou0;
+                outputIndices[bufind++] = (ushort)(i + istart);
+
+                outputIndices[bufind++] = in1;
+                outputIndices[bufind++] = ou0;
+                outputIndices[bufind++] = (ushort)((i + 1) % osp + ostart);
+
+                outputIndices[bufind++] = in1;
+            }
+            return bufind;
+        }
+
+        if (isp > osp)
+            (isp, osp, istart, ostart) = (osp, isp, ostart, istart); // We swap these variables around so that we only have to write one implementation; and the functionality will be the same
+
+        // This algorithm works under the asumption that there are more subdivisions in the outer circle than in the inner one
+        // Therefore, each inner circle vertex will have more than one outer circle vertex connected to it
+        ushort ratio = (ushort)(osp / isp);
+        for (ushort stage = 0; stage < isp * ratio; stage += ratio)
+        {
+            ushort in0 = (ushort)(stage / ratio + istart);
+            ushort ou1;
+            ushort ou0;
+            for (ushort i = 0; i < ratio; i++)
+            {
+                //outputIndices[bufind++] = (ushort)((i + 1) % isp + istart);
+                //outputIndices[bufind++] = (ushort)((i % ratio) * stage + ostart);
+                //outputIndices[bufind++] = (ushort)(i % isp + istart);
+
+                ou1 = (ushort)(((i + stage) + 1) % osp + ostart);
+                ou0 = (ushort)((i + stage) + ostart);
+
+                outputIndices[bufind++] = in0;
+                outputIndices[bufind++] = ou1;
+                outputIndices[bufind++] = ou0;
+            }
+            outputIndices[bufind++] = in0;
+            outputIndices[bufind++] = (ushort)((in0 + 1) % isp);
+            outputIndices[bufind++] = (ushort)((stage + 2) % osp + ostart);
+            outputIndices[bufind++] = in0;
+        }
+        outputIndices[bufind++] = 0;
+
+        return bufind;
     }
 }
