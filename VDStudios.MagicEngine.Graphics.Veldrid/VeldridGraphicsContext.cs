@@ -1,12 +1,12 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.NetworkInformation;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using VDStudios.MagicEngine.Graphics;
-using VDStudios.MagicEngine.Graphics.Veldrid;
 using Veldrid;
 
-namespace VDStudios.MagicEngine;
+namespace VDStudios.MagicEngine.Graphics.Veldrid;
 
 /// <summary>
 /// Represents a context for Veldrid
@@ -17,7 +17,8 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     /// A report of the last frame in a <see cref="VeldridGraphicsContext"/>'s attached <see cref="VeldridGraphicsManager"/>
     /// </summary>
     /// <param name="DeltaSeconds">The total amount of seconds in the last frame's delta</param>
-    public readonly record struct VeldridFrameReport(float DeltaSeconds);
+    /// <param name="Projection">The projection matrix for this frame</param>
+    public readonly record struct VeldridFrameReport(Matrix4x4 Projection, float DeltaSeconds);
 
     /// <summary>
     /// A set of Shaders
@@ -35,7 +36,7 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     /// <param name="manager">The <see cref="VeldridGraphicsManager"/> that owns this <see cref="VeldridGraphicsContext"/></param>
     /// <param name="device">The <see cref="GraphicsDevice"/> tied to the manager</param>
     /// <exception cref="ArgumentNullException"></exception>
-    public VeldridGraphicsContext(GraphicsManager<VeldridGraphicsContext> manager, GraphicsDevice device) : base(manager) 
+    public VeldridGraphicsContext(GraphicsManager<VeldridGraphicsContext> manager, GraphicsDevice device) : base(manager)
     {
         GraphicsDevice = device;
         commandListPool = new(p => ResourceFactory.CreateCommandList(), _ => { });
@@ -286,11 +287,11 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
         target.cl.End();
         target.cl = null;
     }
-    
+
     /// <inheritdoc/>
     public override void Update(TimeSpan delta)
     {
-        FrameReport = new((float)delta.TotalSeconds);
+        FrameReport = new(Manager.WindowView, (float)delta.TotalSeconds);
 
         CommandList.Begin();
 

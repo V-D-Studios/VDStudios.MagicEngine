@@ -3,7 +3,7 @@ using Veldrid;
 using Veldrid.OpenGL;
 using static SDL2.Bindings.SDL;
 
-namespace VDStudios.MagicEngine.Veldrid;
+namespace VDStudios.MagicEngine.Graphics.Veldrid;
 
 /// <summary>
 /// Contains utilities to be used to procure Veldrid's startup
@@ -63,12 +63,12 @@ public static class Startup
     {
         SDL_ClearError();
 
-        IntPtr sdlHandle = ((IHandle)window).Handle;
+        nint sdlHandle = ((IHandle)window).Handle;
 
         var winfo = window.SystemInfo;
 
         SetSDLGLContextAttributes(options, backend);
-        IntPtr openGLContextHandle = SDL_GL_CreateContext(sdlHandle);
+        nint openGLContextHandle = SDL_GL_CreateContext(sdlHandle);
         //if (INTERNAL_SDL_GetError() != IntPtr.Zero)
         //    throw new VeldridException("Unable to create OpenGL Context: \"" + SDL_GetAndClearError() + "\". This may indicate that the system does not support the requested OpenGL profile, version, or Swapchain format.");
 
@@ -81,7 +81,7 @@ public static class Startup
         context => ThrowIfLessThan(SDL_GL_MakeCurrent(sdlHandle, context)),
         () => SDL_GL_GetCurrentContext(),
 
-        () => ThrowIfLessThan(SDL_GL_MakeCurrent(IntPtr.Zero, IntPtr.Zero)),
+        () => ThrowIfLessThan(SDL_GL_MakeCurrent(nint.Zero, nint.Zero)),
         SDL_GL_DeleteContext,
 
         () => SDL_GL_SwapWindow(sdlHandle),
@@ -100,7 +100,7 @@ public static class Startup
         if (backend is not GraphicsBackend.OpenGL and not GraphicsBackend.OpenGLES)
             throw new VeldridException("backend must be OpenGL or OpenGLES.");
 
-        SDL_GLcontext value = options.Debug ? ((SDL_GLcontext)3) : SDL_GLcontext.SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG;
+        SDL_GLcontext value = options.Debug ? (SDL_GLcontext)3 : SDL_GLcontext.SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG;
 
         ThrowIfLessThan(SDL_GL_SetAttribute(SDL_GLattr.SDL_GL_CONTEXT_FLAGS, (int)value));
         var (value2, value3) = GetMaxGLVersion(backend == GraphicsBackend.OpenGLES);
@@ -198,7 +198,7 @@ public static class Startup
 
         Window sdl2Window = new("", 1, 1, TestWinConfig);
 
-        IntPtr context = SDL_GL_CreateContext(((IHandle)sdl2Window).Handle);
+        nint context = SDL_GL_CreateContext(((IHandle)sdl2Window).Handle);
 
         SDL_GL_DeleteContext(context);
 

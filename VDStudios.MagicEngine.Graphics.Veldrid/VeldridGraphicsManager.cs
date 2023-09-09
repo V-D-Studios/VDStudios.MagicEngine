@@ -6,8 +6,8 @@ using System.Numerics;
 using SDL2.NET;
 using SDL2.NET.SDLImage;
 using VDStudios.MagicEngine.Input;
-using VDStudios.MagicEngine.Veldrid;
 using Veldrid;
+using Vulkan;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid;
 
@@ -194,6 +194,17 @@ public class VeldridGraphicsManager : GraphicsManager<VeldridGraphicsContext>
         Window = new Window(Game.GameTitle, 800, 600, WindowConfig);
         GraphicsDevice = Startup.CreateGraphicsDevice(window);
 
+        Log?.Debug("Querying WindowFlags");
+        var flags = Window.Flags;
+        IsWindowAvailable = flags.HasFlag(WindowFlags.Shown);
+        HasFocus = flags.HasFlag(WindowFlags.InputFocus);
+
+        Log?.Debug("Reading WindowSize");
+        var (ww, wh) = Window.Size;
+        WindowSize = new IntVector2(ww, wh);
+        WindowView = Matrix4x4.CreateScale(wh / (float)ww, 1, 1);
+        GraphicsDevice.MainSwapchain.Resize((uint)ww, (uint)wh);
+
         Window.Closed += Window_Closed;
         Window.SizeChanged += Window_SizeChanged;
         Window.Shown += Window_Shown;
@@ -207,18 +218,6 @@ public class VeldridGraphicsManager : GraphicsManager<VeldridGraphicsContext>
         Window.MouseButtonReleased += Window_MouseButtonReleased;
         Window.MouseMoved += Window_MouseMoved;
         Window.MouseWheelScrolled += Window_MouseWheelScrolled;
-
-        PerformOnWindow(w =>
-        {
-            Log?.Debug("Querying WindowFlags");
-            var flags = w.Flags;
-            IsWindowAvailable = flags.HasFlag(WindowFlags.Shown);
-            HasFocus = flags.HasFlag(WindowFlags.InputFocus);
-
-            Log?.Debug("Reading WindowSize");
-            var (ww, wh) = w.Size;
-            WindowSize = new IntVector2(ww, wh);
-        });
     }
 
     /// <inheritdoc/>
@@ -450,6 +449,14 @@ public class VeldridGraphicsManager : GraphicsManager<VeldridGraphicsContext>
     {
         if (target is not VeldridRenderTarget)
             throw new ArgumentException("Render Targets registered in a VeldridGraphicsManager must inherit from VeldridRenderTarget", nameof(target));
+    }
+
+    /// <inheritdoc/>
+    protected override void WindowSizeChangedFrameLocked(IntVector2 oldSize, IntVector2 newSize)
+    {
+        var (ww, wh) = newSize;
+        WindowView = Matrix4x4.CreateScale(wh / (float)ww, 1, 1);
+        GraphicsDevice.MainSwapchain.Resize((uint)ww, (uint)wh);
     }
 
     /// <inheritdoc/>

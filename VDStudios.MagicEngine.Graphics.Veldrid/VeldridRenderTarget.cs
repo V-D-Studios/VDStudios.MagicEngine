@@ -1,9 +1,8 @@
 ﻿using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Graphics;
-using VDStudios.MagicEngine.Graphics.Veldrid;
 using Veldrid;
 
-namespace VDStudios.MagicEngine;
+namespace VDStudios.MagicEngine.Graphics.Veldrid;
 
 /// <inheritdoc/>
 public abstract class VeldridRenderTarget : RenderTarget<VeldridGraphicsContext>
@@ -24,9 +23,9 @@ public abstract class VeldridRenderTarget : RenderTarget<VeldridGraphicsContext>
     internal CommandList? cl;
 
     /// <inheritdoc/>
-    public override DrawTransformation Transformation 
-    { 
-        get => base.Transformation; 
+    public override DrawTransformation Transformation
+    {
+        get => base.Transformation;
         protected set
         {
             if (base.Transformation != value)
