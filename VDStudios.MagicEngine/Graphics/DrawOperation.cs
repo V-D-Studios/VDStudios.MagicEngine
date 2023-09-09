@@ -228,7 +228,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// </summary>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
     /// <param name="context">The <typeparamref name="TGraphicsContext"/> for this <see cref="DrawOperation{TGraphicsContext}"/></param>
-    /// <param name="target"></param>
+    /// <param name="target">The <see cref="RenderTarget{TGraphicsContext}"/> for this Draw operation</param>
     protected abstract void Draw(TimeSpan delta, TGraphicsContext context, RenderTarget<TGraphicsContext> target);
 
     /// <summary>
