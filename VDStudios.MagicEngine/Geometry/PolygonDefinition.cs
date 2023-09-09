@@ -111,6 +111,7 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     /// </summary>
     /// <param name="vertices">The vertices of the polygon</param>
     /// <param name="vertexCount">The amount of vertices to take from <paramref name="vertices"/>. <c>0</c> represents all indices, negative numbers start from the end</param>
+    /// <param name="isConvex">Whether or not this shape is a convex shape. If <see langword="false"/> then the shape will considered concave</param>
     public PolygonDefinition(Vector2[] vertices, bool isConvex, int vertexCount = 0)
         : this(vertices.AsSpan(0, vertexCount is 0 ? vertices.Length : vertexCount > 0 ? Index.FromStart(vertexCount).GetOffset(vertices.Length) : Index.FromEnd(vertexCount).GetOffset(vertices.Length)), isConvex) { }
 
@@ -118,6 +119,7 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     /// Creates a new <see cref="PolygonDefinition"/> with the vectors provided in <paramref name="vertices"/>
     /// </summary>
     /// <param name="vertices">The vertices of the polygon</param>
+    /// <param name="isConvex">Whether or not this shape is a convex shape. If <see langword="false"/> then the shape will considered concave</param>
     public PolygonDefinition(ReadOnlySpan<Vector2> vertices, bool isConvex) : base(isConvex)
     {
         if (vertices.Length is < 3)
@@ -192,4 +194,16 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
 
     /// <inheritdoc/>
     public override Vector2 this[int index] => Vertices[index];
+
+    /// <inheritdoc/>
+    public override int GetTriangulationLength()
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc/>
+    public override void Triangulate(Span<uint> outputIndices)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -1,4 +1,7 @@
-﻿using System.Numerics;
+﻿using System.Buffers;
+using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace VDStudios.MagicEngine.Geometry;
 
@@ -70,6 +73,15 @@ public class RectangleDefinition : ShapeDefinition2D
     /// <inheritdoc/>
     public override IEnumerator<Vector2> GetEnumerator()
         => ((IEnumerable<Vector2>)vertices).GetEnumerator();
+
+    /// <inheritdoc/>
+    public override int GetTriangulationLength() => TriangulatedRectangle.Length;
+
+    private readonly uint[] TriangulatedRectangle = { 0, 1, 2, 0, 3, 2, 0 };
+
+    /// <inheritdoc/>
+    public override void Triangulate(Span<uint> outputIndices) 
+        => TriangulatedRectangle.CopyTo(outputIndices);
 
     /// <inheritdoc/>
     public override Vector2[] ToArray()
