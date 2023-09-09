@@ -9,6 +9,19 @@ namespace VDStudios.MagicEngine.Geometry;
 public static class GeometryMath
 {
     /// <summary>
+    /// Calculates the angle in radians between a line that passes through <paramref name="a"/> and <paramref name="b"/> and the 'X' axis
+    /// </summary>
+    /// <param name="a">The first point the line passes through</param>
+    /// <param name="b">The second point the line passes through</param>
+    public static float Angle(Vector2 a, Vector2 b)
+    {
+        var dy = a.Y - b.Y;
+        var dx = a.X - b.X;
+        var theta = float.Atan2(dy, dx); // range (-PI, PI]
+        return theta;
+    }
+
+    /// <summary>
     /// Calculates the angle in radians between a line that passes through <paramref name="a"/> and <paramref name="b"/> and a line that passes through <paramref name="a"/> and <paramref name="c"/>
     /// </summary>
     /// <param name="a">The point at which the line <paramref name="b"/><paramref name="a"/> and <paramref name="c"/><paramref name="a"/> intersect</param>
