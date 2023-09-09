@@ -163,4 +163,12 @@ public class ElipseDefinition : ShapeDefinition2D
     {
         return VertexBuffer.TryCopyTo(destination);
     }
+
+    /// <inheritdoc/>
+    public override int GetTriangulationLength(ElementSkip vertexSkip = default)
+        => PolygonDefinition.GetPolygonTriangulationLength(Count, true, vertexSkip);
+
+    /// <inheritdoc/>
+    public override int Triangulate(Span<uint> outputIndices, ElementSkip vertexSkip = default)
+        => PolygonDefinition.TriangulatePolygon(Count, true, outputIndices, vertexSkip);
 }

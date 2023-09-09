@@ -214,4 +214,14 @@ public class DonutDefinition : ShapeDefinition2D
     {
         return VertexBuffer.TryCopyTo(destination);
     }
+
+    public override int GetTriangulationLength(ElementSkip vertexSkip = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override void Triangulate(Span<uint> outputIndices, ElementSkip vertexSkip = default)
+    {
+        throw new NotImplementedException();
+    }
 }

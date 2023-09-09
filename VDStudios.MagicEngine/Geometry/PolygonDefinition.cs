@@ -1,5 +1,8 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Numerics;
+using System.Reflection;
 
 namespace VDStudios.MagicEngine.Geometry;
 
@@ -196,14 +199,110 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     public override Vector2 this[int index] => Vertices[index];
 
     /// <inheritdoc/>
-    public override int GetTriangulationLength()
+    public override int GetTriangulationLength(ElementSkip vertexSkip = default)
+        => GetPolygonTriangulationLength(Count, IsConvex, vertexSkip);
+
+    /// <summary>
+    /// Calculates how long a span of <see cref="uint"/> indices need to be for a triangulation operation on this object
+    /// </summary>
+    public static int GetPolygonTriangulationLength(int vertexCount, bool isConvex, ElementSkip vertexSkip = default)
     {
-        throw new NotImplementedException();
+        if (isConvex)
+        {
+            var count = vertexCount;
+
+            return count > 4
+                ? ComputeConvexTriangulatedIndexBufferSize(vertexSkip.GetElementCount(count), out _)
+                : vertexSkip.GetSkipFactor(4) != 0
+                ? throw new ArgumentException("Polygons with less than 5 vertices do not support skipping vertices", nameof(vertexSkip))
+                : count is 3
+                ? 4
+                : count is 4 ? 6 : throw new InvalidOperationException("Cannot triangulate a polygon with less than 3 vertices");
+        }
+        else
+            throw new NotSupportedException("Non convex shapes are not supported!");
     }
 
     /// <inheritdoc/>
-    public override void Triangulate(Span<uint> outputIndices)
+    public override int Triangulate(Span<uint> outputIndices, ElementSkip vertexSkip = default)
+        => TriangulatePolygon(Count, IsConvex, outputIndices, vertexSkip);
+
+    /// <summary>
+    /// Triangulates a shape into a set of indices that run through its vertices as a set of triangles
+    /// </summary>
+    /// <param name="outputIndices">The output of the operation. See <see cref="GetTriangulationLength"/></param>
+    /// <param name="vertexSkip">The amount of vertices to skip when triangulating</param>
+    /// <param name="isConvex">Whether or not the Polygon is convex</param>
+    /// <param name="vertexCount">The amount of vertices the shape has</param>
+    /// <returns>The amount of indices written to <paramref name="outputIndices"/></returns>
+    public static int TriangulatePolygon(int vertexCount, bool isConvex, Span<uint> outputIndices, ElementSkip vertexSkip = default)
     {
-        throw new NotImplementedException();
+        var count = vertexCount;
+        var step = vertexSkip.GetSkipFactor(vertexCount);
+        int indexCount = ComputeConvexTriangulatedIndexBufferSize(vertexSkip.GetElementCount(count), out var start);
+
+        if (indexCount is 3)
+        {
+            if (outputIndices.Length <= 4)
+                throw new ArgumentException("The span is too short to hold the triangulated indices", nameof(outputIndices));
+
+            outputIndices[0] = 0;
+            outputIndices[1] = (ushort)step;
+            outputIndices[2] = (ushort)(count - 1);
+            outputIndices[3] = 0;
+
+            return 4;
+        }
+
+        if (isConvex)
+        {
+            if (indexCount is 4)
+            {
+                if (outputIndices.Length <= 6)
+                    throw new ArgumentException("The span is too short to hold the triangulated indices", nameof(outputIndices));
+
+                outputIndices[0] = (ushort)(1 * step); // 1
+                outputIndices[1] = (ushort)(0 * step); // 0
+                outputIndices[2] = (ushort)(3 * step); // 3
+                outputIndices[3] = (ushort)(1 * step); // 1
+                outputIndices[4] = (ushort)(2 * step); // 2
+                outputIndices[5] = (ushort)(int.Min(3 * step, count - 1)); // 3
+
+                return 6;
+            }
+
+            ComputeConvexTriangulatedIndexBuffers(count, outputIndices, (uint)step, start);
+            return indexCount;
+        }
+
+        throw new NotSupportedException("Non convex shapes are not supported!");
+    }
+
+    /// <summary>
+    /// Computes the appropriate size for an index buffer that will store triangulated indices for a 2D shape of <paramref name="vertexCount"/> vertices
+    /// </summary>
+    /// <param name="vertexCount">The amount of vertices the shape has</param>
+    /// <param name="added">A number, either a <c>1</c> or <c>0</c>, that offsets the triangulation to account for odd vertex counts</param>
+    public static int ComputeConvexTriangulatedIndexBufferSize(int vertexCount, out byte added)
+        => (vertexCount - (added = vertexCount % 2 == 0 ? (byte)0u : (byte)1u)) * 3;
+
+    /// <summary>
+    /// Generates indices for a shape that is to be rendered as a triangle strip
+    /// </summary>
+    /// <param name="count">The amount of vertices in the shape</param>
+    /// <param name="indexBuffer">The buffer to store the indices in</param>
+    /// <param name="step">The step factor for skipping</param>
+    /// <param name="start">The starting point of the triangulation. Synonym to <c>added</c> in <see cref="ComputeConvexTriangulatedIndexBufferSize(int, out byte)"/></param>
+    public static void ComputeConvexTriangulatedIndexBuffers(int count, Span<uint> indexBuffer, uint step, byte start)
+    {
+        int bufind = 0;
+        uint i = start;
+
+        while (i < count)
+        {
+            indexBuffer[bufind++] = 0;
+            indexBuffer[bufind++] = step * i++;
+            indexBuffer[bufind++] = step * i;
+        }
     }
 }
