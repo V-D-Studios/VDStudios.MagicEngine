@@ -137,6 +137,17 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     }
 
     /// <summary>
+    /// Checks if a <see cref="ResourceLayout"/> under <paramref name="name"/> is registered
+    /// </summary>
+    /// <param name="name">The name of the resourceLayout</param>
+    /// <returns><see langword="true"/> if a <see cref="ResourceLayout"/> was found, <see langword="false"/> otherwise</returns>
+    public bool ContainsResourceLayout(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        return resourceLayouts.ContainsKey(name);
+    }
+
+    /// <summary>
     /// Registers a resource layout into the provided name
     /// </summary>
     /// <param name="resourceLayout">The resource layout to be registered</param>
