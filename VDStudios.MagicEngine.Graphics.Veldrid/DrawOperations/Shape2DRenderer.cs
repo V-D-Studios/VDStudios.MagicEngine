@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
+using System.Net.Mime;
 using System.Numerics;
+using System.Resources;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Geometry;
 using Veldrid;
@@ -7,6 +9,12 @@ using Veldrid;
 namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
 
 #warning NOTE: For multi-shape renderers, disallow changing the shape or adding more shapes
+
+#warning NOTE: Refactor Pipelines; since they hold the shaders they need to be named too
+
+#warning NOTE: Add a parameter to select a given Pipeline here too I guess, it's up to the user to verify it's good
+
+#warning NOTE: Create a Pipeline for Shape2DRenderer, too
 
 /// <summary>
 /// An operation that renders a <see cref="ShapeDefinition2D"/>
@@ -31,8 +39,12 @@ public class Shape2DRenderer : VeldridDrawOperation
     /// The vertices to skip
     /// </summary>
     public ElementSkip VertexSkip { get; private set; }
-
     private bool shapeChanged = true;
+
+    /// <summary>
+    /// The index of the <see cref="Shape2DRenderer"/> pipeline this object will use
+    /// </summary>
+    public uint PipelineIndex { get; set; }
 
     /// <summary>
     /// Sets the <see cref="Shape"/> and or <see cref="VertexSkip"/>. If either is null, their respective proprety will not be changed
@@ -61,7 +73,7 @@ public class Shape2DRenderer : VeldridDrawOperation
 
     private DeviceBuffer? VertexIndexBuffer;
     private uint VertexEnd;
-    private uint IndexEnd;
+    private uint IndexCount;
 
     /// <inheritdoc/>
     protected override ValueTask CreateResourcesAsync()
@@ -71,6 +83,25 @@ public class Shape2DRenderer : VeldridDrawOperation
     protected override void CreateGPUResources(VeldridGraphicsContext context) 
     {
         base.CreateGPUResources(context);
+
+        if (context.ContainsPipeline<Shape2DRenderer>() is false)
+            context.RegisterPipeline<Shape2DRenderer>(context.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription()
+            {
+                BlendState = BlendStateDescription.SingleAlphaBlend,
+                DepthStencilState = DepthStencilStateDescription.DepthOnlyGreaterEqual,
+                Outputs = context.GraphicsDevice.SwapchainFramebuffer.OutputDescription,
+                PrimitiveTopology = PrimitiveTopology.TriangleStrip,
+                RasterizerState = RasterizerStateDescription.Default,
+                ResourceBindingModel = ResourceBindingModel.Improved,
+                ResourceLayouts = new ResourceLayout[]
+                {
+                    context.GetResourceLayout<VeldridDrawOperation>(),
+                    context.GetResourceLayout<VeldridRenderTarget>(),
+                    context.FrameReportLayout
+                },
+                ShaderSet = new ShaderSetDescription()
+#error Shader Set not set
+            }), out _);
     }
 
     /// <inheritdoc/>
@@ -90,30 +121,45 @@ public class Shape2DRenderer : VeldridDrawOperation
                 VertexIndexBuffer = null;
             }
 
-            VertexIndexBuffer ??= context.ResourceFactory.CreateBuffer(new BufferDescription()
+            if (VertexIndexBuffer is null)
             {
-                SizeInBytes = bufferLen,
-                Usage = BufferUsage.VertexBuffer | BufferUsage.IndexBuffer
-            });
+                VertexIndexBuffer = context.ResourceFactory.CreateBuffer(new BufferDescription()
+                {
+                    SizeInBytes = bufferLen,
+                    Usage = BufferUsage.VertexBuffer | BufferUsage.IndexBuffer
+                });
 
-            VertexEnd = (uint)(vertexlen * Unsafe.SizeOf<Vector2>());
-            indexlen = Shape.GetTriangulationLength(VertexSkip);
-            IndexEnd = (uint)(indexlen * sizeof(uint));
+                context.CommandList.UpdateBuffer(VertexIndexBuffer, 0, Shape.AsSpan());
+                VertexEnd = (uint)(vertexlen * Unsafe.SizeOf<Vector2>());
+            }
 
-            Span<uint> indices = stackalloc uint[vertexlen];
+            IndexCount = (uint)Shape.GetTriangulationLength(VertexSkip);
+
+            Span<ushort> indices = stackalloc ushort[vertexlen];
             Shape.Triangulate(indices, VertexSkip);
 
-            context.CommandList.UpdateBuffer(VertexIndexBuffer, 0, Shape.AsSpan());
             context.CommandList.UpdateBuffer(VertexIndexBuffer, VertexEnd, indices);
         }
     }
 
     /// <inheritdoc/>
-    protected override void Draw(TimeSpan delta, VeldridGraphicsContext context, RenderTarget<VeldridGraphicsContext> target)
+    protected override void Draw(TimeSpan delta, VeldridGraphicsContext context, RenderTarget<VeldridGraphicsContext> t)
     {
-        Debug.Assert(target is VeldridRenderTarget, "target is not of type VeldridRenderTarget");
-        var veldridTarget = (VeldridRenderTarget)target;
-        var cl = veldridTarget.CommandList;
-        veldridTarget.TransformationBuffer
+        Debug.Assert(VertexIndexBuffer is not null, "VertexIndexBuffer was unexpectedly null at the time of drawing");
+        Debug.Assert(t is VeldridRenderTarget, "target is not of type VeldridRenderTarget");
+        Debug.Assert(DrawOperationResourceSet is not null, "DrawOperationResourceSet was unexpectedly null at the time of drawing");
+
+        var target = (VeldridRenderTarget)t;
+        var cl = target.CommandList;
+
+        cl.SetVertexBuffer(0, VertexIndexBuffer, 0);
+        cl.SetIndexBuffer(VertexIndexBuffer, IndexFormat.UInt16, VertexEnd);
+        cl.SetPipeline(context.GetPipeline<Shape2DRenderer>());
+
+        cl.SetGraphicsResourceSet(0, context.FrameReportSet);
+        cl.SetGraphicsResourceSet(1, target.TransformationSet);
+        cl.SetGraphicsResourceSet(2, DrawOperationResourceSet);
+
+        cl.DrawIndexed(IndexCount, 1, 0, 0, 0);
     }
 }

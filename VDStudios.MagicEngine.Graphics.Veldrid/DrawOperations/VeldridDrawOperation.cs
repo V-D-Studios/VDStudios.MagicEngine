@@ -46,7 +46,7 @@ public abstract class VeldridDrawOperation : DrawOperation<VeldridGraphicsContex
         ));
         Debug.Assert(OperationParametersBuffer is not null);
 
-        if (context.ContainsResourceLayout(nameof(VeldridDrawOperation)) is false)
+        if (context.ContainsResourceLayout< VeldridDrawOperation>() is false)
         {
             DrawOperationLayout = context.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription()
             {
@@ -56,10 +56,10 @@ public abstract class VeldridDrawOperation : DrawOperation<VeldridGraphicsContex
                     new("FrameParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment), // Timing and Projection
                 }
             });
-            context.RegisterResourceLayout(DrawOperationLayout, nameof(VeldridDrawOperation), out _);
+            context.RegisterResourceLayout<VeldridDrawOperation>(DrawOperationLayout, out _);
         }
         else
-            DrawOperationLayout = context.GetResourceLayout(nameof(VeldridDrawOperation));
+            DrawOperationLayout = context.GetResourceLayout<VeldridDrawOperation>();
 
         DrawOperationResourceSet = context.ResourceFactory.CreateResourceSet(new ResourceSetDescription()
         {

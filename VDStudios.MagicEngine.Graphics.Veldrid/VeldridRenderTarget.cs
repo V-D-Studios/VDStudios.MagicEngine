@@ -71,8 +71,8 @@ public abstract class VeldridRenderTarget : RenderTarget<VeldridGraphicsContext>
     /// <inheritdoc/>
     public override void BeginFrame(TimeSpan delta, VeldridGraphicsContext context)
     {
-        if (context.TryGetResourceLayout(nameof(VeldridRenderTarget), out transLayout) is false)
-            transLayout = context.RegisterResourceLayout(
+        if (context.TryGetResourceLayout<VeldridRenderTarget>(out transLayout) is false)
+            transLayout = context.RegisterResourceLayout<VeldridRenderTarget>(
                 context.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription(
                     new ResourceLayoutElementDescription(
                         "TargetTransformationLayout", 
@@ -80,7 +80,6 @@ public abstract class VeldridRenderTarget : RenderTarget<VeldridGraphicsContext>
                         ShaderStages.Vertex
                     )
                 )), 
-                nameof(VeldridRenderTarget), 
                 out _
             );
 
