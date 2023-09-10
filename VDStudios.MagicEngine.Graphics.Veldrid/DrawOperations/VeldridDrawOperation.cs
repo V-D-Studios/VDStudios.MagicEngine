@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using Veldrid;
 
@@ -25,13 +26,50 @@ public abstract class VeldridDrawOperation : DrawOperation<VeldridGraphicsContex
     public DeviceBuffer OperationParametersBuffer => opParamBuffer ?? throw new InvalidOperationException("Cannot access a VeldridDrawOperation's OperationParametersBuffer before its resources have been created");
     private DeviceBuffer? opParamBuffer;
 
+    /// <summary>
+    /// The <see cref="ResourceLayout"/> for all <see cref="VeldridDrawOperation"/>, containing  "DrawParameters" first for the draw operation's Transformation and Color and "FrameParameters" second for 
+    /// </summary>
+    protected ResourceLayout? DrawOperationLayout { get; private set; }
+
+    /// <summary>
+    /// The <see cref="ResourceSet"/> containing the resources for <see cref="DrawOperationLayout"/>
+    /// </summary>
+    protected ResourceSet? DrawOperationResourceSet { get; private set; }
+
     /// <inheritdoc/>
+    [MemberNotNull(nameof(OperationParametersBuffer), nameof(DrawOperationLayout), nameof(DrawOperationResourceSet))]
     protected override void CreateGPUResources(VeldridGraphicsContext context)
     {
         opParamBuffer = context.ResourceFactory.CreateBuffer(new BufferDescription(
             DataStructuring.FitToUniformBuffer<DrawOperationParameters, uint>(),
             BufferUsage.UniformBuffer
         ));
+        Debug.Assert(OperationParametersBuffer is not null);
+
+        if (context.ContainsResourceLayout(nameof(VeldridDrawOperation)) is false)
+        {
+            DrawOperationLayout = context.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription()
+            {
+                Elements = new ResourceLayoutElementDescription[]
+                {
+                    new("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment), // Transformation and Color
+                    new("FrameParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment), // Timing and Projection
+                }
+            });
+            context.RegisterResourceLayout(DrawOperationLayout, nameof(VeldridDrawOperation), out _);
+        }
+        else
+            DrawOperationLayout = context.GetResourceLayout(nameof(VeldridDrawOperation));
+
+        DrawOperationResourceSet = context.ResourceFactory.CreateResourceSet(new ResourceSetDescription()
+        {
+            Layout = DrawOperationLayout,
+            BoundResources = new IBindableResource[]
+            {
+                opParamBuffer,
+                context.FrameReportBuffer
+            }
+        });
     }
 
     /// <inheritdoc/>
