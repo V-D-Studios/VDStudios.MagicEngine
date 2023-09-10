@@ -71,12 +71,20 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
         get => dpipei;
         set
         {
+            defaultPipeCache = null;
             if (pipelines.ContainsKey(value) is false)
                 throw new ArgumentException($"Could not find a pipeline by index {value}", nameof(value));
             dpipei = value;
         }
     }
     private uint dpipei;
+
+    /// <summary>
+    /// The <see cref="Pipeline"/> currently selected as the default pipeline by <see cref="DefaultPipelineIndex"/>
+    /// </summary>
+    public Pipeline DefaultPipeline
+        => defaultPipeCache ??= GetPipeline(DefaultPipelineIndex);
+    private Pipeline? defaultPipeCache;
 
     /// <summary>
     /// Gets the pipeline 
@@ -88,6 +96,7 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     {
         lock (pipelines)
         {
+            defaultPipeCache = null;
             uint ind = index ?? DefaultPipelineIndex;
             if (pipelines.TryGetValue(ind, out var pipe))
                 return pipe;
@@ -119,6 +128,19 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     #region Resource Layouts
 
     private readonly Dictionary<string, ResourceLayout> resourceLayouts = new();
+
+    /// <summary>
+    /// Attempts to obtain a <see cref="ResourceLayout"/> under <paramref name="name"/>
+    /// </summary>
+    /// <param name="name">The name of the Resource Layout</param>
+    /// <param name="layout">The layout, <see langword="null"/> if found</param>
+    /// <returns><see langword="true"/> if the layout is found and <paramref name="layout"/> has it. <see langword="false"/> otherwise</returns>
+    public bool TryGetResourceLayout(string name, [NotNullWhen(true)] out ResourceLayout? layout)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        lock (resourceLayouts)
+            return resourceLayouts.TryGetValue(name, out layout);
+    }
 
     /// <summary>
     /// Gets the resourceLayout 
@@ -153,13 +175,15 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     /// <param name="resourceLayout">The resource layout to be registered</param>
     /// <param name="name">The name of the resource layout</param>
     /// <param name="previous">If there was previously a resource layout registered under <paramref name="name"/>, this is that resource layout. Otherwise, <see langword="null"/></param>
-    public void RegisterResourceLayout(ResourceLayout resourceLayout, string name, out ResourceLayout? previous)
+    /// <returns>The same <see cref="ResourceLayout"/> that was just registered: <paramref name="resourceLayout"/></returns>
+    public ResourceLayout RegisterResourceLayout(ResourceLayout resourceLayout, string name, out ResourceLayout? previous)
     {
         ArgumentNullException.ThrowIfNull(name);
         lock (resourceLayouts)
         {
             resourceLayouts.Remove(name, out previous);
             resourceLayouts.Add(name, resourceLayout);
+            return resourceLayout;
         }
     }
 
