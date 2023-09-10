@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.NetworkInformation;
@@ -20,16 +21,6 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     /// <param name="DeltaSeconds">The total amount of seconds in the last frame's delta</param>
     /// <param name="Projection">The projection matrix for this frame</param>
     public readonly record struct VeldridFrameReport(Matrix4x4 Projection, float DeltaSeconds);
-
-    /// <summary>
-    /// A set of Shaders
-    /// </summary>
-    /// <param name="VertexShader">The Vertex Shader</param>
-    /// <param name="FragmentShader">The Fragment Shader</param>
-    /// <param name="OtherShaders">Other shaders in this set. This array should not contain neither <paramref name="VertexShader"/> nor <paramref name="FragmentShader"/></param>
-    public readonly record struct ShaderSet(Shader VertexShader, Shader FragmentShader, Shader[]? OtherShaders);
-
-    private readonly record struct ShaderSetKey(string Name, ResourceLayout ResourceLayout);
 
     /// <summary>
     /// Creates a new object of type <see cref="VeldridGraphicsContext"/> with a given manager
