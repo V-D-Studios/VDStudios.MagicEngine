@@ -53,7 +53,6 @@ public abstract class VeldridDrawOperation : DrawOperation<VeldridGraphicsContex
                 Elements = new ResourceLayoutElementDescription[]
                 {
                     new("DrawParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment), // Transformation and Color
-                    new("FrameParameters", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment), // Timing and Projection
                 }
             });
             context.RegisterResourceLayout<VeldridDrawOperation>(DrawOperationLayout, out _);
@@ -66,8 +65,7 @@ public abstract class VeldridDrawOperation : DrawOperation<VeldridGraphicsContex
             Layout = DrawOperationLayout,
             BoundResources = new IBindableResource[]
             {
-                opParamBuffer,
-                context.FrameReportBuffer
+                opParamBuffer
             }
         });
     }
