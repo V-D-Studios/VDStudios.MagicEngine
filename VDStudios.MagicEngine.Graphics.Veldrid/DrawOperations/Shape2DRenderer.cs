@@ -4,17 +4,13 @@ using System.Numerics;
 using System.Resources;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Geometry;
+using VDStudios.MagicEngine.Graphics.Veldrid.Properties;
 using Veldrid;
+using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
 
 #warning NOTE: For multi-shape renderers, disallow changing the shape or adding more shapes
-
-#warning NOTE: Refactor Pipelines; since they hold the shaders they need to be named too
-
-#warning NOTE: Add a parameter to select a given Pipeline here too I guess, it's up to the user to verify it's good
-
-#warning NOTE: Create a Pipeline for Shape2DRenderer, too
 
 /// <summary>
 /// An operation that renders a <see cref="ShapeDefinition2D"/>
@@ -22,7 +18,7 @@ namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
 public class Shape2DRenderer : VeldridDrawOperation
 {
     /// <summary>
-    /// Creates a new object of type <see cref="TextOperation"/>
+    /// Creates a new object of type <see cref="Shape2DRenderer"/>
     /// </summary>
     public Shape2DRenderer(ShapeDefinition2D shape, Game game, ElementSkip vertexSkip = default) : base(game)
     {
@@ -84,6 +80,21 @@ public class Shape2DRenderer : VeldridDrawOperation
     {
         base.CreateGPUResources(context);
 
+        var shaders = context.ShaderCache.GetOrAdd(
+            nameof(Shape2DRenderer), 
+            static (n, c) => c.ResourceFactory.CreateFromSpirv(
+                vertexShaderDescription: new ShaderDescription(
+                    ShaderStages.Vertex,
+                    DefaultShaders.DefaultShape2DRendererVertexShaderBytes,
+                    "main"
+                ),
+                fragmentShaderDescription: new ShaderDescription(
+                    ShaderStages.Fragment,
+                    DefaultShaders.DefaultShape2DRendererFragmentShaderBytes,
+                    "main"
+                )
+            ), context);
+
         if (context.ContainsPipeline<Shape2DRenderer>() is false)
             context.RegisterPipeline<Shape2DRenderer>(context.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription()
             {
@@ -99,8 +110,19 @@ public class Shape2DRenderer : VeldridDrawOperation
                     context.GetResourceLayout<VeldridRenderTarget>(),
                     context.FrameReportLayout
                 },
-                ShaderSet = new ShaderSetDescription()
-#error Shader Set not set
+                ShaderSet = new ShaderSetDescription(
+                    new VertexLayoutDescription[]
+                    {
+                        new VertexLayoutDescription(
+                            new VertexElementDescription(
+                                "Vertex",
+                                VertexElementFormat.Float2,
+                                VertexElementSemantic.Position
+                            )
+                        )
+                    },
+                    shaders
+                )
             }), out _);
     }
 
@@ -154,7 +176,7 @@ public class Shape2DRenderer : VeldridDrawOperation
 
         cl.SetVertexBuffer(0, VertexIndexBuffer, 0);
         cl.SetIndexBuffer(VertexIndexBuffer, IndexFormat.UInt16, VertexEnd);
-        cl.SetPipeline(context.GetPipeline<Shape2DRenderer>());
+        cl.SetPipeline(context.GetPipeline<Shape2DRenderer>(PipelineIndex));
 
         cl.SetGraphicsResourceSet(0, context.FrameReportSet);
         cl.SetGraphicsResourceSet(1, target.TransformationSet);
