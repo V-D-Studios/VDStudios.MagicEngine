@@ -367,6 +367,11 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     #endregion
 
     /// <summary>
+    /// This <see cref="VeldridGraphicsContext"/>'s cache for loaded shaders
+    /// </summary>
+    public ConcurrentDictionary<string, Shader[]> ShaderCache { get; } = new();
+
+    /// <summary>
     /// An uniform buffer containing data about the last frame
     /// </summary>
     public DeviceBuffer FrameReportBuffer { get; }
