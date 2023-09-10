@@ -83,7 +83,12 @@ public abstract class VeldridRenderTarget : RenderTarget<VeldridGraphicsContext>
                 out _
             );
 
-        transSet ??= context.ResourceFactory.CreateResourceSet(new ResourceSetDescription(transLayout, TransformationBuffer));
+        transSet ??= context.ResourceFactory.CreateResourceSet(
+            new ResourceSetDescription(
+                transLayout, 
+                TransformationBuffer
+            )
+        );
 
         if (pendingTransUpdate)
             CommandList.UpdateBuffer(TransformationBuffer, 0, Transformation.View);
