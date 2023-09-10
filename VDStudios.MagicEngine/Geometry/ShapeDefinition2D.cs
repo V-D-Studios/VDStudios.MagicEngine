@@ -67,6 +67,14 @@ public abstract class ShapeDefinition2D : IReadOnlyList<Vector2>
     /// <returns>The amount of indices written to <paramref name="outputIndices"/></returns>
     public abstract int Triangulate(Span<uint> outputIndices, ElementSkip vertexSkip = default);
 
+    /// <summary>
+    /// Triangulates this <see cref="ShapeDefinition2D"/> into a set of indices that run through its vertices as a set of triangles
+    /// </summary>
+    /// <param name="outputIndices">The output of the operation. See <see cref="GetTriangulationLength"/></param>
+    /// <param name="vertexSkip">The amount of vertices to skip when triangulating</param>
+    /// <returns>The amount of indices written to <paramref name="outputIndices"/></returns>
+    public abstract int Triangulate(Span<ushort> outputIndices, ElementSkip vertexSkip = default);
+
     /// <inheritdoc/>
     public abstract IEnumerator<Vector2> GetEnumerator();
 

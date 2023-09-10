@@ -160,6 +160,69 @@ public class DonutDefinition : ShapeDefinition2D
     /// <inheritdoc/>
     public override int Triangulate(Span<uint> outputIndices, ElementSkip vertexSkip = default)
     {
+        var isp = (uint)InnerCircleSpan.Length;
+        var osp = (uint)OuterCircleSpan.Length;
+        var istart = (uint)checked(InnerCircleStart);
+        var ostart = (uint)checked(OuterCircleStart);
+        int bufind = 0;
+
+        if (isp == osp)
+        {
+            for (uint i = 0; i < osp; i++)
+            {
+                uint in1 = ((i + 1) % osp + istart);
+                uint ou0 = (i + ostart);
+
+                outputIndices[bufind++] = in1;
+                outputIndices[bufind++] = ou0;
+                outputIndices[bufind++] = (i + istart);
+
+                outputIndices[bufind++] = in1;
+                outputIndices[bufind++] = ou0;
+                outputIndices[bufind++] = ((i + 1) % osp + ostart);
+
+                outputIndices[bufind++] = in1;
+            }
+            return bufind;
+        }
+
+        if (isp > osp)
+            (isp, osp, istart, ostart) = (osp, isp, ostart, istart); // We swap these variables around so that we only have to write one implementation; and the functionality will be the same
+
+        // This algorithm works under the asumption that there are more subdivisions in the outer circle than in the inner one
+        // Therefore, each inner circle vertex will have more than one outer circle vertex connected to it
+        uint ratio = (osp / isp);
+        for (uint stage = 0; stage < isp * ratio; stage += ratio)
+        {
+            uint in0 = (stage / ratio + istart);
+            uint ou1;
+            uint ou0;
+            for (uint i = 0; i < ratio; i++)
+            {
+                //outputIndices[bufind++] = ((i + 1) % isp + istart);
+                //outputIndices[bufind++] = ((i % ratio) * stage + ostart);
+                //outputIndices[bufind++] = (i % isp + istart);
+
+                ou1 = (((i + stage) + 1) % osp + ostart);
+                ou0 = ((i + stage) + ostart);
+
+                outputIndices[bufind++] = in0;
+                outputIndices[bufind++] = ou1;
+                outputIndices[bufind++] = ou0;
+            }
+            outputIndices[bufind++] = in0;
+            outputIndices[bufind++] = ((in0 + 1) % isp);
+            outputIndices[bufind++] = ((stage + 2) % osp + ostart);
+            outputIndices[bufind++] = in0;
+        }
+        outputIndices[bufind++] = 0;
+
+        return bufind;
+    }
+
+    /// <inheritdoc/>
+    public override int Triangulate(Span<ushort> outputIndices, ElementSkip vertexSkip = default)
+    {
         var isp = InnerCircleSpan.Length;
         var osp = OuterCircleSpan.Length;
         var istart = checked((ushort)InnerCircleStart);

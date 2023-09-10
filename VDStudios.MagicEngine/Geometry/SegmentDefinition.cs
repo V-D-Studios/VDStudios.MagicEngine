@@ -101,16 +101,23 @@ public class SegmentDefinition : ShapeDefinition2D
     public override int GetTriangulationLength(ElementSkip vertexSkip = default)
         => vertexSkip.GetSkipFactor(4) != 0
             ? throw new ArgumentException("RectangleDefinition does not support skipping vertices", nameof(vertexSkip))
-            : TriangulatedRectangle.Length;
+            : RectangleDefinition.TriangulatedRectangleUInt32.Length;
 
     /// <inheritdoc/>
     public override int Triangulate(Span<uint> outputIndices, ElementSkip vertexSkip = default)
     {
         if (vertexSkip.GetSkipFactor(4) != 0)
             throw new ArgumentException("RectangleDefinition does not support skipping vertices", nameof(vertexSkip));
-        TriangulatedRectangle.CopyTo(outputIndices);
-        return TriangulatedRectangle.Length;
+        RectangleDefinition.TriangulatedRectangleUInt32.CopyTo(outputIndices);
+        return RectangleDefinition.TriangulatedRectangleUInt32.Length;
     }
 
-    private readonly uint[] TriangulatedRectangle = { 1, 0, 3, 1, 2, 3 };
+    /// <inheritdoc/>
+    public override int Triangulate(Span<ushort> outputIndices, ElementSkip vertexSkip = default)
+    {
+        if (vertexSkip.GetSkipFactor(4) != 0)
+            throw new ArgumentException("RectangleDefinition does not support skipping vertices", nameof(vertexSkip));
+        RectangleDefinition.TriangulatedRectangleUInt16.CopyTo(outputIndices);
+        return RectangleDefinition.TriangulatedRectangleUInt16.Length;
+    }
 }

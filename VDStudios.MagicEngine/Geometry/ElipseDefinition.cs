@@ -135,4 +135,9 @@ public class ElipseDefinition : ShapeDefinition2D
     /// <inheritdoc/>
     public override int Triangulate(Span<uint> outputIndices, ElementSkip vertexSkip = default)
         => PolygonDefinition.TriangulatePolygon(Count, true, outputIndices, vertexSkip);
+
+    /// <inheritdoc/>
+    public override int Triangulate(Span<ushort> outputIndices, ElementSkip vertexSkip = default)
+        => PolygonDefinition.TriangulatePolygon(Count, IsConvex, outputIndices, vertexSkip);
+
 }

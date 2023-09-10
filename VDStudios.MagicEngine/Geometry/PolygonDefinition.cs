@@ -227,6 +227,10 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     public override int Triangulate(Span<uint> outputIndices, ElementSkip vertexSkip = default)
         => TriangulatePolygon(Count, IsConvex, outputIndices, vertexSkip);
 
+    /// <inheritdoc/>
+    public override int Triangulate(Span<ushort> outputIndices, ElementSkip vertexSkip = default)
+        => TriangulatePolygon(Count, IsConvex, outputIndices, vertexSkip);
+
     /// <summary>
     /// Triangulates a shape into a set of indices that run through its vertices as a set of triangles
     /// </summary>
@@ -235,7 +239,8 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     /// <param name="isConvex">Whether or not the Polygon is convex</param>
     /// <param name="vertexCount">The amount of vertices the shape has</param>
     /// <returns>The amount of indices written to <paramref name="outputIndices"/></returns>
-    public static int TriangulatePolygon(int vertexCount, bool isConvex, Span<uint> outputIndices, ElementSkip vertexSkip = default)
+    public static int TriangulatePolygon<TInt>(int vertexCount, bool isConvex, Span<TInt> outputIndices, ElementSkip vertexSkip = default)
+        where TInt : unmanaged, IBinaryInteger<TInt>
     {
         var count = vertexCount;
         var step = vertexSkip.GetSkipFactor(vertexCount);
@@ -246,10 +251,10 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
             if (outputIndices.Length <= 4)
                 throw new ArgumentException("The span is too short to hold the triangulated indices", nameof(outputIndices));
 
-            outputIndices[0] = 0;
-            outputIndices[1] = (ushort)step;
-            outputIndices[2] = (ushort)(count - 1);
-            outputIndices[3] = 0;
+            outputIndices[0] = TInt.Zero;
+            outputIndices[1] = TInt.CreateSaturating(step);
+            outputIndices[2] = TInt.CreateSaturating(count - 1);
+            outputIndices[3] = TInt.Zero;
 
             return 4;
         }
@@ -261,17 +266,17 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
                 if (outputIndices.Length <= 6)
                     throw new ArgumentException("The span is too short to hold the triangulated indices", nameof(outputIndices));
 
-                outputIndices[0] = (ushort)(1 * step); // 1
-                outputIndices[1] = (ushort)(0 * step); // 0
-                outputIndices[2] = (ushort)(3 * step); // 3
-                outputIndices[3] = (ushort)(1 * step); // 1
-                outputIndices[4] = (ushort)(2 * step); // 2
-                outputIndices[5] = (ushort)(int.Min(3 * step, count - 1)); // 3
+                outputIndices[0] = TInt.CreateSaturating(1 * step); // 1
+                outputIndices[1] = TInt.CreateSaturating(0 * step); // 0
+                outputIndices[2] = TInt.CreateSaturating(3 * step); // 3
+                outputIndices[3] = TInt.CreateSaturating(1 * step); // 1
+                outputIndices[4] = TInt.CreateSaturating(2 * step); // 2
+                outputIndices[5] = TInt.Min(TInt.CreateSaturating(3 * step), TInt.CreateSaturating(count - 1)); // 3
 
                 return 6;
             }
 
-            ComputeConvexTriangulatedIndexBuffers(count, outputIndices, (uint)step, start);
+            ComputeConvexTriangulatedIndexBuffers(count, outputIndices, TInt.CreateSaturating(step), start);
             return indexCount;
         }
 
@@ -293,14 +298,16 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     /// <param name="indexBuffer">The buffer to store the indices in</param>
     /// <param name="step">The step factor for skipping</param>
     /// <param name="start">The starting point of the triangulation. Synonym to <c>added</c> in <see cref="ComputeConvexTriangulatedIndexBufferSize(int, out byte)"/></param>
-    public static void ComputeConvexTriangulatedIndexBuffers(int count, Span<uint> indexBuffer, uint step, byte start)
+    public static void ComputeConvexTriangulatedIndexBuffers<TInt>(int count, Span<TInt> indexBuffer, TInt step, byte start)
+        where TInt : unmanaged, IBinaryInteger<TInt>
     {
         int bufind = 0;
-        uint i = start;
+        TInt i = TInt.CreateSaturating(start);
+        TInt c = TInt.CreateSaturating(count);
 
-        while (i < count)
+        while (i < c)
         {
-            indexBuffer[bufind++] = 0;
+            indexBuffer[bufind++] = TInt.Zero;
             indexBuffer[bufind++] = step * i++;
             indexBuffer[bufind++] = step * i;
         }
