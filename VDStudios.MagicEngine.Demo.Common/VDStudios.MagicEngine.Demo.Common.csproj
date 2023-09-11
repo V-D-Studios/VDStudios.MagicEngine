@@ -1,9 +1,32 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<SignAssembly>False</SignAssembly>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/V-D-Studios/VDStudios.MagicEngine</RepositoryUrl>
+		<PackageTags>game-development; game; gaming; game-dev; gamedev; sdl2; sdl; veldrid; graphics; engine; graphics-engine; rendering; renderer</PackageTags>
+		<NeutralLanguage>en</NeutralLanguage>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+		<ErrorReport>prompt</ErrorReport>
+
+		<Title>Game Engine: Magic Engine Demo Common Library</Title>
+		<Authors>Diego Garcia</Authors>
+		<Company>V%26D Studios</Company>
+		<Copyright>V%26D Studios ️©️ 2023</Copyright>
+		<Version>$(AssemblyVersion)</Version>
+		<FileVersion>$(AssemblyVersion)</FileVersion>
+		<Platforms>AnyCPU;x64;x86</Platforms>
+
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\VDStudios.MagicEngine\VDStudios.MagicEngine.csproj" />
+	</ItemGroup>
 
 </Project>
