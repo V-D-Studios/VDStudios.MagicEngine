@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using SDL2.NET;
 using VDStudios.MagicEngine.Demo.Common.Nodes;
 using VDStudios.MagicEngine.Demo.Common.Utilities;
 using VDStudios.MagicEngine.Graphics;
@@ -9,12 +10,12 @@ using VDStudios.MagicEngine.World2D;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Nodes;
 
-public class SingleSpriteEntityNode : EntityNode, IWorldObject2D
+public class SingleSpriteEntityNode : EntityNode<SDLGraphicsContext>, IWorldObject2D
 {
-    protected CharacterAnimationContainer? AnimationContainer { get; }
+    protected CharacterAnimationContainer<Rectangle>? AnimationContainer { get; }
     public TextureOperation Sprite { get; }
 
-    public SingleSpriteEntityNode(TextureOperation sprite, CharacterAnimationContainer? animationContainer = null)
+    public SingleSpriteEntityNode(TextureOperation sprite, CharacterAnimationContainer<Rectangle>? animationContainer = null)
         : base(sprite?.Game ?? throw new ArgumentNullException(nameof(sprite)))
     {
         Sprite = sprite;

@@ -61,9 +61,9 @@ public class TestScene : DemoSceneBase
         Camera.Target = pnode;
     }
 
-    private static CharacterAnimationContainer CreateRobinAnimationContainer()
+    private static CharacterAnimationContainer<Rectangle> CreateRobinAnimationContainer()
     {
-        var animContainer = new CharacterAnimationContainer(8,
+        var animContainer = new CharacterAnimationContainer<Rectangle>(8,
             Helper.GetRectangles(AnimationDefinitions.Robin.Player.Idle.Frames), true,
             Helper.GetRectangles(AnimationDefinitions.Robin.Player.Active.Frames), true,
             Helper.GetRectangles(AnimationDefinitions.Robin.Player.Up.Frames), true,

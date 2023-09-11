@@ -12,6 +12,7 @@ using VDStudios.MagicEngine.Demo.Common.Services;
 using VDStudios.MagicEngine.World2D;
 using Scancode = SDL2.NET.Scancode;
 using VDStudios.MagicEngine.Demo.Common.Utilities;
+using SDL2.NET;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Nodes;
 
@@ -19,7 +20,7 @@ public class MobileSingleSpriteEntityNode : SingleSpriteEntityNode, IWorldMobile
 {
     public float Speed { get; } = .3f;
 
-    public MobileSingleSpriteEntityNode(TextureOperation textureOperation, CharacterAnimationContainer? animationContainer) :
+    public MobileSingleSpriteEntityNode(TextureOperation textureOperation, CharacterAnimationContainer<Rectangle>? animationContainer) :
         base(textureOperation, animationContainer)
     { }
 

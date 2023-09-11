@@ -1,18 +1,18 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using VDStudios.MagicEngine.Graphics;
-using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Demo.Common.Services;
 using VDStudios.MagicEngine.World2D;
 
 namespace VDStudios.MagicEngine.Demo.Common.Nodes;
 
-public abstract class EntityNode : Node, IWorldObject2D
+public abstract class EntityNode<TGraphicsContext> : Node, IWorldObject2D
+    where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     public EntityNode(Game game) : base(game) { }
 
     private bool edoDisabled;
-    protected readonly List<DrawOperation<SDLGraphicsContext>> EntityDrawOperations = new();
+    protected readonly List<DrawOperation<TGraphicsContext>> EntityDrawOperations = new();
 
     public Vector2 Position { get; set; } = default;
     public Vector2 Size { get; set; } = new(32, 32);
