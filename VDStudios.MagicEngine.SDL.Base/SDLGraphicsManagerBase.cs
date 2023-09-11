@@ -113,17 +113,15 @@ public abstract class SDLGraphicsManagerBase<TGraphicsContext> : GraphicsManager
         Window.MouseMoved += Window_MouseMoved;
         Window.MouseWheelScrolled += Window_MouseWheelScrolled;
 
-        PerformOnWindow(w =>
-        {
-            Log?.Debug("Querying WindowFlags");
-            var flags = w.Flags;
-            IsWindowAvailable = flags.HasFlag(WindowFlags.Shown);
-            HasFocus = flags.HasFlag(WindowFlags.InputFocus);
+        Log?.Debug("Querying WindowFlags");
+        var flags = Window.Flags;
+        IsWindowAvailable = flags.HasFlag(WindowFlags.Shown);
+        HasFocus = flags.HasFlag(WindowFlags.InputFocus);
 
-            Log?.Debug("Reading WindowSize");
-            var (ww, wh) = w.Size;
-            WindowSize = new IntVector2(ww, wh);
-        });
+        Log?.Debug("Reading WindowSize");
+        var (ww, wh) = Window.Size;
+        WindowSize = new IntVector2(ww, wh);
+        WindowView = Matrix4x4.CreateScale(wh / (float)ww, 1, 1);
     }
 
     #region Window Events
