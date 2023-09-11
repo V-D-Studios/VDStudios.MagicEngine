@@ -25,24 +25,24 @@ public class TestScene : DemoSceneBase
         await base.Beginning();
         RegisterDrawOperationManager(new DrawOperationManager<SDLGraphicsContext>(this));
         
-        var txc = Services.GetService<TextureCache>();
+        var txc = Services.GetService<ResourceCache<SDLGraphicsContext, Texture>>();
 
         var pnode = new MobileSingleSpriteEntityNode(
-            new(Game, txc.GetTexture("robin").Factory),
+            new(Game, txc.GetResource("robin").Factory),
             CreateRobinAnimationContainer()
         );
         await Attach(pnode);
 
         Services.GetService<GameState>().PlayerNode = pnode;
 
-        var terrainNode = new TerrainNode(new TextureOperation(Game, txc.GetTexture("grass1").Factory));
+        var terrainNode = new TerrainNode(new TextureOperation(Game, txc.GetResource("grass1").Factory));
         await Attach(terrainNode);
 
         var hnode = new HUDNode(Game);
         await Attach(hnode);
 
         int trees = Random.Next(500, 1000);
-        var baumf = txc.GetTexture("baum").Factory;
+        var baumf = txc.GetResource("baum").Factory;
         for (int i = 0; i < trees; i++)
         {
             var tnode = new SingleSpriteEntityNode(new TextureOperation(Game, baumf));

@@ -29,13 +29,13 @@ public class DemoGame : SDLGame
         registrar.RegisterService(new GameSettings());
         registrar.RegisterService((t, c) =>
         {
-            var cache = new TextureCache();
+            var cache = new ResourceCache<SDLGraphicsContext, Texture>();
 
-            cache.RegisterTexture("baum", baum, out _);
+            cache.RegisterResource("baum", baum, out _);
 
-            cache.RegisterTexture("robin", robin, out _);
+            cache.RegisterResource("robin", robin, out _);
 
-            cache.RegisterTexture("grass1", grass1, out _);
+            cache.RegisterResource("grass1", grass1, out _);
 
             unsafe Texture robin(SDLGraphicsContext c)
             {
