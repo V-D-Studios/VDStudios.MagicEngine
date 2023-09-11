@@ -89,6 +89,7 @@
 		<ProjectReference Include="..\dependencies\veldrid\src\Veldrid.ImageSharp\Veldrid.ImageSharp.csproj" />
 		<ProjectReference Include="..\dependencies\veldrid\src\Veldrid.ImGui\Veldrid.ImGui.csproj" />
 		<ProjectReference Include="..\dependencies\veldrid\src\Veldrid\Veldrid.csproj" />
+		<ProjectReference Include="..\VDStudios.MagicEngine.SDL.Base\VDStudios.MagicEngine.SDL.Base.csproj" />
 		<ProjectReference Include="..\VDStudios.MagicEngine\VDStudios.MagicEngine.csproj" />
 	</ItemGroup>
 	
