@@ -1,6 +1,6 @@
 ﻿using SDL2.NET;
 
-namespace VDStudios.MagicEngine.Graphics.Veldrid;
+namespace VDStudios.MagicEngine.SDL.Base;
 
 /// <summary>
 /// Represents a lifetime of a game that can be manually killed, and ends automatically when the given <see cref="Window"/> closes
