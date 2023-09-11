@@ -6,9 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SDL2.NET;
-using VDStudios.MagicEngine.Graphics.SDL;
 
-namespace VDStudios.MagicEngine.SDL.Demo.Services;
+namespace VDStudios.MagicEngine.Demo.Common.Services;
 
 public class ResourceCache<TOwner, TResource>
     where TOwner : notnull

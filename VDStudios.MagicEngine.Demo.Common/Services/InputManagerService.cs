@@ -4,10 +4,9 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using SDL2.NET.Input;
-using VDStudios.MagicEngine.SDL.Demo.Nodes;
 using Scancode = SDL2.NET.Scancode;
 
-namespace VDStudios.MagicEngine.SDL.Demo.Services;
+namespace VDStudios.MagicEngine.Demo.Common.Services;
 
 public class InputManagerService
 {
@@ -18,7 +17,7 @@ public class InputManagerService
 
     private readonly SemaphoreSlim keySemaphore = new(1, 1);
 
-    public InputManagerService(Game game, out InputReactorNode reactor) 
+    public InputManagerService(Game game, out InputReactorNode reactor)
     {
         reactor = new InputReactorNode(this, game);
     }

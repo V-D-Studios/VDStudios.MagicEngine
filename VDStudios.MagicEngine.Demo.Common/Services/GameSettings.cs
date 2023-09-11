@@ -1,4 +1,4 @@
-﻿namespace VDStudios.MagicEngine.SDL.Demo.Services;
+﻿namespace VDStudios.MagicEngine.Demo.Common.Services;
 
 public class GameSettings
 {

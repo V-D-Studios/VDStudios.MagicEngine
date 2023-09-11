@@ -1,12 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using SDL2.NET;
-using VDStudios.MagicEngine.Extensions.VideoRecording.SDL;
-using VDStudios.MagicEngine.Graphics.SDL;
-using VDStudios.MagicEngine.SDL.Demo.Nodes;
 using VDStudios.MagicEngine.Services;
 using VDStudios.MagicEngine.World2D;
 
-namespace VDStudios.MagicEngine.SDL.Demo.Services;
+namespace VDStudios.MagicEngine.Demo.Common.Services;
 
 public class GameState : GameObject
 {
@@ -94,16 +91,6 @@ public class GameState : GameObject
         //    return ValueTask.CompletedTask;
         //});
     }
-
-    private SDLRecorder? recorder;
-
-    public bool TryGetRecorder([NotNullWhen(true)] out SDLRecorder? recorder)
-    {
-        recorder = this.recorder;
-        return IsRecording;
-    }
-
-    public bool IsRecording => recorder is not null;
 
     public IWorldMobile2D? PlayerNode { get; set; }
 }
