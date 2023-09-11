@@ -8,7 +8,7 @@ using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 using VDStudios.MagicEngine.SDL.Demo.Scenes;
-using VDStudios.MagicEngine.SDL.Demo.Services;
+using VDStudios.MagicEngine.Demo.Common.Services;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Nodes;
 
@@ -51,7 +51,7 @@ public class HUDNode : Node
             var scale = goal.Scale;
             var position = goal.Translation;
 
-            RecordingNotif.SetTextBlended(state.IsRecording ? "Recording..." : "", RgbaVector.DarkRed.ToRGBAColor(), 16);
+            //RecordingNotif.SetTextBlended(state.IsRecording ? "Recording..." : "", RgbaVector.DarkRed.ToRGBAColor(), 16);
             RobinPositionReport.SetTextBlended($"Robin: {state.PlayerNode.Position: 0000.00;-0000.00}", RgbaVector.Black.ToRGBAColor(), 16);
             CameraPositionReport.SetTextBlended($"Camera, Position: {position: 0000.00;-0000.00}, Scale: {scale: 0000.00;-0000.00}", RgbaVector.Red.ToRGBAColor(), 16);
             GMTimer.Restart();

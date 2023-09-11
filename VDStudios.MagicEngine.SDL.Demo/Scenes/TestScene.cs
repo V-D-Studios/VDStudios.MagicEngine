@@ -7,10 +7,10 @@ using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 using VDStudios.MagicEngine.SDL.Demo.Nodes;
-using VDStudios.MagicEngine.SDL.Demo.Services;
-using VDStudios.MagicEngine.SDL.Demo.Utilities;
+using VDStudios.MagicEngine.Demo.Common.Services;
 using VDStudios.MagicEngine.Services;
 using static System.Formats.Asn1.AsnWriter;
+using VDStudios.MagicEngine.Demo.Common.Utilities;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Scenes;
 

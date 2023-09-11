@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using SDL2.NET;
 
-namespace VDStudios.MagicEngine.SDL.Demo.Utilities;
+namespace VDStudios.MagicEngine.Demo.Common.Utilities;
 
 public class CharacterAnimationContainer : IReadOnlyCollection<KeyValuePair<CharacterAnimationKind, TimedSequence<Rectangle>>>
 {

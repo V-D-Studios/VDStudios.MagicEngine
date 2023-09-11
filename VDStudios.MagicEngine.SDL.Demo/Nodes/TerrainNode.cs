@@ -8,7 +8,7 @@ using SDL2.NET;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 using VDStudios.MagicEngine.SDL.Demo.Scenes;
-using VDStudios.MagicEngine.SDL.Demo.Services;
+using VDStudios.MagicEngine.Demo.Common.Services;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Nodes;
 public class TerrainNode : Node

@@ -9,7 +9,7 @@ using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Internal;
 using VDStudios.MagicEngine.SDL.Base;
 using VDStudios.MagicEngine.SDL.Demo.Scenes;
-using VDStudios.MagicEngine.SDL.Demo.Services;
+using VDStudios.MagicEngine.Demo.Common.Services;
 using VDStudios.MagicEngine.Services;
 
 namespace VDStudios.MagicEngine.SDL.Demo;

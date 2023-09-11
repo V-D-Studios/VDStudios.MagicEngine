@@ -3,7 +3,7 @@ using System.Diagnostics;
 using SDL2.NET;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.RenderTargets;
-using VDStudios.MagicEngine.SDL.Demo.Services;
+using VDStudios.MagicEngine.Demo.Common.Services;
 using VDStudios.MagicEngine.Services;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Scenes;
@@ -40,17 +40,17 @@ public abstract class DemoSceneBase : Scene
     private Task? rec;
     protected override async ValueTask<bool> Updating(TimeSpan delta)
     {
-        if (rec is null)
-        {
-            var state = Services.GetService<GameState>();
-            if (state.TryGetRecorder(out var recorder))
-                rec = recorder.Update().AsTask();
-        }
-        else if (rec.IsCompleted)
-        {
-            await rec;
-            rec = null;
-        }
+        //if (rec is null)
+        //{
+        //    var state = Services.GetService<GameState>();
+        //    if (state.TryGetRecorder(out var recorder))
+        //        rec = recorder.Update().AsTask();
+        //}
+        //else if (rec.IsCompleted)
+        //{
+        //    await rec;
+        //    rec = null;
+        //}
 
         return true;
     }

@@ -28,6 +28,7 @@
   <ItemGroup>
     <ProjectReference Include="..\dependencies\SDL2.NET\SDL2.Bindings\SDL2.Bindings.csproj" />
     <ProjectReference Include="..\dependencies\SDL2.NET\SDL2.NET\SDL2.NET.csproj" />
+    <ProjectReference Include="..\VDStudios.MagicEngine.Demo.Common\VDStudios.MagicEngine.Demo.Common.csproj" />
     <ProjectReference Include="..\VDStudios.MagicEngine.DemoResources\VDStudios.MagicEngine.DemoResources.csproj" />
     <ProjectReference Include="..\VDStudios.MagicEngine.Extensions.VideoRecording.SDL\VDStudios.MagicEngine.Extensions.VideoRecording.SDL.csproj" />
     <ProjectReference Include="..\VDStudios.MagicEngine.Extensions.VideoRecording\VDStudios.MagicEngine.Extensions.VideoRecording.csproj" />

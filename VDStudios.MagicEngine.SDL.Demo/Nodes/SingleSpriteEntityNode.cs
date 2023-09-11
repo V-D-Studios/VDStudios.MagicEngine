@@ -1,9 +1,10 @@
 ﻿using System.Numerics;
+using VDStudios.MagicEngine.Demo.Common.Nodes;
+using VDStudios.MagicEngine.Demo.Common.Utilities;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 using VDStudios.MagicEngine.SDL.Demo.Scenes;
-using VDStudios.MagicEngine.SDL.Demo.Utilities;
 using VDStudios.MagicEngine.World2D;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Nodes;

@@ -2,10 +2,10 @@
 using System.Numerics;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
-using VDStudios.MagicEngine.SDL.Demo.Services;
+using VDStudios.MagicEngine.Demo.Common.Services;
 using VDStudios.MagicEngine.World2D;
 
-namespace VDStudios.MagicEngine.SDL.Demo.Nodes;
+namespace VDStudios.MagicEngine.Demo.Common.Nodes;
 
 public abstract class EntityNode : Node, IWorldObject2D
 {
@@ -37,7 +37,7 @@ public abstract class EntityNode : Node, IWorldObject2D
         if (state.PlayerNode is IWorldMobile2D player && settings.EntityUpdateCutoffDistance > this.GetDistance(player))
         {
             await EntityUpdating(delta);
-            
+
             if (edoDisabled is true)
             {
                 for (int i = 0; i < EntityDrawOperations.Count; i++)

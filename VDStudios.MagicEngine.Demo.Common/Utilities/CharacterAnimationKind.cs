@@ -1,4 +1,4 @@
-﻿namespace VDStudios.MagicEngine.SDL.Demo.Utilities;
+﻿namespace VDStudios.MagicEngine.Demo.Common.Utilities;
 
 public enum CharacterAnimationKind
 {

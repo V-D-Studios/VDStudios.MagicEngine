@@ -8,10 +8,10 @@ using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 using VDStudios.MagicEngine.Input;
 using VDStudios.MagicEngine.SDL.Demo.Scenes;
-using VDStudios.MagicEngine.SDL.Demo.Services;
-using VDStudios.MagicEngine.SDL.Demo.Utilities;
+using VDStudios.MagicEngine.Demo.Common.Services;
 using VDStudios.MagicEngine.World2D;
 using Scancode = SDL2.NET.Scancode;
+using VDStudios.MagicEngine.Demo.Common.Utilities;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Nodes;
 
