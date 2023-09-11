@@ -7,6 +7,7 @@ using SDL2.NET.Utilities;
 using VDStudios.MagicEngine.DemoResources;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Internal;
+using VDStudios.MagicEngine.SDL.Base;
 using VDStudios.MagicEngine.SDL.Demo.Scenes;
 using VDStudios.MagicEngine.SDL.Demo.Services;
 using VDStudios.MagicEngine.Services;
@@ -15,6 +16,12 @@ namespace VDStudios.MagicEngine.SDL.Demo;
 
 public class DemoGame : SDLGame
 {
+    public DemoGame() : base(
+        game => new SDLGraphicsManager(game),
+        game => new GameLifeTimeOnWindowCloses(((SDLGraphicsManager)game.MainGraphicsManager).Window)
+    )
+    { }
+
     protected override void RegisteringServices(IServiceRegistrar registrar)
     {
         base.RegisteringServices(registrar);

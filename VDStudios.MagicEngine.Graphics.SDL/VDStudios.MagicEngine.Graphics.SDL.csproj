@@ -47,6 +47,7 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\dependencies\SDL2.NET\SDL2.Bindings\SDL2.Bindings.csproj" />
 	  <ProjectReference Include="..\dependencies\SDL2.NET\SDL2.NET\SDL2.NET.csproj" />
+	  <ProjectReference Include="..\VDStudios.MagicEngine.SDL.Base\VDStudios.MagicEngine.SDL.Base.csproj" />
 	  <ProjectReference Include="..\VDStudios.MagicEngine\VDStudios.MagicEngine.csproj" />
 	</ItemGroup>
 
