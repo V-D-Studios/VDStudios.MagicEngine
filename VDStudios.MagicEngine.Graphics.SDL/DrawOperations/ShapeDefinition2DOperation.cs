@@ -29,13 +29,11 @@ public class ShapeDefinition2DOperation : DrawOperation<SDLGraphicsContext>
             if(_shape != value)
             {
                 _shape = value;
-                lastver = _shape.Version;
                 NotifyPendingGPUUpdate();
             }
         }
     }
     private ShapeDefinition2D _shape;
-    private int lastver = 0;
 
     /// <summary>
     /// The color of the rendered shapes
@@ -52,12 +50,6 @@ public class ShapeDefinition2DOperation : DrawOperation<SDLGraphicsContext>
     /// <inheritdoc/>
     protected override void Draw(TimeSpan delta, SDLGraphicsContext context, RenderTarget<SDLGraphicsContext> target)
     {
-        if (lastver != _shape.Version)
-        {
-            ForceGPUUpdate(context);
-            lastver = _shape.Version;
-        }
-
         var sh = Shape;
         Span<Vector2> vertices = stackalloc Vector2[sh.Count];
         sh.AsSpan().CopyTo(vertices);
