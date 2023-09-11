@@ -435,7 +435,10 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
     public override void BeginFrame()
     {
         CommandList.SetFramebuffer(GraphicsDevice.SwapchainFramebuffer);
+        CommandList.SetFullViewports();
+        CommandList.SetFullScissorRects();
         CommandList.ClearColorTarget(0, Manager.BackgroundColor.ToRgbaFloat());
+        //CommandList.ClearDepthStencil(GraphicsDevice.IsDepthRangeZeroToOne ? 1f : 0f);
     }
 
     /// <inheritdoc/>
@@ -451,6 +454,9 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>
             GraphicsDevice.SubmitCommands(cmd);
             commandListPool.Return(cmd);
         }
+
+        GraphicsDevice.WaitForIdle();
+        GraphicsDevice.SwapBuffers();
 
         commands.Clear();
     }
