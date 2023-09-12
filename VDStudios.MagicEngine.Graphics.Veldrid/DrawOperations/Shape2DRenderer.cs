@@ -4,6 +4,7 @@ using System.Numerics;
 using System.Resources;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Geometry;
+using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
 using VDStudios.MagicEngine.Graphics.Veldrid.Properties;
 using Veldrid;
 using Veldrid.SPIRV;
@@ -24,18 +25,6 @@ public class Shape2DRenderer : VeldridDrawOperation
     {
         Shape = shape;
         VertexSkip = vertexSkip;
-    }
-
-    public readonly struct VertexColor
-    {
-        public readonly Vector2 Vertex;
-        public readonly RgbaFloat Color;
-
-        public VertexColor(Vector2 vertex, RgbaFloat color)
-        {
-            Vertex = vertex;
-            Color = color;
-        }
     }
 
     /// <summary>
