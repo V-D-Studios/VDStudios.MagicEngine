@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace VDStudios.MagicEngine.Graphics;
 
@@ -103,6 +104,13 @@ public struct RgbaVector : IEquatable<RgbaVector>
     /// <inheritdoc/>
     public override readonly int GetHashCode()
         => _channels.GetHashCode();
+
+    /// <summary>
+    /// Returns a string representation of this color.
+    /// </summary>
+    /// <returns></returns>
+    public override readonly string ToString() 
+        => string.Format("R:{0}, G:{1}, B:{2}, A:{3}", R, G, B, A);
 
     /// <summary>
     /// Creates a <see cref="Vector4"/> object from this <see cref="RgbaVector"/>
