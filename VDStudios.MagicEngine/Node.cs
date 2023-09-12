@@ -578,6 +578,8 @@ public abstract class Node : DisposableGameObject, IDisposable
 
     internal override void InternalDispose(bool disposing)
     {
+        if (ParentScene is not null)
+            Detach().Preserve().ConfigureAwait(false).GetAwaiter().GetResult();
         Components.Clear();
         Components = null!;
         updater = null;
