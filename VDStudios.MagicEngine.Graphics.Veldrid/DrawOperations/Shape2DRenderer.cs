@@ -118,10 +118,7 @@ public class Shape2DRenderer : VeldridDrawOperation
                 shaderSet: new ShaderSetDescription(
                     new VertexLayoutDescription[]
                     {
-                        new VertexLayoutDescription(
-                            new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
-                            new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4)
-                        )
+                        VertexColor2D.GetDescription(),
                     },
                     shaders
                 ),
@@ -145,7 +142,7 @@ public class Shape2DRenderer : VeldridDrawOperation
         {
             var vertexlen = Shape.Count;
             var indexlen = Shape.GetTriangulationLength();
-            var bufferLen = (uint)((Unsafe.SizeOf<VertexColor>() * vertexlen) + (sizeof(uint) * indexlen));
+            var bufferLen = (uint)((Unsafe.SizeOf<VertexColor2D>() * vertexlen) + (sizeof(uint) * indexlen));
 
             if (VertexIndexBuffer is not null && bufferLen > VertexIndexBuffer.SizeInBytes)
             {
@@ -162,9 +159,9 @@ public class Shape2DRenderer : VeldridDrawOperation
                 });
 
                 var vertices = Shape.AsSpan();
-                Span<VertexColor> vertexColors = stackalloc VertexColor[vertices.Length];
+                Span<VertexColor2D> vertexColors = stackalloc VertexColor2D[vertices.Length];
                 for (int i = 0; i < vertexColors.Length; i++)
-                    vertexColors[i] = new VertexColor(vertices[i], RgbaVector.Red);
+                    vertexColors[i] = new VertexColor2D(vertices[i], RgbaVector.Red);
 
                 context.CommandList.UpdateBuffer(VertexIndexBuffer, 0, vertices);
                 VertexEnd = (uint)(vertexlen * Unsafe.SizeOf<Vector2>());
