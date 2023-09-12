@@ -1,4 +1,5 @@
 ﻿using System;
+using VDStudios.MagicEngine.Graphics;
 
 namespace Veldrid.OpenGL;
 
@@ -6,7 +7,7 @@ internal interface OpenGLCommandEntryList
 {
     OpenGLCommandList Parent { get; }
     void Begin();
-    void ClearColorTarget(uint index, RgbaFloat clearColor);
+    void ClearColorTarget(uint index, RgbaVector clearColor);
     void ClearDepthTarget(float depth, byte stencil);
     void Draw(uint vertexCount, uint instanceCount, uint vertexStart, uint instanceStart);
     void DrawIndexed(uint indexCount, uint instanceCount, uint indexStart, int vertexOffset, uint instanceStart);

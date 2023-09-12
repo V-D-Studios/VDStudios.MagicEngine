@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using VDStudios.MagicEngine.Graphics;
 using Veldrid.MetalBindings;
 
 namespace Veldrid.MTL;
@@ -28,7 +29,7 @@ internal class MTLPipeline : Pipeline
     public bool HasStencil { get; }
     public override string Name { get; set; }
     public uint StencilReference { get; }
-    public RgbaFloat BlendColor { get; }
+    public RgbaVector BlendColor { get; }
     public override bool IsDisposed => _disposed;
 
     public MTLPipeline(ref GraphicsPipelineDescription description, MTLGraphicsDevice gd)

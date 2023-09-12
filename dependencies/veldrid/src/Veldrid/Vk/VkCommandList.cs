@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using VDStudios.MagicEngine.Graphics;
 using Vulkan;
 using static Veldrid.Vk.VulkanUtil;
 using static Vulkan.RawConstants;
@@ -169,7 +170,7 @@ internal unsafe class VkCommandList : CommandList
         ClearSets(_currentComputeResourceSets);
     }
 
-    private protected override void ClearColorTargetCore(uint index, RgbaFloat clearColor)
+    private protected override void ClearColorTargetCore(uint index, RgbaVector clearColor)
     {
         VkClearValue clearValue = new VkClearValue
         {
@@ -558,7 +559,7 @@ internal unsafe class VkCommandList : CommandList
                     {
                         _validColorClearValues[i] = false;
                         VkClearValue vkClearValue = _clearValues[i];
-                        RgbaFloat clearColor = new RgbaFloat(
+                        RgbaVector clearColor = new RgbaVector(
                             vkClearValue.color.float32_0,
                             vkClearValue.color.float32_1,
                             vkClearValue.color.float32_2,

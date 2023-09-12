@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using VDStudios.MagicEngine.Graphics;
 using Veldrid.OpenGL.NoAllocEntryList;
 
 namespace Veldrid.OpenGL;
@@ -54,7 +55,7 @@ internal class OpenGLCommandList : CommandList
         }
     }
 
-    private protected override void ClearColorTargetCore(uint index, RgbaFloat clearColor)
+    private protected override void ClearColorTargetCore(uint index, RgbaVector clearColor)
     {
         _currentCommands.ClearColorTarget(index, clearColor);
     }

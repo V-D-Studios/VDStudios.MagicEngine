@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using VDStudios.MagicEngine.Graphics;
 
 namespace Veldrid.OpenGL.NoAllocEntryList;
 
@@ -395,7 +396,7 @@ internal unsafe class OpenGLNoAllocCommandEntryList : OpenGLCommandEntryList, ID
         AddEntry(BeginEntryID, ref entry);
     }
 
-    public void ClearColorTarget(uint index, RgbaFloat clearColor)
+    public void ClearColorTarget(uint index, RgbaVector clearColor)
     {
         NoAllocClearColorTargetEntry entry = new NoAllocClearColorTargetEntry(index, clearColor);
         AddEntry(ClearColorTargetID, ref entry);

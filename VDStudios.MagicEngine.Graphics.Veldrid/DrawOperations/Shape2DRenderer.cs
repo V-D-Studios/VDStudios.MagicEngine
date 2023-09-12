@@ -164,7 +164,7 @@ public class Shape2DRenderer : VeldridDrawOperation
                 var vertices = Shape.AsSpan();
                 Span<VertexColor> vertexColors = stackalloc VertexColor[vertices.Length];
                 for (int i = 0; i < vertexColors.Length; i++)
-                    vertexColors[i] = new VertexColor(vertices[i], RgbaFloat.Red);
+                    vertexColors[i] = new VertexColor(vertices[i], RgbaVector.Red);
 
                 context.CommandList.UpdateBuffer(VertexIndexBuffer, 0, vertices);
                 VertexEnd = (uint)(vertexlen * Unsafe.SizeOf<Vector2>());

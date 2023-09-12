@@ -1,4 +1,5 @@
-﻿using Veldrid.OpenGLBinding;
+﻿using VDStudios.MagicEngine.Graphics;
+using Veldrid.OpenGLBinding;
 using static Veldrid.OpenGL.OpenGLUtil;
 using static Veldrid.OpenGLBinding.OpenGLNative;
 
@@ -94,7 +95,7 @@ internal unsafe class OpenGLSampler : Sampler, OpenGLDeferredResource
                 || description.AddressModeV == SamplerAddressMode.Border
                 || description.AddressModeW == SamplerAddressMode.Border)
             {
-                RgbaFloat borderColor = ToRgbaFloat(description.BorderColor);
+                RgbaVector borderColor = ToRgbaFloat(description.BorderColor);
                 glSamplerParameterfv(_sampler, SamplerParameterName.TextureBorderColor, (float*)&borderColor);
                 CheckLastError();
             }
@@ -142,16 +143,16 @@ internal unsafe class OpenGLSampler : Sampler, OpenGLDeferredResource
             CheckLastError();
         }
 
-        private RgbaFloat ToRgbaFloat(SamplerBorderColor borderColor)
+        private RgbaVector ToRgbaFloat(SamplerBorderColor borderColor)
         {
             switch (borderColor)
             {
                 case SamplerBorderColor.TransparentBlack:
-                    return new RgbaFloat(0, 0, 0, 0);
+                    return new RgbaVector(0, 0, 0, 0);
                 case SamplerBorderColor.OpaqueBlack:
-                    return new RgbaFloat(0, 0, 0, 1);
+                    return new RgbaVector(0, 0, 0, 1);
                 case SamplerBorderColor.OpaqueWhite:
-                    return new RgbaFloat(1, 1, 1, 1);
+                    return new RgbaVector(1, 1, 1, 1);
                 default:
                     throw Illegal.Value<SamplerBorderColor>();
             }

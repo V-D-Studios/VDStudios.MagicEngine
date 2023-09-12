@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
+using VDStudios.MagicEngine.Graphics;
 using Vortice;
 using Vortice.Direct3D11;
 using Vortice.Mathematics;
@@ -1138,7 +1139,7 @@ internal class D3D11CommandList : CommandList
         _context.OMSetRenderTargets(d3dFB.RenderTargetViews, d3dFB.DepthStencilView);
     }
 
-    private protected override void ClearColorTargetCore(uint index, RgbaFloat clearColor)
+    private protected override void ClearColorTargetCore(uint index, RgbaVector clearColor)
     {
         _context.ClearRenderTargetView(D3D11Framebuffer.RenderTargetViews[index], new Color4(clearColor.R, clearColor.G, clearColor.B, clearColor.A));
     }

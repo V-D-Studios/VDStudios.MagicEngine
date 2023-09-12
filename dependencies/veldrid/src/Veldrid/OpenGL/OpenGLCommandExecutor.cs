@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using VDStudios.MagicEngine.Graphics;
 using Veldrid.OpenGLBinding;
 using static Veldrid.OpenGL.OpenGLUtil;
 using static Veldrid.OpenGLBinding.OpenGLNative;
@@ -52,7 +53,7 @@ internal unsafe class OpenGLCommandExecutor
     {
     }
 
-    public void ClearColorTarget(uint index, RgbaFloat clearColor)
+    public void ClearColorTarget(uint index, RgbaVector clearColor)
     {
         if (!_isSwapchainFB)
         {
@@ -61,7 +62,7 @@ internal unsafe class OpenGLCommandExecutor
             CheckLastError();
         }
 
-        RgbaFloat color = clearColor;
+        RgbaVector color = clearColor;
         glClearColor(color.R, color.G, color.B, color.A);
         CheckLastError();
 

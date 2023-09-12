@@ -4,11 +4,11 @@ using SDL2.NET;
 using SDL2.NET.SDLFont;
 using SDL2.NET.Utilities;
 using VDStudios.MagicEngine.DemoResources;
-using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
 using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 using VDStudios.MagicEngine.SDL.Demo.Scenes;
 using VDStudios.MagicEngine.Demo.Common.Services;
+using VDStudios.MagicEngine.Graphics;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Nodes;
 

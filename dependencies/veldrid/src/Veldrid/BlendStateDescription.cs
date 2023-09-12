@@ -1,4 +1,5 @@
 ﻿using System;
+using VDStudios.MagicEngine.Graphics;
 
 namespace Veldrid;
 
@@ -11,7 +12,7 @@ public struct BlendStateDescription : IEquatable<BlendStateDescription>
     /// A constant blend color used in <see cref="BlendFactor.BlendFactor"/> and <see cref="BlendFactor.InverseBlendFactor"/>,
     /// or otherwise ignored.
     /// </summary>
-    public RgbaFloat BlendFactor;
+    public RgbaVector BlendFactor;
     /// <summary>
     /// An array of <see cref="BlendAttachmentDescription"/> describing how blending is performed for each color target
     /// used in the <see cref="Pipeline"/>.
@@ -27,7 +28,7 @@ public struct BlendStateDescription : IEquatable<BlendStateDescription>
     /// </summary>
     /// <param name="blendFactor">The constant blend color.</param>
     /// <param name="attachmentStates">The blend attachment states.</param>
-    public BlendStateDescription(RgbaFloat blendFactor, params BlendAttachmentDescription[] attachmentStates)
+    public BlendStateDescription(RgbaVector blendFactor, params BlendAttachmentDescription[] attachmentStates)
     {
         BlendFactor = blendFactor;
         AttachmentStates = attachmentStates;
@@ -42,7 +43,7 @@ public struct BlendStateDescription : IEquatable<BlendStateDescription>
     /// used when determining multi-sample coverage.</param>
     /// <param name="attachmentStates">The blend attachment states.</param>
     public BlendStateDescription(
-        RgbaFloat blendFactor,
+        RgbaVector blendFactor,
         bool alphaToCoverageEnabled,
         params BlendAttachmentDescription[] attachmentStates)
     {

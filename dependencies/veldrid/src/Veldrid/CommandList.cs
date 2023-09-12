@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using VDStudios.MagicEngine.Graphics;
 
 namespace Veldrid;
 
@@ -397,7 +398,7 @@ public abstract class CommandList : DeviceResource, IDisposable
     /// </summary>
     /// <param name="index">The color target index.</param>
     /// <param name="clearColor">The value to clear the target to.</param>
-    public void ClearColorTarget(uint index, RgbaFloat clearColor)
+    public void ClearColorTarget(uint index, RgbaVector clearColor)
     {
 #if VALIDATE_USAGE
         if (_framebuffer == null)
@@ -413,7 +414,7 @@ public abstract class CommandList : DeviceResource, IDisposable
         ClearColorTargetCore(index, clearColor);
     }
 
-    private protected abstract void ClearColorTargetCore(uint index, RgbaFloat clearColor);
+    private protected abstract void ClearColorTargetCore(uint index, RgbaVector clearColor);
 
     /// <summary>
     /// Clears the depth-stencil target of the active <see cref="Framebuffer"/>.

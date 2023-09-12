@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using VDStudios.MagicEngine.Graphics;
 using Veldrid.MetalBindings;
 
 namespace Veldrid.MTL;
@@ -14,7 +15,7 @@ internal unsafe class MTLCommandList : CommandList
     private MTLRenderCommandEncoder _rce;
     private MTLBlitCommandEncoder _bce;
     private MTLComputeCommandEncoder _cce;
-    private RgbaFloat?[] _clearColors = Array.Empty<RgbaFloat?>();
+    private RgbaVector?[] _clearColors = Array.Empty<RgbaVector?>();
     private (float depth, byte stencil)? _clearDepth;
     private MTLBuffer _indexBuffer;
     private uint _ibOffset;
@@ -76,7 +77,7 @@ internal unsafe class MTLCommandList : CommandList
         ClearCachedState();
     }
 
-    private protected override void ClearColorTargetCore(uint index, RgbaFloat clearColor)
+    private protected override void ClearColorTargetCore(uint index, RgbaVector clearColor)
     {
         EnsureNoRenderPass();
         _clearColors[index] = clearColor;
@@ -173,7 +174,7 @@ internal unsafe class MTLCommandList : CommandList
                 _rce.setCullMode(_graphicsPipeline.CullMode);
                 _rce.setFrontFacing(_graphicsPipeline.FrontFace);
                 _rce.setTriangleFillMode(_graphicsPipeline.FillMode);
-                RgbaFloat blendColor = _graphicsPipeline.BlendColor;
+                RgbaVector blendColor = _graphicsPipeline.BlendColor;
                 _rce.setBlendColor(blendColor.R, blendColor.G, blendColor.B, blendColor.A);
                 if (_framebuffer.DepthTarget != null)
                 {
@@ -950,7 +951,7 @@ internal unsafe class MTLCommandList : CommandList
             {
                 var attachment = rpDesc.colorAttachments[0];
                 attachment.loadAction = MTLLoadAction.Clear;
-                RgbaFloat c = _clearColors[i].Value;
+                RgbaVector c = _clearColors[i].Value;
                 attachment.clearColor = new MTLClearColor(c.R, c.G, c.B, c.A);
                 _clearColors[i] = null;
             }

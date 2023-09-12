@@ -109,7 +109,7 @@ public struct RgbaVector : IEquatable<RgbaVector>
     /// Returns a string representation of this color.
     /// </summary>
     /// <returns></returns>
-    public override readonly string ToString() 
+    public override readonly string ToString()
         => string.Format("R:{0}, G:{1}, B:{2}, A:{3}", R, G, B, A);
 
     /// <summary>
@@ -135,67 +135,67 @@ public struct RgbaVector : IEquatable<RgbaVector>
     /// Red (1, 0, 0, 1)
     /// </summary>
     public static readonly RgbaVector Red = new(1, 0, 0, 1);
-    
+
     /// <summary>
     /// Dark Red (0.6f, 0, 0, 1)
     /// </summary>
     public static readonly RgbaVector DarkRed = new(0.6f, 0, 0, 1);
-    
+
     /// <summary>
     /// Green (0, 1, 0, 1)
     /// </summary>
     public static readonly RgbaVector Green = new(0, 1, 0, 1);
-    
+
     /// <summary>
     /// Blue (0, 0, 1, 1)
     /// </summary>
     public static readonly RgbaVector Blue = new(0, 0, 1, 1);
-    
+
     /// <summary>
     /// Yellow (1, 1, 0, 1)
     /// </summary>
     public static readonly RgbaVector Yellow = new(1, 1, 0, 1);
-    
+
     /// <summary>
     /// Grey (0.25f, 0.25f, 0.25f, 1)
     /// </summary>
     public static readonly RgbaVector Grey = new(.25f, .25f, .25f, 1);
-    
+
     /// <summary>
     /// Light Grey (0.65f, 0.65f, 0.65f, 1)
     /// </summary>
     public static readonly RgbaVector LightGrey = new(.65f, .65f, .65f, 1);
-    
+
     /// <summary>
     /// Cyan (0, 1, 1, 1)
     /// </summary>
     public static readonly RgbaVector Cyan = new(0, 1, 1, 1);
-    
+
     /// <summary>
     /// White (1, 1, 1, 1)
     /// </summary>
     public static readonly RgbaVector White = new(1, 1, 1, 1);
-    
+
     /// <summary>
     /// Cornflower Blue (0.3921f, 0.5843f, 0.9294f, 1)
     /// </summary>
     public static readonly RgbaVector CornflowerBlue = new(0.3921f, 0.5843f, 0.9294f, 1);
-    
+
     /// <summary>
     /// Clear (0, 0, 0, 0)
     /// </summary>
     public static readonly RgbaVector Clear = new(0, 0, 0, 0);
-    
+
     /// <summary>
     /// Black (0, 0, 0, 1)
     /// </summary>
     public static readonly RgbaVector Black = new(0, 0, 0, 1);
-    
+
     /// <summary>
     /// Pink (1, 0.45f, 0.75f, 1)
     /// </summary>
     public static readonly RgbaVector Pink = new(1f, 0.45f, 0.75f, 1);
-    
+
     /// <summary>
     /// Orange (1, 0.36f, 0, 1)
     /// </summary>

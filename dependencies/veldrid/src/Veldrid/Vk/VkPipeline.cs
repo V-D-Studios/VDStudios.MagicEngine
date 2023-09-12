@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using VDStudios.MagicEngine.Graphics;
 using Vulkan;
 using static Veldrid.Vk.VulkanUtil;
 using static Vulkan.VulkanNative;
@@ -60,7 +61,7 @@ internal unsafe class VkPipeline : Pipeline
 
         blendStateCI.attachmentCount = (uint)attachmentsCount;
         blendStateCI.pAttachments = attachmentsPtr;
-        RgbaFloat blendFactor = description.BlendState.BlendFactor;
+        RgbaVector blendFactor = description.BlendState.BlendFactor;
         blendStateCI.blendConstants_0 = blendFactor.R;
         blendStateCI.blendConstants_1 = blendFactor.G;
         blendStateCI.blendConstants_2 = blendFactor.B;
