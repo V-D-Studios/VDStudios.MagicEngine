@@ -30,7 +30,7 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
     where TVertex : unmanaged, IVertexType<TVertex>
 {
     /// <summary>
-    /// Creates a new object of type <see cref="Shape2DRenderer"/>
+    /// Creates a new object of type <see cref="Shape2DRenderer{TVertex}"/>
     /// </summary>
     public Shape2DRenderer(ShapeDefinition2D shape, Game game, ElementSkip vertexSkip = default) : base(game)
     {
@@ -39,7 +39,7 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
     }
 
     /// <summary>
-    /// The <see cref="IVertexGenerator{TInputVertex, TGraphicsVertex}"/> for this <see cref="Shape2DRenderer"/>. It will be used when generating the vertex buffer info
+    /// The <see cref="IVertexGenerator{TInputVertex, TGraphicsVertex}"/> for this <see cref="Shape2DRenderer{TVertex}"/>. It will be used when generating the vertex buffer info
     /// </summary>
     /// <remarks>
     /// Changing this property will not result in vertices being re-generated, see <see cref="NotifyPendingVertexRegeneration"/>
@@ -70,7 +70,7 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
     private bool shapeChanged = true;
 
     /// <summary>
-    /// The index of the <see cref="Shape2DRenderer"/> pipeline this object will use
+    /// The index of the <see cref="Shape2DRenderer{TVertex}"/> pipeline this object will use
     /// </summary>
     public uint PipelineIndex { get; set; }
 
@@ -113,7 +113,7 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
         base.CreateGPUResources(context);
 
         var shaders = context.ShaderCache.GetOrAdd(
-            nameof(Shape2DRenderer), 
+            nameof(Shape2DRenderer<TVertex>), 
             static (n, c) => c.ResourceFactory.CreateFromSpirv(
                 vertexShaderDescription: new ShaderDescription(
                     ShaderStages.Vertex,
@@ -129,8 +129,8 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
                 )
             ), context);
 
-        if (context.ContainsPipeline<Shape2DRenderer>() is false)
-            context.RegisterPipeline<Shape2DRenderer>(context.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription(
+        if (context.ContainsPipeline<Shape2DRenderer<TVertex>>() is false)
+            context.RegisterPipeline<Shape2DRenderer<TVertex>>(context.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription(
                 blendState: BlendStateDescription.SingleAlphaBlend,
                 depthStencilStateDescription: new DepthStencilStateDescription(
                     depthTestEnabled: true,
@@ -248,7 +248,7 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
         cl.SetFramebuffer(target.GetFramebuffer(context));
         cl.SetVertexBuffer(0, VertexIndexBuffer, 0);
         cl.SetIndexBuffer(VertexIndexBuffer, IndexFormat.UInt16, VertexEnd);
-        cl.SetPipeline(context.GetPipeline<Shape2DRenderer>(PipelineIndex));
+        cl.SetPipeline(context.GetPipeline<Shape2DRenderer<TVertex>>(PipelineIndex));
 
         cl.SetGraphicsResourceSet(0, context.FrameReportSet);
         cl.SetGraphicsResourceSet(1, target.TransformationSet);
