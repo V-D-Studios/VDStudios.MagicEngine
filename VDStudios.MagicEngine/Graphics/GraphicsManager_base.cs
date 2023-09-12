@@ -92,6 +92,11 @@ public abstract class GraphicsManager : DisposableGameObject
     public abstract IntVector2 WindowSize { get; protected set; }
 
     /// <summary>
+    /// The color to draw when the frame is beginning to be drawn
+    /// </summary>
+    public virtual RgbaVector BackgroundColor { get; set; } = RgbaVector.CornflowerBlue;
+
+    /// <summary>
     /// Propagates input across all of <see cref="InputReady"/>'s subscribers
     /// </summary>
     protected virtual void SubmitInput(InputSnapshot snapshot, CancellationToken ct = default)

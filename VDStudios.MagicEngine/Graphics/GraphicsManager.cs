@@ -242,11 +242,6 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// </summary>
     public bool IsRunning { get; protected set; } = true;
 
-    /// <summary>
-    /// The color to draw when the frame is beginning to be drawn
-    /// </summary>
-    public virtual RgbaVector BackgroundColor { get; set; } = RgbaVector.CornflowerBlue;
-
     #endregion
 
     #region Reaction Methods
