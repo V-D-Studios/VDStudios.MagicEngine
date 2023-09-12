@@ -26,6 +26,18 @@ public class Shape2DRenderer : VeldridDrawOperation
         VertexSkip = vertexSkip;
     }
 
+    public readonly struct VertexColor
+    {
+        public readonly Vector2 Vertex;
+        public readonly RgbaFloat Color;
+
+        public VertexColor(Vector2 vertex, RgbaFloat color)
+        {
+            Vertex = vertex;
+            Color = color;
+        }
+    }
+
     /// <summary>
     /// The shape that will be Rendered
     /// </summary>
@@ -85,56 +97,54 @@ public class Shape2DRenderer : VeldridDrawOperation
             static (n, c) => c.ResourceFactory.CreateFromSpirv(
                 vertexShaderDescription: new ShaderDescription(
                     ShaderStages.Vertex,
-                    DefaultShaders.DefaultShape2DRendererVertexShaderBytes,
+                    Encoding.UTF8.GetBytes(DefaultShaders.DefaultShape2DRendererVertexShader),
                     "main",
                     true
                 ),
                 fragmentShaderDescription: new ShaderDescription(
                     ShaderStages.Fragment,
-                    DefaultShaders.DefaultShape2DRendererFragmentShaderBytes,
+                    Encoding.UTF8.GetBytes(DefaultShaders.DefaultShape2DRendererFragmentShader),
                     "main",
                     true
                 )
             ), context);
 
         if (context.ContainsPipeline<Shape2DRenderer>() is false)
-            context.RegisterPipeline<Shape2DRenderer>(context.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription()
-            {
-                BlendState = BlendStateDescription.SingleAlphaBlend,
-                DepthStencilState = DepthStencilStateDescription.DepthOnlyGreaterEqual,
-                Outputs = context.GraphicsDevice.SwapchainFramebuffer.OutputDescription,
-                PrimitiveTopology = PrimitiveTopology.TriangleStrip,
-                RasterizerState = new RasterizerStateDescription()
-                {
-                    CullMode = FaceCullMode.Front,
-                    DepthClipEnabled = true,
-                    FillMode = PolygonFillMode.Solid,
-                    FrontFace = FrontFace.Clockwise,
-                    ScissorTestEnabled = true,
-                },
-                ResourceBindingModel = ResourceBindingModel.Improved,
-                ResourceLayouts = new ResourceLayout[]
+            context.RegisterPipeline<Shape2DRenderer>(context.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription(
+                blendState: BlendStateDescription.SingleAlphaBlend,
+                depthStencilStateDescription: new DepthStencilStateDescription(
+                    depthTestEnabled: true,
+                    depthWriteEnabled: true,
+                    comparisonKind: ComparisonKind.LessEqual
+                ),
+                rasterizerState: new RasterizerStateDescription
+                (
+                    cullMode: FaceCullMode.Back,
+                    fillMode: PolygonFillMode.Solid,
+                    frontFace: FrontFace.Clockwise,
+                    depthClipEnabled: true,
+                    scissorTestEnabled: false
+                ),
+                primitiveTopology: PrimitiveTopology.TriangleStrip,
+                shaderSet: new ShaderSetDescription(
+                    new VertexLayoutDescription[]
+                    {
+                        new VertexLayoutDescription(
+                            new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
+                            new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4)
+                        )
+                    },
+                    shaders
+                ),
+                resourceLayouts: new ResourceLayout[]
                 {
                     context.FrameReportLayout,
                     context.GetResourceLayout<VeldridRenderTarget>(),
                     context.GetResourceLayout<VeldridDrawOperation>()
                 },
-                ShaderSet = new ShaderSetDescription(
-                    new VertexLayoutDescription[]
-                    {
-                        new VertexLayoutDescription(
-                            8,
-                            0,
-                            new VertexElementDescription(
-                                "Vertex",
-                                VertexElementFormat.Float2,
-                                VertexElementSemantic.Position
-                            )
-                        )
-                    },
-                    shaders
-                )
-            }), out _);
+                outputs: context.GraphicsDevice.SwapchainFramebuffer.OutputDescription,
+                resourceBindingModel: ResourceBindingModel.Improved
+            )), out _);
     }
 
     /// <inheritdoc/>
@@ -146,7 +156,7 @@ public class Shape2DRenderer : VeldridDrawOperation
         {
             var vertexlen = Shape.Count;
             var indexlen = Shape.GetTriangulationLength();
-            var bufferLen = (uint)((Unsafe.SizeOf<Vector2>() * vertexlen) + (sizeof(uint) * indexlen));
+            var bufferLen = (uint)((Unsafe.SizeOf<VertexColor>() * vertexlen) + (sizeof(uint) * indexlen));
 
             if (VertexIndexBuffer is not null && bufferLen > VertexIndexBuffer.SizeInBytes)
             {
@@ -162,13 +172,18 @@ public class Shape2DRenderer : VeldridDrawOperation
                     Usage = BufferUsage.VertexBuffer | BufferUsage.IndexBuffer
                 });
 
-                context.CommandList.UpdateBuffer(VertexIndexBuffer, 0, Shape.AsSpan());
+                var vertices = Shape.AsSpan();
+                Span<VertexColor> vertexColors = stackalloc VertexColor[vertices.Length];
+                for (int i = 0; i < vertexColors.Length; i++)
+                    vertexColors[i] = new VertexColor(vertices[i], RgbaFloat.Red);
+
+                context.CommandList.UpdateBuffer(VertexIndexBuffer, 0, vertices);
                 VertexEnd = (uint)(vertexlen * Unsafe.SizeOf<Vector2>());
             }
 
             IndexCount = (uint)Shape.GetTriangulationLength(VertexSkip);
 
-            Span<ushort> indices = stackalloc ushort[vertexlen];
+            Span<ushort> indices = stackalloc ushort[indexlen];
             Shape.Triangulate(indices, VertexSkip);
 
             context.CommandList.UpdateBuffer(VertexIndexBuffer, VertexEnd, indices);
@@ -185,6 +200,7 @@ public class Shape2DRenderer : VeldridDrawOperation
         var target = (VeldridRenderTarget)t;
         var cl = target.CommandList;
 
+        cl.SetFramebuffer(target.GetFramebuffer(context));
         cl.SetVertexBuffer(0, VertexIndexBuffer, 0);
         cl.SetIndexBuffer(VertexIndexBuffer, IndexFormat.UInt16, VertexEnd);
         cl.SetPipeline(context.GetPipeline<Shape2DRenderer>(PipelineIndex));
