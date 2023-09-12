@@ -86,12 +86,14 @@ public class Shape2DRenderer : VeldridDrawOperation
                 vertexShaderDescription: new ShaderDescription(
                     ShaderStages.Vertex,
                     DefaultShaders.DefaultShape2DRendererVertexShaderBytes,
-                    "main"
+                    "main",
+                    true
                 ),
                 fragmentShaderDescription: new ShaderDescription(
                     ShaderStages.Fragment,
                     DefaultShaders.DefaultShape2DRendererFragmentShaderBytes,
-                    "main"
+                    "main",
+                    true
                 )
             ), context);
 
@@ -102,18 +104,27 @@ public class Shape2DRenderer : VeldridDrawOperation
                 DepthStencilState = DepthStencilStateDescription.DepthOnlyGreaterEqual,
                 Outputs = context.GraphicsDevice.SwapchainFramebuffer.OutputDescription,
                 PrimitiveTopology = PrimitiveTopology.TriangleStrip,
-                RasterizerState = RasterizerStateDescription.Default,
+                RasterizerState = new RasterizerStateDescription()
+                {
+                    CullMode = FaceCullMode.Front,
+                    DepthClipEnabled = true,
+                    FillMode = PolygonFillMode.Solid,
+                    FrontFace = FrontFace.Clockwise,
+                    ScissorTestEnabled = true,
+                },
                 ResourceBindingModel = ResourceBindingModel.Improved,
                 ResourceLayouts = new ResourceLayout[]
                 {
-                    context.GetResourceLayout<VeldridDrawOperation>(),
+                    context.FrameReportLayout,
                     context.GetResourceLayout<VeldridRenderTarget>(),
-                    context.FrameReportLayout
+                    context.GetResourceLayout<VeldridDrawOperation>()
                 },
                 ShaderSet = new ShaderSetDescription(
                     new VertexLayoutDescription[]
                     {
                         new VertexLayoutDescription(
+                            8,
+                            0,
                             new VertexElementDescription(
                                 "Vertex",
                                 VertexElementFormat.Float2,

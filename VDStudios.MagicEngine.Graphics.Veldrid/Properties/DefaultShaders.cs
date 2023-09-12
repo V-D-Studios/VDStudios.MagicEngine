@@ -71,7 +71,7 @@ void main() {
         };
         layout(set=2,binding=0) uniform DrawOp {
             layout(offset = 0) mat4 transform;
-        }
+        };
         
         void main() {
             fsin_Color = Color;

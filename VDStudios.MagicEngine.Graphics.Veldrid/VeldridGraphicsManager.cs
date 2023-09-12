@@ -157,7 +157,15 @@ public class VeldridGraphicsManager : SDLGraphicsManagerBase<VeldridGraphicsCont
     {
         Window = new Window(Game.GameTitle, 800, 600, WindowConfig);
         ConfigureWindow();
-        GraphicsDevice = Startup.CreateGraphicsDevice(Window);
+        GraphicsDevice = Startup.CreateGraphicsDevice(
+            Window, 
+            new GraphicsDeviceOptions(
+                true,
+                null,
+                true,
+                ResourceBindingModel.Improved
+            )
+        );
 
         var (ww, wh) = Window.Size;
         GraphicsDevice.MainSwapchain.Resize((uint)ww, (uint)wh);
