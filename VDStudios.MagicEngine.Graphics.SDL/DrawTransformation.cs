@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 
-namespace VDStudios.MagicEngine.Graphics;
+namespace VDStudios.MagicEngine.Graphics.SDL;
 
 /// <summary>
 /// Provides parameters and other useful data to be used when drawing in a <see cref="DrawOperation{TGraphicsContext}"/>
