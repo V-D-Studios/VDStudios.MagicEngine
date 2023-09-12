@@ -1,3 +1,5 @@
+using System;
+
 namespace Veldrid;
 
 /// <summary>
@@ -35,6 +37,7 @@ public abstract class ResourceFactory
     /// <returns>A new <see cref="Pipeline"/> which, when bound to a CommandList, is used to dispatch draw commands.</returns>
     public Pipeline CreateGraphicsPipeline(ref GraphicsPipelineDescription description)
     {
+        ArgumentNullException.ThrowIfNull(description.ResourceLayouts);
 #if VALIDATE_USAGE
         if (!description.RasterizerState.DepthClipEnabled && !Features.DepthClipDisable)
         {
