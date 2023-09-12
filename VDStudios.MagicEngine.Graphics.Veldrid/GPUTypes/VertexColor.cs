@@ -33,8 +33,10 @@ public readonly struct VertexColor2D : IVertexType<VertexColor2D>
     /// <inheritdoc/>
     public static int Size { get; } = Unsafe.SizeOf<VertexColor2D>();
 
+    /// <inheritdoc/>
     public static VertexLayoutDescription GetDescription()
-    {
-        throw new NotImplementedException();
-    }
+        => new(
+               new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
+               new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4)
+           );
 }
