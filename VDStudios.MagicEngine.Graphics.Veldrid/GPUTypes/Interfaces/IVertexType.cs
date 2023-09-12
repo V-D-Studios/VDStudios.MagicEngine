@@ -1,6 +1,6 @@
 ﻿using Veldrid;
 
-namespace VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
+namespace VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes.Interfaces;
 
 /// <summary>
 /// Represents a type that is used to store a Polygon's vertex information
