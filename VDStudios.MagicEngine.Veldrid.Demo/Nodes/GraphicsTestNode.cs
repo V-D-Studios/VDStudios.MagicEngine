@@ -15,7 +15,7 @@ public class GraphicsTestNode : Node
 
     public GraphicsTestNode(Game game) : base(game)
     {
-        ShapeRenderer = new Shape2DRenderer(new CircleDefinition(new Vector2(0, 0), 4), game);
+        ShapeRenderer = new Shape2DRenderer(new CircleDefinition(new Vector2(0, 0), .6f, 100), game);
     }
 
     protected override async ValueTask Attaching(Scene scene)
