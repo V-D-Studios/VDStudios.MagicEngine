@@ -21,22 +21,25 @@ public abstract class VeldridRenderTarget : RenderTarget<VeldridGraphicsContext>
         ));
     }
 
-    internal CommandList? cl;
-
-    /// <inheritdoc/>
-    public override DrawTransformation Transformation
+    /// <summary>
+    /// The transformation Matrix of this <see cref="VeldridRenderTarget"/>
+    /// </summary>
+    public Matrix4x4 Transformation
     {
-        get => base.Transformation;
-        protected set
+        get => _trans;
+        set
         {
-            if (base.Transformation != value)
+            if (_trans != value)
             {
-                base.Transformation = value;
+                _trans = value;
                 pendingTransUpdate = true;
             }
         }
     }
-    bool pendingTransUpdate = true;
+    private Matrix4x4 _trans = Matrix4x4.Identity;
+    private bool pendingTransUpdate = true;
+
+    internal CommandList? cl;
 
     /// <summary>
     /// The transformation buffer for this <see cref="VeldridRenderTarget"/>
@@ -91,6 +94,6 @@ public abstract class VeldridRenderTarget : RenderTarget<VeldridGraphicsContext>
         );
 
         if (pendingTransUpdate)
-            CommandList.UpdateBuffer(TransformationBuffer, 0, Transformation.View);
+            CommandList.UpdateBuffer(TransformationBuffer, 0, Transformation);
     }
 }

@@ -3,6 +3,7 @@ using System.Numerics;
 using SDL2.NET;
 using SDL2.NET.SDLImage;
 using VDStudios.MagicEngine.Graphics;
+using VDStudios.MagicEngine.Graphics.SDL.RenderTargets;
 
 namespace VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 
@@ -101,9 +102,12 @@ public class TextureOperation : DrawOperation<SDLGraphicsContext>
     }
 
     /// <inheritdoc/>
-    protected override void Draw(TimeSpan delta, SDLGraphicsContext context, RenderTarget<SDLGraphicsContext> target)
+    protected override void Draw(TimeSpan delta, SDLGraphicsContext context, RenderTarget<SDLGraphicsContext> trg)
     {
         Debug.Assert(texture is not null);
+
+        var target = (SDLRenderTarget)trg;
+
         var dest = this.CreateDestinationRectangle(View.Size.ToVector2(), target.Transformation).ToRectangle();
         texture.Render(View, dest);
 

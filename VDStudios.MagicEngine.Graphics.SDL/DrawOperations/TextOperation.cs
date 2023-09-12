@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using SDL2.NET;
 using SDL2.NET.SDLFont;
+using VDStudios.MagicEngine.Graphics.SDL.RenderTargets;
 
 namespace VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 
@@ -157,11 +158,13 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
     }
 
     /// <inheritdoc/>
-    protected override void Draw(TimeSpan delta, SDLGraphicsContext context, RenderTarget<SDLGraphicsContext> target)
+    protected override void Draw(TimeSpan delta, SDLGraphicsContext context, RenderTarget<SDLGraphicsContext> trg)
     {
         if (Text is null) return;
         if (texture is null && txtbf is null)
             ForceGPUUpdate(context);
+
+        var target = (SDLRenderTarget)trg;
 
         Debug.Assert(texture is not null || txtbf is not null, "Texture was unexpectedly null at the time of drawing");
         var t = texture ?? txtbf!; // The analyzer warns about this, but one of the references must not be null at this time, or the assertion would fail

@@ -17,11 +17,6 @@ public abstract class RenderTarget<TGraphicsContext>
     }
 
     /// <summary>
-    /// The <see cref="DrawTransformation"/> for this <see cref="RenderTarget{TGraphicsContext}"/>
-    /// </summary>
-    public virtual DrawTransformation Transformation { get; protected set; }
-
-    /// <summary>
     /// The <see cref="GraphicsManager{TGraphicsContext}"/> that owns this <see cref="RenderTarget{TGraphicsContext}"/>
     /// </summary>
     public GraphicsManager<TGraphicsContext> Manager { get; }
