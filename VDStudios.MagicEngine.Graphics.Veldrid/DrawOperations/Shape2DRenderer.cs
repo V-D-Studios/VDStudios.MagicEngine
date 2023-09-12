@@ -1,22 +1,33 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers;
+using System.Diagnostics;
 using System.Net.Mime;
 using System.Numerics;
 using System.Resources;
 using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Geometry;
+using VDStudios.MagicEngine.Graphics.Veldrid.Generators;
 using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
+using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes.Interfaces;
 using VDStudios.MagicEngine.Graphics.Veldrid.Properties;
 using Veldrid;
 using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
 
-#warning NOTE: For multi-shape renderers, disallow changing the shape or adding more shapes
+/// <summary>
+/// An operation that renders a <see cref="ShapeDefinition2D"/> using <see cref="VertexColor2D"/>
+/// </summary>
+public class Shape2DRenderer : Shape2DRenderer<VertexColor2D>
+{
+    /// <inheritdoc/>
+    public Shape2DRenderer(ShapeDefinition2D shape, Game game, ElementSkip vertexSkip = default) : base(shape, game, vertexSkip) { }
+}
 
 /// <summary>
 /// An operation that renders a <see cref="ShapeDefinition2D"/>
 /// </summary>
-public class Shape2DRenderer : VeldridDrawOperation
+public class Shape2DRenderer<TVertex> : VeldridDrawOperation
+    where TVertex : unmanaged, IVertexType<TVertex>
 {
     /// <summary>
     /// Creates a new object of type <see cref="Shape2DRenderer"/>
@@ -26,6 +37,26 @@ public class Shape2DRenderer : VeldridDrawOperation
         Shape = shape;
         VertexSkip = vertexSkip;
     }
+
+    /// <summary>
+    /// The <see cref="IVertexGenerator{TInputVertex, TGraphicsVertex}"/> for this <see cref="Shape2DRenderer"/>. It will be used when generating the vertex buffer info
+    /// </summary>
+    /// <remarks>
+    /// Changing this property will not result in vertices being re-generated, see <see cref="NotifyPendingVertexRegeneration"/>
+    /// </remarks>
+    public IVertexGenerator<Vector2, TVertex>? VertexGenerator { get; set; }
+
+    /// <summary>
+    /// Notifies this object to perform a vertex regeneration in the next frame
+    /// </summary>
+    /// <remarks>
+    /// This method calls <see cref="DrawOperation{TGraphicsContext}.NotifyPendingGPUUpdate"/> as well
+    /// </remarks>
+    public void NotifyPendingVertexRegeneration()
+    {
+        pendingVertexRegen = true;
+    }
+    private bool pendingVertexRegen;
 
     /// <summary>
     /// The shape that will be Rendered
@@ -118,7 +149,7 @@ public class Shape2DRenderer : VeldridDrawOperation
                 shaderSet: new ShaderSetDescription(
                     new VertexLayoutDescription[]
                     {
-                        VertexColor2D.GetDescription(),
+                        TVertex.GetDescription(),
                     },
                     shaders
                 ),
@@ -140,9 +171,12 @@ public class Shape2DRenderer : VeldridDrawOperation
 
         if (shapeChanged)
         {
+            pendingVertexRegen = true;
             var vertexlen = Shape.Count;
             var indexlen = Shape.GetTriangulationLength();
-            var bufferLen = (uint)((Unsafe.SizeOf<VertexColor2D>() * vertexlen) + (sizeof(uint) * indexlen));
+            var bufferLen = (uint)(TVertex.Size * vertexlen + sizeof(uint) * indexlen);
+
+            VertexEnd = (uint)(vertexlen * TVertex.Size);
 
             if (VertexIndexBuffer is not null && bufferLen > VertexIndexBuffer.SizeInBytes)
             {
@@ -150,22 +184,11 @@ public class Shape2DRenderer : VeldridDrawOperation
                 VertexIndexBuffer = null;
             }
 
-            if (VertexIndexBuffer is null)
+            VertexIndexBuffer ??= context.ResourceFactory.CreateBuffer(new BufferDescription()
             {
-                VertexIndexBuffer = context.ResourceFactory.CreateBuffer(new BufferDescription()
-                {
-                    SizeInBytes = bufferLen,
-                    Usage = BufferUsage.VertexBuffer | BufferUsage.IndexBuffer
-                });
-
-                var vertices = Shape.AsSpan();
-                Span<VertexColor2D> vertexColors = stackalloc VertexColor2D[vertices.Length];
-                for (int i = 0; i < vertexColors.Length; i++)
-                    vertexColors[i] = new VertexColor2D(vertices[i], RgbaVector.Red);
-
-                context.CommandList.UpdateBuffer(VertexIndexBuffer, 0, vertices);
-                VertexEnd = (uint)(vertexlen * Unsafe.SizeOf<Vector2>());
-            }
+                SizeInBytes = bufferLen,
+                Usage = BufferUsage.VertexBuffer | BufferUsage.IndexBuffer
+            });
 
             IndexCount = (uint)Shape.GetTriangulationLength(VertexSkip);
 
@@ -173,6 +196,42 @@ public class Shape2DRenderer : VeldridDrawOperation
             Shape.Triangulate(indices, VertexSkip);
 
             context.CommandList.UpdateBuffer(VertexIndexBuffer, VertexEnd, indices);
+        }
+
+        if (pendingVertexRegen)
+        {
+            var vertexlen = Shape.Count;
+            Debug.Assert(VertexIndexBuffer is not null, "VertexIndexBuffer was unexpectedly null when regenerating vertices");
+            var vertices = Shape.AsSpan();
+
+            TVertex[]? rented = null;
+            Span<TVertex> graphicVertices = TVertex.Size * vertices.Length > (1024 * 1024)
+                ? (rented = ArrayPool<TVertex>.Shared.Rent(vertices.Length)).AsSpan(0, vertices.Length)
+                : (stackalloc TVertex[vertices.Length]);
+
+            try
+            {
+                var gen = VertexGenerator;
+                if (gen is null)
+                    if (typeof(TVertex).IsAssignableTo(typeof(IDefaultVertexGenerator<Vector2, TVertex>)))
+                    {
+                        gen = (IVertexGenerator<Vector2, TVertex>)(typeof(TVertex)
+                            .GetProperty("DefaultGenerator")!
+                            .GetValue(null, null))!;
+
+                        Debug.Assert(gen is not null);
+                    }
+                    else
+                        throw new InvalidOperationException("If a type does not implement IDefaultVertexGenerator, then it VertexGenerator must not be null");
+
+                gen.Generate(vertices, graphicVertices);
+                context.CommandList.UpdateBuffer(VertexIndexBuffer, 0, graphicVertices);
+            }
+            finally
+            {
+                if (rented is not null)
+                    ArrayPool<TVertex>.Shared.Return(rented);
+            }
         }
     }
 
