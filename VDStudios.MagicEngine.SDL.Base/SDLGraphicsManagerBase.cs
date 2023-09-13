@@ -193,10 +193,11 @@ public abstract class SDLGraphicsManagerBase<TGraphicsContext> : GraphicsManager
             var (ww, wh) = newSize;
             Log?.Information("Window size changed to {{w:{width}, h:{height}}}", newSize.Width, newSize.Height);
 
-            //ImGuiController.WindowResized(ww, wh);
-
             oSize = WindowSize;
             WindowSize = nSize;
+
+            //ImGuiController.WindowResized(ww, wh);
+            WindowSizeChangedFrameLocked(oSize, nSize);
         }
         finally
         {
