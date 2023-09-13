@@ -156,7 +156,7 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
                     depthClipEnabled: true,
                     scissorTestEnabled: false
                 ),
-                primitiveTopology: PrimitiveTopology.TriangleStrip,
+                primitiveTopology: PrimitiveTopology.TriangleList,
                 shaderSet: new ShaderSetDescription(
                     new VertexLayoutDescription[]
                     {
