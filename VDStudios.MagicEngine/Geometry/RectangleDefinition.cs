@@ -72,7 +72,7 @@ public class RectangleDefinition : ShapeDefinition2D
 
     /// <inheritdoc/>
     public override int GetTriangulationLength(ElementSkip vertexSkip = default) 
-        => vertexSkip.GetSkipFactor(4) != 0
+        => vertexSkip.GetSkipFactor(4) != 1
             ? throw new ArgumentException("RectangleDefinition does not support skipping vertices", nameof(vertexSkip))
             : TriangulatedRectangleUInt32.Length;
 
@@ -82,7 +82,7 @@ public class RectangleDefinition : ShapeDefinition2D
     /// <inheritdoc/>
     public override int Triangulate(Span<uint> outputIndices, ElementSkip vertexSkip = default)
     {
-        if (vertexSkip.GetSkipFactor(4) != 0)
+        if (vertexSkip.GetSkipFactor(4) != 1)
             throw new ArgumentException("RectangleDefinition does not support skipping vertices", nameof(vertexSkip));
         TriangulatedRectangleUInt32.CopyTo(outputIndices);
         return TriangulatedRectangleUInt32.Length;
@@ -91,7 +91,7 @@ public class RectangleDefinition : ShapeDefinition2D
     /// <inheritdoc/>
     public override int Triangulate(Span<ushort> outputIndices, ElementSkip vertexSkip = default)
     {
-        if (vertexSkip.GetSkipFactor(4) != 0)
+        if (vertexSkip.GetSkipFactor(4) != 1)
             throw new ArgumentException("RectangleDefinition does not support skipping vertices", nameof(vertexSkip));
         TriangulatedRectangleUInt16.CopyTo(outputIndices);
         return TriangulatedRectangleUInt16.Length;
