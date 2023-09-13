@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Graphics;
+using VDStudios.MagicEngine.Graphics.Veldrid.Caching;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid;
@@ -50,8 +51,9 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
         ));
 
         ShaderCache = new(this);
-        TextureCache = new();
-    }
+        TextureCache = new(this);
+        SamplerCache = new();
+}
 
     private readonly ObjectPool<CommandList> commandListPool;
 
@@ -310,10 +312,10 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
     public GraphicsContextResourceCache<Shader[]> ShaderCache { get; }
 
     /// <inheritdoc/>
-    public GraphicsContextResourceFactoryCache<Texture> TextureCache { get; }
+    public GraphicsContextResourceFactoryCache<Sampler> SamplerCache { get; }
 
     /// <inheritdoc/>
-    public GraphicsContextResourceFactoryCache<Sampler> SamplerCache { get; }
+    public GraphicsContextOwnedResourceFactoryCache<Texture, TextureView> TextureCache { get; }
 
     /// <summary>
     /// An uniform buffer containing data about the last frame

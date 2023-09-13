@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using VDStudios.MagicEngine.Graphics.Veldrid.Caching;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid;
@@ -224,14 +225,14 @@ public interface IVeldridGraphicsContextResources
     public GraphicsContextResourceCache<Shader[]> ShaderCache { get; }
 
     /// <summary>
-    /// The Resource cache for this <see cref="VeldridGraphicsContext"/>'s shared textures
-    /// </summary>
-    public GraphicsContextResourceFactoryCache<Texture> TextureCache { get; }
-
-    /// <summary>
     /// The Resource cache for this <see cref="VeldridGraphicsContext"/>'s shared samplers
     /// </summary>
     public GraphicsContextResourceFactoryCache<Sampler> SamplerCache { get; }
+
+    /// <summary>
+    /// The Resource cache for this <see cref="VeldridGraphicsContext"/>'s shared textures, and their respective views
+    /// </summary>
+    public GraphicsContextOwnedResourceFactoryCache<Texture, TextureView> TextureCache { get; }
 
     /// <summary>
     /// The <see cref="VeldridFrameReport"/> of the last frame

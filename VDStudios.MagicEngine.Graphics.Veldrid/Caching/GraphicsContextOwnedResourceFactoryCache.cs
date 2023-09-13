@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid;
@@ -7,42 +8,18 @@ namespace VDStudios.MagicEngine.Graphics.Veldrid;
 /// A Cache containing graphics resources for a <see cref="VeldridGraphicsContext"/> that are to be created on-demand
 /// </summary>
 /// <typeparam name="TResource">The resource this cache maintains</typeparam>
-public class GraphicsContextResourceFactoryCache<TResource>
+/// <typeparam name="TOwner">The owner of each resource</typeparam>
+public partial class GraphicsContextOwnedResourceFactoryCache<TOwner, TResource>
     where TResource : class
+    where TOwner : class
 {
-    /// <summary>
-    /// A resource entry for a <see cref="GraphicsContextResourceFactoryCache{TResource}"/>
-    /// </summary>
-    public sealed class ResourceCacheEntry
+    internal GraphicsContextOwnedResourceFactoryCache(IVeldridGraphicsContextResources resourceOwner)
     {
-        private TResource? resourceCache;
-
-        /// <summary>
-        /// The delegate used to obtain the resource
-        /// </summary>
-        public Func<IVeldridGraphicsContextResources, TResource> Factory { get; }
-
-        /// <summary>
-        /// Clears the cache for this <see cref="ResourceCacheEntry"/>, the next time <see cref="Factory"/> is used it will be created again
-        /// </summary>
-        /// <remarks>
-        /// If the resource implements <see cref="IDisposable"/>, it will be disposed
-        /// </remarks>
-        public void Clear()
-        {
-            if (resourceCache is IDisposable disposable)
-                disposable.Dispose();
-            resourceCache = null;
-        }
-
-        internal ResourceCacheEntry(Func<IVeldridGraphicsContextResources, TResource> resourceFactory)
-        {
-            ArgumentNullException.ThrowIfNull(resourceFactory);
-            Factory = c => resourceCache ??= resourceFactory(c);
-        }
+        ResourceOwner = resourceOwner;
     }
 
-    private readonly ConcurrentDictionary<string, ResourceCacheEntry> cache = new();
+    private readonly ConcurrentDictionary<string, ResourceOwnerCacheEntry> cache = new();
+    private readonly IVeldridGraphicsContextResources ResourceOwner;
 
     /// <summary>
     /// Removes the resource under <paramref name="name"/> from the cache
@@ -50,14 +27,14 @@ public class GraphicsContextResourceFactoryCache<TResource>
     /// <param name="name">The name of the resource</param>
     /// <param name="entry">The dropped entry. It has not been cleared</param>
     /// <returns><see langword="true"/> if the resource was found and removed and is contained in <paramref name="entry"/></returns>
-    public bool RemoveResource(string name, [NotNullWhen(true)] out ResourceCacheEntry? entry)
+    public bool RemoveResource(string name, [NotNullWhen(true)] out ResourceOwnerCacheEntry? entry)
         => cache.Remove(name, out entry);
 
     /// <summary>
     /// Obtains the resource under <paramref name="name"/>
     /// </summary>
     /// <param name="name">The name of the resource</param>
-    public ResourceCacheEntry GetResource(string name)
+    public ResourceOwnerCacheEntry GetResource(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
         return cache.TryGetValue(name, out var entry) is false
@@ -71,7 +48,7 @@ public class GraphicsContextResourceFactoryCache<TResource>
     /// <param name="entry">The resource entry, <see langword="null"/> if not found</param>
     /// <param name="name">The name of the resource</param>
     /// <returns><see langword="true"/> if the resource is found and <paramref name="entry"/> has it. <see langword="false"/> otherwise</returns>
-    public bool TryGetResource(string name, [NotNullWhen(true)] out ResourceCacheEntry? entry)
+    public bool TryGetResource(string name, [NotNullWhen(true)] out ResourceOwnerCacheEntry? entry)
     {
         ArgumentNullException.ThrowIfNull(name);
         return cache.TryGetValue(name, out entry);
@@ -83,20 +60,20 @@ public class GraphicsContextResourceFactoryCache<TResource>
     /// <param name="name">The name of the resource</param>
     /// <param name="resourceFactory">The delegate used to create the resource when it's requested</param>
     /// <param name="entry">The newly created resource entry</param>
-    public void RegisterResource(string name, Func<IVeldridGraphicsContextResources, TResource> resourceFactory, out ResourceCacheEntry entry)
+    public void RegisterResource(string name, Func<IVeldridGraphicsContextResources, TResource> resourceFactory, out ResourceOwnerCacheEntry entry)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(resourceFactory);
 
-        entry = cache.GetOrAdd(name, c => new ResourceCacheEntry(resourceFactory));
+        entry = cache.GetOrAdd(name, c => new ResourceOwnerCacheEntry(resourceFactory));
     }
 
     /// <summary>
     /// Attempts to obtain a <typeparamref name="TResource"/> under <paramref name="name"/>, or creates a new one using <paramref name="factory"/> if one is not found
     /// </summary>
-    public ResourceCacheEntry GetOrAddResource(string name, Func<IVeldridGraphicsContextResources, TResource> factory)
+    public ResourceOwnerCacheEntry GetOrAddResource(string name, Func<IVeldridGraphicsContextResources, TResource> factory)
     {
-        return cache.GetOrAdd(name, name => new ResourceCacheEntry(factory));
+        return cache.GetOrAdd(name, name => new ResourceOwnerCacheEntry(factory));
     }
 
     /// <summary>

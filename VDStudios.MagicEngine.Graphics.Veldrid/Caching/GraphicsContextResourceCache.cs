@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Veldrid;
 
-namespace VDStudios.MagicEngine.Graphics.Veldrid;
+namespace VDStudios.MagicEngine.Graphics.Veldrid.Caching;
 
 /// <summary>
 /// A Cache containing graphics resources for a <see cref="VeldridGraphicsContext"/>
