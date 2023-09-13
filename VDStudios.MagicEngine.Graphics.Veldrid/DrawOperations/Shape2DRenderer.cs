@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Mime;
 using System.Numerics;
 using System.Resources;
@@ -21,7 +22,8 @@ namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
 public class Shape2DRenderer : Shape2DRenderer<VertexColor2D>
 {
     /// <inheritdoc/>
-    public Shape2DRenderer(ShapeDefinition2D shape, Game game, ElementSkip vertexSkip = default) : base(shape, game, vertexSkip) { }
+    public Shape2DRenderer(ShapeDefinition2D shape, Game game, IVertexGenerator<Vector2, VertexColor2D>? vertexGenerator = null, ElementSkip vertexSkip = default) 
+        : base(shape, game, VertexColor2D.DefaultGenerator, vertexSkip) { }
 
     /// <summary>
     /// Fetches or registers (and then fetches) the default shader set for <see cref="Shape2DRenderer"/>
@@ -53,10 +55,23 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
     /// <summary>
     /// Creates a new object of type <see cref="Shape2DRenderer{TVertex}"/>
     /// </summary>
-    public Shape2DRenderer(ShapeDefinition2D shape, Game game, ElementSkip vertexSkip = default) : base(game)
+    public Shape2DRenderer(ShapeDefinition2D shape, Game game, IVertexGenerator<Vector2, TVertex>? vertexGenerator, ElementSkip vertexSkip = default) : base(game)
     {
         Shape = shape;
         VertexSkip = vertexSkip;
+
+        if (vertexGenerator is not null)
+            VertexGenerator = vertexGenerator;
+        else if (typeof(TVertex).IsAssignableTo(typeof(IDefaultVertexGenerator<Vector2, TVertex>)))
+        {
+            VertexGenerator = (IVertexGenerator<Vector2, TVertex>)(typeof(TVertex)
+                .GetProperty("DefaultGenerator")!
+                .GetValue(null, null))!;
+
+            Debug.Assert(VertexGenerator is not null);
+        }
+        else
+            throw new InvalidOperationException("If a type does not implement IDefaultVertexGenerator, then it VertexGenerator must not be null");
     }
 
     /// <summary>
@@ -65,7 +80,22 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
     /// <remarks>
     /// Changing this property will not result in vertices being re-generated, see <see cref="NotifyPendingVertexRegeneration"/>
     /// </remarks>
-    public IVertexGenerator<Vector2, TVertex>? VertexGenerator { get; set; }
+    [MemberNotNull(nameof(_vtx))]
+    public IVertexGenerator<Vector2, TVertex> VertexGenerator
+    {
+        get
+        {
+            Debug.Assert(_vtx is not null);
+            return _vtx;
+        }
+
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _vtx = value;
+        }
+    }
+    private IVertexGenerator<Vector2, TVertex> _vtx;
 
     /// <summary>
     /// Notifies this object to perform a vertex regeneration in the next frame
@@ -223,17 +253,7 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
             try
             {
                 var gen = VertexGenerator;
-                if (gen is null)
-                    if (typeof(TVertex).IsAssignableTo(typeof(IDefaultVertexGenerator<Vector2, TVertex>)))
-                    {
-                        gen = (IVertexGenerator<Vector2, TVertex>)(typeof(TVertex)
-                            .GetProperty("DefaultGenerator")!
-                            .GetValue(null, null))!;
-
-                        Debug.Assert(gen is not null);
-                    }
-                    else
-                        throw new InvalidOperationException("If a type does not implement IDefaultVertexGenerator, then it VertexGenerator must not be null");
+                Debug.Assert(VertexGenerator is not null, "VertexGenerator was unexpectedly null at the time of rendering");
 
                 gen.Generate(vertices, graphicVertices);
                 context.CommandList.UpdateBuffer(VertexIndexBuffer, 0, graphicVertices);
