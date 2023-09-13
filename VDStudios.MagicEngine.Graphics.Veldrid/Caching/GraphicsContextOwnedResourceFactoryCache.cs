@@ -60,20 +60,20 @@ public partial class GraphicsContextOwnedResourceFactoryCache<TOwner, TResource>
     /// <param name="name">The name of the resource</param>
     /// <param name="resourceFactory">The delegate used to create the resource when it's requested</param>
     /// <param name="entry">The newly created resource entry</param>
-    public void RegisterResource(string name, Func<IVeldridGraphicsContextResources, TResource> resourceFactory, out ResourceOwnerCacheEntry entry)
+    public void RegisterResource(string name, Func<IVeldridGraphicsContextResources, TOwner> resourceFactory, out ResourceOwnerCacheEntry entry)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(resourceFactory);
 
-        entry = cache.GetOrAdd(name, c => new ResourceOwnerCacheEntry(resourceFactory));
+        entry = cache.GetOrAdd(name, c => new ResourceOwnerCacheEntry(this, resourceFactory));
     }
 
     /// <summary>
     /// Attempts to obtain a <typeparamref name="TResource"/> under <paramref name="name"/>, or creates a new one using <paramref name="factory"/> if one is not found
     /// </summary>
-    public ResourceOwnerCacheEntry GetOrAddResource(string name, Func<IVeldridGraphicsContextResources, TResource> factory)
+    public ResourceOwnerCacheEntry GetOrAddResource(string name, Func<IVeldridGraphicsContextResources, TOwner> factory)
     {
-        return cache.GetOrAdd(name, name => new ResourceOwnerCacheEntry(factory));
+        return cache.GetOrAdd(name, name => new ResourceOwnerCacheEntry(this, factory));
     }
 
     /// <summary>
