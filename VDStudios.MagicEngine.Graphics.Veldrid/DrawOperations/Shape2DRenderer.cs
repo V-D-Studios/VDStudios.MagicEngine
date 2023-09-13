@@ -4,6 +4,7 @@ using System.Net.Mime;
 using System.Numerics;
 using System.Resources;
 using System.Runtime.CompilerServices;
+using SDL2.NET;
 using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.Graphics.Veldrid.Generators;
 using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
@@ -21,6 +22,26 @@ public class Shape2DRenderer : Shape2DRenderer<VertexColor2D>
 {
     /// <inheritdoc/>
     public Shape2DRenderer(ShapeDefinition2D shape, Game game, ElementSkip vertexSkip = default) : base(shape, game, vertexSkip) { }
+
+    /// <summary>
+    /// Fetches or registers (and then fetches) the default shader set for <see cref="Shape2DRenderer"/>
+    /// </summary>
+    public static Shader[] GetDefaultShaders(IVeldridGraphicsContextResources resources) 
+        => resources.GetOrAddShader<Shape2DRenderer>(
+            static c => c.ResourceFactory.CreateFromSpirv(
+                vertexShaderDescription: new ShaderDescription(
+                    ShaderStages.Vertex,
+                    Encoding.UTF8.GetBytes(DefaultShaders.DefaultShape2DRendererVertexShader),
+                    "main",
+                    true
+                ),
+                fragmentShaderDescription: new ShaderDescription(
+                    ShaderStages.Fragment,
+                    Encoding.UTF8.GetBytes(DefaultShaders.DefaultShape2DRendererFragmentShader),
+                    "main",
+                    true
+                )
+            ));
 }
 
 /// <summary>
@@ -112,22 +133,12 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
     {
         base.CreateGPUResources(context);
 
-        var shaders = context.ShaderCache.GetOrAdd(
-            nameof(Shape2DRenderer<TVertex>), 
-            static (n, c) => c.ResourceFactory.CreateFromSpirv(
-                vertexShaderDescription: new ShaderDescription(
-                    ShaderStages.Vertex,
-                    Encoding.UTF8.GetBytes(DefaultShaders.DefaultShape2DRendererVertexShader),
-                    "main",
-                    true
-                ),
-                fragmentShaderDescription: new ShaderDescription(
-                    ShaderStages.Fragment,
-                    Encoding.UTF8.GetBytes(DefaultShaders.DefaultShape2DRendererFragmentShader),
-                    "main",
-                    true
-                )
-            ), context);
+        Shader[]? shaders;
+
+        if (this is Shape2DRenderer)
+            shaders = Shape2DRenderer.GetDefaultShaders(context);
+        else if (context.TryGetShader<Shape2DRenderer<TVertex>>(out shaders) is false)
+            throw new InvalidOperationException($"Could not find a Shader set for {Helper.BuildTypeNameAsCSharpTypeExpression(typeof(Shape2DRenderer<TVertex>))}");
 
         if (context.ContainsPipeline<Shape2DRenderer<TVertex>>() is false)
             context.RegisterPipeline<Shape2DRenderer<TVertex>>(context.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription(
