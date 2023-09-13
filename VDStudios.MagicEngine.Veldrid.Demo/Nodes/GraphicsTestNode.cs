@@ -13,6 +13,7 @@ using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Veldrid.Demo.Nodes;
+
 public class GraphicsTestNode : Node
 {
     public readonly Shape2DRenderer Circle;
