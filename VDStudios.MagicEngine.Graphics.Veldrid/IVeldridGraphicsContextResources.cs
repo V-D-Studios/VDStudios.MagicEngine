@@ -219,9 +219,14 @@ public interface IVeldridGraphicsContextResources
     #endregion
 
     /// <summary>
-    /// The <see cref="GraphicsContextResourceCache{TResource}"/> for this <see cref="VeldridGraphicsContext"/>'s shaders
+    /// The Resource cache for this <see cref="VeldridGraphicsContext"/>'s shaders
     /// </summary>
     public GraphicsContextResourceCache<Shader[]> ShaderCache { get; }
+
+    /// <summary>
+    /// The Resource cache for this <see cref="VeldridGraphicsContext"/>'s shared textures
+    /// </summary>
+    public GraphicsContextResourceFactoryCache<Texture> TextureCache { get; }
 
     /// <summary>
     /// The <see cref="VeldridFrameReport"/> of the last frame

@@ -34,7 +34,7 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
         GraphicsDevice = device;
         commandListPool = new(p => ResourceFactory.CreateCommandList(), _ => { });
         CommandList = ResourceFactory.CreateCommandList();
-        
+
         FrameReportBuffer = ResourceFactory.CreateBuffer(new BufferDescription(
             DataStructuring.FitToUniformBuffer<VeldridFrameReport, uint>(),
             BufferUsage.UniformBuffer
@@ -50,6 +50,7 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
         ));
 
         ShaderCache = new(this);
+        TextureCache = new();
     }
 
     private readonly ObjectPool<CommandList> commandListPool;
@@ -220,8 +221,6 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
 
     #region Shared Draw Resources
 
-#warning Consider adding a special case ServiceProvider for SharedDrawResources, or, rather, model it after ServiceProvider
-
     private readonly HashSet<SharedDrawResource> unnamedDrawResources = new();
     private readonly Dictionary<string, SharedDrawResource> sharedDrawResources = new();
 
@@ -308,7 +307,10 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
     #endregion
 
     /// <inheritdoc/>
-    public GraphicsContextResourceCache<Shader[]> ShaderCache { get; } 
+    public GraphicsContextResourceCache<Shader[]> ShaderCache { get; }
+
+    /// <inheritdoc/>
+    public GraphicsContextResourceFactoryCache<Texture> TextureCache { get; }
 
     /// <summary>
     /// An uniform buffer containing data about the last frame
