@@ -143,7 +143,7 @@ public partial class GraphicsContextOwnedResourceFactoryCache<TOwner, TResource>
             ArgumentNullException.ThrowIfNull(owner);
             OwnerCache = owner;
             OwnerFactory = resourceFactory;
-            OwnerDelegate = _ => OwnerResource;
+            OwnerDelegate = context => context != OwnerCache.ResourceOwner ? throw new ArgumentException("The passed context does not own this ResourceCache", nameof(context)) : OwnerResource;
         }
     } 
 }
