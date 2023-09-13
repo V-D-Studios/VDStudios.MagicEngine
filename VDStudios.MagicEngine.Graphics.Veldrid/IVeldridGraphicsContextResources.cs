@@ -19,6 +19,11 @@ public interface IVeldridGraphicsContextResources
     /// </summary>
     public ResourceFactory ResourceFactory { get; }
 
+    /// <summary>
+    /// The <see cref="ResourceLayout"/> for <see cref="VeldridGraphicsContext.FrameReportSet"/>
+    /// </summary>
+    public ResourceLayout FrameReportLayout { get; }
+
     #region Pipelines
 
     /// <summary>
@@ -198,10 +203,47 @@ public interface IVeldridGraphicsContextResources
 
     #endregion
 
+    #region Shaders
+
     /// <summary>
-    /// This <see cref="VeldridGraphicsContext"/>'s cache for loaded shaders
+    /// Attempts to obtain an array of <see cref="Shader"/> for <typeparamref name="T"/> under <paramref name="name"/>
     /// </summary>
-    public ConcurrentDictionary<string, Shader[]> ShaderCache { get; }
+    /// <typeparam name="T">The type that the shaders are for</typeparam>
+    /// <param name="shaders">The shader array, <see langword="null"/> if not found</param>
+    /// <param name="name">The name of the shaders in the <typeparamref name="T"/> shaders set</param>
+    /// <returns><see langword="true"/> if the shaders are found and <paramref name="shaders"/> has it. <see langword="false"/> otherwise</returns>
+    public bool TryGetShader<T>([NotNullWhen(true)] out Shader[]? shaders, string? name = null);
+
+    /// <summary>
+    /// Attempts to obtain an array of <see cref="Shader"/> for <typeparamref name="T"/> under <paramref name="name"/>, or creates a new one using <paramref name="factory"/> if one is not found
+    /// </summary>
+    public Shader[] GetOrAdd<T>(Func<IVeldridGraphicsContextResources, Shader[]> factory, string? name = null);
+
+    /// <summary>
+    /// Checks if this resource set contains a Shader for <typeparamref name="T"/> under <paramref name="name"/>
+    /// </summary>
+    public bool Contains<T>(string? name = null);
+
+    /// <summary>
+    /// Attempts to obtain an array of <see cref="Shader"/> for <paramref name="type"/> under <paramref name="name"/>
+    /// </summary>
+    /// <param name="type">The type that the shaders are for</param>
+    /// <param name="shaders">The shaders, <see langword="null"/> if not found</param>
+    /// <param name="name">The name of the shaders in the <paramref name="type"/> shaders set</param>
+    /// <returns><see langword="true"/> if the shaders are found and <paramref name="shaders"/> has it. <see langword="false"/> otherwise</returns>
+    public bool TryGetShader(Type type, [NotNullWhen(true)] out Shader[]? shaders, string? name = null);
+
+    /// <summary>
+    /// Attempts to obtain an array of <see cref="Shader"/> for <paramref name="type"/> under <paramref name="name"/>, or creates a new one using <paramref name="factory"/> if one is not found
+    /// </summary>
+    public Shader[] GetOrAdd(Type type, Func<IVeldridGraphicsContextResources, Shader[]> factory, string? name = null);
+
+    /// <summary>
+    /// Checks if this resource set contains a Shader for <paramref name="type"/> under <paramref name="name"/>
+    /// </summary>
+    public bool Contains(Type type, string? name = null);
+
+    #endregion
 
     /// <summary>
     /// The <see cref="VeldridFrameReport"/> of the last frame
