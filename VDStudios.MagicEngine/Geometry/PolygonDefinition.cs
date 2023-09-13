@@ -213,7 +213,7 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
                 ? ComputeConvexTriangulatedIndexBufferSize(vertexSkip.GetElementCount(vertexCount), out _)
                 : ComputeConvexTriangulatedIndexBufferSize(vertexCount, out _);
 
-            return indexCount is 3 ? 4 : indexCount is 4 ? 6 : indexCount;
+            return indexCount is 3 ? 4 : indexCount is 4 ? 9 : indexCount;
         }
 
         throw new NotSupportedException("Non convex shapes are not supported!");
@@ -259,15 +259,11 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
 
         if (isConvex)
         {
-            if (indexCount is 4)
+            if (indexCount is 9)
             {
-                outputIndices[0] = (1 * step); // 1
-                outputIndices[1] = (0 * step); // 0
-                outputIndices[2] = (3 * step); // 3
-                outputIndices[3] = (1 * step); // 1
-                outputIndices[4] = (2 * step); // 2
-                outputIndices[5] = (uint.Min(3 * step, count - 1)); // 3
-                return 6;
+                for (int i = 0; i < RectangleDefinition.TriangulatedRectangleUInt32.Length; i++)
+                    outputIndices[i] = RectangleDefinition.TriangulatedRectangleUInt32[i] * step;
+                return 9;
             }
 
             ComputeConvexTriangulatedIndexBuffers(count, outputIndices, step, start);
@@ -297,7 +293,7 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     public static int TriangulatePolygon(int vertexCount, bool isConvex, Span<ushort> outputIndices, ElementSkip vertexSkip = default)
     {
         var count = vertexCount;
-        var step = vertexSkip.GetSkipFactor(vertexCount);
+        var step = (ushort)vertexSkip.GetSkipFactor(vertexCount);
         ComputeConvexTriangulatedIndexBufferSize(vertexSkip.GetElementCount(count), out var start);
         int indexCount = GetPolygonTriangulationLength(vertexCount, true, vertexSkip);
 
@@ -306,7 +302,7 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
         if (indexCount is 3)
         {
             outputIndices[0] = 0;
-            outputIndices[1] = (ushort)step;
+            outputIndices[1] = step;
             outputIndices[2] = (ushort)(count - 1);
             outputIndices[3] = 0;
             return 4;
@@ -318,18 +314,14 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
 
         if (isConvex)
         {
-            if (indexCount is 4)
+            if (indexCount is 9)
             {
-                outputIndices[0] = (ushort)(1 * step); // 1
-                outputIndices[1] = (ushort)(0 * step); // 0
-                outputIndices[2] = (ushort)(3 * step); // 3
-                outputIndices[3] = (ushort)(1 * step); // 1
-                outputIndices[4] = (ushort)(2 * step); // 2
-                outputIndices[5] = (ushort)(int.Min(3 * step, count - 1)); // 3
-                return 6;
+                for (int i = 0; i < RectangleDefinition.TriangulatedRectangleUInt16.Length; i++)
+                    outputIndices[i] = (ushort)(RectangleDefinition.TriangulatedRectangleUInt16[i] * step);
+                return 9;
             }
 
-            ComputeConvexTriangulatedIndexBuffers((ushort)count, outputIndices, (ushort)step, start);
+            ComputeConvexTriangulatedIndexBuffers((ushort)count, outputIndices, step, start);
             return outputIndices.Length;
         }
 
