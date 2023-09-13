@@ -269,23 +269,23 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
         => TryGetShader(typeof(T), out shaders, name);
 
     /// <inheritdoc/>
-    public Shader[] GetOrAdd<T>(Func<IVeldridGraphicsContextResources, Shader[]> factory, string? name = null)
-        => GetOrAdd(typeof(T), factory, name);
+    public Shader[] GetOrAddShader<T>(Func<IVeldridGraphicsContextResources, Shader[]> factory, string? name = null)
+        => GetOrAddShader(typeof(T), factory, name);
 
     /// <inheritdoc/>
-    public bool Contains<T>(string? name = null)
-        => Contains(typeof(T), name);
+    public bool ContainsShader<T>(string? name = null)
+        => ContainsShader(typeof(T), name);
 
     /// <inheritdoc/>
     public bool TryGetShader(Type type, [NotNullWhen(true)] out Shader[]? shaders, string? name = null)
         => ShaderCache.TryGetValue(new ShaderKey(type, name), out shaders);
 
     /// <inheritdoc/>
-    public Shader[] GetOrAdd(Type type, Func<IVeldridGraphicsContextResources, Shader[]> factory, string? name = null)
+    public Shader[] GetOrAddShader(Type type, Func<IVeldridGraphicsContextResources, Shader[]> factory, string? name = null)
         => ShaderCache.GetOrAdd(new ShaderKey(type, name), (sk, fa) => fa(this), factory);
 
     /// <inheritdoc/>
-    public bool Contains(Type type, string? name = null)
+    public bool ContainsShader(Type type, string? name = null)
         => ShaderCache.ContainsKey(new ShaderKey(type, name));
 
     #endregion

@@ -217,12 +217,12 @@ public interface IVeldridGraphicsContextResources
     /// <summary>
     /// Attempts to obtain an array of <see cref="Shader"/> for <typeparamref name="T"/> under <paramref name="name"/>, or creates a new one using <paramref name="factory"/> if one is not found
     /// </summary>
-    public Shader[] GetOrAdd<T>(Func<IVeldridGraphicsContextResources, Shader[]> factory, string? name = null);
+    public Shader[] GetOrAddShader<T>(Func<IVeldridGraphicsContextResources, Shader[]> factory, string? name = null);
 
     /// <summary>
     /// Checks if this resource set contains a Shader for <typeparamref name="T"/> under <paramref name="name"/>
     /// </summary>
-    public bool Contains<T>(string? name = null);
+    public bool ContainsShader<T>(string? name = null);
 
     /// <summary>
     /// Attempts to obtain an array of <see cref="Shader"/> for <paramref name="type"/> under <paramref name="name"/>
@@ -236,12 +236,12 @@ public interface IVeldridGraphicsContextResources
     /// <summary>
     /// Attempts to obtain an array of <see cref="Shader"/> for <paramref name="type"/> under <paramref name="name"/>, or creates a new one using <paramref name="factory"/> if one is not found
     /// </summary>
-    public Shader[] GetOrAdd(Type type, Func<IVeldridGraphicsContextResources, Shader[]> factory, string? name = null);
+    public Shader[] GetOrAddShader(Type type, Func<IVeldridGraphicsContextResources, Shader[]> factory, string? name = null);
 
     /// <summary>
     /// Checks if this resource set contains a Shader for <paramref name="type"/> under <paramref name="name"/>
     /// </summary>
-    public bool Contains(Type type, string? name = null);
+    public bool ContainsShader(Type type, string? name = null);
 
     #endregion
 
