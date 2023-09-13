@@ -39,32 +39,6 @@ public static class ColorTransformationExtensions
     public static ColorTransformation WithTint(this in ColorTransformation trans, RgbaVector tint)
         => trans with
         {
-            Tint = tint.ToVector4(),
-            Effects = ColorEffect.Tinted | ColorEffect.GrayScale | trans.Effects
-        };
-
-    /// <summary>
-    /// Returns a new <see cref="ColorTransformation"/> that overlays <paramref name="overlay"/> over the fragments
-    /// </summary>
-    /// <param name="overlay">The color to overlay over the fragments</param>
-    /// <param name="trans"></param>
-    /// <returns>The created <see cref="ColorTransformation"/></returns>
-    public static ColorTransformation WithOverlay(this in ColorTransformation trans, RgbaVector overlay)
-        => trans with
-        {
-            Effects = ColorEffect.Overlay | trans.Effects,
-            Overlay = overlay.ToVector4()
-        };
-
-    /// <summary>
-    /// Returns a new <see cref="ColorTransformation"/> that tints the fragments with <paramref name="tint"/>
-    /// </summary>
-    /// <param name="tint">The color to tint the fragments with</param>
-    /// <param name="trans"></param>
-    /// <returns>The created <see cref="ColorTransformation"/></returns>
-    public static ColorTransformation WithTint(this in ColorTransformation trans, Vector4 tint)
-        => trans with
-        {
             Tint = tint,
             Effects = ColorEffect.Tinted | ColorEffect.GrayScale | trans.Effects
         };
@@ -75,7 +49,7 @@ public static class ColorTransformationExtensions
     /// <param name="overlay">The color to overlay over the fragments</param>
     /// <param name="trans"></param>
     /// <returns>The created <see cref="ColorTransformation"/></returns>
-    public static ColorTransformation WithOverlay(this in ColorTransformation trans, Vector4 overlay)
+    public static ColorTransformation WithOverlay(this in ColorTransformation trans, RgbaVector overlay)
         => trans with
         {
             Effects = ColorEffect.Overlay | trans.Effects,
@@ -92,12 +66,12 @@ public readonly struct ColorTransformation
     /// <summary>
     /// A color that will be tinted over every fragment
     /// </summary>
-    public Vector4 Tint { get; init; }
+    public RgbaVector Tint { get; init; }
 
     /// <summary>
     /// A color that will be overlayed over every fragment
     /// </summary>
-    public Vector4 Overlay { get; init; }
+    public RgbaVector Overlay { get; init; }
 
     /// <summary>
     /// The effects that are enabled for this <see cref="ColorTransformation"/>
@@ -112,7 +86,7 @@ public readonly struct ColorTransformation
     /// <summary>
     /// Deconstructs this <see cref="ColorTransformation"/> in the following order: <see cref="Tint"/>, <see cref="Overlay"/>, <see cref="Opacity"/> and <see cref="Effects"/>
     /// </summary>
-    public void Deconstruct(out Vector4 tint, out Vector4 overlay, out float opacity, out ColorEffect effects)
+    public void Deconstruct(out RgbaVector tint, out RgbaVector overlay, out float opacity, out ColorEffect effects)
     {
         tint = Tint;
         overlay = Overlay;
@@ -127,7 +101,7 @@ public readonly struct ColorTransformation
     /// <param name="tint">The color tint that will be applied over the fragments</param>
     /// <param name="overlay">The color that will be overlayed over the fragments</param>
     /// <param name="opacity">The alpha value that will override the fragment's alpha</param>
-    public ColorTransformation(ColorEffect effects, Vector4 tint = default, Vector4 overlay = default, float opacity = default)
+    public ColorTransformation(ColorEffect effects, RgbaVector tint = default, RgbaVector overlay = default, float opacity = default)
     {
         Tint = tint;
         Overlay = overlay;
@@ -150,31 +124,6 @@ public readonly struct ColorTransformation
     /// <param name="tint">The color to tint the fragments with</param>
     /// <returns>The created <see cref="ColorTransformation"/></returns>
     public static ColorTransformation CreateTint(RgbaVector tint)
-        => new(ColorEffect.Tinted | ColorEffect.GrayScale, tint: tint.ToVector4());
-
-    /// <summary>
-    /// Creates a <see cref="ColorTransformation"/> that overlays <paramref name="overlay"/> over the fragments
-    /// </summary>
-    /// <param name="overlay">The color to overlay over the fragments</param>
-    /// <returns>The created <see cref="ColorTransformation"/></returns>
-    public static ColorTransformation CreateOverlay(RgbaVector overlay)
-        => new(ColorEffect.Overlay, overlay: overlay.ToVector4());
-
-    /// <summary>
-    /// Creates a <see cref="ColorTransformation"/> that both tints and overlays the fragments with <paramref name="tint"/> and <paramref name="overlay"/> respectively
-    /// </summary>
-    /// <param name="tint">The color to tint the fragments with</param>
-    /// <param name="overlay">The color to overlay over the fragments</param>
-    /// <returns>The created <see cref="ColorTransformation"/></returns>
-    public static ColorTransformation CreateTintAndOverlay(RgbaVector tint, RgbaVector overlay)
-        => new(ColorEffect.Tinted | ColorEffect.GrayScale | ColorEffect.Overlay, tint: tint.ToVector4(), overlay: overlay.ToVector4());
-
-    /// <summary>
-    /// Creates a <see cref="ColorTransformation"/> that tints the fragments with <paramref name="tint"/>
-    /// </summary>
-    /// <param name="tint">The color to tint the fragments with</param>
-    /// <returns>The created <see cref="ColorTransformation"/></returns>
-    public static ColorTransformation CreateTint(Vector4 tint)
         => new(ColorEffect.Tinted | ColorEffect.GrayScale, tint: tint);
 
     /// <summary>
@@ -182,7 +131,7 @@ public readonly struct ColorTransformation
     /// </summary>
     /// <param name="overlay">The color to overlay over the fragments</param>
     /// <returns>The created <see cref="ColorTransformation"/></returns>
-    public static ColorTransformation CreateOverlay(Vector4 overlay)
+    public static ColorTransformation CreateOverlay(RgbaVector overlay)
         => new(ColorEffect.Overlay, overlay: overlay);
 
     /// <summary>
@@ -191,6 +140,6 @@ public readonly struct ColorTransformation
     /// <param name="tint">The color to tint the fragments with</param>
     /// <param name="overlay">The color to overlay over the fragments</param>
     /// <returns>The created <see cref="ColorTransformation"/></returns>
-    public static ColorTransformation CreateTintAndOverlay(Vector4 tint, Vector4 overlay)
+    public static ColorTransformation CreateTintAndOverlay(RgbaVector tint, RgbaVector overlay)
         => new(ColorEffect.Tinted | ColorEffect.Overlay, tint: tint, overlay: overlay);
 }
