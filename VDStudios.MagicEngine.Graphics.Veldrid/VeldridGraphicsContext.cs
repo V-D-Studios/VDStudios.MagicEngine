@@ -48,6 +48,8 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
             FrameReportLayout,
             FrameReportBuffer
         ));
+
+        ShaderCache = new(this);
     }
 
     private readonly ObjectPool<CommandList> commandListPool;
@@ -305,37 +307,8 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
 
     #endregion
 
-    #region Shaders
-
-    private readonly record struct ShaderKey(Type Type, string? Name);
-
-    private readonly ConcurrentDictionary<ShaderKey, Shader[]> ShaderCache = new();
-
     /// <inheritdoc/>
-    public bool TryGetShader<T>([NotNullWhen(true)] out Shader[]? shaders, string? name = null)
-        => TryGetShader(typeof(T), out shaders, name);
-
-    /// <inheritdoc/>
-    public Shader[] GetOrAddShader<T>(Func<IVeldridGraphicsContextResources, Shader[]> factory, string? name = null)
-        => GetOrAddShader(typeof(T), factory, name);
-
-    /// <inheritdoc/>
-    public bool ContainsShader<T>(string? name = null)
-        => ContainsShader(typeof(T), name);
-
-    /// <inheritdoc/>
-    public bool TryGetShader(Type type, [NotNullWhen(true)] out Shader[]? shaders, string? name = null)
-        => ShaderCache.TryGetValue(new ShaderKey(type, name), out shaders);
-
-    /// <inheritdoc/>
-    public Shader[] GetOrAddShader(Type type, Func<IVeldridGraphicsContextResources, Shader[]> factory, string? name = null)
-        => ShaderCache.GetOrAdd(new ShaderKey(type, name), (sk, fa) => fa(this), factory);
-
-    /// <inheritdoc/>
-    public bool ContainsShader(Type type, string? name = null)
-        => ShaderCache.ContainsKey(new ShaderKey(type, name));
-
-    #endregion
+    public GraphicsContextResourceCache<Shader[]> ShaderCache { get; } 
 
     /// <summary>
     /// An uniform buffer containing data about the last frame

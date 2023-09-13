@@ -29,7 +29,7 @@ public class Shape2DRenderer : Shape2DRenderer<VertexColor2D>
     /// Fetches or registers (and then fetches) the default shader set for <see cref="Shape2DRenderer"/>
     /// </summary>
     public static Shader[] GetDefaultShaders(IVeldridGraphicsContextResources resources) 
-        => resources.GetOrAddShader<Shape2DRenderer>(
+        => resources.ShaderCache.GetOrAddResource<Shape2DRenderer>(
             static c => c.ResourceFactory.CreateFromSpirv(
                 vertexShaderDescription: new ShaderDescription(
                     ShaderStages.Vertex,
@@ -167,7 +167,7 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
 
         if (this is Shape2DRenderer)
             shaders = Shape2DRenderer.GetDefaultShaders(context);
-        else if (context.TryGetShader<Shape2DRenderer<TVertex>>(out shaders) is false)
+        else if (context.ShaderCache.TryGetResource<Shape2DRenderer<TVertex>>(out shaders) is false)
             throw new InvalidOperationException($"Could not find a Shader set for {Helper.BuildTypeNameAsCSharpTypeExpression(typeof(Shape2DRenderer<TVertex>))}");
 
         if (context.ContainsPipeline<Shape2DRenderer<TVertex>>() is false)
