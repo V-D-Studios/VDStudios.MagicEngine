@@ -26,6 +26,8 @@ public class TransformationState
         {
             if (scaletrans is not Matrix4x4 t)
                 scaletrans = t = Matrix4x4.CreateScale(Scale);
+
+            ScaleTransformationChanging(t);
             ScaleTransformationChanged?.Invoke(this);
             return t;
         }
@@ -44,6 +46,8 @@ public class TransformationState
         {
             if (transtrans is not Matrix4x4 t)
                 transtrans = t = Matrix4x4.CreateTranslation(Translation);
+
+            TranslationTransformationChanging(t);
             TranslationTransformationChanged?.Invoke(this);
             return t;
         }
@@ -73,13 +77,30 @@ public class TransformationState
                     Matrix4x4.CreateRotationX(rotx, new(cpxx, cpxy, cpxz)) *
                     Matrix4x4.CreateRotationY(roty, new(cpyx, cpyy, cpyz)) *
                     Matrix4x4.CreateRotationZ(rotz, new(cpzx, cpzy, cpzz));
+
+                VertexTransformationChanging(t);
                 VertexTransformationChanged?.Invoke(this);
             }
             return t;
         }
     }
     private Matrix4x4? vertrans = Matrix4x4.Identity;
-    
+
+    /// <summary>
+    /// This method is called automatically when <see cref="VertexTransformation"/> is changing
+    /// </summary>
+    protected virtual void VertexTransformationChanging(in Matrix4x4 currentMatrix) { }
+
+    /// <summary>
+    /// This method is called automatically when <see cref="ScaleTransformation"/> is changing
+    /// </summary>
+    protected virtual void ScaleTransformationChanging(in Matrix4x4 currentMatrix) { }
+
+    /// <summary>
+    /// This method is called automatically when <see cref="TranslationTransformation"/> is changing
+    /// </summary>
+    protected virtual void TranslationTransformationChanging(in Matrix4x4 currentMatrix) { }
+
     /// <summary>
     /// Fired when <see cref="VertexTransformation"/> changes
     /// </summary>
