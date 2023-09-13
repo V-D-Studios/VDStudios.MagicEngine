@@ -20,7 +20,17 @@ public sealed class GraphicsContextResourceCache<TResource>
     private readonly ConcurrentDictionary<ResourceKey, TResource> dict = new();
 
     /// <summary>
-    /// Attempts to obtain an array of <typeparamref name="TResource"/> for <typeparamref name="T"/> under <paramref name="name"/>
+    /// Attempts to remove a <typeparamref name="TResource"/> from <typeparamref name="T"/> under <paramref name="name"/>
+    /// </summary>
+    /// <typeparam name="T">The type that the resource is for</typeparam>
+    /// <param name="resource">The resource, not <see langword="null"/> if found and removed</param>
+    /// <param name="name">The name of the resource in the <typeparamref name="T"/> resource set</param>
+    /// <returns><see langword="true"/> if the resource is found and has been removed. <see langword="false"/> otherwise</returns>
+    public bool RemoveResource<T>([NotNullWhen(true)] out TResource? resource, string? name = null)
+        => dict.TryRemove(new ResourceKey(typeof(T), name), out resource);
+
+    /// <summary>
+    /// Attempts to obtain a <typeparamref name="TResource"/> for <typeparamref name="T"/> under <paramref name="name"/>
     /// </summary>
     /// <typeparam name="T">The type that the resource is for</typeparam>
     /// <param name="resource">The resource, <see langword="null"/> if not found</param>
@@ -30,7 +40,7 @@ public sealed class GraphicsContextResourceCache<TResource>
         => TryGetResource(typeof(T), out resource, name);
 
     /// <summary>
-    /// Attempts to obtain an array of <typeparamref name="TResource"/> for <typeparamref name="T"/> under <paramref name="name"/>, or creates a new one using <paramref name="factory"/> if one is not found
+    /// Attempts to obtain a <typeparamref name="TResource"/> for <typeparamref name="T"/> under <paramref name="name"/>, or creates a new one using <paramref name="factory"/> if one is not found
     /// </summary>
     public TResource GetOrAddResource<T>(Func<IVeldridGraphicsContextResources, TResource> factory, string? name = null)
         => GetOrAddResource(typeof(T), factory, name);
@@ -42,7 +52,17 @@ public sealed class GraphicsContextResourceCache<TResource>
         => ContainsResource(typeof(T), name);
 
     /// <summary>
-    /// Attempts to obtain an array of <typeparamref name="TResource"/> for <paramref name="type"/> under <paramref name="name"/>
+    /// Attempts to remove a <typeparamref name="TResource"/> from <paramref name="type"/> under <paramref name="name"/>
+    /// </summary>
+    /// <param name="type">The type that the resource is for</param>
+    /// <param name="resource">The resource, not <see langword="null"/> if found and removed</param>
+    /// <param name="name">The name of the resource in the <paramref name="type"/> resource set</param>
+    /// <returns><see langword="true"/> if the resource is found and has been removed. <see langword="false"/> otherwise</returns>
+    public bool RemoveResource(Type type, [NotNullWhen(true)] out TResource? resource, string? name = null)
+        => dict.TryRemove(new ResourceKey(type, name), out resource);
+
+    /// <summary>
+    /// Attempts to obtain a <typeparamref name="TResource"/> for <paramref name="type"/> under <paramref name="name"/>
     /// </summary>
     /// <param name="type">The type that the resource is for</param>
     /// <param name="resource">The resource, <see langword="null"/> if not found</param>
@@ -52,7 +72,7 @@ public sealed class GraphicsContextResourceCache<TResource>
         => dict.TryGetValue(new ResourceKey(type, name), out resource);
 
     /// <summary>
-    /// Attempts to obtain an array of <typeparamref name="TResource"/> for <paramref name="type"/> under <paramref name="name"/>, or creates a new one using <paramref name="factory"/> if one is not found
+    /// Attempts to obtain a <typeparamref name="TResource"/> for <paramref name="type"/> under <paramref name="name"/>, or creates a new one using <paramref name="factory"/> if one is not found
     /// </summary>
     public TResource GetOrAddResource(Type type, Func<IVeldridGraphicsContextResources, TResource> factory, string? name = null)
         => dict.GetOrAdd(new ResourceKey(type, name), (sk, fa) => fa(context), factory);
