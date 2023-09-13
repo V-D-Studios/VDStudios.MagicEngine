@@ -12,7 +12,7 @@ namespace VDStudios.MagicEngine.Graphics;
 /// <summary>
 /// Represents the current state of a transformation <see cref="Matrix4x4"/> given a set of different, singular parameters
 /// </summary>
-public sealed class TransformationState
+public class TransformationState
 {
     /// <summary>
     /// The transformation matrix that represents the current scaling properties in this <see cref="TransformationState"/>

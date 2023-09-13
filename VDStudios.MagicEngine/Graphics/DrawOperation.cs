@@ -17,7 +17,16 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// <summary>
     /// This <see cref="DrawOperation{TGraphicsContext}"/>'s current transformation state
     /// </summary>
-    public TransformationState TransformationState { get; } = new();
+    public TransformationState TransformationState { get; }
+
+    /// <summary>
+    /// Creates a new <see cref="TransformationState"/> for this <see cref="DrawOperation{TGraphicsContext}"/>
+    /// </summary>
+    /// <remarks>
+    /// This method is called only once during construction
+    /// </remarks>
+    protected virtual TransformationState CreateTransformationState()
+        => new();
 
     /// <summary>
     /// The transformation matrix that represents the current transformation properties in this <see cref="DrawOperation{TGraphicsContext}"/>
@@ -66,6 +75,8 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// </summary>
     public DrawOperation(Game game) : base(game, "Drawing")
     {
+        TransformationState = CreateTransformationState();
+
         TransformationState.ScaleTransformationChanged += t =>
         {
             NotifyPendingGPUUpdate();
