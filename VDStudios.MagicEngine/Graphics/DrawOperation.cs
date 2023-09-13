@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
 namespace VDStudios.MagicEngine.Graphics;
@@ -17,15 +18,17 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// <summary>
     /// This <see cref="DrawOperation{TGraphicsContext}"/>'s current transformation state
     /// </summary>
-    public TransformationState TransformationState { get; }
+    public TransformationState TransformationState
+        => trans ?? throw new InvalidOperationException("Cannot access a DrawOperation's TransformationState before its resources are created");
+    private TransformationState? trans;
 
     /// <summary>
     /// Creates a new <see cref="TransformationState"/> for this <see cref="DrawOperation{TGraphicsContext}"/>
     /// </summary>
     /// <remarks>
-    /// This method is called only once during construction
+    /// This method is called only once: during resource creation
     /// </remarks>
-    protected virtual TransformationState CreateTransformationState()
+    protected virtual TransformationState CreateTransformationState(TGraphicsContext context)
         => new();
 
     /// <summary>
@@ -75,19 +78,6 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// </summary>
     public DrawOperation(Game game) : base(game, "Drawing")
     {
-        TransformationState = CreateTransformationState();
-
-        TransformationState.ScaleTransformationChanged += t =>
-        {
-            NotifyPendingGPUUpdate();
-            ScaleTransformationChanged?.Invoke(this, Game.TotalTime);
-        };
-
-        TransformationState.VertexTransformationChanged += t =>
-        {
-            NotifyPendingGPUUpdate();
-            VertexTransformationChanged?.Invoke(this, Game.TotalTime);
-        };
     }
 
     /// <summary>
@@ -145,6 +135,32 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
 
     #region Drawing
 
+    private SemaphoreSlim? readySem = new(0, 1);
+
+    /// <summary>
+    /// Waits until this <see cref="DrawOperation{TGraphicsContext}"/> is ready for use
+    /// </summary>
+    public async ValueTask WaitUntilReady(CancellationToken ct = default)
+    {
+        if (readySem is not SemaphoreSlim sem) return;
+        await sem.WaitAsync(ct);
+    }
+
+    /// <summary>
+    /// Waits until this <see cref="DrawOperation{TGraphicsContext}"/> is ready for use
+    /// </summary>
+    /// <remarks>
+    /// <see langword="true"/> If the <see cref="DrawOperation{TGraphicsContext}"/> is now ready, <see langword="false"/> otherwise
+    /// </remarks>
+    public async ValueTask<bool> WaitUntilReady(TimeSpan timeout, CancellationToken ct = default) 
+        => readySem is not SemaphoreSlim sem || await sem.WaitAsync(timeout, ct);
+
+    /// <summary>
+    /// <see langword="true"/> if this <see cref="DrawOperation{TGraphicsContext}"/>'s Resources have been created and is ready for use
+    /// </summary>
+    [MemberNotNullWhen(false, nameof(readySem))]
+    public bool IsReady => readySem == null;
+
     /// <summary>
     /// Whether or not this <see cref="DrawOperation{TGraphicsContext}"/> is active 
     /// </summary>
@@ -166,7 +182,6 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
 
     #region Internal
 
-    private bool gpuResourcesCreated = false;
     private bool pendingGpuUpdate = true;
 
     /// <summary>
@@ -200,10 +215,26 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
         sync.Wait();
         try
         {
-            if (gpuResourcesCreated is false)
+            if (IsReady is false)
             {
-                gpuResourcesCreated = true;
                 CreateGPUResources(context);
+
+                trans = CreateTransformationState(context);
+
+                TransformationState.ScaleTransformationChanged += t =>
+                {
+                    NotifyPendingGPUUpdate();
+                    ScaleTransformationChanged?.Invoke(this, Game.TotalTime);
+                };
+
+                TransformationState.VertexTransformationChanged += t =>
+                {
+                    NotifyPendingGPUUpdate();
+                    VertexTransformationChanged?.Invoke(this, Game.TotalTime);
+                };
+
+                readySem.Release();
+                readySem = null;
             } 
 
             if (pendingGpuUpdate)
