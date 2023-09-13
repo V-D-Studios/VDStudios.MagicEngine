@@ -149,14 +149,6 @@ public class VeldridGraphicsManager : SDLGraphicsManagerBase<VeldridGraphicsCont
     internal readonly SemaphoreSlim WindowThreadLock = new(1, 1);
     private Task? WindowThread;
 
-    /// <summary>
-    /// This method is called automatically when <see cref="Window"/> changes its size
-    /// </summary>
-    /// <remarks>
-    /// This method is called after the frame is unlocked
-    /// </remarks>
-    protected virtual void WindowSizeChanged(TimeSpan timestamp, Size newSize) { }
-
     /// <inheritdoc/>
     protected override void BeforeRun()
     {
