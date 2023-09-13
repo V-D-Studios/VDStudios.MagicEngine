@@ -67,6 +67,14 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// </remarks>
     public event DrawOperationEvent<TGraphicsContext>? ScaleTransformationChanged;
 
+    /// <summary>
+    /// Fired when <see cref="TransformationState"/> <see cref="TransformationState.TranslationTransformation"/> changes
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="TransformationState.TranslationTransformation"/>, this event belongs specifically to <see cref="DrawOperation{TGraphicsContext}"/>
+    /// </remarks>
+    public event DrawOperationEvent<TGraphicsContext>? TranslationTransformationChanged;
+
     #endregion
 
     #region Construction
@@ -142,6 +150,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// </summary>
     public async ValueTask WaitUntilReady(CancellationToken ct = default)
     {
+        if (_owner is null) throw new InvalidOperationException("Cannot wait for a DrawOperation that has not been registered");
         if (readySem is not SemaphoreSlim sem) return;
         await sem.WaitAsync(ct);
     }
@@ -153,7 +162,9 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// <see langword="true"/> If the <see cref="DrawOperation{TGraphicsContext}"/> is now ready, <see langword="false"/> otherwise
     /// </remarks>
     public async ValueTask<bool> WaitUntilReady(TimeSpan timeout, CancellationToken ct = default) 
-        => readySem is not SemaphoreSlim sem || await sem.WaitAsync(timeout, ct);
+        => _owner is null
+            ? throw new InvalidOperationException("Cannot wait for a DrawOperation that has not been registered")
+            : readySem is not SemaphoreSlim sem || await sem.WaitAsync(timeout, ct);
 
     /// <summary>
     /// <see langword="true"/> if this <see cref="DrawOperation{TGraphicsContext}"/>'s Resources have been created and is ready for use
@@ -217,8 +228,6 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
         {
             if (IsReady is false)
             {
-                CreateGPUResources(context);
-
                 trans = CreateTransformationState(context);
 
                 TransformationState.ScaleTransformationChanged += t =>
@@ -232,6 +241,14 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
                     NotifyPendingGPUUpdate();
                     VertexTransformationChanged?.Invoke(this, Game.TotalTime);
                 };
+
+                TransformationState.TranslationTransformationChanged += t =>
+                {
+                    NotifyPendingGPUUpdate();
+                    TranslationTransformationChanged?.Invoke(this, Game.TotalTime);
+                };
+
+                CreateGPUResources(context);
 
                 readySem.Release();
                 readySem = null;
