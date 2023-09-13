@@ -81,6 +81,11 @@ public class VeldridGraphicsManager : SDLGraphicsManagerBase<VeldridGraphicsCont
         WindowView = Matrix4x4.Identity;
     }
 
+    /// <summary>
+    /// The graphic resources for this <see cref="VeldridGraphicsManager"/>
+    /// </summary>
+    public IVeldridGraphicsContextResources Resources => FetchGraphicsContext();
+
     /// <inheritdoc/>
     protected override VeldridGraphicsContext FetchGraphicsContext()
     {
