@@ -213,7 +213,7 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
 
             return count > 4
                 ? ComputeConvexTriangulatedIndexBufferSize(vertexSkip.GetElementCount(count), out _)
-                : vertexSkip.GetSkipFactor(4) != 0
+                : vertexSkip.GetSkipFactor(4) != 1
                 ? throw new ArgumentException("Polygons with less than 5 vertices do not support skipping vertices", nameof(vertexSkip))
                 : count is 3
                 ? 4
