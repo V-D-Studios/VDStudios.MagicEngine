@@ -209,18 +209,14 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     {
         if (isConvex)
         {
-            var count = vertexCount;
+            int indexCount = vertexCount > 4
+                ? ComputeConvexTriangulatedIndexBufferSize(vertexSkip.GetElementCount(vertexCount), out _)
+                : ComputeConvexTriangulatedIndexBufferSize(vertexCount, out _);
 
-            return count > 4
-                ? ComputeConvexTriangulatedIndexBufferSize(vertexSkip.GetElementCount(count), out _)
-                : vertexSkip.GetSkipFactor(4) != 1
-                ? throw new ArgumentException("Polygons with less than 5 vertices do not support skipping vertices", nameof(vertexSkip))
-                : count is 3
-                ? 4
-                : count is 4 ? 6 : throw new InvalidOperationException("Cannot triangulate a polygon with less than 3 vertices");
+            return indexCount is 3 ? 4 : indexCount is 4 ? 6 : indexCount;
         }
-        else
-            throw new NotSupportedException("Non convex shapes are not supported!");
+
+        throw new NotSupportedException("Non convex shapes are not supported!");
     }
 
     /// <inheritdoc/>
@@ -239,48 +235,114 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     /// <param name="isConvex">Whether or not the Polygon is convex</param>
     /// <param name="vertexCount">The amount of vertices the shape has</param>
     /// <returns>The amount of indices written to <paramref name="outputIndices"/></returns>
-    public static int TriangulatePolygon<TInt>(int vertexCount, bool isConvex, Span<TInt> outputIndices, ElementSkip vertexSkip = default)
-        where TInt : unmanaged, IBinaryInteger<TInt>
+    public static int TriangulatePolygon(int vertexCount, bool isConvex, Span<uint> outputIndices, ElementSkip vertexSkip = default)
     {
-        var count = vertexCount;
-        var step = vertexSkip.GetSkipFactor(vertexCount);
-        int indexCount = ComputeConvexTriangulatedIndexBufferSize(vertexSkip.GetElementCount(count), out var start);
+        var count = (uint)vertexCount;
+        var step = (uint)vertexSkip.GetSkipFactor(vertexCount);
+        ComputeConvexTriangulatedIndexBufferSize(vertexSkip.GetElementCount(vertexCount), out var start);
+        int indexCount = GetPolygonTriangulationLength(vertexCount, true, vertexSkip);
+
+        #region Triangle
 
         if (indexCount is 3)
         {
-            if (outputIndices.Length <= 4)
-                throw new ArgumentException("The span is too short to hold the triangulated indices", nameof(outputIndices));
-
-            outputIndices[0] = TInt.Zero;
-            outputIndices[1] = TInt.CreateSaturating(step);
-            outputIndices[2] = TInt.CreateSaturating(count - 1);
-            outputIndices[3] = TInt.Zero;
-
+            outputIndices[0] = 0;
+            outputIndices[1] = step;
+            outputIndices[2] = (count - 1);
+            outputIndices[3] = 0;
             return 4;
         }
+
+        #endregion
+
+        #region Convex
 
         if (isConvex)
         {
             if (indexCount is 4)
             {
-                if (outputIndices.Length <= 6)
-                    throw new ArgumentException("The span is too short to hold the triangulated indices", nameof(outputIndices));
-
-                outputIndices[0] = TInt.CreateSaturating(1 * step); // 1
-                outputIndices[1] = TInt.CreateSaturating(0 * step); // 0
-                outputIndices[2] = TInt.CreateSaturating(3 * step); // 3
-                outputIndices[3] = TInt.CreateSaturating(1 * step); // 1
-                outputIndices[4] = TInt.CreateSaturating(2 * step); // 2
-                outputIndices[5] = TInt.Min(TInt.CreateSaturating(3 * step), TInt.CreateSaturating(count - 1)); // 3
-
+                outputIndices[0] = (1 * step); // 1
+                outputIndices[1] = (0 * step); // 0
+                outputIndices[2] = (3 * step); // 3
+                outputIndices[3] = (1 * step); // 1
+                outputIndices[4] = (2 * step); // 2
+                outputIndices[5] = (uint.Min(3 * step, count - 1)); // 3
                 return 6;
             }
 
-            ComputeConvexTriangulatedIndexBuffers(count, outputIndices, TInt.CreateSaturating(step), start);
-            return indexCount;
+            ComputeConvexTriangulatedIndexBuffers(count, outputIndices, step, start);
+            return outputIndices.Length;
         }
 
+        #endregion
+
+        #region Concave
+
         throw new NotSupportedException("Non convex shapes are not supported!");
+        //GenerateConcaveTriangulatedIndices((ushort)count, indices, shape.AsSpan(), (ushort)step);
+        //isBufferReady = false;
+        //return;
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Triangulates a shape into a set of indices that run through its vertices as a set of triangles
+    /// </summary>
+    /// <param name="outputIndices">The output of the operation. See <see cref="GetTriangulationLength"/></param>
+    /// <param name="vertexSkip">The amount of vertices to skip when triangulating</param>
+    /// <param name="isConvex">Whether or not the Polygon is convex</param>
+    /// <param name="vertexCount">The amount of vertices the shape has</param>
+    /// <returns>The amount of indices written to <paramref name="outputIndices"/></returns>
+    public static int TriangulatePolygon(int vertexCount, bool isConvex, Span<ushort> outputIndices, ElementSkip vertexSkip = default)
+    {
+        var count = vertexCount;
+        var step = vertexSkip.GetSkipFactor(vertexCount);
+        ComputeConvexTriangulatedIndexBufferSize(vertexSkip.GetElementCount(count), out var start);
+        int indexCount = GetPolygonTriangulationLength(vertexCount, true, vertexSkip);
+
+        #region Triangle
+
+        if (indexCount is 3)
+        {
+            outputIndices[0] = 0;
+            outputIndices[1] = (ushort)step;
+            outputIndices[2] = (ushort)(count - 1);
+            outputIndices[3] = 0;
+            return 4;
+        }
+
+        #endregion
+
+        #region Convex
+
+        if (isConvex)
+        {
+            if (indexCount is 4)
+            {
+                outputIndices[0] = (ushort)(1 * step); // 1
+                outputIndices[1] = (ushort)(0 * step); // 0
+                outputIndices[2] = (ushort)(3 * step); // 3
+                outputIndices[3] = (ushort)(1 * step); // 1
+                outputIndices[4] = (ushort)(2 * step); // 2
+                outputIndices[5] = (ushort)(int.Min(3 * step, count - 1)); // 3
+                return 6;
+            }
+
+            ComputeConvexTriangulatedIndexBuffers((ushort)count, outputIndices, (ushort)step, start);
+            return outputIndices.Length;
+        }
+
+        #endregion
+
+        #region Concave
+
+        throw new NotSupportedException("Non convex shapes are not supported!");
+        //GenerateConcaveTriangulatedIndices((ushort)count, indices, shape.AsSpan(), (ushort)step);
+        //isBufferReady = false;
+        //return;
+
+        #endregion
     }
 
     /// <summary>
@@ -298,14 +360,13 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     /// <param name="indexBuffer">The buffer to store the indices in</param>
     /// <param name="step">The step factor for skipping</param>
     /// <param name="start">The starting point of the triangulation. Synonym to <c>added</c> in <see cref="ComputeConvexTriangulatedIndexBufferSize(int, out byte)"/></param>
-    public static void ComputeConvexTriangulatedIndexBuffers<TInt>(int count, Span<TInt> indexBuffer, TInt step, byte start)
+    public static void ComputeConvexTriangulatedIndexBuffers<TInt>(TInt count, Span<TInt> indexBuffer, TInt step, byte start)
         where TInt : unmanaged, IBinaryInteger<TInt>
     {
         int bufind = 0;
         TInt i = TInt.CreateSaturating(start);
-        TInt c = TInt.CreateSaturating(count);
 
-        while (i < c)
+        while (i < count)
         {
             indexBuffer[bufind++] = TInt.Zero;
             indexBuffer[bufind++] = step * i++;
