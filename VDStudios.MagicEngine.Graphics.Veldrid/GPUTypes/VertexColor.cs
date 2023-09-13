@@ -66,7 +66,7 @@ public readonly struct VertexColor2D : IVertexType<VertexColor2D>,
         /// <summary>
         /// The color to apply to every vertex 
         /// </summary>
-        public RgbaVector Color { get; } = RgbaVector.White;
+        public RgbaVector Color { get; set; } = RgbaVector.White;
 
         /// <inheritdoc/>
         public void Generate(ReadOnlySpan<Vector2> input, Span<VertexColor2D> output)
