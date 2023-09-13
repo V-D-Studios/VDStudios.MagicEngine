@@ -25,9 +25,9 @@ public class TexturedShape2DRenderer<TVertex> : Shape2DRenderer<TVertex>
     {
     }
 
-    private Func<IVeldridGraphicsContextResources, Texture> textureFactory;
-    private Func<IVeldridGraphicsContextResources, Sampler> samplerFactory;
-    private Func<IVeldridGraphicsContextResources, TextureView> viewFactory;
+    private GraphicsResourceFactory<Texture> textureFactory;
+    private GraphicsResourceFactory<Sampler> samplerFactory;
+    private GraphicsResourceFactory<TextureView> viewFactory;
 
     protected override void CreateGPUResources(VeldridGraphicsContext context)
     {
