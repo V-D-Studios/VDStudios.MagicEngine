@@ -21,6 +21,11 @@ public partial class GraphicsContextOwnedResourceFactoryCache<TOwner, TResource>
         private TOwner? ownerCache;
 
         /// <summary>
+        /// A delegate that can be used to indirectly access <see cref="OwnerResource"/>
+        /// </summary>
+        public GraphicsResourceFactory<TOwner> OwnerDelegate { get; }
+
+        /// <summary>
         /// The resource that owns the entry and its subresources of type <typeparamref name="TResource"/>
         /// </summary>
         /// <remarks>
@@ -138,6 +143,7 @@ public partial class GraphicsContextOwnedResourceFactoryCache<TOwner, TResource>
             ArgumentNullException.ThrowIfNull(owner);
             OwnerCache = owner;
             OwnerFactory = resourceFactory;
+            OwnerDelegate = _ => OwnerResource;
         }
     } 
 }
