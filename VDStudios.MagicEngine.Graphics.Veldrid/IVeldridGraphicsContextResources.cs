@@ -229,6 +229,11 @@ public interface IVeldridGraphicsContextResources
     public GraphicsContextResourceFactoryCache<Texture> TextureCache { get; }
 
     /// <summary>
+    /// The Resource cache for this <see cref="VeldridGraphicsContext"/>'s shared samplers
+    /// </summary>
+    public GraphicsContextResourceFactoryCache<Sampler> SamplerCache { get; }
+
+    /// <summary>
     /// The <see cref="VeldridFrameReport"/> of the last frame
     /// </summary>
     public VeldridFrameReport FrameReport { get; }

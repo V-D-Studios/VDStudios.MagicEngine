@@ -312,6 +312,9 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
     /// <inheritdoc/>
     public GraphicsContextResourceFactoryCache<Texture> TextureCache { get; }
 
+    /// <inheritdoc/>
+    public GraphicsContextResourceFactoryCache<Sampler> SamplerCache { get; }
+
     /// <summary>
     /// An uniform buffer containing data about the last frame
     /// </summary>
