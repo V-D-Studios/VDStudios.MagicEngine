@@ -25,6 +25,7 @@ public abstract class VeldridDrawOperation : DrawOperation<VeldridGraphicsContex
     /// </summary>
     public DeviceBuffer OperationParametersBuffer => opParamBuffer ?? throw new InvalidOperationException("Cannot access a VeldridDrawOperation's OperationParametersBuffer before its resources have been created");
     private DeviceBuffer? opParamBuffer;
+    private bool pendingOpParamBufferUpdate = true;
 
     /// <summary>
     /// The <see cref="ResourceLayout"/> for all <see cref="VeldridDrawOperation"/>, containing  "DrawParameters" first for the draw operation's Transformation and Color and "FrameParameters" second for 
@@ -68,6 +69,9 @@ public abstract class VeldridDrawOperation : DrawOperation<VeldridGraphicsContex
                 opParamBuffer
             }
         });
+
+        VertexTransformationChanged += (_, _) => pendingOpParamBufferUpdate = true;
+        ColorTransformationChanged += (_, _) => pendingOpParamBufferUpdate = true;
     }
 
     /// <inheritdoc/>
@@ -75,7 +79,11 @@ public abstract class VeldridDrawOperation : DrawOperation<VeldridGraphicsContex
     {
         Debug.Assert(opParamBuffer is not null, "OperationParametersBuffer was unexpectedly null at the time of updating the GPU state");
 
-        var doparam = new DrawOperationParameters(TransformationState.VertexTransformation, ColorTransformation);
-        context.CommandList.UpdateBuffer(opParamBuffer, 0, doparam);
+        if (pendingOpParamBufferUpdate)
+        {
+            var doparam = new DrawOperationParameters(TransformationState.VertexTransformation, ColorTransformation);
+            context.CommandList.UpdateBuffer(opParamBuffer, 0, doparam);
+            pendingOpParamBufferUpdate = false;
+        }
     }
 }
