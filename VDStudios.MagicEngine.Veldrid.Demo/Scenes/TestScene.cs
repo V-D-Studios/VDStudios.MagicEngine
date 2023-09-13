@@ -8,6 +8,7 @@ using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.Veldrid;
 using VDStudios.MagicEngine.Veldrid.Demo.Nodes;
 using Veldrid;
+using Veldrid.ImageSharp;
 using static System.Formats.Asn1.AsnWriter;
 
 namespace VDStudios.MagicEngine.Veldrid.Demo.Scenes;
@@ -25,6 +26,31 @@ public class TestScene : DemoSceneBase
 
         var tnode = new GraphicsTestNode(Game);
         await Attach(tnode);
+
+        var vgc = (VeldridGraphicsManager)Game.MainGraphicsManager;
+        var resources = vgc.Resources;
+        var cache = resources.TextureCache;
+
+        cache.RegisterResource(
+            "baum",
+            c => new ImageSharpTexture(Animations.ResourceManager.GetStream("Robin")!).CreateDeviceTexture(c.GraphicsDevice, c.ResourceFactory), 
+            out var textureEntry
+        );
+        textureEntry.RegisterResource("default", static (c, t) => c.ResourceFactory.CreateTextureView(t));
+
+        cache.RegisterResource(
+            "robin", 
+            c => new ImageSharpTexture(Animations.ResourceManager.GetStream("Baum")!).CreateDeviceTexture(c.GraphicsDevice, c.ResourceFactory), 
+            out textureEntry
+        );
+        textureEntry.RegisterResource("default", static (c, t) => c.ResourceFactory.CreateTextureView(t));
+
+        cache.RegisterResource(
+            "grass1", 
+            c => new ImageSharpTexture(Animations.ResourceManager.GetStream("Grass1")!).CreateDeviceTexture(c.GraphicsDevice, c.ResourceFactory), 
+            out textureEntry
+        );
+        textureEntry.RegisterResource("default", static (c, t) => c.ResourceFactory.CreateTextureView(t));
 
         //var txc = Services.GetService<ResourceCache<VeldridGraphicsContext, Texture>>();
 
