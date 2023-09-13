@@ -18,17 +18,28 @@ public class TexturedShape2DRenderer<TVertex> : Shape2DRenderer<TVertex>
     public TexturedShape2DRenderer(
         ShapeDefinition2D shape,
         Game game,
+        GraphicsResourceFactory<Texture> textureFactory,
+        GraphicsResourceFactory<Sampler> samplerFactory,
+        GraphicsResourceFactory<TextureView> viewFactory,
         IVertexGenerator<Vector2, TVertex>? vertexGenerator,
         ElementSkip vertexSkip = default
     )
         : base(shape, game, vertexGenerator, vertexSkip)
     {
+        ArgumentNullException.ThrowIfNull(textureFactory);
+        ArgumentNullException.ThrowIfNull(samplerFactory);
+        ArgumentNullException.ThrowIfNull(viewFactory);
+        
+        TextureFactory = textureFactory;
+        SamplerFactory = samplerFactory;
+        ViewFactory = viewFactory;
     }
 
-    private GraphicsResourceFactory<Texture> textureFactory;
-    private GraphicsResourceFactory<Sampler> samplerFactory;
-    private GraphicsResourceFactory<TextureView> viewFactory;
+    private readonly GraphicsResourceFactory<Texture> TextureFactory;
+    private readonly GraphicsResourceFactory<Sampler> SamplerFactory;
+    private readonly GraphicsResourceFactory<TextureView> ViewFactory;
 
+    /// <inheritdoc/>
     protected override void CreateGPUResources(VeldridGraphicsContext context)
     {
 #warning Create the pipeline, don't call `base`
