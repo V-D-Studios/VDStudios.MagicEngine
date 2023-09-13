@@ -174,7 +174,22 @@ public interface IVeldridGraphicsContextResources
 
     #region Shared Draw Resources
 
-#warning Consider adding a special case ServiceProvider for SharedDrawResources, or, rather, model it after ServiceProvider
+    /// <summary>
+    /// Removes a named <see cref="SharedDrawResource"/> 
+    /// </summary>
+    /// <returns><see langword="true"/> if the resource was already registered and was succesfully removed, <see langword="false"/> otherwise.</returns>
+    public bool RemoveResource(string name);
+
+    /// <summary>
+    /// Registers an unnamed <see cref="SharedDrawResource"/> 
+    /// </summary>
+    public void RegisterUnnamedResource(SharedDrawResource resource);
+
+    /// <summary>
+    /// Removes <paramref name="resource"/> from this <see cref="IVeldridGraphicsContextResources"/>
+    /// </summary>
+    /// <returns><see langword="true"/> if the resource was already registered and was succesfully removed, <see langword="false"/> otherwise.</returns>
+    public bool RemoveUnnamedResource(SharedDrawResource resource);
 
     /// <summary>
     /// Registers a new <see cref="SharedDrawResource"/> on this <see cref="VeldridGraphicsContext"/>

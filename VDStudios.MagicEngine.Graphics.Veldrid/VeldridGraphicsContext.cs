@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net.NetworkInformation;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Graphics;
 using Veldrid;
 
@@ -219,15 +220,61 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
 
 #warning Consider adding a special case ServiceProvider for SharedDrawResources, or, rather, model it after ServiceProvider
 
+    private readonly HashSet<SharedDrawResource> unnamedDrawResources = new();
     private readonly Dictionary<string, SharedDrawResource> sharedDrawResources = new();
+
+    private void ValidateRegistration(SharedDrawResource resource)
+    {
+        if ((resource.hash is not null && resource.hash != unnamedDrawResources) || resource.dict is not null && resource.dict != sharedDrawResources)
+            throw new ArgumentException("The resource is already registered to another VeldridGraphicsContext", nameof(resource));
+    }
+
+    /// <inheritdoc/>
+    public void RegisterUnnamedResource(SharedDrawResource resource)
+    {
+        GameMismatchException.ThrowIfMismatch(resource, Manager);
+
+        ValidateRegistration(resource);
+        if (resource.hash is not null || resource.dict is not null) return;
+
+        lock (unnamedDrawResources)
+        {
+            resource.hash = unnamedDrawResources;
+            unnamedDrawResources.Add(resource);
+        }
+    }
+
+    /// <inheritdoc/>
+    public bool RemoveUnnamedResource(SharedDrawResource resource)
+    {
+        GameMismatchException.ThrowIfMismatch(resource, Manager);
+
+        ValidateRegistration(resource);
+        return resource.RemoveSelf();
+    }
+
+    /// <inheritdoc/>
+    public bool RemoveResource(string name)
+    {
+        lock (sharedDrawResources)
+            return sharedDrawResources.TryGetValue(name, out var res) && res.RemoveSelf();
+    }
 
     /// <inheritdoc/>
     public void RegisterResource(string name, SharedDrawResource resource)
     {
+        GameMismatchException.ThrowIfMismatch(resource, Manager);
+
+        ValidateRegistration(resource);
+
         lock (sharedDrawResources)
         {
             if (sharedDrawResources.ContainsKey(name))
                 throw new InvalidOperationException($"Cannot register new resource under '{name}', as another resource already has that name");
+
+            if (resource.hash is not null || resource.dict is not null) return;
+            resource.dict = sharedDrawResources;
+            resource.name = name;
             sharedDrawResources.Add(name, resource);
         }
     }

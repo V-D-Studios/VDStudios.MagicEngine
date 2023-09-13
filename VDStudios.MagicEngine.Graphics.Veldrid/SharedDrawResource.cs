@@ -1,4 +1,5 @@
-﻿using Veldrid;
+﻿using System.Diagnostics;
+using Veldrid;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid;
 
@@ -30,4 +31,39 @@ public abstract class SharedDrawResource : GraphicsObject<VeldridGraphicsContext
     /// This method is called automatically on each frame where this <see cref="SharedDrawResource"/> is slated for updating
     /// </remarks>
     public abstract void UpdateGPUState(VeldridGraphicsContext context, CommandList commandList);
+
+    internal string? name;
+    internal Dictionary<string, SharedDrawResource>? dict;
+    internal HashSet<SharedDrawResource>? hash;
+
+    internal bool RemoveSelf()
+    {
+        if (name is not null)
+        {
+            Debug.Assert(hash is null);
+            Debug.Assert(dict is not null);
+            lock (dict)
+                dict.Remove(name);
+            dict = null;
+            name = null;
+            return true;
+        }
+
+        if (hash is not null) 
+        {
+            Debug.Assert(dict is null);
+            lock (hash)
+                hash.Remove(this);
+            hash = null;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <inheritdoc/>
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+    }
 }
