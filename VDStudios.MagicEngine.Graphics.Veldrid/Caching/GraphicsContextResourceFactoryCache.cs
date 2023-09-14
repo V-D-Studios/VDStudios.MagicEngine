@@ -15,15 +15,22 @@ public class GraphicsContextResourceFactoryCache<TResource>
     /// </summary>
     public sealed class ResourceCacheEntry
     {
+        private readonly GraphicsContextResourceFactoryCache<TResource> OwnerCache;
+        private readonly GraphicsResourceFactory<TResource> Factory;
         private TResource? resourceCache;
 
         /// <summary>
         /// The delegate used to obtain the resource
         /// </summary>
-        public Func<IVeldridGraphicsContextResources, TResource> Factory { get; }
+        public GraphicsResourceFactory<TResource> ResourceDelegate { get; }
 
         /// <summary>
-        /// Clears the cache for this <see cref="ResourceCacheEntry"/>, the next time <see cref="Factory"/> is used it will be created again
+        /// The resource maintained by this cache entry
+        /// </summary>
+        public TResource Resource => resourceCache ??= Factory(OwnerCache.ResourceOwner);
+
+        /// <summary>
+        /// Clears the cache for this <see cref="ResourceCacheEntry"/>, the next time <see cref="ResourceDelegate"/> is used it will be created again
         /// </summary>
         /// <remarks>
         /// If the resource implements <see cref="IDisposable"/>, it will be disposed
@@ -35,14 +42,24 @@ public class GraphicsContextResourceFactoryCache<TResource>
             resourceCache = null;
         }
 
-        internal ResourceCacheEntry(Func<IVeldridGraphicsContextResources, TResource> resourceFactory)
+        internal ResourceCacheEntry(GraphicsContextResourceFactoryCache<TResource> ownerCache, GraphicsResourceFactory<TResource> resourceFactory)
         {
             ArgumentNullException.ThrowIfNull(resourceFactory);
-            Factory = c => resourceCache ??= resourceFactory(c);
+            ArgumentNullException.ThrowIfNull(ownerCache);
+            OwnerCache = ownerCache;
+            Factory = resourceFactory;
+            ResourceDelegate = context => context == OwnerCache.ResourceOwner ? Resource : throw new ArgumentException("The passed Resource Owner does not own this resource cache", nameof(context));
         }
     }
 
+    private readonly IVeldridGraphicsContextResources ResourceOwner;
     private readonly ConcurrentDictionary<string, ResourceCacheEntry> cache = new();
+
+    internal GraphicsContextResourceFactoryCache(IVeldridGraphicsContextResources owner)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        ResourceOwner = owner;
+    }
 
     /// <summary>
     /// Removes the resource under <paramref name="name"/> from the cache
@@ -83,20 +100,20 @@ public class GraphicsContextResourceFactoryCache<TResource>
     /// <param name="name">The name of the resource</param>
     /// <param name="resourceFactory">The delegate used to create the resource when it's requested</param>
     /// <param name="entry">The newly created resource entry</param>
-    public void RegisterResource(string name, Func<IVeldridGraphicsContextResources, TResource> resourceFactory, out ResourceCacheEntry entry)
+    public void RegisterResource(string name, GraphicsResourceFactory<TResource> resourceFactory, out ResourceCacheEntry entry)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(resourceFactory);
 
-        entry = cache.GetOrAdd(name, c => new ResourceCacheEntry(resourceFactory));
+        entry = cache.GetOrAdd(name, c => new ResourceCacheEntry(this, resourceFactory));
     }
 
     /// <summary>
     /// Attempts to obtain a <typeparamref name="TResource"/> under <paramref name="name"/>, or creates a new one using <paramref name="factory"/> if one is not found
     /// </summary>
-    public ResourceCacheEntry GetOrAddResource(string name, Func<IVeldridGraphicsContextResources, TResource> factory)
+    public ResourceCacheEntry GetOrAddResource(string name, GraphicsResourceFactory<TResource> factory)
     {
-        return cache.GetOrAdd(name, name => new ResourceCacheEntry(factory));
+        return cache.GetOrAdd(name, name => new ResourceCacheEntry(this, factory));
     }
 
     /// <summary>

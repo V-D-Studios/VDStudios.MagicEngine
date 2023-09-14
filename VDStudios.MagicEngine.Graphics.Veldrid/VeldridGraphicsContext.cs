@@ -52,7 +52,7 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
 
         ShaderCache = new(this);
         TextureCache = new(this);
-        SamplerCache = new();
+        SamplerCache = new(this);
 }
 
     private readonly ObjectPool<CommandList> commandListPool;
