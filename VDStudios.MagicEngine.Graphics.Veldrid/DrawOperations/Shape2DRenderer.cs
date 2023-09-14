@@ -157,9 +157,20 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
             NotifyPendingGPUUpdate();
     }
 
-    private DeviceBuffer? VertexIndexBuffer;
-    private uint VertexEnd;
-    private uint IndexCount;
+    /// <summary>
+    /// The DeviceBuffer used for both vertex data and index data
+    /// </summary>
+    protected DeviceBuffer? VertexIndexBuffer { get; private set; }
+
+    /// <summary>
+    /// The offset at which <see cref="VertexIndexBuffer"/> no longer contains vertex information, and starts containing index information
+    /// </summary>
+    protected uint VertexEnd { get; private set; }
+    
+    /// <summary>
+    /// The amount of indices currently in <see cref="VertexIndexBuffer"/>
+    /// </summary>
+    protected uint IndexCount { get; private set; }
 
     /// <inheritdoc/>
     protected override ValueTask CreateResourcesAsync()
