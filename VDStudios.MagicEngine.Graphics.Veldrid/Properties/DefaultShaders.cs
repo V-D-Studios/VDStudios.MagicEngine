@@ -10,7 +10,7 @@ public static class DefaultShaders
     #region TexturedShapeRenderer
 
     /// <summary>
-    /// The default fragment shader for <see cref="TexturedShapeRenderer{TVertex}"/>
+    /// The default fragment shader for <see cref="TexturedShape2DRenderer{TVertex}"/>
     /// </summary>
     public const string DefaultTexturedShapeRendererFragmentShader = @"#version 450
 
