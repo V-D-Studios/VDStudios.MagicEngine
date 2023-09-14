@@ -51,34 +51,36 @@ public class GraphicsTestNode : Node
         var samplerCache = res.SamplerCache;
 
         TexturedCircle = new TexturedShape2DRenderer(new CircleDefinition(new Vector2(0, 0), .6f, 100), game,
-            textureFactory: textureCache.GetResource("baum").OwnerDelegate,
+            textureFactory: textureCache.GetResource("robin").OwnerDelegate,
             samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
-            viewFactory: textureCache.GetResource("baum").GetResource("default").ResourceDelegate
+            viewFactory: textureCache.GetResource("robin").GetResource("default").ResourceDelegate
         );
         TexturedSquare = new TexturedShape2DRenderer(new RectangleDefinition(new Vector2(0, 0), new Vector2(.7f, .8f)), game,
-            textureFactory: textureCache.GetResource("baum").OwnerDelegate,
+            textureFactory: textureCache.GetResource("robin").OwnerDelegate,
             samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
-            viewFactory: textureCache.GetResource("baum").GetResource("default").ResourceDelegate
+            viewFactory: textureCache.GetResource("robin").GetResource("default").ResourceDelegate
         );
         TexturedElipse = new TexturedShape2DRenderer(new ElipseDefinition(new Vector2(0, 0), .6f, .3f, 100), game,
+            textureFactory: textureCache.GetResource("robin").OwnerDelegate,
+            samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
+            viewFactory: textureCache.GetResource("robin").GetResource("default").ResourceDelegate
+        );
+        TexturedPolygon = new TexturedShape2DRenderer(new PolygonDefinition(
+            stackalloc Vector2[]
+            {
+                new(330.71074380165294f / 500f, 494.82644628099155f / 500f),
+                new(539.801652892562f / 500f, 439.4545454545454f / 500f),
+                new(626.876207061902f / 500f, 241.4568745545897f / 500f),
+                new(526.365491022952f / 500f, 49.92971818522767f / 500f),
+                new(313.956123998003f / 500f, 9.09693153458295f / 500f),
+                new(149.59669171830413f / 500f, 149.7064357876441f / 500f),
+                new(157.05319901188642f / 500f, 365.87640633068054f / 500f)
+            }, true), 
+            game,
             textureFactory: textureCache.GetResource("baum").OwnerDelegate,
             samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
             viewFactory: textureCache.GetResource("baum").GetResource("default").ResourceDelegate
         );
-        TexturedPolygon = new TexturedShape2DRenderer(new PolygonDefinition(stackalloc Vector2[]
-        {
-            new(330.71074380165294f / 500f, 494.82644628099155f / 500f),
-            new(539.801652892562f / 500f, 439.4545454545454f / 500f),
-            new(626.876207061902f / 500f, 241.4568745545897f / 500f),
-            new(526.365491022952f / 500f, 49.92971818522767f / 500f),
-            new(313.956123998003f / 500f, 9.09693153458295f / 500f),
-            new(149.59669171830413f / 500f, 149.7064357876441f / 500f),
-            new(157.05319901188642f / 500f, 365.87640633068054f / 500f)
-        }, true), game,
-        textureFactory: textureCache.GetResource("baum").OwnerDelegate,
-        samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
-        viewFactory: textureCache.GetResource("baum").GetResource("default").ResourceDelegate
-    );
 
         PipelineTimer = new GraphicsManagerFrameTimer(Game.MainGraphicsManager, 60);
     }
@@ -94,6 +96,20 @@ public class GraphicsTestNode : Node
 
             PipelineTimer.Restart();
         }
+
+#warning notes
+        /*
+         * Translations don't work
+         * Scaling gets larger the closer it is to 0
+         * Rotations appear to work normally
+         * 
+         * Test these things with the other shapes does not yield these results
+         */
+        //TexturedCircle.CurrentView = Matrix4x4.CreateTranslation(1, 5, 3);// * Matrix4x4.CreateScale(.2f) * Matrix4x4.CreateRotationZ(0);
+
+        TexturedSquare.TransformationState.Transform(new Vector3(.4f, -.4f, 1));
+        Elipse.TransformationState.Transform(new Vector3(-.3f, -.5f, 0));
+        Polygon.TransformationState.Transform(new Vector3(-.7f, -.1f, 0));
 
         return base.Updating(delta);
     }
@@ -171,13 +187,10 @@ public class GraphicsTestNode : Node
 
         Circle.ColorTransformation = ColorTransformation.CreateTint(RgbaVector.Pink);
 
-        Square.TransformationState.Transform(new Vector3(.4f, .5f, 0));
         Square.ColorTransformation = ColorTransformation.CreateTint(RgbaVector.Blue);
 
-        Elipse.TransformationState.Transform(new Vector3(-.3f, -.5f, 0));
         Elipse.ColorTransformation = ColorTransformation.CreateTint(RgbaVector.Yellow);
 
-        Polygon.TransformationState.Transform(new Vector3(-.7f, -.1f, 0));
         Polygon.ColorTransformation = ColorTransformation.CreateTint(RgbaVector.Red);
     }
 }

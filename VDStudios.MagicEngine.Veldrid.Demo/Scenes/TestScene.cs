@@ -31,14 +31,14 @@ public class TestScene : DemoSceneBase
 
         textureCache.RegisterResource(
             "baum",
-            c => new ImageSharpTexture(new MemoryStream(Animations.Robin)).CreateDeviceTexture(c.GraphicsDevice, c.ResourceFactory), 
+            c => new ImageSharpTexture(new MemoryStream(Animations.Baum)).CreateDeviceTexture(c.GraphicsDevice, c.ResourceFactory), 
             out var textureEntry
         );
         textureEntry.RegisterResource("default", static (c, t) => c.ResourceFactory.CreateTextureView(t));
 
         textureCache.RegisterResource(
             "robin", 
-            c => new ImageSharpTexture(new MemoryStream(Animations.Baum)).CreateDeviceTexture(c.GraphicsDevice, c.ResourceFactory), 
+            c => new ImageSharpTexture(new MemoryStream(Animations.Robin)).CreateDeviceTexture(c.GraphicsDevice, c.ResourceFactory), 
             out textureEntry
         );
         textureEntry.RegisterResource("default", static (c, t) => c.ResourceFactory.CreateTextureView(t));
