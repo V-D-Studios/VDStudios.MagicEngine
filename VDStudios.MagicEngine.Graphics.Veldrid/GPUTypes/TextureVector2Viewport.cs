@@ -10,6 +10,14 @@ namespace VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
 public readonly struct TextureVector2Viewport : IGPUType<TextureVector2Viewport>
 {
     /// <summary>
+    /// Creates a new object of type <see cref="TextureVector2Viewport"/>
+    /// </summary>
+    public TextureVector2Viewport(Matrix3x2 transformation)
+    {
+        Transformation = transformation;
+    }
+
+    /// <summary>
     /// The transformation matrix that transforms the texture's coordinates
     /// </summary>
     public Matrix3x2 Transformation { get; }
@@ -17,7 +25,11 @@ public readonly struct TextureVector2Viewport : IGPUType<TextureVector2Viewport>
     /// <inheritdoc/>
     public static int Size { get; } = Unsafe.SizeOf<TextureVector2Viewport>();
 
-#warning Not fully implemented
+    /// <summary>
+    /// Implicitly converts <paramref name="matrix"/> into a <see cref="TextureVector2Viewport"/> of equal value
+    /// </summary>
+    public static implicit operator TextureVector2Viewport(Matrix3x2 matrix)
+        => new(matrix);
 
     /// <inheritdoc/>
     public bool Equals(TextureVector2Viewport other)
