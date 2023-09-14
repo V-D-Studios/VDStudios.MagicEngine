@@ -10,17 +10,12 @@ namespace VDStudios.MagicEngine.Graphics.Veldrid.Generators;
 public class Texture2DFillVertexGenerator : IVertexGenerator<Vector2, VertexTextureColor2D>
 {
     /// <summary>
-    /// Creates a new instance of type <see cref="Texture2DFillVertexGenerator"/>
+    /// The default instance of <see cref="Texture2DFillVertexGenerator"/>
     /// </summary>
-    public Texture2DFillVertexGenerator(TexturedShape2DRenderer renderer)
-    {
-        Renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
-    }
-    
-    /// <summary>
-    /// The <see cref="TexturedShape2DRenderer"/> this <see cref="Texture2DFillVertexGenerator"/> belongs to
-    /// </summary>
-    public TexturedShape2DRenderer Renderer { get; }
+    /// <remarks>
+    /// Be careful when using this instance, as changing either <see cref="ColorFunction"/> or <see cref="DefaultColor"/> may unexpectedly affect any vertex information that is created or regenerated after
+    /// </remarks>
+    public static Texture2DFillVertexGenerator Default { get; } = new();
 
     /// <summary>
     /// A function to generate a color each vertex, ignored if <see langword="null"/>
