@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Resources;
 using System.Text;
 using System.Threading.Tasks;
 using SDL2.NET;
@@ -20,6 +21,12 @@ public class GraphicsTestNode : Node
     public readonly Shape2DRenderer Square;
     public readonly Shape2DRenderer Elipse;
     public readonly Shape2DRenderer Polygon;
+
+    public readonly TexturedShape2DRenderer TexturedCircle;
+    public readonly TexturedShape2DRenderer TexturedSquare;
+    public readonly TexturedShape2DRenderer TexturedElipse;
+    public readonly TexturedShape2DRenderer TexturedPolygon;
+
     public GraphicsManagerFrameTimer PipelineTimer;
 
     public GraphicsTestNode(Game game) : base(game)
@@ -37,6 +44,41 @@ public class GraphicsTestNode : Node
             new(149.59669171830413f / 500f, 149.7064357876441f / 500f),
             new(157.05319901188642f / 500f, 365.87640633068054f / 500f)
         }, true), game);
+
+        var vgc = (VeldridGraphicsManager)Game.MainGraphicsManager;
+        var res = vgc.Resources;
+        var textureCache = res.TextureCache;
+        var samplerCache = res.SamplerCache;
+
+        TexturedCircle = new TexturedShape2DRenderer(new CircleDefinition(new Vector2(0, 0), .6f, 100), game,
+            textureFactory: textureCache.GetResource("baum").OwnerDelegate,
+            samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
+            viewFactory: textureCache.GetResource("baum").GetResource("default").ResourceDelegate
+        );
+        TexturedSquare = new TexturedShape2DRenderer(new RectangleDefinition(new Vector2(0, 0), new Vector2(.7f, .8f)), game,
+            textureFactory: textureCache.GetResource("baum").OwnerDelegate,
+            samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
+            viewFactory: textureCache.GetResource("baum").GetResource("default").ResourceDelegate
+        );
+        TexturedElipse = new TexturedShape2DRenderer(new ElipseDefinition(new Vector2(0, 0), .6f, .3f, 100), game,
+            textureFactory: textureCache.GetResource("baum").OwnerDelegate,
+            samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
+            viewFactory: textureCache.GetResource("baum").GetResource("default").ResourceDelegate
+        );
+        TexturedPolygon = new TexturedShape2DRenderer(new PolygonDefinition(stackalloc Vector2[]
+        {
+            new(330.71074380165294f / 500f, 494.82644628099155f / 500f),
+            new(539.801652892562f / 500f, 439.4545454545454f / 500f),
+            new(626.876207061902f / 500f, 241.4568745545897f / 500f),
+            new(526.365491022952f / 500f, 49.92971818522767f / 500f),
+            new(313.956123998003f / 500f, 9.09693153458295f / 500f),
+            new(149.59669171830413f / 500f, 149.7064357876441f / 500f),
+            new(157.05319901188642f / 500f, 365.87640633068054f / 500f)
+        }, true), game,
+        textureFactory: textureCache.GetResource("baum").OwnerDelegate,
+        samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
+        viewFactory: textureCache.GetResource("baum").GetResource("default").ResourceDelegate
+    );
 
         PipelineTimer = new GraphicsManagerFrameTimer(Game.MainGraphicsManager, 60);
     }
@@ -67,6 +109,11 @@ public class GraphicsTestNode : Node
         await drawOperationManager.AddDrawOperation(Square);
         await drawOperationManager.AddDrawOperation(Elipse);
         await drawOperationManager.AddDrawOperation(Polygon);
+
+        await drawOperationManager.AddDrawOperation(TexturedCircle);
+        await drawOperationManager.AddDrawOperation(TexturedSquare);
+        await drawOperationManager.AddDrawOperation(TexturedElipse);
+        await drawOperationManager.AddDrawOperation(TexturedPolygon);
 
         var vgc = (VeldridGraphicsManager)Game.MainGraphicsManager;
         var res = vgc.Resources;
@@ -111,6 +158,16 @@ public class GraphicsTestNode : Node
         await Square.WaitUntilReady();
         await Elipse.WaitUntilReady();
         await Polygon.WaitUntilReady();
+
+        await TexturedCircle.WaitUntilReady();
+        await TexturedSquare.WaitUntilReady();
+        await TexturedElipse.WaitUntilReady();
+        await TexturedPolygon.WaitUntilReady();
+
+        TexturedCircle.TransformationState.Transform(new Vector3(-.8f, -.8f, 0));
+        TexturedSquare.TransformationState.Transform(new Vector3(0, 0, 0));
+        TexturedElipse.TransformationState.Transform(new Vector3(0, 0, 0));
+        TexturedPolygon.TransformationState.Transform(new Vector3(0, 0, 0));
 
         Circle.ColorTransformation = ColorTransformation.CreateTint(RgbaVector.Pink);
 

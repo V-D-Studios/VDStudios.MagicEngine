@@ -24,33 +24,44 @@ public class TestScene : DemoSceneBase
         await base.Beginning();
         RegisterDrawOperationManager(new DrawOperationManager<VeldridGraphicsContext>(this));
 
-        var tnode = new GraphicsTestNode(Game);
-        await Attach(tnode);
-
         var vgc = (VeldridGraphicsManager)Game.MainGraphicsManager;
         var resources = vgc.Resources;
-        var cache = resources.TextureCache;
+        var textureCache = resources.TextureCache;
+        var samplerCache = resources.SamplerCache;
 
-        cache.RegisterResource(
+        textureCache.RegisterResource(
             "baum",
-            c => new ImageSharpTexture(Animations.ResourceManager.GetStream("Robin")!).CreateDeviceTexture(c.GraphicsDevice, c.ResourceFactory), 
+            c => new ImageSharpTexture(new MemoryStream(Animations.Robin)).CreateDeviceTexture(c.GraphicsDevice, c.ResourceFactory), 
             out var textureEntry
         );
         textureEntry.RegisterResource("default", static (c, t) => c.ResourceFactory.CreateTextureView(t));
 
-        cache.RegisterResource(
+        textureCache.RegisterResource(
             "robin", 
-            c => new ImageSharpTexture(Animations.ResourceManager.GetStream("Baum")!).CreateDeviceTexture(c.GraphicsDevice, c.ResourceFactory), 
+            c => new ImageSharpTexture(new MemoryStream(Animations.Baum)).CreateDeviceTexture(c.GraphicsDevice, c.ResourceFactory), 
             out textureEntry
         );
         textureEntry.RegisterResource("default", static (c, t) => c.ResourceFactory.CreateTextureView(t));
 
-        cache.RegisterResource(
+        textureCache.RegisterResource(
             "grass1", 
-            c => new ImageSharpTexture(Animations.ResourceManager.GetStream("Grass1")!).CreateDeviceTexture(c.GraphicsDevice, c.ResourceFactory), 
+            c => new ImageSharpTexture(new MemoryStream(Animations.Grass1)).CreateDeviceTexture(c.GraphicsDevice, c.ResourceFactory), 
             out textureEntry
         );
         textureEntry.RegisterResource("default", static (c, t) => c.ResourceFactory.CreateTextureView(t));
+
+        samplerCache.RegisterResource("default", static c => c.ResourceFactory.CreateSampler(new SamplerDescription(
+            SamplerAddressMode.Wrap,
+            SamplerAddressMode.Wrap,
+            SamplerAddressMode.Wrap,
+            SamplerFilter.MinLinear_MagLinear_MipLinear,
+            null,
+            4,
+            0,
+            0,
+            0,
+            SamplerBorderColor.TransparentBlack
+        )), out _);
 
         //var txc = Services.GetService<ResourceCache<VeldridGraphicsContext, Texture>>();
 
@@ -86,6 +97,9 @@ public class TestScene : DemoSceneBase
         //Camera.Move(scale: new(2, 2, 1));
 
         //Camera.Target = pnode;
+
+        var tnode = new GraphicsTestNode(Game);
+        await Attach(tnode);
     }
 
     //private static CharacterAnimationContainer CreateRobinAnimationContainer()
