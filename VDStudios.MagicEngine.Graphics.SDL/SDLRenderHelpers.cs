@@ -19,10 +19,10 @@ public static class SDLRenderHelpers
         var color = dop.ColorTransformation;
 
         if (color.Effects.HasFlag(ColorEffect.Tinted))
-            texture.ColorAlpha = new RGBAColor((byte)(color.Tint.X * 255), (byte)(color.Tint.Y * 255), (byte)(color.Tint.Z * 255), (byte)(color.Tint.W * 255));
+            texture.ColorAlpha = new RGBAColor((byte)(color.Tint.R * 255), (byte)(color.Tint.G * 255), (byte)(color.Tint.B * 255), (byte)(color.Tint.A * 255));
 
         if (color.Effects.HasFlag(ColorEffect.Overlay))
-            texture.ColorAlpha = new RGBAColor((byte)(color.Overlay.X * 255), (byte)(color.Overlay.Y * 255), (byte)(color.Overlay.Z * 255), (byte)(color.Overlay.W * 255));
+            texture.ColorAlpha = new RGBAColor((byte)(color.Overlay.R * 255), (byte)(color.Overlay.G * 255), (byte)(color.Overlay.B * 255), (byte)(color.Overlay.A * 255));
 
         texture.Alpha = (byte)(color.Effects.HasFlag(ColorEffect.OpacityOverride)
             ? color.Opacity
