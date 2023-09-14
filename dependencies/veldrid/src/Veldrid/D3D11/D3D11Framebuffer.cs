@@ -1,18 +1,20 @@
 ﻿using System;
+using System.Runtime.Versioning;
 using Vortice.Direct3D11;
 
 namespace Veldrid.D3D11;
 
+[SupportedOSPlatform("Windows")]
 internal class D3D11Framebuffer : Framebuffer
 {
-    private string _name;
+    private string? _name;
     private bool _disposed;
 
     public ID3D11RenderTargetView[] RenderTargetViews { get; }
-    public ID3D11DepthStencilView DepthStencilView { get; }
+    public ID3D11DepthStencilView? DepthStencilView { get; }
 
     // Only non-null if this is the Framebuffer for a Swapchain.
-    internal D3D11Swapchain Swapchain { get; set; }
+    internal D3D11Swapchain? Swapchain { get; set; }
 
     public override bool IsDisposed => _disposed;
 
@@ -113,7 +115,7 @@ internal class D3D11Framebuffer : Framebuffer
 
     public override string Name
     {
-        get => _name;
+        get => _name ?? "";
         set
         {
             _name = value;

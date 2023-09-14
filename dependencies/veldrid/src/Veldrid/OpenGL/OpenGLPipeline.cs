@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Veldrid.OpenGLBinding;
 using static Veldrid.OpenGL.OpenGLUtil;
@@ -19,8 +20,8 @@ internal unsafe class OpenGLPipeline : Pipeline, OpenGLDeferredResource
 #endif
 
     // Graphics Pipeline
-    public Shader[] GraphicsShaders { get; }
-    public VertexLayoutDescription[] VertexLayouts { get; }
+    public Shader[]? GraphicsShaders { get; }
+    public VertexLayoutDescription[]? VertexLayouts { get; }
     public BlendStateDescription BlendState { get; }
     public DepthStencilStateDescription DepthStencilState { get; }
     public RasterizerStateDescription RasterizerState { get; }
@@ -28,7 +29,7 @@ internal unsafe class OpenGLPipeline : Pipeline, OpenGLDeferredResource
 
     // Compute Pipeline
     public override bool IsComputePipeline { get; }
-    public Shader ComputeShader { get; }
+    public Shader? ComputeShader { get; }
 
     private uint _program;
     private bool _disposeRequested;
@@ -43,13 +44,14 @@ internal unsafe class OpenGLPipeline : Pipeline, OpenGLDeferredResource
     public uint GetUniformBufferCount(uint setSlot) => _setInfos[setSlot].UniformBufferCount;
     public uint GetShaderStorageBufferCount(uint setSlot) => _setInfos[setSlot].ShaderStorageBufferCount;
 
-    public override string Name { get; set; }
+    public override string Name { get; set; } = "";
 
     public override bool IsDisposed => _disposeRequested;
 
     public OpenGLPipeline(OpenGLGraphicsDevice gd, ref GraphicsPipelineDescription description)
         : base(ref description)
     {
+        _setInfos = Array.Empty<SetBindingsInfo>();
         _gd = gd;
         GraphicsShaders = Util.ShallowClone(description.ShaderSet.Shaders);
         VertexLayouts = Util.ShallowClone(description.ShaderSet.VertexLayouts);
@@ -73,6 +75,7 @@ internal unsafe class OpenGLPipeline : Pipeline, OpenGLDeferredResource
     public OpenGLPipeline(OpenGLGraphicsDevice gd, ref ComputePipelineDescription description)
         : base(ref description)
     {
+        _setInfos = Array.Empty<SetBindingsInfo>();
         _gd = gd;
         IsComputePipeline = true;
         ComputeShader = description.ComputeShader;
@@ -110,6 +113,7 @@ internal unsafe class OpenGLPipeline : Pipeline, OpenGLDeferredResource
     {
         _program = glCreateProgram();
         CheckLastError();
+        Debug.Assert(GraphicsShaders is not null);
         foreach (Shader stage in GraphicsShaders)
         {
             OpenGLShader glShader = Util.AssertSubtype<Shader, OpenGLShader>(stage);
@@ -118,22 +122,30 @@ internal unsafe class OpenGLPipeline : Pipeline, OpenGLDeferredResource
             CheckLastError();
         }
 
+        byte[] buffer = Array.Empty<byte>();
         uint slot = 0;
+        Debug.Assert(VertexLayouts is not null);
         foreach (VertexLayoutDescription layoutDesc in VertexLayouts)
         {
             for (int i = 0; i < layoutDesc.Elements.Length; i++)
             {
                 string elementName = layoutDesc.Elements[i].Name;
                 int byteCount = Encoding.UTF8.GetByteCount(elementName) + 1;
-                byte* elementNamePtr = stackalloc byte[byteCount];
-                fixed (char* charPtr = elementName)
-                {
-                    int bytesWritten = Encoding.UTF8.GetBytes(charPtr, elementName.Length, elementNamePtr, byteCount);
-                    Debug.Assert(bytesWritten == byteCount - 1);
-                }
-                elementNamePtr[byteCount - 1] = 0; // Add null terminator.
 
-                glBindAttribLocation(_program, slot, elementNamePtr);
+                if (buffer.Length < byteCount)
+                    Array.Resize(ref buffer, byteCount * 2);
+
+                fixed (byte* elementNamePtr = buffer)
+                {
+                    fixed (char* charPtr = elementName)
+                    {
+                        int bytesWritten = Encoding.UTF8.GetBytes(charPtr, elementName.Length, elementNamePtr, byteCount);
+                        Debug.Assert(bytesWritten == byteCount - 1);
+                    }
+                    elementNamePtr[byteCount - 1] = 0; // Add null terminator.
+
+                    glBindAttribLocation(_program, slot, elementNamePtr);
+                }
                 CheckLastError();
 
                 slot += 1;
@@ -205,6 +217,7 @@ internal unsafe class OpenGLPipeline : Pipeline, OpenGLDeferredResource
             Dictionary<uint, OpenGLShaderStorageBinding> storageBufferBindings = new Dictionary<uint, OpenGLShaderStorageBinding>();
 
             List<int> samplerTrackedRelativeTextureIndices = new List<int>();
+            byte[] buffer = Array.Empty<byte>();
             for (uint i = 0; i < resources.Length; i++)
             {
                 ResourceLayoutElementDescription resource = resources[i];
@@ -212,88 +225,101 @@ internal unsafe class OpenGLPipeline : Pipeline, OpenGLDeferredResource
                 {
                     string resourceName = resource.Name;
                     int byteCount = Encoding.UTF8.GetByteCount(resourceName) + 1;
-                    byte* resourceNamePtr = stackalloc byte[byteCount];
-                    fixed (char* charPtr = resourceName)
+                    if (buffer.Length < byteCount)
+                        Array.Resize(ref buffer, byteCount * 2);
+                    fixed (byte* resourceNamePtr = buffer)
                     {
-                        int bytesWritten = Encoding.UTF8.GetBytes(charPtr, resourceName.Length, resourceNamePtr, byteCount);
-                        Debug.Assert(bytesWritten == byteCount - 1);
-                    }
-                    resourceNamePtr[byteCount - 1] = 0; // Add null terminator.
-
-                    uint blockIndex = glGetUniformBlockIndex(_program, resourceNamePtr);
-                    CheckLastError();
-                    if (blockIndex != GL_INVALID_INDEX)
-                    {
-                        int blockSize;
-                        glGetActiveUniformBlockiv(_program, blockIndex, ActiveUniformBlockParameter.UniformBlockDataSize, &blockSize);
-                        CheckLastError();
-                        uniformBindings[i] = new OpenGLUniformBinding(_program, blockIndex, (uint)blockSize);
-                    }
-#if DEBUG && GL_VALIDATE_SHADER_RESOURCE_NAMES
-                    else
-                    {
-                        uint uniformBufferIndex = 0;
-                        uint bufferNameByteCount = 64;
-                        byte* bufferNamePtr = stackalloc byte[(int)bufferNameByteCount];
-                        var names = new List<string>();
-                        while (true)
+                        fixed (char* charPtr = resourceName)
                         {
-                            uint actualLength;
-                            glGetActiveUniformBlockName(_program, uniformBufferIndex, bufferNameByteCount, &actualLength, bufferNamePtr);
-
-                            if (glGetError() != 0)
-                                break;
-
-                            string name = Encoding.UTF8.GetString(bufferNamePtr, (int)actualLength);
-                            names.Add(name);
-                            uniformBufferIndex++;
+                            int bytesWritten = Encoding.UTF8.GetBytes(charPtr, resourceName.Length, resourceNamePtr, byteCount);
+                            Debug.Assert(bytesWritten == byteCount - 1);
                         }
+                        resourceNamePtr[byteCount - 1] = 0; // Add null terminator.
 
-                        throw new VeldridException($"Unable to bind uniform buffer \"{resourceName}\" by name. Valid names for this pipeline are: {string.Join(", ", names)}");
+                        uint blockIndex = glGetUniformBlockIndex(_program, resourceNamePtr);
+                        CheckLastError();
+                        if (blockIndex != GL_INVALID_INDEX)
+                        {
+                            int blockSize;
+                            glGetActiveUniformBlockiv(_program, blockIndex, ActiveUniformBlockParameter.UniformBlockDataSize, &blockSize);
+                            CheckLastError();
+                            uniformBindings[i] = new OpenGLUniformBinding(_program, blockIndex, (uint)blockSize);
+                        }
+    #if DEBUG && GL_VALIDATE_SHADER_RESOURCE_NAMES
+                        else
+                        {
+                            uint uniformBufferIndex = 0;
+                            uint bufferNameByteCount = 64;
+                            fixed (byte* bufferNamePtr = new byte[(int)bufferNameByteCount])
+                            {
+                                var names = new List<string>();
+                                while (true)
+                                {
+                                    uint actualLength;
+                                    glGetActiveUniformBlockName(_program, uniformBufferIndex, bufferNameByteCount, &actualLength, bufferNamePtr);
+
+                                    if (glGetError() != 0)
+                                        break;
+
+                                    string name = Encoding.UTF8.GetString(bufferNamePtr, (int)actualLength);
+                                    names.Add(name);
+                                    uniformBufferIndex++;
+                                }
+                                throw new VeldridException($"Unable to bind uniform buffer \"{resourceName}\" by name. Valid names for this pipeline are: {string.Join(", ", names)}");
+                            }
+                        }
+    #endif
                     }
-#endif
                 }
                 else if (resource.Kind == ResourceKind.TextureReadOnly)
                 {
                     string resourceName = resource.Name;
                     int byteCount = Encoding.UTF8.GetByteCount(resourceName) + 1;
-                    byte* resourceNamePtr = stackalloc byte[byteCount];
-                    fixed (char* charPtr = resourceName)
+                    if (buffer.Length < byteCount)
+                        Array.Resize(ref buffer, byteCount * 2);
+                    fixed (byte* resourceNamePtr = buffer)
                     {
-                        int bytesWritten = Encoding.UTF8.GetBytes(charPtr, resourceName.Length, resourceNamePtr, byteCount);
-                        Debug.Assert(bytesWritten == byteCount - 1);
-                    }
-                    resourceNamePtr[byteCount - 1] = 0; // Add null terminator.
-                    int location = glGetUniformLocation(_program, resourceNamePtr);
-                    CheckLastError();
+                        fixed (char* charPtr = resourceName)
+                        {
+                            int bytesWritten = Encoding.UTF8.GetBytes(charPtr, resourceName.Length, resourceNamePtr, byteCount);
+                            Debug.Assert(bytesWritten == byteCount - 1);
+                        }
+                        resourceNamePtr[byteCount - 1] = 0; // Add null terminator.
+                        int location = glGetUniformLocation(_program, resourceNamePtr);
+                        CheckLastError();
 #if DEBUG && GL_VALIDATE_SHADER_RESOURCE_NAMES
-                    if(location == -1)
-                        ReportInvalidResourceName(resourceName);
+                        if(location == -1)
+                            ReportInvalidResourceName(resourceName);
 #endif
-                    relativeTextureIndex += 1;
-                    textureBindings[i] = new OpenGLTextureBindingSlotInfo() { RelativeIndex = relativeTextureIndex, UniformLocation = location };
-                    lastTextureLocation = location;
-                    samplerTrackedRelativeTextureIndices.Add(relativeTextureIndex);
+                        relativeTextureIndex += 1;
+                        textureBindings[i] = new OpenGLTextureBindingSlotInfo() { RelativeIndex = relativeTextureIndex, UniformLocation = location };
+                        lastTextureLocation = location;
+                        samplerTrackedRelativeTextureIndices.Add(relativeTextureIndex);
+                    }
                 }
                 else if (resource.Kind == ResourceKind.TextureReadWrite)
                 {
                     string resourceName = resource.Name;
                     int byteCount = Encoding.UTF8.GetByteCount(resourceName) + 1;
-                    byte* resourceNamePtr = stackalloc byte[byteCount];
-                    fixed (char* charPtr = resourceName)
+                    if (buffer.Length < byteCount)
+                        Array.Resize(ref buffer, byteCount * 2);
+                    fixed (byte* resourceNamePtr = buffer)
                     {
-                        int bytesWritten = Encoding.UTF8.GetBytes(charPtr, resourceName.Length, resourceNamePtr, byteCount);
-                        Debug.Assert(bytesWritten == byteCount - 1);
+                        fixed (char* charPtr = resourceName)
+                        {
+                            int bytesWritten = Encoding.UTF8.GetBytes(charPtr, resourceName.Length, resourceNamePtr, byteCount);
+                            Debug.Assert(bytesWritten == byteCount - 1);
+                        }
+                        resourceNamePtr[byteCount - 1] = 0; // Add null terminator.
+                        int location = glGetUniformLocation(_program, resourceNamePtr);
+                        CheckLastError();
+    #if DEBUG && GL_VALIDATE_SHADER_RESOURCE_NAMES
+                        if(location == -1)
+                            ReportInvalidResourceName(resourceName);
+    #endif
+                        relativeImageIndex += 1;
+                        textureBindings[i] = new OpenGLTextureBindingSlotInfo() { RelativeIndex = relativeImageIndex, UniformLocation = location };
                     }
-                    resourceNamePtr[byteCount - 1] = 0; // Add null terminator.
-                    int location = glGetUniformLocation(_program, resourceNamePtr);
-                    CheckLastError();
-#if DEBUG && GL_VALIDATE_SHADER_RESOURCE_NAMES
-                    if(location == -1)
-                        ReportInvalidResourceName(resourceName);
-#endif
-                    relativeImageIndex += 1;
-                    textureBindings[i] = new OpenGLTextureBindingSlotInfo() { RelativeIndex = relativeImageIndex, UniformLocation = location };
                 }
                 else if (resource.Kind == ResourceKind.StructuredBufferReadOnly
                     || resource.Kind == ResourceKind.StructuredBufferReadWrite)
@@ -303,17 +329,21 @@ internal unsafe class OpenGLPipeline : Pipeline, OpenGLDeferredResource
                     {
                         string resourceName = resource.Name;
                         int byteCount = Encoding.UTF8.GetByteCount(resourceName) + 1;
-                        byte* resourceNamePtr = stackalloc byte[byteCount];
-                        fixed (char* charPtr = resourceName)
+                        if (buffer.Length < byteCount)
+                            Array.Resize(ref buffer, byteCount * 2);
+                        fixed (byte* resourceNamePtr = buffer)
                         {
-                            int bytesWritten = Encoding.UTF8.GetBytes(charPtr, resourceName.Length, resourceNamePtr, byteCount);
-                            Debug.Assert(bytesWritten == byteCount - 1);
+                            fixed (char* charPtr = resourceName)
+                            {
+                                int bytesWritten = Encoding.UTF8.GetBytes(charPtr, resourceName.Length, resourceNamePtr, byteCount);
+                                Debug.Assert(bytesWritten == byteCount - 1);
+                            }
+                            resourceNamePtr[byteCount - 1] = 0; // Add null terminator.
+                            storageBlockBinding = glGetProgramResourceIndex(
+                                _program,
+                                ProgramInterface.ShaderStorageBlock,
+                                resourceNamePtr);
                         }
-                        resourceNamePtr[byteCount - 1] = 0; // Add null terminator.
-                        storageBlockBinding = glGetProgramResourceIndex(
-                            _program,
-                            ProgramInterface.ShaderStorageBlock,
-                            resourceNamePtr);
                         CheckLastError();
                     }
                     else
@@ -373,6 +403,7 @@ internal unsafe class OpenGLPipeline : Pipeline, OpenGLDeferredResource
     {
         _program = glCreateProgram();
         CheckLastError();
+        Debug.Assert(ComputeShader is not null);
         OpenGLShader glShader = Util.AssertSubtype<Shader, OpenGLShader>(ComputeShader);
         glShader.EnsureResourcesCreated();
         glAttachShader(_program, glShader.Shader);
@@ -397,28 +428,28 @@ internal unsafe class OpenGLPipeline : Pipeline, OpenGLDeferredResource
         ProcessResourceSetLayouts(ResourceLayouts);
     }
 
-    public bool GetUniformBindingForSlot(uint set, uint slot, out OpenGLUniformBinding binding)
+    public bool GetUniformBindingForSlot(uint set, uint slot, [NotNullWhen(true)] out OpenGLUniformBinding? binding)
     {
         Debug.Assert(_setInfos != null, "EnsureResourcesCreated must be called before accessing resource set information.");
         SetBindingsInfo setInfo = _setInfos[set];
         return setInfo.GetUniformBindingForSlot(slot, out binding);
     }
 
-    public bool GetTextureBindingInfo(uint set, uint slot, out OpenGLTextureBindingSlotInfo binding)
+    public bool GetTextureBindingInfo(uint set, uint slot, [MaybeNullWhen(false)] out OpenGLTextureBindingSlotInfo binding)
     {
         Debug.Assert(_setInfos != null, "EnsureResourcesCreated must be called before accessing resource set information.");
         SetBindingsInfo setInfo = _setInfos[set];
         return setInfo.GetTextureBindingInfo(slot, out binding);
     }
 
-    public bool GetSamplerBindingInfo(uint set, uint slot, out OpenGLSamplerBindingSlotInfo binding)
+    public bool GetSamplerBindingInfo(uint set, uint slot, [MaybeNullWhen(false)] out OpenGLSamplerBindingSlotInfo binding)
     {
         Debug.Assert(_setInfos != null, "EnsureResourcesCreated must be called before accessing resource set information.");
         SetBindingsInfo setInfo = _setInfos[set];
         return setInfo.GetSamplerBindingInfo(slot, out binding);
     }
 
-    public bool GetStorageBufferBindingForSlot(uint set, uint slot, out OpenGLShaderStorageBinding binding)
+    public bool GetStorageBufferBindingForSlot(uint set, uint slot, [NotNullWhen(true)] out OpenGLShaderStorageBinding? binding)
     {
         Debug.Assert(_setInfos != null, "EnsureResourcesCreated must be called before accessing resource set information.");
         SetBindingsInfo setInfo = _setInfos[set];
@@ -480,12 +511,12 @@ internal struct SetBindingsInfo
         return _samplerBindings.TryGetValue(slot, out binding);
     }
 
-    public bool GetUniformBindingForSlot(uint slot, out OpenGLUniformBinding binding)
+    public bool GetUniformBindingForSlot(uint slot, [NotNullWhen(true)] out OpenGLUniformBinding? binding)
     {
         return _uniformBindings.TryGetValue(slot, out binding);
     }
 
-    public bool GetStorageBufferBindingForSlot(uint slot, out OpenGLShaderStorageBinding binding)
+    public bool GetStorageBufferBindingForSlot(uint slot, [NotNullWhen(true)] out OpenGLShaderStorageBinding? binding)
     {
         return _storageBufferBindings.TryGetValue(slot, out binding);
     }

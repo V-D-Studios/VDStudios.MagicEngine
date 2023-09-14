@@ -1,4 +1,5 @@
-﻿using SDL2.NET;
+﻿using System.Runtime.Versioning;
+using SDL2.NET;
 using Veldrid;
 using Veldrid.OpenGL;
 using static SDL2.Bindings.SDL;
@@ -27,11 +28,17 @@ public static class Startup
 
     #region Vulkan
 
+    /// <summary>
+    /// Creates a new <see cref="GraphicsDevice"/> to work with Vulkan
+    /// </summary>
     public static GraphicsDevice CreateVulkanGraphicsDevice(GraphicsDeviceOptions options, Window window)
     {
         return CreateVulkanGraphicsDevice(options, window, colorSrgb: false);
     }
 
+    /// <summary>
+    /// Creates a new <see cref="GraphicsDevice"/> to work with Vulkan
+    /// </summary>
     public static GraphicsDevice CreateVulkanGraphicsDevice(GraphicsDeviceOptions options, Window window, bool colorSrgb)
     {
         var (width, height) = window.Size;
@@ -42,6 +49,10 @@ public static class Startup
 
     #region DirectX
 
+    /// <summary>
+    /// Creates a new <see cref="GraphicsDevice"/> to work with Direct3D DirectX 11
+    /// </summary>
+    [SupportedOSPlatform("Windows")]
     public static GraphicsDevice CreateDefaultD3D11GraphicsDevice(GraphicsDeviceOptions options, Window window)
     {
         var (width, height) = window.Size;
@@ -211,11 +222,17 @@ public static class Startup
 
     #region Metal
 
+    /// <summary>
+    /// Creates a new <see cref="GraphicsDevice"/> to work with Metal
+    /// </summary>
     public static GraphicsDevice CreateMetalGraphicsDevice(GraphicsDeviceOptions options, Window window)
     {
         return CreateMetalGraphicsDevice(options, window, colorSrgb: false);
     }
 
+    /// <summary>
+    /// Creates a new <see cref="GraphicsDevice"/> to work with Metal
+    /// </summary>
     public static GraphicsDevice CreateMetalGraphicsDevice(GraphicsDeviceOptions options, Window window, bool colorSrgb)
     {
         var (width, height) = window.Size;
@@ -224,26 +241,40 @@ public static class Startup
 
     #endregion
 
+    /// <summary>
+    /// Creates a new <see cref="GraphicsDevice"/>
+    /// </summary>
     public static GraphicsDevice CreateGraphicsDevice(Window window)
     {
         return CreateGraphicsDevice(window, default, GetPlatformDefaultBackend());
     }
 
+    /// <summary>
+    /// Creates a new <see cref="GraphicsDevice"/>
+    /// </summary>
     public static GraphicsDevice CreateGraphicsDevice(Window window, GraphicsDeviceOptions options)
     {
         return CreateGraphicsDevice(window, options, GetPlatformDefaultBackend());
     }
 
+    /// <summary>
+    /// Creates a new <see cref="GraphicsDevice"/>
+    /// </summary>
     public static GraphicsDevice CreateGraphicsDevice(Window window, GraphicsBackend preferredBackend)
     {
         return CreateGraphicsDevice(window, default, preferredBackend);
     }
 
+    /// <summary>
+    /// Creates a new <see cref="GraphicsDevice"/>
+    /// </summary>
     public static GraphicsDevice CreateGraphicsDevice(Window window, GraphicsDeviceOptions options, GraphicsBackend preferredBackend)
     {
+        if (OperatingSystem.IsWindows() && preferredBackend is GraphicsBackend.Direct3D11)
+            return CreateDefaultD3D11GraphicsDevice(options, window);
+
         return preferredBackend switch
         {
-            GraphicsBackend.Direct3D11 => CreateDefaultD3D11GraphicsDevice(options, window),
             GraphicsBackend.Vulkan => CreateVulkanGraphicsDevice(options, window),
             GraphicsBackend.OpenGL => CreateDefaultOpenGLGraphicsDevice(options, window, preferredBackend),
             GraphicsBackend.Metal => CreateMetalGraphicsDevice(options, window),
@@ -252,6 +283,9 @@ public static class Startup
         };
     }
 
+    /// <summary>
+    /// Gets the <see cref="GraphicsBackend"/> that pertains to the current platform's default backend
+    /// </summary>
     public static GraphicsBackend GetPlatformDefaultBackend()
         => OperatingSystem.IsWindows()
            ? GraphicsBackend.Direct3D11
@@ -259,6 +293,10 @@ public static class Startup
            ? !GraphicsDevice.IsBackendSupported(GraphicsBackend.Metal) ? GraphicsBackend.OpenGL : GraphicsBackend.Metal
            : !GraphicsDevice.IsBackendSupported(GraphicsBackend.Vulkan) ? GraphicsBackend.OpenGL : GraphicsBackend.Vulkan;
 
+    /// <summary>
+    /// Obtains a <see cref="SwapchainSource"/> for <paramref name="window"/>
+    /// </summary>
+    /// <exception cref="PlatformNotSupportedException"></exception>
     public static SwapchainSource GetSwapchainSource(Window window)
     {
         var sysWMinfo = window.SystemInfo;
