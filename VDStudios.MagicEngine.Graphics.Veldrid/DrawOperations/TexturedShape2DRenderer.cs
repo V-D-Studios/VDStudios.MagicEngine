@@ -37,7 +37,7 @@ public class TexturedShape2DRenderer<TVertex> : Shape2DRenderer<TVertex>
 
     private readonly GraphicsResourceFactory<Texture> TextureFactory;
     private readonly GraphicsResourceFactory<Sampler> SamplerFactory;
-    private readonly GraphicsResourceFactory<TextureView> ViewFactory;
+    private readonly GraphicsResourceFactory<Texture, TextureView> ViewFactory;
 
     /// <inheritdoc/>
     protected override void CreateGPUResources(VeldridGraphicsContext context)

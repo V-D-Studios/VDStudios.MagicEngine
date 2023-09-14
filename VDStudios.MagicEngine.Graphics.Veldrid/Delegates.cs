@@ -15,3 +15,14 @@ namespace VDStudios.MagicEngine.Graphics.Veldrid;
 /// <returns>The produced resource</returns>
 public delegate T GraphicsResourceFactory<T>(IVeldridGraphicsContextResources context)
     where T : class;
+
+/// <summary>
+/// Represents a method that can be used to produce a graphics resource
+/// </summary>
+/// <param name="context">The resource context</param>
+/// <typeparam name="TResource">The type of resource</typeparam>
+/// <typeparam name="TDependency">The type of the dependency the resource has</typeparam>
+/// <returns>The produced resource</returns>
+public delegate TResource GraphicsResourceFactory<TDependency, TResource>(IVeldridGraphicsContextResources context, TDependency dependency)
+    where TResource : class
+    where TDependency : class;

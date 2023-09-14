@@ -23,7 +23,7 @@ public partial class GraphicsContextOwnedResourceFactoryCache<TOwner, TResource>
         /// <summary>
         /// A delegate that can be used to indirectly access <see cref="Resource"/>
         /// </summary>
-        public GraphicsResourceFactory<TResource> ResourceDelegate { get; }
+        public GraphicsResourceFactory<TOwner, TResource> ResourceDelegate { get; }
 
         /// <summary>
         /// The resource that is maintained by this cache entry
@@ -54,9 +54,12 @@ public partial class GraphicsContextOwnedResourceFactoryCache<TOwner, TResource>
             ResourceFactory = resourceFactory;
             OwnerCache = owner;
             ResourceDelegate =
-            ResourceDelegate = context => context != OwnerCache.OwnerCache.ResourceOwner ?
-                throw new ArgumentException("The passed context does not own this ResourceCache", nameof(context)) : 
-                Resource;
+            ResourceDelegate 
+            = (context, owner) => context != OwnerCache.OwnerCache.ResourceOwner
+                    ? throw new ArgumentException("The passed context does not own this ResourceCache", nameof(context))
+                    : owner != OwnerCache.OwnerResource
+                    ? throw new ArgumentException("The passed owner object does not own this resource", nameof(owner))
+                    : Resource;
         }
     }
 }
