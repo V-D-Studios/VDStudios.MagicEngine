@@ -1,11 +1,60 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using VDStudios.MagicEngine.Geometry;
+using VDStudios.MagicEngine.Graphics.Veldrid.Generators;
 using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
 using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes.Interfaces;
+using VDStudios.MagicEngine.Graphics.Veldrid.Properties;
 using Veldrid;
+using Veldrid.SPIRV;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
+
+/// <summary>
+/// An operation that renders a texture on top of a <see cref="ShapeDefinition2D"/>, using <see cref="VertexTextureColor2D"/>
+/// </summary>
+public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexTextureColor2D>
+{
+    /// <summary>
+    /// Creates a new object of type <see cref="Shape2DRenderer{TVertex}"/>
+    /// </summary>
+    /// <param name="shape"></param>
+    /// <param name="game"></param>
+    /// <param name="textureFactory"></param>
+    /// <param name="samplerFactory"></param>
+    /// <param name="viewFactory"></param>
+    /// <param name="vertexGenerator">The vertex generator for this instance. If <see langword="null"/>, a new instance of <see cref="Texture2DFillVertexGenerator"/> will be used</param>
+    /// <param name="vertexSkip"></param>
+    public TexturedShape2DRenderer(
+        ShapeDefinition2D shape,
+        Game game,
+        GraphicsResourceFactory<Texture> textureFactory,
+        GraphicsResourceFactory<Sampler> samplerFactory,
+        GraphicsResourceFactory<Texture, TextureView> viewFactory,
+        IVertexGenerator<Vector2, VertexTextureColor2D>? vertexGenerator = null,
+        ElementSkip vertexSkip = default
+    ) : base(shape, game, textureFactory, samplerFactory, viewFactory, vertexGenerator ?? new Texture2DFillVertexGenerator(this), vertexSkip) { }
+
+    /// <summary>
+    /// Fetches or registers (and then fetches) the default shader set for <see cref="Shape2DRenderer"/>
+    /// </summary>
+    public static Shader[] GetDefaultShaders(IVeldridGraphicsContextResources resources)
+        => resources.ShaderCache.GetOrAddResource<Shape2DRenderer>(
+            static c => c.ResourceFactory.CreateFromSpirv(
+                vertexShaderDescription: new ShaderDescription(
+                    ShaderStages.Vertex,
+                    Encoding.UTF8.GetBytes(DefaultShaders.DefaultShape2DRendererVertexShader),
+                    "main",
+                    true
+                ),
+                fragmentShaderDescription: new ShaderDescription(
+                    ShaderStages.Fragment,
+                    Encoding.UTF8.GetBytes(DefaultShaders.DefaultTexturedShapeRendererFragmentShader),
+                    "main",
+                    true
+                )
+            ));
+}
 
 /// <summary>
 /// An operation that renders a texture on top of a <see cref="ShapeDefinition2D"/>
