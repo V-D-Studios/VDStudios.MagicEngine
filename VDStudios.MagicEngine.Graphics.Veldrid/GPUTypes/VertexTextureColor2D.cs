@@ -50,4 +50,24 @@ public readonly struct VertexTextureColor2D : IVertexType<VertexTextureColor2D>
                new VertexElementDescription("TextureCoordinate", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
                new VertexElementDescription("Color", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4)
            );
+
+    /// <inheritdoc/>
+    public bool Equals(VertexTextureColor2D other)
+        => PolygonVertex == other.PolygonVertex && TextureVertex == other.TextureVertex && Color == other.Color;
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+        => HashCode.Combine(PolygonVertex, TextureVertex, Color);
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) 
+        => obj is VertexTextureColor2D o && Equals(o);
+
+    /// <inheritdoc/>
+    public static bool operator ==(VertexTextureColor2D left, VertexTextureColor2D right) 
+        => left.Equals(right);
+
+    /// <inheritdoc/>
+    public static bool operator !=(VertexTextureColor2D left, VertexTextureColor2D right) 
+        => !(left == right);
 }

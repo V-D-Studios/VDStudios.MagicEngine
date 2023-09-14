@@ -78,4 +78,24 @@ public readonly struct VertexColor2D : IVertexType<VertexColor2D>,
                 output[i] = new VertexColor2D(input[i], Color);
         }
     }
+
+    /// <inheritdoc/>
+    public bool Equals(VertexColor2D other)
+        => PolygonVertex == other.PolygonVertex && Color == other.Color;
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+        => HashCode.Combine(PolygonVertex, Color);
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj)
+        => obj is VertexColor2D o && Equals(o);
+
+    /// <inheritdoc/>
+    public static bool operator ==(VertexColor2D left, VertexColor2D right)
+        => left.Equals(right);
+
+    /// <inheritdoc/>
+    public static bool operator !=(VertexColor2D left, VertexColor2D right)
+        => !(left == right);
 }

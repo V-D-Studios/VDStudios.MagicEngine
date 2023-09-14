@@ -10,7 +10,34 @@ public static class DefaultShaders
     #region TexturedShapeRenderer
 
     /// <summary>
-    /// The default fragment shader for <see cref="TexturedShape2DRenderer{TVertex}"/>
+    /// The default vertex shader for <see cref="TexturedShape2DRenderer"/>
+    /// </summary>
+    public const string DefaultTexturedShape2DRendererVertexShader = """
+        #version 450
+        
+        layout(location = 0) in vec2 Position;
+        layout(location = 1) in vec4 Color;
+        layout(location = 0) out vec4 fsin_Color;
+        layout(set=0,binding=0) uniform FrameReport {
+            layout(offset = 0) mat4 projection;
+            layout(offset = 64) float delta;
+        };
+        layout(set=1,binding=0) uniform Parameters {
+            layout(offset = 0) mat4 view;
+        };
+        layout(set=2,binding=0) uniform DrawOp {
+            layout(offset = 0) mat4 transform;
+        };
+        layout(set=3,binding=1) buffer
+        
+        void main() {
+            fsin_Color = Color;
+            gl_Position = projection * view * transform * vec4(Position, 0.0, 1.0);
+        }
+        """;
+
+    /// <summary>
+    /// The default fragment shader for <see cref="TexturedShape2DRenderer"/>
     /// </summary>
     public const string DefaultTexturedShapeRendererFragmentShader = @"#version 450
 
