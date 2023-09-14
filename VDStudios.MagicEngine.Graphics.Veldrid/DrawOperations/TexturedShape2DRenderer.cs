@@ -39,7 +39,7 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexTextureColo
     /// Fetches or registers (and then fetches) the default shader set for <see cref="Shape2DRenderer"/>
     /// </summary>
     public static Shader[] GetDefaultShaders(IVeldridGraphicsContextResources resources)
-        => resources.ShaderCache.GetOrAddResource<Shape2DRenderer>(
+        => resources.ShaderCache.GetOrAddResource<TexturedShape2DRenderer>(
             static c => c.ResourceFactory.CreateFromSpirv(
                 vertexShaderDescription: new ShaderDescription(
                     ShaderStages.Vertex,

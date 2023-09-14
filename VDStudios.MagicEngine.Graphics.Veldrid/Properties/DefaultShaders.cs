@@ -20,15 +20,21 @@ const int overlayFx = 1 << 2;
 const int opacityOverrideFx = 1 << 3;
 const int opacityMultiplyFx = 1 << 4;
 
-layout(set=0,binding=0) uniform sampler TSamp;
-layout(set=0,binding=1) uniform texture2D Tex;
-layout(set=1,binding=0) uniform Transform {
+layout(set=0,binding=0) uniform FrameReport {
+    layout(offset = 64) float delta;
+};
+
+layout(set=2,binding=0) uniform Transform {
     layout(offset = 0) mat4 opTrans;
     layout(offset = 64) vec4 tint;
     layout(offset = 80) vec4 overlay;
     layout(offset = 96) uint colorfx;
     layout(offset = 100) float opacity;
 } trans;
+
+layout(set=3,binding=0) uniform texture2D Tex;
+
+layout(set=3,binding=1) uniform sampler TSamp;
 
 layout(location = 0) out vec4 outColor;
 layout(location = 0) in vec4 fragTexCoord;
