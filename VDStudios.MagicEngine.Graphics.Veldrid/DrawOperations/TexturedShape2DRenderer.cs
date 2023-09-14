@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Numerics;
 using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.Graphics.Veldrid.Generators;
@@ -11,9 +12,9 @@ using Veldrid.SPIRV;
 namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
 
 /// <summary>
-/// An operation that renders a texture on top of a <see cref="ShapeDefinition2D"/>, using <see cref="VertexTextureColor2D"/>
+/// An operation that renders a texture on top of a <see cref="ShapeDefinition2D"/>, using <see cref="VertexTextureColor2D"/> and <see cref="TextureVector2Viewport"/>
 /// </summary>
-public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexTextureColor2D>
+public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexTextureColor2D, TextureVector2Viewport>
 {
     /// <summary>
     /// Creates a new object of type <see cref="Shape2DRenderer{TVertex}"/>
@@ -59,8 +60,9 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexTextureColo
 /// <summary>
 /// An operation that renders a texture on top of a <see cref="ShapeDefinition2D"/>
 /// </summary>
-public class TexturedShape2DRenderer<TVertex> : Shape2DRenderer<TVertex>
+public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVertex>
     where TVertex : unmanaged, IVertexType<TVertex>
+    where TViewport : unmanaged, IGPUType<TViewport>
 {
     /// <summary>
     /// Creates a new object of type <see cref="Shape2DRenderer{TVertex}"/>
@@ -85,9 +87,27 @@ public class TexturedShape2DRenderer<TVertex> : Shape2DRenderer<TVertex>
         ViewFactory = viewFactory;
     }
 
+    /// <summary>
+    /// The current viewport of the <see cref="TexturedShape2DRenderer{TVertex, TViewport}"/>
+    /// </summary>
+    public TViewport CurrentView
+    {
+        get => viewport;
+        set
+        {
+            if (viewport.Equals(value)) return;
+            viewport = value;
+            viewportChanged = true;
+            NotifyPendingGPUUpdate();
+        }
+    }
+    private TViewport viewport;
+    private bool viewportChanged;
+
     private Texture? Texture;
     private Sampler? Sampler;
     private TextureView? TextureView;
+    private DeviceBuffer? ViewportBuffer;
 
     private readonly GraphicsResourceFactory<Texture> TextureFactory;
     private readonly GraphicsResourceFactory<Sampler> SamplerFactory;
@@ -95,6 +115,19 @@ public class TexturedShape2DRenderer<TVertex> : Shape2DRenderer<TVertex>
 
     private ResourceLayout? TextureLayout;
     private ResourceSet? TextureSet;
+
+    /// <inheritdoc/>
+    protected override void UpdateGPUState(VeldridGraphicsContext context)
+    {
+        base.UpdateGPUState(context);
+
+        if (viewportChanged)
+        {
+            Debug.Assert(ViewportBuffer is not null, "ViewportBuffer was unexpectedly null at the time of updating the GPU's state");
+            context.CommandList.UpdateBuffer(ViewportBuffer, 0, viewport);
+            viewportChanged = false;
+        }
+    }
 
     /// <inheritdoc/>
     protected override void CreateGPUResources(VeldridGraphicsContext context)
@@ -105,27 +138,30 @@ public class TexturedShape2DRenderer<TVertex> : Shape2DRenderer<TVertex>
         Sampler = SamplerFactory(context) ?? throw new InvalidOperationException("SamplerFactory unexpectedly produced a null result");
         TextureView = ViewFactory(context, Texture) ?? throw new InvalidOperationException("ViewFactory unexpectedly produced a null result");
 
+        ViewportBuffer = context.ResourceFactory.CreateBuffer(new BufferDescription(DataStructuring.FitToUniformBuffer<TViewport, uint>(), BufferUsage.UniformBuffer));
+
         Shader[]? shaders;
 
-        if (context.TryGetResourceLayout<TexturedShape2DRenderer<TVertex>>(out TextureLayout) is false)
-            context.RegisterResourceLayout<TexturedShape2DRenderer<TVertex>>(
+        if (context.TryGetResourceLayout<TexturedShape2DRenderer<TVertex, TViewport>>(out TextureLayout) is false)
+            context.RegisterResourceLayout<TexturedShape2DRenderer<TVertex, TViewport>>(
                 TextureLayout = context.ResourceFactory.CreateResourceLayout(
                     new ResourceLayoutDescription(
                         new ResourceLayoutElementDescription("Texture", ResourceKind.TextureReadOnly, ShaderStages.Fragment),
-                        new ResourceLayoutElementDescription("Sampler", ResourceKind.Sampler, ShaderStages.Fragment)
+                        new ResourceLayoutElementDescription("Sampler", ResourceKind.Sampler, ShaderStages.Fragment),
+                        new ResourceLayoutElementDescription("Viewport", ResourceKind.UniformBuffer, ShaderStages.Fragment)
                     )
                 )
             , out _);
 
-        TextureSet = context.ResourceFactory.CreateResourceSet(new ResourceSetDescription(TextureLayout, TextureView, Sampler));
+        TextureSet = context.ResourceFactory.CreateResourceSet(new ResourceSetDescription(TextureLayout, TextureView, Sampler, ViewportBuffer));
 
         if (this is TexturedShape2DRenderer)
             shaders = TexturedShape2DRenderer.GetDefaultShaders(context);
-        else if (context.ShaderCache.TryGetResource<TexturedShape2DRenderer<TVertex>>(out shaders) is false)
-            throw new InvalidOperationException($"Could not find a Shader set for {Helper.BuildTypeNameAsCSharpTypeExpression(typeof(TexturedShape2DRenderer<TVertex>))}");
+        else if (context.ShaderCache.TryGetResource<TexturedShape2DRenderer<TVertex, TViewport>>(out shaders) is false)
+            throw new InvalidOperationException($"Could not find a Shader set for {Helper.BuildTypeNameAsCSharpTypeExpression(typeof(TexturedShape2DRenderer<TVertex, TViewport>))}");
 
-        if (context.ContainsPipeline<TexturedShape2DRenderer<TVertex>>() is false)
-            context.RegisterPipeline<TexturedShape2DRenderer<TVertex>>(context.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription(
+        if (context.ContainsPipeline<TexturedShape2DRenderer<TVertex, TViewport>>() is false)
+            context.RegisterPipeline<TexturedShape2DRenderer<TVertex, TViewport>>(context.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription(
                 blendState: BlendStateDescription.SingleAlphaBlend,
                 depthStencilStateDescription: new DepthStencilStateDescription(
                     depthTestEnabled: true,
@@ -174,7 +210,7 @@ public class TexturedShape2DRenderer<TVertex> : Shape2DRenderer<TVertex>
         cl.SetFramebuffer(target.GetFramebuffer(context));
         cl.SetVertexBuffer(0, VertexIndexBuffer, 0);
         cl.SetIndexBuffer(VertexIndexBuffer, IndexFormat.UInt16, VertexEnd);
-        cl.SetPipeline(context.GetPipeline<TexturedShape2DRenderer<TVertex>>(PipelineIndex));
+        cl.SetPipeline(context.GetPipeline<TexturedShape2DRenderer<TVertex, TViewport>>(PipelineIndex));
 
         cl.SetGraphicsResourceSet(0, context.FrameReportSet);
         cl.SetGraphicsResourceSet(1, target.TransformationSet);
