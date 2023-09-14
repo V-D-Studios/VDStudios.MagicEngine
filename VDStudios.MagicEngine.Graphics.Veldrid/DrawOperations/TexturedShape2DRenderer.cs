@@ -203,17 +203,18 @@ public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVert
     /// <inheritdoc/>
     protected override void Draw(TimeSpan delta, VeldridGraphicsContext context, RenderTarget<VeldridGraphicsContext> t)
     {
-        Debug.Assert(VertexIndexBuffer is not null, "VertexIndexBuffer was unexpectedly null at the time of drawing");
+        Debug.Assert(VertexBuffer is not null, "VertexBuffer was unexpectedly null at the time of drawing");
+        Debug.Assert(IndexBuffer is not null, "IndexBuffer was unexpectedly null at the time of drawing");
         Debug.Assert(t is VeldridRenderTarget, "target is not of type VeldridRenderTarget");
         Debug.Assert(DrawOperationResourceSet is not null, "DrawOperationResourceSet was unexpectedly null at the time of drawing");
         Debug.Assert(TextureSet is not null, "TextureSet was unexpectedly null at the time of drawing");
 
         var target = (VeldridRenderTarget)t;
         var cl = target.CommandList;
-
+        
         cl.SetFramebuffer(target.GetFramebuffer(context));
-        cl.SetVertexBuffer(0, VertexIndexBuffer, 0);
-        cl.SetIndexBuffer(VertexIndexBuffer, IndexFormat.UInt16, VertexEnd);
+        cl.SetVertexBuffer(0, VertexBuffer, 0);
+        cl.SetIndexBuffer(IndexBuffer, IndexFormat.UInt16, 0);
         cl.SetPipeline(context.GetPipeline<TexturedShape2DRenderer<TVertex, TViewport>>(PipelineIndex));
 
         cl.SetGraphicsResourceSet(0, context.FrameReportSet);

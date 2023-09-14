@@ -158,17 +158,17 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
     }
 
     /// <summary>
-    /// The DeviceBuffer used for both vertex data and index data
+    /// The DeviceBuffer used for vertex data
     /// </summary>
-    protected DeviceBuffer? VertexIndexBuffer { get; private set; }
+    protected DeviceBuffer? VertexBuffer { get; private set; }
 
     /// <summary>
-    /// The offset at which <see cref="VertexIndexBuffer"/> no longer contains vertex information, and starts containing index information
+    /// The DeviceBuffer used for index data
     /// </summary>
-    protected uint VertexEnd { get; private set; }
-    
+    protected DeviceBuffer? IndexBuffer { get; private set; }
+
     /// <summary>
-    /// The amount of indices currently in <see cref="VertexIndexBuffer"/>
+    /// The amount of indices currently in <see cref="VertexBuffer"/>
     /// </summary>
     protected uint IndexCount { get; private set; }
 
@@ -235,20 +235,32 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
             pendingVertexRegen = true;
             var vertexlen = Shape.Count;
             var indexlen = Shape.GetTriangulationLength();
-            var bufferLen = (uint)(TVertex.Size * vertexlen + sizeof(uint) * indexlen);
 
-            VertexEnd = (uint)(vertexlen * TVertex.Size);
+            var vertexSize = (uint)(TVertex.Size * vertexlen);
+            var indexSize = (uint)(sizeof(ushort) * indexlen);
 
-            if (VertexIndexBuffer is not null && bufferLen > VertexIndexBuffer.SizeInBytes)
+            if (VertexBuffer is not null && vertexlen > VertexBuffer.SizeInBytes)
             {
-                VertexIndexBuffer.Dispose();
-                VertexIndexBuffer = null;
+                VertexBuffer.Dispose();
+                VertexBuffer = null;
             }
 
-            VertexIndexBuffer ??= context.ResourceFactory.CreateBuffer(new BufferDescription()
+            VertexBuffer ??= context.ResourceFactory.CreateBuffer(new BufferDescription()
             {
-                SizeInBytes = bufferLen,
-                Usage = BufferUsage.VertexBuffer | BufferUsage.IndexBuffer
+                SizeInBytes = vertexSize,
+                Usage = BufferUsage.VertexBuffer
+            });
+
+            if (IndexBuffer is not null && indexlen > IndexBuffer.SizeInBytes)
+            {
+                IndexBuffer.Dispose();
+                IndexBuffer = null;
+            }
+
+            IndexBuffer ??= context.ResourceFactory.CreateBuffer(new BufferDescription()
+            {
+                SizeInBytes = indexSize,
+                Usage = BufferUsage.IndexBuffer
             });
 
             IndexCount = (uint)Shape.GetTriangulationLength(VertexSkip);
@@ -256,13 +268,13 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
             Span<ushort> indices = stackalloc ushort[indexlen];
             Shape.Triangulate(indices, VertexSkip);
 
-            context.CommandList.UpdateBuffer(VertexIndexBuffer, VertexEnd, indices);
+            context.CommandList.UpdateBuffer(IndexBuffer, 0, indices);
         }
 
         if (pendingVertexRegen)
         {
             var vertexlen = Shape.Count;
-            Debug.Assert(VertexIndexBuffer is not null, "VertexIndexBuffer was unexpectedly null when regenerating vertices");
+            Debug.Assert(VertexBuffer is not null, "VertexIndexBuffer was unexpectedly null when regenerating vertices");
             var vertices = Shape.AsSpan();
 
             TVertex[]? rented = null;
@@ -276,7 +288,7 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
                 Debug.Assert(VertexGenerator is not null, "VertexGenerator was unexpectedly null at the time of rendering");
 
                 gen.Generate(vertices, graphicVertices);
-                context.CommandList.UpdateBuffer(VertexIndexBuffer, 0, graphicVertices);
+                context.CommandList.UpdateBuffer(VertexBuffer, 0, graphicVertices);
             }
             finally
             {
@@ -289,7 +301,8 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
     /// <inheritdoc/>
     protected override void Draw(TimeSpan delta, VeldridGraphicsContext context, RenderTarget<VeldridGraphicsContext> t)
     {
-        Debug.Assert(VertexIndexBuffer is not null, "VertexIndexBuffer was unexpectedly null at the time of drawing");
+        Debug.Assert(VertexBuffer is not null, "VertexBuffer was unexpectedly null at the time of drawing");
+        Debug.Assert(IndexBuffer is not null, "IndexBuffer was unexpectedly null at the time of drawing");
         Debug.Assert(t is VeldridRenderTarget, "target is not of type VeldridRenderTarget");
         Debug.Assert(DrawOperationResourceSet is not null, "DrawOperationResourceSet was unexpectedly null at the time of drawing");
 
@@ -297,8 +310,8 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
         var cl = target.CommandList;
 
         cl.SetFramebuffer(target.GetFramebuffer(context));
-        cl.SetVertexBuffer(0, VertexIndexBuffer, 0);
-        cl.SetIndexBuffer(VertexIndexBuffer, IndexFormat.UInt16, VertexEnd);
+        cl.SetVertexBuffer(0, VertexBuffer, 0);
+        cl.SetIndexBuffer(IndexBuffer, IndexFormat.UInt16, 0);
         cl.SetPipeline(context.GetPipeline<Shape2DRenderer<TVertex>>(PipelineIndex));
 
         cl.SetGraphicsResourceSet(0, context.FrameReportSet);
