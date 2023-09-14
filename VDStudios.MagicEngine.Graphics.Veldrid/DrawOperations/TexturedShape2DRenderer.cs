@@ -174,7 +174,7 @@ public class TexturedShape2DRenderer<TVertex> : Shape2DRenderer<TVertex>
         cl.SetFramebuffer(target.GetFramebuffer(context));
         cl.SetVertexBuffer(0, VertexIndexBuffer, 0);
         cl.SetIndexBuffer(VertexIndexBuffer, IndexFormat.UInt16, VertexEnd);
-        cl.SetPipeline(context.GetPipeline<Shape2DRenderer<TVertex>>(PipelineIndex));
+        cl.SetPipeline(context.GetPipeline<TexturedShape2DRenderer<TVertex>>(PipelineIndex));
 
         cl.SetGraphicsResourceSet(0, context.FrameReportSet);
         cl.SetGraphicsResourceSet(1, target.TransformationSet);
