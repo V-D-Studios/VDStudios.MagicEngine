@@ -17,7 +17,9 @@ public static class DefaultShaders
         
         layout(location = 0) in vec2 Position;
         layout(location = 1) in vec4 Color;
+
         layout(location = 0) out vec4 fsin_Color;
+        
         layout(set=0,binding=0) uniform FrameReport {
             layout(offset = 0) mat4 projection;
             layout(offset = 64) float delta;
@@ -28,8 +30,7 @@ public static class DefaultShaders
         layout(set=2,binding=0) uniform DrawOp {
             layout(offset = 0) mat4 transform;
         };
-        layout(set=3,binding=1) buffer
-        
+
         void main() {
             fsin_Color = Color;
             gl_Position = projection * view * transform * vec4(Position, 0.0, 1.0);
@@ -52,7 +53,6 @@ layout(set=0,binding=0) uniform FrameReport {
 };
 
 layout(set=2,binding=0) uniform Transform {
-    layout(offset = 0) mat4 opTrans;
     layout(offset = 64) vec4 tint;
     layout(offset = 80) vec4 overlay;
     layout(offset = 96) uint colorfx;
@@ -63,8 +63,12 @@ layout(set=3,binding=0) uniform texture2D Tex;
 
 layout(set=3,binding=1) uniform sampler TSamp;
 
+layout(set=3,binding=2) uniform TextureTransform {
+    layout(offset = 0) mat4 textrans;
+};
+
 layout(location = 0) out vec4 outColor;
-layout(location = 0) in vec4 fragTexCoord;
+layout(location = 0) in vec2 fragTexCoord;
 
 vec4 toGrayscale(vec4 color)
 {
@@ -73,7 +77,8 @@ vec4 toGrayscale(vec4 color)
 }
 
 void main() {
-    vec4 c = texture(sampler2D(Tex, TSamp), vec2(fragTexCoord.x, fragTexCoord.y));
+    vec4 coord = vec4(fragTexCoord, 0.0, 1.0) * textrans;
+    vec4 c = texture(sampler2D(Tex, TSamp), vec2(coord.x, coord.y));
     if ((trans.colorfx & grayscaleFx) != 0) { c = toGrayscale(c); }
     if ((trans.colorfx & tintFx) != 0) { c = vec4(c.r * trans.tint.r, c.g * trans.tint.g, c.b * trans.tint.b, c.a); }
     if ((trans.colorfx & overlayFx) != 0) { c *= trans.overlay; }
