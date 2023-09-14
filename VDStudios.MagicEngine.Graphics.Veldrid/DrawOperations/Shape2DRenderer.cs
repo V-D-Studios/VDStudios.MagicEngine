@@ -55,7 +55,11 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
     /// <summary>
     /// Creates a new object of type <see cref="Shape2DRenderer{TVertex}"/>
     /// </summary>
-    public Shape2DRenderer(ShapeDefinition2D shape, Game game, IVertexGenerator<Vector2, TVertex>? vertexGenerator, ElementSkip vertexSkip = default) : base(game)
+    public Shape2DRenderer(ShapeDefinition2D shape, Game game, IVertexGenerator<Vector2, TVertex>? vertexGenerator, ElementSkip vertexSkip = default)
+        : this(shape, game, vertexGenerator, vertexSkip, true) { }
+
+    internal Shape2DRenderer(ShapeDefinition2D shape, Game game, IVertexGenerator<Vector2, TVertex>? vertexGenerator, ElementSkip vertexSkip, bool skipResourceCreation) 
+        : base(game)
     {
         Shape = shape;
         VertexSkip = vertexSkip;
@@ -72,7 +76,10 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
         }
         else
             throw new InvalidOperationException("If a type does not implement IDefaultVertexGenerator, then it VertexGenerator must not be null");
+
+        SkipResourceCreation = skipResourceCreation;
     }
+    private readonly bool SkipResourceCreation;
 
     /// <summary>
     /// The <see cref="IVertexGenerator{TInputVertex, TGraphicsVertex}"/> for this <see cref="Shape2DRenderer{TVertex}"/>. It will be used when generating the vertex buffer info
@@ -162,6 +169,8 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
     protected override void CreateGPUResources(VeldridGraphicsContext context) 
     {
         base.CreateGPUResources(context);
+
+        if (SkipResourceCreation) return;
 
         Shader[]? shaders;
 

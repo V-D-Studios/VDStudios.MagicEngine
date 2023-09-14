@@ -24,7 +24,7 @@ public class TexturedShape2DRenderer<TVertex> : Shape2DRenderer<TVertex>
         IVertexGenerator<Vector2, TVertex>? vertexGenerator,
         ElementSkip vertexSkip = default
     )
-        : base(shape, game, vertexGenerator, vertexSkip)
+        : base(shape, game, vertexGenerator, vertexSkip, true)
     {
         ArgumentNullException.ThrowIfNull(textureFactory);
         ArgumentNullException.ThrowIfNull(samplerFactory);
