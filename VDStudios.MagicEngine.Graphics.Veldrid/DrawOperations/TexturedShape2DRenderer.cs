@@ -23,7 +23,7 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexTextureColo
     /// <param name="textureFactory"></param>
     /// <param name="samplerFactory"></param>
     /// <param name="viewFactory"></param>
-    /// <param name="vertexGenerator">The vertex generator for this instance. If <see langword="null"/>, a new instance of <see cref="Texture2DFillVertexGenerator"/> will be used</param>
+    /// <param name="vertexGenerator">The vertex generator for this instance. If <see langword="null"/>, <see cref="Texture2DFillVertexGenerator.Default"/> will be used</param>
     /// <param name="vertexSkip"></param>
     public TexturedShape2DRenderer(
         ShapeDefinition2D shape,
@@ -33,7 +33,7 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexTextureColo
         GraphicsResourceFactory<Texture, TextureView> viewFactory,
         IVertexGenerator<Vector2, VertexTextureColor2D>? vertexGenerator = null,
         ElementSkip vertexSkip = default
-    ) : base(shape, game, textureFactory, samplerFactory, viewFactory, vertexGenerator ?? new Texture2DFillVertexGenerator(this), vertexSkip) { }
+    ) : base(shape, game, textureFactory, samplerFactory, viewFactory, vertexGenerator ?? Texture2DFillVertexGenerator.Default, vertexSkip) { }
 
     /// <summary>
     /// Fetches or registers (and then fetches) the default shader set for <see cref="Shape2DRenderer"/>
