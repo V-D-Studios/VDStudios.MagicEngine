@@ -12,7 +12,7 @@ public readonly struct TextureVector2Viewport : IGPUType<TextureVector2Viewport>
     /// <summary>
     /// Creates a new object of type <see cref="TextureVector2Viewport"/>
     /// </summary>
-    public TextureVector2Viewport(Matrix4x4 transformation)
+    public TextureVector2Viewport(Matrix3x2 transformation)
     {
         Transformation = transformation;
     }
@@ -20,7 +20,7 @@ public readonly struct TextureVector2Viewport : IGPUType<TextureVector2Viewport>
     /// <summary>
     /// The transformation matrix that transforms the texture's coordinates
     /// </summary>
-    public Matrix4x4 Transformation { get; }
+    public Matrix3x2 Transformation { get; }
 
     /// <inheritdoc/>
     public static int Size { get; } = Unsafe.SizeOf<TextureVector2Viewport>();
@@ -28,7 +28,7 @@ public readonly struct TextureVector2Viewport : IGPUType<TextureVector2Viewport>
     /// <summary>
     /// Implicitly converts <paramref name="matrix"/> into a <see cref="TextureVector2Viewport"/> of equal value
     /// </summary>
-    public static implicit operator TextureVector2Viewport(Matrix4x4 matrix)
+    public static implicit operator TextureVector2Viewport(Matrix3x2 matrix)
         => new(matrix);
 
     /// <inheritdoc/>

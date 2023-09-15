@@ -26,7 +26,7 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexTextureColo
     /// <param name="viewFactory"></param>
     /// <param name="vertexGenerator">The vertex generator for this instance. If <see langword="null"/>, <see cref="Texture2DFillVertexGenerator.Default"/> will be used</param>
     /// <param name="vertexSkip"></param>
-    /// <param name="startingViewport">The starting viewport. Ignored and set to <see cref="Matrix4x4.Identity"/> if <see langword="null"/></param>
+    /// <param name="startingViewport">The starting viewport. Ignored and set to <see cref="Matrix3x2.Identity"/> if <see langword="null"/></param>
     public TexturedShape2DRenderer(
         ShapeDefinition2D shape,
         Game game,
@@ -36,7 +36,7 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexTextureColo
         IVertexGenerator<Vector2, VertexTextureColor2D>? vertexGenerator = null,
         TextureVector2Viewport? startingViewport = null,
         ElementSkip vertexSkip = default
-    ) : base(shape, game, textureFactory, samplerFactory, viewFactory, vertexGenerator ?? Texture2DFillVertexGenerator.Default, startingViewport ?? Matrix4x4.Identity, vertexSkip) { }
+    ) : base(shape, game, textureFactory, samplerFactory, viewFactory, vertexGenerator ?? Texture2DFillVertexGenerator.Default, startingViewport ?? Matrix3x2.Identity, vertexSkip) { }
 
     /// <summary>
     /// Fetches or registers (and then fetches) the default shader set for <see cref="Shape2DRenderer"/>
@@ -86,9 +86,9 @@ public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVert
         ArgumentNullException.ThrowIfNull(viewFactory);
 
         CurrentView = startingViewport;
+        ViewFactory = viewFactory;
         TextureFactory = textureFactory;
         SamplerFactory = samplerFactory;
-        ViewFactory = viewFactory;
     }
 
     /// <summary>
@@ -211,7 +211,7 @@ public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVert
 
         var target = (VeldridRenderTarget)t;
         var cl = target.CommandList;
-        
+
         cl.SetFramebuffer(target.GetFramebuffer(context));
         cl.SetVertexBuffer(0, VertexBuffer, 0);
         cl.SetIndexBuffer(IndexBuffer, IndexFormat.UInt16, 0);
@@ -223,5 +223,6 @@ public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVert
         cl.SetGraphicsResourceSet(3, TextureSet);
 
         cl.DrawIndexed(IndexCount, 1, 0, 0, 0);
+#warning Use the index offset
     }
 }
