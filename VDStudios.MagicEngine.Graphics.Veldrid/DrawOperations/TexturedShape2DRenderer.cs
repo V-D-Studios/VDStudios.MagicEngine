@@ -245,8 +245,7 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
                 TextureLayout = context.ResourceFactory.CreateResourceLayout(
                     new ResourceLayoutDescription(
                         new ResourceLayoutElementDescription("Texture", ResourceKind.TextureReadOnly, ShaderStages.Fragment),
-                        new ResourceLayoutElementDescription("Sampler", ResourceKind.Sampler, ShaderStages.Fragment),
-                        new ResourceLayoutElementDescription("Viewport", ResourceKind.UniformBuffer, ShaderStages.Fragment)
+                        new ResourceLayoutElementDescription("Sampler", ResourceKind.Sampler, ShaderStages.Fragment)
                     )
                 )
             , out _);
@@ -276,10 +275,10 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
                 ),
                 primitiveTopology: PrimitiveTopology.TriangleList,
                 shaderSet: new ShaderSetDescription(
-                    new VertexLayoutDescription[]
+                    new VertexLayoutDescription[2]
                     {
                         TVertex.GetDescription(),
-
+                        TTextureCoordinate.GetDescription()
                     },
                     shaders
                 ),
