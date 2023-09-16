@@ -358,9 +358,11 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
         var cl = target.CommandList;
 
         cl.SetFramebuffer(target.GetFramebuffer(context));
+        
+        cl.SetPipeline(context.GetPipeline<Shape2DRenderer<TVertex>>(PipelineIndex));
+
         cl.SetVertexBuffer(0, VertexBuffer, VertexSetOffset);
         cl.SetIndexBuffer(IndexBuffer, IndexFormat.UInt16, 0);
-        cl.SetPipeline(context.GetPipeline<Shape2DRenderer<TVertex>>(PipelineIndex));
 
         cl.SetGraphicsResourceSet(0, context.FrameReportSet);
         cl.SetGraphicsResourceSet(1, target.TransformationSet);

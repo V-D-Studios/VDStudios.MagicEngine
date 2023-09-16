@@ -308,10 +308,13 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
         var cl = target.CommandList;
 
         cl.SetFramebuffer(target.GetFramebuffer(context));
+
+        cl.SetPipeline(context.GetPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(PipelineIndex));
+
         cl.SetVertexBuffer(0, VertexBuffer, VertexSetOffset);
         cl.SetVertexBuffer(1, TextureCoordinateBuffer, TextureCoordinateSetOffset);
+
         cl.SetIndexBuffer(IndexBuffer, IndexFormat.UInt16, 0);
-        cl.SetPipeline(context.GetPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(PipelineIndex));
 
         cl.SetGraphicsResourceSet(0, context.FrameReportSet);
         cl.SetGraphicsResourceSet(1, target.TransformationSet);
