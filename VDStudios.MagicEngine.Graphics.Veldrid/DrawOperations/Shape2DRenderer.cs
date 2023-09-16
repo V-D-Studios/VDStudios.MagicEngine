@@ -172,6 +172,32 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
     /// </summary>
     protected uint IndexCount { get; private set; }
 
+    /// <summary>
+    /// The amount of available vertex sets
+    /// </summary>
+    public uint AvailableVertexSets { get; private set; }
+
+    /// <summary>
+    /// The index of the vertex set to use
+    /// </summary>
+    public uint VertexSet
+    {
+        get => currentVertexSet;
+        set
+        {
+            if (value >= AvailableVertexSets)
+                throw new ArgumentException("Cannot set the current Vertex Set to a value above the currently available sets", nameof(value));
+            currentVertexSet = value;
+        }
+    }
+    private uint currentVertexSet;
+    private uint vertexSetSize;
+
+    /// <summary>
+    /// The offset that should be used when binding the vertex buffer, to use only the currently selected vertices
+    /// </summary>
+    public uint VertexSetOffset => currentVertexSet * vertexSetSize;
+
     /// <inheritdoc/>
     protected override ValueTask CreateResourcesAsync()
         => ValueTask.CompletedTask;
@@ -225,6 +251,11 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
             )), out _);
     }
 
+    /// <summary>
+    /// This method is called automatically within <see cref="UpdateGPUState(VeldridGraphicsContext)"/> if the shape's vertices are being regenerated
+    /// </summary>
+    protected virtual void VerticesRegenerated(VeldridGraphicsContext context) { }
+
     /// <inheritdoc/>
     protected override void UpdateGPUState(VeldridGraphicsContext context)
     {
@@ -232,26 +263,10 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
 
         if (shapeChanged)
         {
-            pendingVertexRegen = true;
-            var vertexlen = Shape.Count;
             var indexlen = Shape.GetTriangulationLength();
-
-            var vertexSize = (uint)(TVertex.Size * vertexlen);
             var indexSize = (uint)(sizeof(ushort) * indexlen);
 
-            if (VertexBuffer is not null && vertexlen > VertexBuffer.SizeInBytes)
-            {
-                VertexBuffer.Dispose();
-                VertexBuffer = null;
-            }
-
-            VertexBuffer ??= context.ResourceFactory.CreateBuffer(new BufferDescription()
-            {
-                SizeInBytes = vertexSize,
-                Usage = BufferUsage.VertexBuffer
-            });
-
-            if (IndexBuffer is not null && indexlen > IndexBuffer.SizeInBytes)
+            if (IndexBuffer is not null && indexSize > IndexBuffer.SizeInBytes)
             {
                 IndexBuffer.Dispose();
                 IndexBuffer = null;
@@ -269,32 +284,63 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
             Shape.Triangulate(indices, VertexSkip);
 
             context.CommandList.UpdateBuffer(IndexBuffer, 0, indices);
+
+            pendingVertexRegen = true;
         }
 
         if (pendingVertexRegen)
         {
-            var vertexlen = Shape.Count;
-            Debug.Assert(VertexBuffer is not null, "VertexIndexBuffer was unexpectedly null when regenerating vertices");
             var vertices = Shape.AsSpan();
 
+            var gen = VertexGenerator;
+            Debug.Assert(gen is not null, "VertexGenerator was unexpectedly null at the time of rendering");
+
+            uint vertexSetAmount;
+            int totalVertexCount;
+            checked
+            {
+                vertexSetAmount = gen.GetOutputSetAmount(vertices);
+                if (vertexSetSize == 0) throw new InvalidOperationException("The current VertexGenerator returned 0 for vertex set amount, there must be at least one available set");
+                totalVertexCount = vertices.Length * (int)vertexSetAmount;
+            }
+
+            var vertexBufferSizeBytes = (uint)(TVertex.Size * totalVertexCount);
+
+            if (VertexBuffer is not null && vertexBufferSizeBytes > VertexBuffer.SizeInBytes)
+            {
+                VertexBuffer.Dispose();
+                VertexBuffer = null;
+            }
+
+            VertexBuffer ??= context.ResourceFactory.CreateBuffer(new BufferDescription()
+            {
+                SizeInBytes = vertexBufferSizeBytes,
+                Usage = BufferUsage.VertexBuffer
+            });
+
             TVertex[]? rented = null;
-            Span<TVertex> graphicVertices = TVertex.Size * vertices.Length > (1024 * 1024)
-                ? (rented = ArrayPool<TVertex>.Shared.Rent(vertices.Length)).AsSpan(0, vertices.Length)
-                : (stackalloc TVertex[vertices.Length]);
+            Span<TVertex> graphicVertices = TVertex.Size * totalVertexCount > (1024 * 1024)
+                ? (rented = ArrayPool<TVertex>.Shared.Rent(totalVertexCount)).AsSpan(0, totalVertexCount)
+                : (stackalloc TVertex[totalVertexCount]);
 
             try
             {
-                var gen = VertexGenerator;
-                Debug.Assert(VertexGenerator is not null, "VertexGenerator was unexpectedly null at the time of rendering");
-
                 gen.Generate(vertices, graphicVertices);
                 context.CommandList.UpdateBuffer(VertexBuffer, 0, graphicVertices);
+
+                AvailableVertexSets = vertexSetAmount;
+                if (currentVertexSet >= AvailableVertexSets)
+                    currentVertexSet = 0;
+                vertexSetSize = (uint)(TVertex.Size * vertices.Length);
             }
             finally
             {
                 if (rented is not null)
                     ArrayPool<TVertex>.Shared.Return(rented);
             }
+
+            pendingVertexRegen = false;
+            VerticesRegenerated(context);
         }
     }
 
@@ -310,7 +356,7 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
         var cl = target.CommandList;
 
         cl.SetFramebuffer(target.GetFramebuffer(context));
-        cl.SetVertexBuffer(0, VertexBuffer, 0);
+        cl.SetVertexBuffer(0, VertexBuffer, VertexSetOffset);
         cl.SetIndexBuffer(IndexBuffer, IndexFormat.UInt16, 0);
         cl.SetPipeline(context.GetPipeline<Shape2DRenderer<TVertex>>(PipelineIndex));
 

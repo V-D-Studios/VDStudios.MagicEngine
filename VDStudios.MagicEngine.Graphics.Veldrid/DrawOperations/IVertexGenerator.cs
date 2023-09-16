@@ -1,7 +1,6 @@
 ﻿using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes.Interfaces;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
-#warning NOTE: For multi-shape renderers, disallow changing the shape or adding more shapes
 
 /// <summary>
 /// Represents an object that is capable of generating a set of <typeparamref name="TGraphicsVertex"/> from a set of <typeparamref name="TInputVertex"/>
@@ -12,6 +11,16 @@ public interface IVertexGenerator<TInputVertex, TGraphicsVertex>
     where TGraphicsVertex : unmanaged, IVertexType<TGraphicsVertex>
     where TInputVertex : unmanaged
 {
+    /// <summary>
+    /// Obtains the amount of output sets this generator will generate
+    /// </summary>
+    /// <remarks>
+    /// For example, if this method is fed a polygon with 5 <typeparamref name="TInputVertex"/>s, and returns a '2', then an output span for 2 sets of 5 <typeparamref name="TGraphicsVertex"/>s will be generated, that is, 10 total <typeparamref name="TGraphicsVertex"/>s
+    /// </remarks>
+    /// <param name="input">The span that contains the <typeparamref name="TInputVertex"/> instances</param>
+    /// <returns>The amount of sets of <typeparamref name="TGraphicsVertex"/> whose length are equivalent to <paramref name="input"/> that this generator is expected to fill</returns>
+    public uint GetOutputSetAmount(ReadOnlySpan<TInputVertex> input);
+
     /// <summary>
     /// Generates a set of <typeparamref name="TGraphicsVertex"/> into <paramref name="output"/> from <paramref name="input"/>
     /// </summary>

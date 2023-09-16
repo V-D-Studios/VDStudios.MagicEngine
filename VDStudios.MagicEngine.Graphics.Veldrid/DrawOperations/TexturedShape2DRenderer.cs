@@ -1,5 +1,7 @@
-﻿using System.Collections.Specialized;
+﻿using System.Buffers;
+using System.Collections.Specialized;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.Graphics.Veldrid.Generators;
@@ -14,7 +16,7 @@ namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
 /// <summary>
 /// An operation that renders a texture on top of a <see cref="ShapeDefinition2D"/>, using <see cref="VertexTextureColor2D"/> and <see cref="TextureVector2Viewport"/>
 /// </summary>
-public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexTextureColor2D, TextureVector2Viewport>
+public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexColor2D, TextureCoordinate2D>
 {
     /// <summary>
     /// Creates a new object of type <see cref="Shape2DRenderer{TVertex}"/>
@@ -26,17 +28,26 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexTextureColo
     /// <param name="viewFactory"></param>
     /// <param name="vertexGenerator">The vertex generator for this instance. If <see langword="null"/>, <see cref="Texture2DFillVertexGenerator.Default"/> will be used</param>
     /// <param name="vertexSkip"></param>
-    /// <param name="startingViewport">The starting viewport. Ignored and set to <see cref="Matrix3x2.Identity"/> if <see langword="null"/></param>
+    /// <param name="textureCoordinateGenerator"></param>
     public TexturedShape2DRenderer(
         ShapeDefinition2D shape,
         Game game,
         GraphicsResourceFactory<Texture> textureFactory,
         GraphicsResourceFactory<Sampler> samplerFactory,
         GraphicsResourceFactory<Texture, TextureView> viewFactory,
-        IVertexGenerator<Vector2, VertexTextureColor2D>? vertexGenerator = null,
-        TextureVector2Viewport? startingViewport = null,
+        IVertexGenerator<Vector2, VertexColor2D>? vertexGenerator = null,
+        IVertexGenerator<Vector2, TextureCoordinate2D>? textureCoordinateGenerator = null,
         ElementSkip vertexSkip = default
-    ) : base(shape, game, textureFactory, samplerFactory, viewFactory, vertexGenerator ?? Texture2DFillVertexGenerator.Default, startingViewport ?? Matrix3x2.Identity, vertexSkip) { }
+    ) : base(
+        shape, 
+        game, 
+        textureFactory, 
+        samplerFactory, 
+        viewFactory, 
+        vertexGenerator ?? VertexColor2D.DefaultGenerator, 
+        textureCoordinateGenerator ?? TextureCoordinate2D.DefaultGenerator, 
+        vertexSkip
+    ) { }
 
     /// <summary>
     /// Fetches or registers (and then fetches) the default shader set for <see cref="Shape2DRenderer"/>
@@ -62,9 +73,9 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexTextureColo
 /// <summary>
 /// An operation that renders a texture on top of a <see cref="ShapeDefinition2D"/>
 /// </summary>
-public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVertex>
+public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRenderer<TVertex>
     where TVertex : unmanaged, IVertexType<TVertex>
-    where TViewport : unmanaged, IGPUType<TViewport>
+    where TTextureCoordinate : unmanaged, IVertexType<TTextureCoordinate>
 {
     /// <summary>
     /// Creates a new object of type <see cref="Shape2DRenderer{TVertex}"/>
@@ -76,42 +87,87 @@ public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVert
         GraphicsResourceFactory<Sampler> samplerFactory,
         GraphicsResourceFactory<Texture, TextureView> viewFactory,
         IVertexGenerator<Vector2, TVertex>? vertexGenerator,
-        TViewport startingViewport = default,
+        IVertexGenerator<Vector2, TTextureCoordinate>? textureCoordinateGenerator,
         ElementSkip vertexSkip = default
     )
         : base(shape, game, vertexGenerator, vertexSkip, true)
     {
+        if (textureCoordinateGenerator is not null)
+            TextureCoordinateGenerator = textureCoordinateGenerator;
+        else if (typeof(TTextureCoordinate).IsAssignableTo(typeof(IDefaultVertexGenerator<Vector2, TTextureCoordinate>)))
+        {
+            TextureCoordinateGenerator = (IVertexGenerator<Vector2, TTextureCoordinate>)(typeof(TTextureCoordinate)
+                .GetProperty("DefaultGenerator")!
+                .GetValue(null, null))!;
+
+            Debug.Assert(TextureCoordinateGenerator is not null);
+        }
+        else
+            throw new InvalidOperationException("If a type does not implement IDefaultVertexGenerator, then it VertexGenerator must not be null");
+
         ArgumentNullException.ThrowIfNull(textureFactory);
         ArgumentNullException.ThrowIfNull(samplerFactory);
         ArgumentNullException.ThrowIfNull(viewFactory);
 
-        CurrentView = startingViewport;
         ViewFactory = viewFactory;
         TextureFactory = textureFactory;
         SamplerFactory = samplerFactory;
     }
 
     /// <summary>
-    /// The current viewport of the <see cref="TexturedShape2DRenderer{TVertex, TViewport}"/>
+    /// The <see cref="IVertexGenerator{TInputVertex, TTextureCoordinate}"/> for this <see cref="TexturedShape2DRenderer{TVertex, TTextureCoordinate}"/>. It will be used when generating the texture vertex buffer info
     /// </summary>
-    public TViewport CurrentView
+    /// <remarks>
+    /// Changing this property will not result in vertices being re-generated, see <see cref="Shape2DRenderer{TVertex}.NotifyPendingVertexRegeneration"/>
+    /// </remarks>
+    [MemberNotNull(nameof(_vtx))]
+    public IVertexGenerator<Vector2, TTextureCoordinate> TextureCoordinateGenerator
     {
-        get => viewport;
+        get
+        {
+            Debug.Assert(_vtx is not null);
+            return _vtx;
+        }
+
         set
         {
-            if (viewport.Equals(value)) return;
-            viewport = value;
-            viewportChanged = true;
-            NotifyPendingGPUUpdate();
+            ArgumentNullException.ThrowIfNull(value);
+            _vtx = value;
         }
     }
-    private TViewport viewport;
-    private bool viewportChanged;
+    private IVertexGenerator<Vector2, TTextureCoordinate> _vtx;
+
+    /// <summary>
+    /// The amount of available texture vertex sets
+    /// </summary>
+    public uint AvailableTextureCoordinateSets { get; private set; }
+
+    /// <summary>
+    /// The index of the texture vertex set to use
+    /// </summary>
+    public uint TextureCoordinateSet
+    {
+        get => currentTextureCoordinateSet;
+        set
+        {
+            if (value >= AvailableTextureCoordinateSets)
+                throw new ArgumentException("Cannot set the current TextureCoordinate Set to a value above the currently available sets", nameof(value));
+            currentTextureCoordinateSet = value;
+        }
+    }
+    private uint currentTextureCoordinateSet;
+    private uint textureCoordinateSetSize;
+
+    /// <summary>
+    /// The offset that should be used when binding the texture coordinate buffer, to use only the currently selected coordinates
+    /// </summary>
+    public uint TextureCoordinateSetOffset => currentTextureCoordinateSet * textureCoordinateSetSize;
+
+    private DeviceBuffer? TextureCoordinateBuffer;
 
     private Texture? Texture;
     private Sampler? Sampler;
     private TextureView? TextureView;
-    private DeviceBuffer? ViewportBuffer;
 
     private readonly GraphicsResourceFactory<Texture> TextureFactory;
     private readonly GraphicsResourceFactory<Sampler> SamplerFactory;
@@ -121,15 +177,55 @@ public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVert
     private ResourceSet? TextureSet;
 
     /// <inheritdoc/>
-    protected override void UpdateGPUState(VeldridGraphicsContext context)
+    protected override void VerticesRegenerated(VeldridGraphicsContext context)
     {
-        base.UpdateGPUState(context);
+        var vertices = Shape.AsSpan();
 
-        if (viewportChanged)
+        var gen = TextureCoordinateGenerator;
+        Debug.Assert(gen is not null, "TextureCoordinateGenerator was unexpectedly null at the time of rendering");
+
+        uint vertexSetAmount;
+        int totalVertexCount;
+        checked
         {
-            Debug.Assert(ViewportBuffer is not null, "ViewportBuffer was unexpectedly null at the time of updating the GPU's state");
-            context.CommandList.UpdateBuffer(ViewportBuffer, 0, viewport);
-            viewportChanged = false;
+            vertexSetAmount = gen.GetOutputSetAmount(vertices);
+            if (textureCoordinateSetSize == 0) throw new InvalidOperationException("The current TextureCoordinateGenerator returned 0 for vertex set amount, there must be at least one available set");
+            totalVertexCount = vertices.Length * (int)vertexSetAmount;
+        }
+
+        var vertexBufferSizeBytes = (uint)(TTextureCoordinate.Size * totalVertexCount);
+
+        if (TextureCoordinateBuffer is not null && vertexBufferSizeBytes > TextureCoordinateBuffer.SizeInBytes)
+        {
+            TextureCoordinateBuffer.Dispose();
+            TextureCoordinateBuffer = null;
+        }
+
+        TextureCoordinateBuffer ??= context.ResourceFactory.CreateBuffer(new BufferDescription()
+        {
+            SizeInBytes = vertexBufferSizeBytes,
+            Usage = BufferUsage.VertexBuffer
+        });
+
+        TTextureCoordinate[]? rented = null;
+        Span<TTextureCoordinate> graphicVertices = TTextureCoordinate.Size * totalVertexCount > (1024 * 1024)
+            ? (rented = ArrayPool<TTextureCoordinate>.Shared.Rent(totalVertexCount)).AsSpan(0, totalVertexCount)
+            : (stackalloc TTextureCoordinate[totalVertexCount]);
+
+        try
+        {
+            gen.Generate(vertices, graphicVertices);
+            context.CommandList.UpdateBuffer(TextureCoordinateBuffer, 0, graphicVertices);
+
+            AvailableTextureCoordinateSets = vertexSetAmount;
+            if (currentTextureCoordinateSet >= AvailableTextureCoordinateSets)
+                currentTextureCoordinateSet = 0;
+            textureCoordinateSetSize = (uint)(TTextureCoordinate.Size * vertices.Length);
+        }
+        finally
+        {
+            if (rented is not null)
+                ArrayPool<TTextureCoordinate>.Shared.Return(rented);
         }
     }
 
@@ -142,12 +238,10 @@ public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVert
         Sampler = SamplerFactory(context) ?? throw new InvalidOperationException("SamplerFactory unexpectedly produced a null result");
         TextureView = ViewFactory(context, Texture) ?? throw new InvalidOperationException("ViewFactory unexpectedly produced a null result");
 
-        ViewportBuffer = context.ResourceFactory.CreateBuffer(new BufferDescription(DataStructuring.FitToUniformBuffer<TViewport, uint>(), BufferUsage.UniformBuffer));
-
         Shader[]? shaders;
 
-        if (context.TryGetResourceLayout<TexturedShape2DRenderer<TVertex, TViewport>>(out TextureLayout) is false)
-            context.RegisterResourceLayout<TexturedShape2DRenderer<TVertex, TViewport>>(
+        if (context.TryGetResourceLayout<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(out TextureLayout) is false)
+            context.RegisterResourceLayout<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(
                 TextureLayout = context.ResourceFactory.CreateResourceLayout(
                     new ResourceLayoutDescription(
                         new ResourceLayoutElementDescription("Texture", ResourceKind.TextureReadOnly, ShaderStages.Fragment),
@@ -157,15 +251,15 @@ public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVert
                 )
             , out _);
 
-        TextureSet = context.ResourceFactory.CreateResourceSet(new ResourceSetDescription(TextureLayout, TextureView, Sampler, ViewportBuffer));
+        TextureSet = context.ResourceFactory.CreateResourceSet(new ResourceSetDescription(TextureLayout, TextureView, Sampler));
 
         if (this is TexturedShape2DRenderer)
             shaders = TexturedShape2DRenderer.GetDefaultShaders(context);
-        else if (context.ShaderCache.TryGetResource<TexturedShape2DRenderer<TVertex, TViewport>>(out shaders) is false)
-            throw new InvalidOperationException($"Could not find a Shader set for {Helper.BuildTypeNameAsCSharpTypeExpression(typeof(TexturedShape2DRenderer<TVertex, TViewport>))}");
+        else if (context.ShaderCache.TryGetResource<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(out shaders) is false)
+            throw new InvalidOperationException($"Could not find a Shader set for {Helper.BuildTypeNameAsCSharpTypeExpression(typeof(TexturedShape2DRenderer<TVertex, TTextureCoordinate>))}");
 
-        if (context.ContainsPipeline<TexturedShape2DRenderer<TVertex, TViewport>>() is false)
-            context.RegisterPipeline<TexturedShape2DRenderer<TVertex, TViewport>>(context.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription(
+        if (context.ContainsPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>() is false)
+            context.RegisterPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(context.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription(
                 blendState: BlendStateDescription.SingleAlphaBlend,
                 depthStencilStateDescription: new DepthStencilStateDescription(
                     depthTestEnabled: true,
@@ -185,6 +279,7 @@ public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVert
                     new VertexLayoutDescription[]
                     {
                         TVertex.GetDescription(),
+
                     },
                     shaders
                 ),
@@ -204,6 +299,7 @@ public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVert
     protected override void Draw(TimeSpan delta, VeldridGraphicsContext context, RenderTarget<VeldridGraphicsContext> t)
     {
         Debug.Assert(VertexBuffer is not null, "VertexBuffer was unexpectedly null at the time of drawing");
+        Debug.Assert(TextureCoordinateBuffer is not null, "TextureCoordinateBuffer was unexpectedly null at the time of drawing");
         Debug.Assert(IndexBuffer is not null, "IndexBuffer was unexpectedly null at the time of drawing");
         Debug.Assert(t is VeldridRenderTarget, "target is not of type VeldridRenderTarget");
         Debug.Assert(DrawOperationResourceSet is not null, "DrawOperationResourceSet was unexpectedly null at the time of drawing");
@@ -213,9 +309,10 @@ public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVert
         var cl = target.CommandList;
 
         cl.SetFramebuffer(target.GetFramebuffer(context));
-        cl.SetVertexBuffer(0, VertexBuffer, 0);
+        cl.SetVertexBuffer(0, VertexBuffer, VertexSetOffset);
+        cl.SetVertexBuffer(1, TextureCoordinateBuffer, TextureCoordinateSetOffset);
         cl.SetIndexBuffer(IndexBuffer, IndexFormat.UInt16, 0);
-        cl.SetPipeline(context.GetPipeline<TexturedShape2DRenderer<TVertex, TViewport>>(PipelineIndex));
+        cl.SetPipeline(context.GetPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(PipelineIndex));
 
         cl.SetGraphicsResourceSet(0, context.FrameReportSet);
         cl.SetGraphicsResourceSet(1, target.TransformationSet);
@@ -223,6 +320,5 @@ public class TexturedShape2DRenderer<TVertex, TViewport> : Shape2DRenderer<TVert
         cl.SetGraphicsResourceSet(3, TextureSet);
 
         cl.DrawIndexed(IndexCount, 1, 0, 0, 0);
-#warning Use the index offset
     }
 }
