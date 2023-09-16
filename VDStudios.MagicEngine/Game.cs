@@ -302,12 +302,12 @@ public abstract class Game : IGameObject
     {
 #if DEBUG
         return config
-            .MinimumLevel.Verbose()
-            .WriteTo.Console(LogEventLevel.Debug, GameLogger.Template, theme: AnsiConsoleTheme.Literate);
+            .MinimumLevel.Debug()
+            .WriteTo.Console(LogEventLevel.Verbose, GameLogger.Template, theme: AnsiConsoleTheme.Literate);
 #else
         return config
             .MinimumLevel.Information()
-            .WriteTo.Console(LogEventLevel.Information, GameLogger.Template, theme: AnsiConsoleTheme.Literate);
+            .WriteTo.Console(LogEventLevel.Debug, GameLogger.Template, theme: AnsiConsoleTheme.Literate);
 #endif
     }
 
@@ -328,11 +328,11 @@ public abstract class Game : IGameObject
 #endif
     protected virtual LoggerConfiguration ConfigureInternalLogger(LoggerConfiguration config)
 #if DEBUG
-        => config.MinimumLevel.Verbose().WriteTo
-        .Console(LogEventLevel.Debug, GameLogger.Template, theme: AnsiConsoleTheme.Code);
+        => config.MinimumLevel.Debug()
+        .WriteTo.Console(LogEventLevel.Verbose, GameLogger.Template, theme: AnsiConsoleTheme.Code);
 #else
-        => config.MinimumLevel.Information().WriteTo
-        .Console(LogEventLevel.Information, GameLogger.Template, theme: AnsiConsoleTheme.Code);
+        => config.MinimumLevel.Information()
+        .WriteTo.Console(LogEventLevel.Debug, GameLogger.Template, theme: AnsiConsoleTheme.Code);
 #endif
 
     /// <summary>
