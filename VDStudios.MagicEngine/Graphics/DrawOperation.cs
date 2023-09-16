@@ -152,7 +152,15 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     {
         if (_owner is null) throw new InvalidOperationException("Cannot wait for a DrawOperation that has not been registered");
         if (readySem is not SemaphoreSlim sem) return;
-        await sem.WaitAsync(ct);
+
+        Debug.Assert(Manager is not null, "_owner is not null, but unexpectedly, Manager is null");
+
+        while (true)
+        {
+            if (await sem.WaitAsync(200, ct))
+                return;
+            await Manager.AwaitIfFaulted();
+        }
     }
 
     /// <summary>
@@ -161,10 +169,41 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// <remarks>
     /// <see langword="true"/> If the <see cref="DrawOperation{TGraphicsContext}"/> is now ready, <see langword="false"/> otherwise
     /// </remarks>
-    public async ValueTask<bool> WaitUntilReady(TimeSpan timeout, CancellationToken ct = default) 
-        => _owner is null
-            ? throw new InvalidOperationException("Cannot wait for a DrawOperation that has not been registered")
-            : readySem is not SemaphoreSlim sem || await sem.WaitAsync(timeout, ct);
+    public async ValueTask<bool> WaitUntilReady(TimeSpan timeout, CancellationToken ct = default)
+    {
+        if (_owner is null) throw new InvalidOperationException("Cannot wait for a DrawOperation that has not been registered");
+        if (readySem is not SemaphoreSlim sem) return true;
+
+        Debug.Assert(Manager is not null, "_owner is not null, but unexpectedly, Manager is null");
+
+        var t = (int)timeout.TotalMilliseconds;
+
+        if (t <= 200)
+        {
+            if (await sem.WaitAsync(t, ct))
+                return true;
+            await Manager.AwaitIfFaulted();
+            return false;
+        }
+
+        var (q, r) = int.DivRem(t, 200);
+
+        if (r > 20)
+        {
+            if (await sem.WaitAsync(r, ct))
+                return true;
+            await Manager.AwaitIfFaulted();
+        }
+
+        for (int i = 0; i < q; i++)
+        {
+            if (await sem.WaitAsync(q, ct))
+                return true;
+            await Manager.AwaitIfFaulted();
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// <see langword="true"/> if this <see cref="DrawOperation{TGraphicsContext}"/>'s Resources have been created and is ready for use
