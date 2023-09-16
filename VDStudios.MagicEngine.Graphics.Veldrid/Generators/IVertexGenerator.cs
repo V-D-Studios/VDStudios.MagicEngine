@@ -1,6 +1,6 @@
 ﻿using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes.Interfaces;
 
-namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
+namespace VDStudios.MagicEngine.Graphics.Veldrid.Generators;
 
 /// <summary>
 /// Represents an object that is capable of generating a set of <typeparamref name="TGraphicsVertex"/> from a set of <typeparamref name="TInputVertex"/>
