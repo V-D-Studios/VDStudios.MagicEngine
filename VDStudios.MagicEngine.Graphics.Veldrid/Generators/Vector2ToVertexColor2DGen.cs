@@ -32,7 +32,7 @@ public sealed class Vector2ToVertexColor2DGen : IVertexGenerator<Vector2, Vertex
     /// <summary>
     /// The default color used when describing the color of a vertex
     /// </summary>
-    public RgbaVector DefaultColor { get; set; }
+    public RgbaVector DefaultColor { get; set; } = RgbaVector.White;
 
     /// <inheritdoc/>
     public void Generate(ReadOnlySpan<Vector2> input, Span<VertexColor2D> output)
