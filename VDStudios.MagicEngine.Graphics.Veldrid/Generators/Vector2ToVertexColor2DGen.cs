@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
-using VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
+using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
 
-namespace VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
+namespace VDStudios.MagicEngine.Graphics.Veldrid.Generators;
 
 /// <summary>
 /// A <see cref="IVertexGenerator{TInputVertex, TGraphicsVertex}"/> that injects a single color into every instance of <see cref="VertexColor2D"/> it generates from position info

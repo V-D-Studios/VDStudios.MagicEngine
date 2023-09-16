@@ -1,5 +1,4 @@
-﻿using VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
-using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes.Interfaces;
+﻿using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes.Interfaces;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.Generators;
 

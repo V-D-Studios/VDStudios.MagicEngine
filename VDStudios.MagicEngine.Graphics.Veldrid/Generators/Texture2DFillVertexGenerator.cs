@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
 using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.Generators;
