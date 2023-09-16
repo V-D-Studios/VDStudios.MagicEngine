@@ -6,17 +6,17 @@ namespace VDStudios.MagicEngine.Graphics.Veldrid.Generators;
 /// <summary>
 /// A <see cref="IVertexGenerator{TInputVertex, TGraphicsVertex}"/> that creates vertex information to fill a Texture 
 /// </summary>
-public class Texture2DFillVertexGenerator : IVertexGenerator<Vector2, TextureCoordinate2D>
+public class TextureFill2DVertexGenerator : IVertexGenerator<Vector2, TextureCoordinate2D>
 {
     /// <summary>
-    /// Instances a new object of type <see cref="Texture2DFillVertexGenerator"/>
+    /// Instances a new object of type <see cref="TextureFill2DVertexGenerator"/>
     /// </summary>
-    protected Texture2DFillVertexGenerator() { }
+    protected TextureFill2DVertexGenerator() { }
 
     /// <summary>
-    /// The default instance of <see cref="Texture2DFillVertexGenerator"/>
+    /// The default instance of <see cref="TextureFill2DVertexGenerator"/>
     /// </summary>
-    public static Texture2DFillVertexGenerator Default { get; } = new();
+    public static TextureFill2DVertexGenerator Default { get; } = new();
 
     /// <inheritdoc/>
     public void Generate(ReadOnlySpan<Vector2> input, Span<TextureCoordinate2D> output)

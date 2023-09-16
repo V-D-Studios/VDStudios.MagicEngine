@@ -51,7 +51,7 @@ public readonly struct VertexColor2D : IVertexType<VertexColor2D>,
     /// <summary>
     /// The default <see cref="IVertexGenerator{TInputVertex, TGraphicsVertex}"/> for this type
     /// </summary>
-    public static Vector2ToVertexColor2DGen DefaultGenerator => Vector2ToVertexColor2DGen.Default;
+    public static VertexColor2DSimpleGenerator DefaultGenerator => VertexColor2DSimpleGenerator.Default;
 
     /// <inheritdoc/>
     public bool Equals(VertexColor2D other)

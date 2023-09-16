@@ -6,20 +6,20 @@ namespace VDStudios.MagicEngine.Graphics.Veldrid.Generators;
 /// <summary>
 /// A <see cref="IVertexGenerator{TInputVertex, TGraphicsVertex}"/> that injects a single color into every instance of <see cref="VertexColor2D"/> it generates from position info
 /// </summary>
-public sealed class Vector2ToVertexColor2DGen : IVertexGenerator<Vector2, VertexColor2D>
+public sealed class VertexColor2DSimpleGenerator : IVertexGenerator<Vector2, VertexColor2D>
 {
     /// <summary>
-    /// Creates a new instance of type <see cref="Vector2ToVertexColor2DGen"/>
+    /// Creates a new instance of type <see cref="VertexColor2DSimpleGenerator"/>
     /// </summary>
-    public Vector2ToVertexColor2DGen() { }
+    public VertexColor2DSimpleGenerator() { }
 
     /// <summary>
-    /// The default instance of <see cref="Vector2ToVertexColor2DGen"/>
+    /// The default instance of <see cref="VertexColor2DSimpleGenerator"/>
     /// </summary>
     /// <remarks>
     /// Be careful when using this instance, as changing either <see cref="ColorFunction"/> or <see cref="DefaultColor"/> may unexpectedly affect any vertex information that is created or regenerated after
     /// </remarks>
-    public static Vector2ToVertexColor2DGen Default { get; } = new();
+    public static VertexColor2DSimpleGenerator Default { get; } = new();
 
     /// <summary>
     /// A function to generate a color each vertex, ignored if <see langword="null"/>

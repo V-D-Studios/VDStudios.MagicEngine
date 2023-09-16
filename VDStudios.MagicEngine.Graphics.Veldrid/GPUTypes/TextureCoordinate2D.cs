@@ -62,5 +62,5 @@ public readonly struct TextureCoordinate2D : IVertexType<TextureCoordinate2D>, I
         => !(left == right);
 
     /// <inheritdoc/>
-    public static IVertexGenerator<Vector2, TextureCoordinate2D> DefaultGenerator => Texture2DFillVertexGenerator.Default;
+    public static IVertexGenerator<Vector2, TextureCoordinate2D> DefaultGenerator => TextureFill2DVertexGenerator.Default;
 }
