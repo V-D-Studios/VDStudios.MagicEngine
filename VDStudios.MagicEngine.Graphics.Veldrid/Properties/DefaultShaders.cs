@@ -16,9 +16,9 @@ public static class DefaultShaders
         #version 450
         
         layout(location = 0) in vec2 Position;
-        layout(location = 1) in vec4 Color;
+        //layout(location = 1) in vec4 Color;
 
-        layout(location = 0) out vec4 fsin_Color;
+        //layout(location = 0) out vec4 fsin_Color;
         
         layout(set=0,binding=0) uniform FrameReport {
             layout(offset = 0) mat4 projection;
@@ -34,7 +34,7 @@ public static class DefaultShaders
         };
 
         void main() {
-            fsin_Color = Color;
+            //fsin_Color = Color;
             gl_Position = projection * view * transform * vec4(Position, 0.0, 1.0);
         }
         """;
@@ -66,7 +66,7 @@ layout(set=3,binding=0) uniform texture2D Tex;
 layout(set=3,binding=1) uniform sampler TSamp;
 
 layout(location = 0) out vec4 outColor;
-layout(location = 0) in vec2 fragTexCoord;
+layout(location = 0) in vec2 TextureCoordinate;
 
 vec4 toGrayscale(vec4 color)
 {
@@ -75,7 +75,7 @@ vec4 toGrayscale(vec4 color)
 }
 
 void main() {
-    vec4 c = texture(sampler2D(Tex, TSamp), fragTexCoord);
+    vec4 c = texture(sampler2D(Tex, TSamp), -TextureCoordinate);
     if ((trans.colorfx & grayscaleFx) != 0) { c = toGrayscale(c); }
     if ((trans.colorfx & tintFx) != 0) { c = vec4(c.r * trans.tint.r, c.g * trans.tint.g, c.b * trans.tint.b, c.a); }
     if ((trans.colorfx & overlayFx) != 0) { c *= trans.overlay; }

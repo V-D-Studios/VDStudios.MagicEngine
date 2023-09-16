@@ -16,7 +16,7 @@ namespace VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
 /// <summary>
 /// An operation that renders a texture on top of a <see cref="ShapeDefinition2D"/>, using <see cref="VertexTextureColor2D"/> and <see cref="TextureVector2Viewport"/>
 /// </summary>
-public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexColor2D, TextureCoordinate2D>
+public class TexturedShape2DRenderer : TexturedShape2DRenderer<Vertex2D, TextureCoordinate2D>
 {
     /// <summary>
     /// Creates a new object of type <see cref="Shape2DRenderer{TVertex}"/>
@@ -26,7 +26,7 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexColor2D, Te
     /// <param name="textureFactory"></param>
     /// <param name="samplerFactory"></param>
     /// <param name="viewFactory"></param>
-    /// <param name="vertexGenerator">The vertex generator for this instance. If <see langword="null"/>, <see cref="Texture2DFillVertexGenerator.Default"/> will be used</param>
+    /// <param name="vertexGenerator">The vertex generator for this instance. If <see langword="null"/>, <see cref="TextureFill2DVertexGenerator.Default"/> will be used</param>
     /// <param name="vertexSkip"></param>
     /// <param name="textureCoordinateGenerator"></param>
     public TexturedShape2DRenderer(
@@ -35,7 +35,7 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexColor2D, Te
         GraphicsResourceFactory<Texture> textureFactory,
         GraphicsResourceFactory<Sampler> samplerFactory,
         GraphicsResourceFactory<Texture, TextureView> viewFactory,
-        IVertexGenerator<Vector2, VertexColor2D>? vertexGenerator = null,
+        IVertexGenerator<Vector2, Vertex2D>? vertexGenerator = null,
         IVertexGenerator<Vector2, TextureCoordinate2D>? textureCoordinateGenerator = null,
         ElementSkip vertexSkip = default
     ) : base(
@@ -44,7 +44,7 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<VertexColor2D, Te
         textureFactory, 
         samplerFactory, 
         viewFactory, 
-        vertexGenerator ?? VertexColor2D.DefaultGenerator, 
+        vertexGenerator ?? Vertex2D.DefaultGenerator, 
         textureCoordinateGenerator ?? TextureCoordinate2D.DefaultGenerator, 
         vertexSkip
     ) { }
