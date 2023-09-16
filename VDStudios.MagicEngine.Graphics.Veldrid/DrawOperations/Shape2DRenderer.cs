@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Resources;
 using System.Runtime.CompilerServices;
 using SDL2.NET;
+using Serilog.Sinks.SystemConsole.Themes;
 using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.Graphics.Veldrid.Generators;
 using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
@@ -113,6 +114,7 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
     public void NotifyPendingVertexRegeneration()
     {
         pendingVertexRegen = true;
+        NotifyPendingGPUUpdate();
     }
     private bool pendingVertexRegen;
 
@@ -300,7 +302,7 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
             checked
             {
                 vertexSetAmount = gen.GetOutputSetAmount(vertices);
-                if (vertexSetSize == 0) throw new InvalidOperationException("The current VertexGenerator returned 0 for vertex set amount, there must be at least one available set");
+                if (vertexSetAmount == 0) throw new InvalidOperationException("The current VertexGenerator returned 0 for vertex set amount, there must be at least one available set");
                 totalVertexCount = vertices.Length * (int)vertexSetAmount;
             }
 

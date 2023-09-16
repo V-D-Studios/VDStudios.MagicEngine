@@ -189,7 +189,7 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
         checked
         {
             vertexSetAmount = gen.GetOutputSetAmount(vertices);
-            if (textureCoordinateSetSize == 0) throw new InvalidOperationException("The current TextureCoordinateGenerator returned 0 for vertex set amount, there must be at least one available set");
+            if (vertexSetAmount == 0) throw new InvalidOperationException("The current TextureCoordinateGenerator returned 0 for vertex set amount, there must be at least one available set");
             totalVertexCount = vertices.Length * (int)vertexSetAmount;
         }
 
