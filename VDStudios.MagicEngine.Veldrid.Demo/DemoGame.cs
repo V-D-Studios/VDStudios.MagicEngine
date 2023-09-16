@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using SDL2.NET;
 using SDL2.NET.SDLImage;
 using SDL2.NET.Utilities;
+using Serilog;
 using VDStudios.MagicEngine.DemoResources;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.Veldrid;
@@ -21,6 +22,16 @@ public class DemoGame : SDLGame
             game => new GameLifeTimeOnWindowCloses(((VeldridGraphicsManager)game.MainGraphicsManager).Window)
         )
     {
+    }
+
+    protected override LoggerConfiguration ConfigureInternalLogger(LoggerConfiguration config)
+    {
+        return base.ConfigureInternalLogger(config).MinimumLevel.Verbose();
+    }
+
+    protected override LoggerConfiguration ConfigureLogger(LoggerConfiguration config)
+    {
+        return base.ConfigureInternalLogger(config).MinimumLevel.Verbose();
     }
 
     //protected override void RegisteringServices(IServiceRegistrar registrar)

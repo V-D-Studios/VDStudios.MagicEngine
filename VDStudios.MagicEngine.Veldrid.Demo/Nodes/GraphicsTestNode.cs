@@ -95,19 +95,13 @@ public class GraphicsTestNode : Node
             Polygon.PipelineIndex = Polygon.PipelineIndex > 0u ? 0u : 1u;
 
             PipelineTimer.Restart();
+
+            Square.IsActive = false;
+            Circle.IsActive = false;
+            Polygon.IsActive = false;
         }
 
-#warning notes
-        /*
-         * Translations don't work
-         * Scaling gets larger the closer it is to 0
-         * Rotations appear to work normally
-         * 
-         * Test these things with the other shapes does not yield these results
-         */
-        //TexturedCircle.CurrentView = Matrix4x4.CreateTranslation(1, 5, 3);// * Matrix4x4.CreateScale(.2f) * Matrix4x4.CreateRotationZ(0);
-
-        TexturedSquare.TransformationState.Transform(new Vector3(.4f, -.4f, 1));
+        //TexturedSquare.TransformationState.Transform(new Vector3(.4f, -.4f, 1));
         Elipse.TransformationState.Transform(new Vector3(-.3f, -.5f, 0));
         Polygon.TransformationState.Transform(new Vector3(-.7f, -.1f, 0));
 
