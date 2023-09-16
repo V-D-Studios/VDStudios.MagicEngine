@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Metrics;
 using System.Numerics;
 
 namespace VDStudios.MagicEngine.Graphics;
@@ -19,7 +20,18 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// This <see cref="DrawOperation{TGraphicsContext}"/>'s current transformation state
     /// </summary>
     public TransformationState TransformationState
-        => trans ?? throw new InvalidOperationException("Cannot access a DrawOperation's TransformationState before its resources are created");
+    {
+        get
+        {
+            if (trans is not null)
+                return trans;
+
+            if (_owner is null)
+                throw new InvalidOperationException("Cannot access a DrawOperation's TransformationState before its assigned to a GraphicsManager through a DrawOperationsManager");
+            throw new InvalidOperationException("Cannot access a DrawOperation's TransformationState before its resources are created");
+        }
+    }
+
     private TransformationState? trans;
 
     /// <summary>
@@ -151,14 +163,23 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     public async ValueTask WaitUntilReady(CancellationToken ct = default)
     {
         if (_owner is null) throw new InvalidOperationException("Cannot wait for a DrawOperation that has not been registered");
-        if (readySem is not SemaphoreSlim sem) return;
+        if (readySem is not SemaphoreSlim sem)
+        {
+            Log.Verbose("Tried to wait for Draw Operation, but it was already ready");
+            return;
+        }
 
         Debug.Assert(Manager is not null, "_owner is not null, but unexpectedly, Manager is null");
+
+        Log.Verbose("Waiting for Draw Operation to be ready");
 
         while (true)
         {
             if (await sem.WaitAsync(200, ct))
+            {
+                Log.Verbose("Succesfully waited for Draw Operation to be ready");
                 return;
+            }
             await Manager.AwaitIfFaulted();
         }
     }
@@ -172,17 +193,27 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     public async ValueTask<bool> WaitUntilReady(TimeSpan timeout, CancellationToken ct = default)
     {
         if (_owner is null) throw new InvalidOperationException("Cannot wait for a DrawOperation that has not been registered");
-        if (readySem is not SemaphoreSlim sem) return true;
+        if (readySem is not SemaphoreSlim sem)
+        {
+            Log.Verbose("Tried to wait for Draw Operation, but it was already ready");
+            return true;
+        }
 
         Debug.Assert(Manager is not null, "_owner is not null, but unexpectedly, Manager is null");
+
+        Log.Verbose("Waiting for Draw Operation to be ready");
 
         var t = (int)timeout.TotalMilliseconds;
 
         if (t <= 200)
         {
             if (await sem.WaitAsync(t, ct))
+            {
+                Log.Verbose("Succesfully waited for Draw Operation to be ready");
                 return true;
+            }
             await Manager.AwaitIfFaulted();
+            Log.Verbose("Timed out of waiting for Draw Operation to be ready");
             return false;
         }
 
@@ -191,17 +222,24 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
         if (r > 20)
         {
             if (await sem.WaitAsync(r, ct))
+            {
+                Log.Verbose("Succesfully waited for Draw Operation to be ready");
                 return true;
+            }
             await Manager.AwaitIfFaulted();
         }
 
         for (int i = 0; i < q; i++)
         {
             if (await sem.WaitAsync(q, ct))
+            {
+                Log.Verbose("Succesfully waited for Draw Operation to be ready");
                 return true;
+            }
             await Manager.AwaitIfFaulted();
         }
 
+        Log.Verbose("Timed out of waiting for Draw Operation to be ready");
         return false;
     }
 
@@ -251,6 +289,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     /// <param name="context">The <typeparamref name="TGraphicsContext"/> this <see cref="DrawOperation{TGraphicsContext}"/> uses</param>
     protected void ForceGPUUpdate(TGraphicsContext context)
     {
+        Log.Verbose("Updating GPU State");
         pendingGpuUpdate = false;
         UpdateGPUState(context);
     }
@@ -267,6 +306,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
         {
             if (IsReady is false)
             {
+                Log.Verbose("Creating transformation state");
                 trans = CreateTransformationState(context);
 
                 TransformationState.ScaleTransformationChanged += t =>
@@ -287,8 +327,10 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
                     TranslationTransformationChanged?.Invoke(this, Game.TotalTime);
                 };
 
+                Log.Verbose("Creating GPU Resources");
                 CreateGPUResources(context);
 
+                Log.Verbose("Releasing ready semaphore");
                 readySem.Release();
                 readySem = null;
             } 
