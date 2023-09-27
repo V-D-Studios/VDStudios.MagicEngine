@@ -112,6 +112,8 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
         ViewFactory = viewFactory;
         TextureFactory = textureFactory;
         SamplerFactory = samplerFactory;
+
+        pipelinefactory = PipelineFactory;
     }
 
     /// <summary>
@@ -238,10 +240,8 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
         Sampler = SamplerFactory(context) ?? throw new InvalidOperationException("SamplerFactory unexpectedly produced a null result");
         TextureView = ViewFactory(context, Texture) ?? throw new InvalidOperationException("ViewFactory unexpectedly produced a null result");
 
-        Shader[]? shaders;
-
-        if (context.TryGetResourceLayout<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(out TextureLayout) is false)
-            context.RegisterResourceLayout<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(
+        if (context.TryGetResourceLayout(typeof(TexturedShape2DRenderer<,>), out TextureLayout) is false)
+            context.RegisterResourceLayout(typeof(TexturedShape2DRenderer<,>), 
                 TextureLayout = context.ResourceFactory.CreateResourceLayout(
                     new ResourceLayoutDescription(
                         new ResourceLayoutElementDescription("Texture", ResourceKind.TextureReadOnly, ShaderStages.Fragment),
@@ -251,14 +251,66 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
             , out _);
 
         TextureSet = context.ResourceFactory.CreateResourceSet(new ResourceSetDescription(TextureLayout, TextureView, Sampler));
+        context.GetOrAddPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(pipelinefactory);
+    }
 
+    /// <inheritdoc/>
+    protected override void Draw(TimeSpan delta, VeldridGraphicsContext context, RenderTarget<VeldridGraphicsContext> t)
+    {
+        Debug.Assert(VertexBuffer is not null, "VertexBuffer was unexpectedly null at the time of drawing");
+        Debug.Assert(TextureCoordinateBuffer is not null, "TextureCoordinateBuffer was unexpectedly null at the time of drawing");
+        Debug.Assert(IndexBuffer is not null, "IndexBuffer was unexpectedly null at the time of drawing");
+        Debug.Assert(t is VeldridRenderTarget, "target is not of type VeldridRenderTarget");
+        Debug.Assert(DrawOperationResourceSet is not null, "DrawOperationResourceSet was unexpectedly null at the time of drawing");
+        Debug.Assert(TextureSet is not null, "TextureSet was unexpectedly null at the time of drawing");
+
+        var target = (VeldridRenderTarget)t;
+        var cl = target.CommandList;
+
+        cl.SetFramebuffer(target.GetFramebuffer(context));
+
+        Pipeline pipe = PipelineIndex == 0
+            ? context.GetOrAddPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(pipelinefactory)
+            : context.GetPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(PipelineIndex);
+
+        cl.SetPipeline(pipe);
+
+        cl.SetVertexBuffer(0, VertexBuffer, VertexSetOffset);
+        cl.SetVertexBuffer(1, TextureCoordinateBuffer, TextureCoordinateSetOffset);
+
+        cl.SetIndexBuffer(IndexBuffer, IndexFormat.UInt16, 0);
+
+        cl.SetGraphicsResourceSet(0, context.FrameReportSet);
+        cl.SetGraphicsResourceSet(1, target.TransformationSet);
+        cl.SetGraphicsResourceSet(2, DrawOperationResourceSet);
+        cl.SetGraphicsResourceSet(3, TextureSet);
+
+        cl.DrawIndexed(IndexCount, 2, 0, 0, 0);
+    }
+
+    private readonly GraphicsResourceFactory<Pipeline> pipelinefactory;
+
+    /// <summary>
+    /// Creates a new <see cref="Pipeline"/> intended to be used for this <see cref="TexturedShape2DRenderer{TVertex, TTextureCoordinate}"/>
+    /// </summary>
+    /// <remarks>
+    /// This method is used to create the pipeline for this type at index 0 (default) if one is not already created
+    /// </remarks>
+    /// <param name="context">The context to use to create the pipeline</param>
+    /// <returns>The newly created pipeline</returns>
+    /// <exception cref="InvalidOperationException">If this method is called before <see cref="TextureLayout"/> is set in <see cref="CreateGPUResources(VeldridGraphicsContext)"/></exception>
+    protected virtual Pipeline PipelineFactory(IVeldridGraphicsContextResources context)
+    {
+        if (TextureLayout is null)
+            throw new InvalidOperationException("Cannot create a Pipeline through this method before TextureLayout is assigned in CreateGPUResources");
+
+        Shader[]? shaders;
         if (this is TexturedShape2DRenderer)
             shaders = TexturedShape2DRenderer.GetDefaultShaders(context);
         else if (context.ShaderCache.TryGetResource<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(out shaders) is false)
             throw new InvalidOperationException($"Could not find a Shader set for {Helper.BuildTypeNameAsCSharpTypeExpression(typeof(TexturedShape2DRenderer<TVertex, TTextureCoordinate>))}");
 
-        if (context.ContainsPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>() is false)
-            context.RegisterPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(context.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription(
+        return context.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription(
                 blendState: BlendStateDescription.SingleAlphaBlend,
                 depthStencilStateDescription: new DepthStencilStateDescription(
                     depthTestEnabled: true,
@@ -291,36 +343,6 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
                 },
                 outputs: context.GraphicsDevice.SwapchainFramebuffer.OutputDescription,
                 resourceBindingModel: ResourceBindingModel.Improved
-            )), out _);
-    }
-
-    /// <inheritdoc/>
-    protected override void Draw(TimeSpan delta, VeldridGraphicsContext context, RenderTarget<VeldridGraphicsContext> t)
-    {
-        Debug.Assert(VertexBuffer is not null, "VertexBuffer was unexpectedly null at the time of drawing");
-        Debug.Assert(TextureCoordinateBuffer is not null, "TextureCoordinateBuffer was unexpectedly null at the time of drawing");
-        Debug.Assert(IndexBuffer is not null, "IndexBuffer was unexpectedly null at the time of drawing");
-        Debug.Assert(t is VeldridRenderTarget, "target is not of type VeldridRenderTarget");
-        Debug.Assert(DrawOperationResourceSet is not null, "DrawOperationResourceSet was unexpectedly null at the time of drawing");
-        Debug.Assert(TextureSet is not null, "TextureSet was unexpectedly null at the time of drawing");
-
-        var target = (VeldridRenderTarget)t;
-        var cl = target.CommandList;
-
-        cl.SetFramebuffer(target.GetFramebuffer(context));
-
-        cl.SetPipeline(context.GetPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(PipelineIndex));
-
-        cl.SetVertexBuffer(0, VertexBuffer, VertexSetOffset);
-        cl.SetVertexBuffer(1, TextureCoordinateBuffer, TextureCoordinateSetOffset);
-
-        cl.SetIndexBuffer(IndexBuffer, IndexFormat.UInt16, 0);
-
-        cl.SetGraphicsResourceSet(0, context.FrameReportSet);
-        cl.SetGraphicsResourceSet(1, target.TransformationSet);
-        cl.SetGraphicsResourceSet(2, DrawOperationResourceSet);
-        cl.SetGraphicsResourceSet(3, TextureSet);
-
-        cl.DrawIndexed(IndexCount, 1, 0, 0, 0);
+            ));
     }
 }
