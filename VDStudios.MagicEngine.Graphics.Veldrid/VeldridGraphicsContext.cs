@@ -9,6 +9,7 @@ using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.Veldrid.Caching;
 using Veldrid;
+using Vulkan;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid;
 
@@ -110,6 +111,29 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
 
         lock (pd)
             return pd.TryGetValue(index, out pipeline);
+    }
+
+    /// <inheritdoc/>
+    public Pipeline GetOrAddPipeline<T>(GraphicsResourceFactory<Pipeline> pipelineFactory, uint index = 0)
+        => GetOrAddPipeline(typeof(T), pipelineFactory, index);
+
+    /// <inheritdoc/>
+    public Pipeline GetOrAddPipeline(Type type, GraphicsResourceFactory<Pipeline> pipelineFactory, uint index = 0)
+    {
+        Dictionary<uint, Pipeline>? pd;
+        lock (pipelines)
+            if (pipelines.TryGetValue(type, out pd) is false)
+                pipelines.Add(type, pd = new());
+
+        Pipeline? pipe;
+        lock (pd)
+            if (pd.TryGetValue(index, out pipe) is false)
+            {
+                ArgumentNullException.ThrowIfNull(pipelineFactory); 
+                pd.Add(index, pipe = pipelineFactory(this));
+            }
+
+        return pipe;
     }
 
     /// <inheritdoc/>

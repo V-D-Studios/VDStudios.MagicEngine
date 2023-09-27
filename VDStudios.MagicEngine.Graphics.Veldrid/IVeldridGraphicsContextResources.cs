@@ -46,6 +46,24 @@ public interface IVeldridGraphicsContextResources
     public bool TryGetPipeline<T>([NotNullWhen(true)] out Pipeline? pipeline, uint index = 0);
 
     /// <summary>
+    /// Attempts to obtain a <see cref="Pipeline"/> for the type <paramref name="type"/> if it exists, or creates a new one using <paramref name="pipelineFactory"/> if it doesn't
+    /// </summary>
+    /// <param name="type">The type the pipeline is for</param>
+    /// <param name="pipelineFactory">The delegate that will be used to create the pipeline if it doesn't exist</param>
+    /// <param name="index">The index the pipeline is at</param>
+    /// <returns>The fetched or created pipeline</returns>
+    public Pipeline GetOrAddPipeline(Type type, GraphicsResourceFactory<Pipeline> pipelineFactory, uint index = 0);
+
+    /// <summary>
+    /// Attempts to obtain a <see cref="Pipeline"/> for the type <typeparamref name="T"/> if it exists, or creates a new one using <paramref name="pipelineFactory"/> if it doesn't
+    /// </summary>
+    /// <typeparam name="T">The type the pipeline is for</typeparam>
+    /// <param name="pipelineFactory">The delegate that will be used to create the pipeline if it doesn't exist</param>
+    /// <param name="index">The index the pipeline is at</param>
+    /// <returns>The fetched or created pipeline</returns>
+    public Pipeline GetOrAddPipeline<T>(GraphicsResourceFactory<Pipeline> pipelineFactory, uint index = 0);
+
+    /// <summary>
     /// Checks if a <see cref="Pipeline"/> under <typeparamref name="T"/> is registered
     /// </summary>
     /// <param name="index">The index of the pipeline in the <typeparamref name="T"/> pipeline set</param>
