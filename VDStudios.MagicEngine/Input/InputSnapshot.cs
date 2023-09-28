@@ -23,7 +23,7 @@ public class InputSnapshot
     /// Copies data from <paramref name="buffer"/> into this <see cref="InputSnapshot"/>
     /// </summary>
     /// <param name="buffer"></param>
-    [MemberNotNull(nameof(KeyEvents), nameof(KeyCharPresses), nameof(MouseEvents), nameof(MouseWheelEvents), nameof(MousePosition), nameof(WheelDelta), nameof(PressedMouseButtons))]
+    [MemberNotNull(nameof(KeyEvents), nameof(KeyCharPresses), nameof(KeyEventDictionary), nameof(MouseEvents), nameof(MouseWheelEvents), nameof(MousePosition), nameof(WheelDelta), nameof(PressedMouseButtons))]
     protected virtual void CopyFrom(InputSnapshotBuffer buffer)
     {
         KeyEvents = new List<KeyEventRecord>(buffer.KeyEvents);
@@ -32,7 +32,9 @@ public class InputSnapshot
         MouseWheelEvents = new List<MouseWheelEventRecord>(buffer.MouseWheelEvents);
         MousePosition = buffer.MousePosition;
         WheelDelta = buffer.WheelDelta;
+        KeyEventDictionary = buffer.KeyEventDictionary;
         PressedMouseButtons = buffer.PressedMouseButtons;
+        ActiveModifiers = buffer.ActiveModifiers;
     }
 
     /// <summary>
@@ -44,6 +46,19 @@ public class InputSnapshot
     /// The system time at the moment of this <see cref="InputSnapshot"/>'s creation
     /// </summary>
     public DateTime Created { get; }
+
+    /// <summary>
+    /// A dictionary relating Key Events to their respective scancode
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="KeyEvents"/>, this only maintains the latest state of the key. This property will not reflect if, for example, the key was pressed multiple times in a single frame
+    /// </remarks>
+    public IReadOnlyDictionary<Scancode, KeyEventRecord> KeyEventDictionary { get; private set; }
+
+    /// <summary>
+    /// The active <see cref="KeyModifier"/>s by the end of the frame
+    /// </summary>
+    public KeyModifier ActiveModifiers { get; private set; }
 
     /// <summary>
     /// The key events that happened at the time of this snapshot

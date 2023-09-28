@@ -59,6 +59,20 @@ public abstract class InputSnapshotBuffer
     public DateTime LastUpdated { get; internal set; }
 
     /// <summary>
+    /// A dictionary relating Key Events to their respective scancode
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="KeyEvents"/>, this only maintains the latest state of the key. This property will not reflect if, for example, the key was pressed multiple times in a single frame
+    /// </remarks>
+    public IReadOnlyDictionary<Scancode, KeyEventRecord> KeyEventDictionary => kEvDict;
+    internal Dictionary<Scancode, KeyEventRecord> kEvDict = new();
+
+    /// <summary>
+    /// The active <see cref="KeyModifier"/>s by the end of the frame
+    /// </summary>
+    public KeyModifier ActiveModifiers { get; private set; }
+
+    /// <summary>
     /// The key events that happened at the time of this snapshot
     /// </summary>
     public IReadOnlyList<KeyEventRecord> KeyEvents => kEvs;
@@ -180,7 +194,10 @@ public abstract class InputSnapshotBuffer
     /// <param name="unicode">The unicode value for key that was released</param>
     protected internal virtual void ReportKeyReleased(uint keyboardId, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
     {
-        kEvs.Add(new(keyboardId, scancode, key, modifiers, false, repeat, unicode));
+        var kev = new KeyEventRecord(keyboardId, scancode, key, modifiers, false, repeat, unicode);
+        kEvs.Add(kev);
+        kEvDict[scancode] = kev;
+        ActiveModifiers = modifiers;
     }
 
     /// <summary>
@@ -195,8 +212,11 @@ public abstract class InputSnapshotBuffer
     /// <param name="unicode">The unicode value for key that was pressed</param>
     protected internal virtual void ReportKeyPressed(uint keyboardId, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
     {
-        kEvs.Add(new(keyboardId, scancode, key, modifiers, true, repeat, unicode));
+        var kev = new KeyEventRecord(keyboardId, scancode, key, modifiers, true, repeat, unicode);
+        kEvs.Add(kev);
         kcEvs.Add(unicode);
+        kEvDict[scancode] = kev;
+        ActiveModifiers = modifiers;
     }
 
     internal void Clear()
@@ -206,6 +226,8 @@ public abstract class InputSnapshotBuffer
         kEvs.Clear();
         kcEvs.Clear();
         mEvs.Clear();
+        kEvDict.Clear();
+        ActiveModifiers = 0;
     }
 
     internal InputSnapshot CreateSnapshot()
