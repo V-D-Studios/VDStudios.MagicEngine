@@ -177,6 +177,12 @@ public abstract class Game : IGameObject
     /// </summary>
     public ILogger Log { get; }
 
+    /// <summary>
+    /// Creates a new Game Logger with the appropriate parameters
+    /// </summary>
+    public ILogger GetLogger(string area, string facility, Type type, string? name = null)
+        => new ExternalGameLogger(Logger, facility, area, type, name);
+
     internal readonly ILogger Logger;
 #if FEATURE_INTERNAL_LOGGING
     internal readonly ILogger InternalLogger;
