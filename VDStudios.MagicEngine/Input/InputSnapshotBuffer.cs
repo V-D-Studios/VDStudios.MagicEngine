@@ -196,7 +196,7 @@ public abstract class InputSnapshotBuffer
     {
         var kev = new KeyEventRecord(keyboardId, scancode, key, modifiers, false, repeat, unicode);
         kEvs.Add(kev);
-        kEvDict[scancode] = kev;
+        kEvDict.Remove(scancode);
         ActiveModifiers = modifiers;
     }
 

@@ -32,7 +32,7 @@ public class InputSnapshot
         MouseWheelEvents = new List<MouseWheelEventRecord>(buffer.MouseWheelEvents);
         MousePosition = buffer.MousePosition;
         WheelDelta = buffer.WheelDelta;
-        KeyEventDictionary = buffer.KeyEventDictionary;
+        KeyEventDictionary = new Dictionary<Scancode, KeyEventRecord>(buffer.KeyEventDictionary);
         PressedMouseButtons = buffer.PressedMouseButtons;
         ActiveModifiers = buffer.ActiveModifiers;
     }
