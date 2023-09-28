@@ -3,7 +3,7 @@
 /// <summary>
 /// Represents a context for a given <see cref="DrawOperation{TGraphicsContext}"/> or <see cref="RenderTarget{TGraphicsContext}"/>
 /// </summary>
-public abstract class GraphicsContext<TSelf>
+public abstract class GraphicsContext<TSelf> : GameObject
     where TSelf : GraphicsContext<TSelf>
 {
     /// <summary>
@@ -16,7 +16,7 @@ public abstract class GraphicsContext<TSelf>
     /// </summary>
     /// <param name="manager">The <see cref="GraphicsManager{TGraphicsContext}"/> that owns this <see cref="GraphicsContext{TSelf}"/></param>
     /// <exception cref="ArgumentNullException"></exception>
-    public GraphicsContext(GraphicsManager<TSelf> manager)
+    public GraphicsContext(GraphicsManager<TSelf> manager) : base(manager.Game, "Graphics Context", "Rendering")
     {
         Manager = manager ?? throw new ArgumentNullException(nameof(manager));
     }
