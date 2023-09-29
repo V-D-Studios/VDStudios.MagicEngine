@@ -108,6 +108,30 @@ public interface IVeldridGraphicsContextResources : IGameObject
     public bool ContainsPipeline(Type type, uint index = 0);
 
     /// <summary>
+    /// Removes the <see cref="Pipeline"/> for <paramref name="type"/> at index <paramref name="index"/> if one is available
+    /// </summary>
+    /// <remarks>
+    /// This can be potentially dangerous, use at your own risk
+    /// </remarks>
+    /// <param name="type">The type that the pipeline is for</param>
+    /// <param name="index">The index of the pipeline in the <paramref name="type"/> pipeline set</param>
+    /// <param name="pipeline">The removed pipeline, if found</param>
+    /// <returns><see langword="true"/> if a <see cref="Pipeline"/> was found and removed, <see langword="false"/> otherwise</returns>
+    public bool RemovePipeline(Type type, [NotNullWhen(true)] out Pipeline? pipeline, uint index = 0);
+
+    /// <summary>
+    /// Removes the <see cref="Pipeline"/> for <typeparamref name="T"/> at index <paramref name="index"/> if one is available
+    /// </summary>
+    /// <remarks>
+    /// This can be potentially dangerous, use at your own risk
+    /// </remarks>
+    /// <param name="pipeline">The removed pipeline, if found</param>
+    /// <typeparam name="T">The type that the pipeline is for</typeparam>
+    /// <param name="index">The index of the pipeline in the <typeparamref name="T"/> pipeline set</param>
+    /// <returns><see langword="true"/> if a <see cref="Pipeline"/> was found and removed, <see langword="false"/> otherwise</returns>
+    public bool RemovePipeline<T>([NotNullWhen(true)] out Pipeline? pipeline, uint index = 0);
+
+    /// <summary>
     /// Registers a pipeline into the provided index
     /// </summary>
     /// <param name="pipeline">The pipeline to be registered</param>

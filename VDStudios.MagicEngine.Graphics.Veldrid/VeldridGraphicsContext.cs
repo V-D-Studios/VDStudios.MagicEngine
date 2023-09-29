@@ -85,6 +85,25 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
         => RegisterPipeline(typeof(T), pipeline, out previous, index);
 
     /// <inheritdoc/>
+    public bool RemovePipeline(Type type, [NotNullWhen(true)] out Pipeline? pipeline, uint index = 0)
+    {
+        Dictionary<uint, Pipeline>? pd;
+        lock (pipelines)
+            if (pipelines.TryGetValue(type, out pd) is false)
+            {
+                pipeline = null;
+                return false;
+            }
+
+        lock (pd)
+            return pd.Remove(index, out pipeline);
+    }
+
+    /// <inheritdoc/>
+    public bool RemovePipeline<T>([NotNullWhen(true)] out Pipeline? pipeline, uint index = 0)
+        => RemovePipeline(typeof(T), out pipeline, index);
+
+    /// <inheritdoc/>
     public Pipeline GetPipeline(Type type, uint index = 0)
     {
         Dictionary<uint, Pipeline>? pd;
