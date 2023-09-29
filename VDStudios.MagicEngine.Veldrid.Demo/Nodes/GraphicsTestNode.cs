@@ -105,6 +105,8 @@ public class GraphicsTestNode : Node
         Elipse.TransformationState.Transform(new Vector3(-.3f, -.5f, 0));
         Polygon.TransformationState.Transform(new Vector3(-.7f, -.1f, 0));
 
+        TexturedPolygon.TransformationState.Transform(new Vector3(-.7f, 0f, 0f));
+
         return base.Updating(delta);
     }
 

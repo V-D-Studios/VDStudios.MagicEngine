@@ -1,11 +1,15 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using SDL2.NET;
+using SDL2.NET.Input;
 using SDL2.NET.SDLImage;
 using SDL2.NET.Utilities;
 using VDStudios.MagicEngine.Demo.Common.Services;
 using VDStudios.MagicEngine.DemoResources;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.Veldrid;
+using VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
+using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
 using VDStudios.MagicEngine.Veldrid.Demo.Nodes;
 using Veldrid;
 using Veldrid.ImageSharp;
@@ -97,9 +101,23 @@ public class TestScene : DemoSceneBase
         //Camera.Move(scale: new(2, 2, 1));
 
         //Camera.Target = pnode;
-
+        vgc.InputReady += Vgc_InputReady;
         var tnode = new GraphicsTestNode(Game);
         await Attach(tnode);
+    }
+
+    private void Vgc_InputReady(GraphicsManager graphicsManager, Input.InputSnapshot inputSnapshot, TimeSpan timestamp)
+    {
+        if ((inputSnapshot.ActiveModifiers & Input.KeyModifier.Ctrl) > 0 &&
+            inputSnapshot.KeyEventDictionary.TryGetValue(Input.Scancode.G, out var g) && inputSnapshot.KeyEventDictionary.TryGetValue(Input.Scancode.R, out var r))
+        {
+            if (g.Repeat && r.Repeat) return;
+            var vgc = (VeldridGraphicsManager)Game.MainGraphicsManager;
+            var resources = vgc.Resources;
+            resources.RemovePipeline<TexturedShape2DRenderer<Vertex2D, TextureCoordinate2D>>(out _);
+            resources.ShaderCache.RemoveResource<TexturedShape2DRenderer<Vertex2D, TextureCoordinate2D>>(out _);
+            Log.Information("Cleared Default Pipeline and ShaderSet for TexturedShape2DRenderer<Vertex2D, TextureCoordinate2D>");
+        }
     }
 
     //private static CharacterAnimationContainer CreateRobinAnimationContainer()
