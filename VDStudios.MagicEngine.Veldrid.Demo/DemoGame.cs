@@ -5,8 +5,8 @@ using SDL2.NET;
 using SDL2.NET.SDLImage;
 using SDL2.NET.Utilities;
 using Serilog;
+using VDStudios.MagicEngine.Demo.Common.Services;
 using VDStudios.MagicEngine.DemoResources;
-using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.Veldrid;
 using VDStudios.MagicEngine.SDL.Base;
 using VDStudios.MagicEngine.Services;
@@ -32,6 +32,16 @@ public class DemoGame : SDLGame
     protected override LoggerConfiguration ConfigureLogger(LoggerConfiguration config)
     {
         return base.ConfigureInternalLogger(config).MinimumLevel.Verbose();
+    }
+
+    protected override void RegisteringServices(IServiceRegistrar registrar)
+    {
+        base.RegisteringServices(registrar);
+    }
+
+    protected override void Start(Scene firstScene)
+    {
+        MainGraphicsManager.InputReady += InputActions.Check;
     }
 
     //protected override void RegisteringServices(IServiceRegistrar registrar)
