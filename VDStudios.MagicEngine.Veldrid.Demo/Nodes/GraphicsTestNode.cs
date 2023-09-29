@@ -6,6 +6,7 @@ using System.Resources;
 using System.Text;
 using System.Threading.Tasks;
 using SDL2.NET;
+using VDStudios.MagicEngine.Demo.Common.Services;
 using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.Veldrid;
@@ -18,6 +19,11 @@ namespace VDStudios.MagicEngine.Veldrid.Demo.Nodes;
 
 public class GraphicsTestNode : Node
 {
+    public readonly ShapeDefinition2D CircleShape;
+    public readonly ShapeDefinition2D SquareShape;
+    public readonly ShapeDefinition2D ElipseShape;
+    public readonly ShapeDefinition2D PolygonShape;
+
     public readonly Shape2DRenderer Circle;
     public readonly Shape2DRenderer Square;
     public readonly Shape2DRenderer Elipse;
@@ -32,10 +38,10 @@ public class GraphicsTestNode : Node
 
     public GraphicsTestNode(Game game) : base(game)
     {
-        Circle = new Shape2DRenderer(new CircleDefinition(new Vector2(0, 0), .6f, 100), game);
-        Square = new Shape2DRenderer(new RectangleDefinition(new Vector2(0, 0), new Vector2(.7f, .8f)), game);
-        Elipse = new Shape2DRenderer(new ElipseDefinition(new Vector2(0, 0), .6f, .3f, 100), game);
-        Polygon = new Shape2DRenderer(new PolygonDefinition(stackalloc Vector2[]
+        Circle = new Shape2DRenderer(CircleShape = new CircleDefinition(new Vector2(0, 0), .6f, 100), game);
+        Square = new Shape2DRenderer(SquareShape = new RectangleDefinition(new Vector2(0, 0), new Vector2(.7f, .8f)), game);
+        Elipse = new Shape2DRenderer(ElipseShape = new ElipseDefinition(new Vector2(0, 0), .6f, .3f, 100), game);
+        Polygon = new Shape2DRenderer(PolygonShape = new PolygonDefinition(stackalloc Vector2[]
         {
             new(330.71074380165294f / 500f, 494.82644628099155f / 500f),
             new(539.801652892562f / 500f, 439.4545454545454f / 500f),
@@ -114,6 +120,12 @@ public class GraphicsTestNode : Node
     protected override async ValueTask Attaching(Scene scene)
     {
         await base.Attaching(scene);
+
+        var shps = scene.Services.GetService<GameState>().Shapes;
+        shps.Add(CircleShape);
+        shps.Add(ElipseShape);
+        shps.Add(SquareShape);
+        shps.Add(PolygonShape);
 
         if (scene.GetDrawOperationManager<VeldridGraphicsContext>(out var drawOperationManager) is false)
             Debug.Fail("Could not find a DrawOperationManager for VeldridGraphicsContext");

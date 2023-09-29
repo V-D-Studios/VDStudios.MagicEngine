@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using SDL2.NET;
+using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.Services;
 using VDStudios.MagicEngine.World2D;
 
@@ -7,6 +8,8 @@ namespace VDStudios.MagicEngine.Demo.Common.Services;
 
 public class GameState : GameObject
 {
+    public List<ShapeDefinition2D> Shapes { get; } = new();
+
     public GameState(ServiceCollection services) : base(services.Game, "Global", "State")
     {
         var inman = services.GetService<InputManagerService>();
