@@ -1,4 +1,4 @@
-﻿namespace VDStudios.MagicEngine;
+﻿namespace VDStudios.MagicEngine.Timing;
 
 /// <summary>
 /// Represents a timer that can be used to time events using a <see cref="Game"/>'s frames as reference for time

@@ -9,6 +9,7 @@ using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Internal;
 using VDStudios.MagicEngine.Logging;
 using VDStudios.MagicEngine.Services;
+using VDStudios.MagicEngine.Timing;
 
 namespace VDStudios.MagicEngine;
 
