@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using Serilog;
 using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.Graphics.Veldrid.Generators;
 using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
@@ -53,21 +54,25 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<Vertex2D, Texture
     /// Fetches or registers (and then fetches) the default shader set for <see cref="Shape2DRenderer"/>
     /// </summary>
     public static Shader[] GetDefaultShaders(IVeldridGraphicsContextResources resources)
-        => resources.ShaderCache.GetOrAddResource<TexturedShape2DRenderer>(
-            static c => c.ResourceFactory.CreateFromSpirv(
-                vertexShaderDescription: new ShaderDescription(
-                    ShaderStages.Vertex,
-                    Encoding.UTF8.GetBytes(DefaultShaders.DefaultTexturedShape2DRendererVertexShader),
-                    "main",
-                    true
-                ),
-                fragmentShaderDescription: new ShaderDescription(
-                    ShaderStages.Fragment,
-                    Encoding.UTF8.GetBytes(DefaultShaders.DefaultTexturedShapeRendererFragmentShader),
-                    "main",
-                    true
-                )
-            ));
+        => resources.ShaderCache.GetOrAddResource<TexturedShape2DRenderer<Vertex2D, TextureCoordinate2D>>(
+            static c =>
+            {
+                c.Game.GetLogger("Rendering", "Resources", typeof(TexturedShape2DRenderer)).Debug("Creating default shader set for TexturedShape2DRenderer<Vertex2D, TextureCoordinate2D>");
+                return c.ResourceFactory.CreateFromSpirv(
+                                vertexShaderDescription: new ShaderDescription(
+                                    ShaderStages.Vertex,
+                                    Encoding.UTF8.GetBytes(DefaultShaders.DefaultTexturedShape2DRendererVertexShader),
+                                    "main",
+                                    true
+                                ),
+                                fragmentShaderDescription: new ShaderDescription(
+                                    ShaderStages.Fragment,
+                                    Encoding.UTF8.GetBytes(DefaultShaders.DefaultTexturedShapeRendererFragmentShader),
+                                    "main",
+                                    true
+                                )
+                            );
+            });
 }
 
 /// <summary>
@@ -301,6 +306,7 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
     /// <exception cref="InvalidOperationException">If this method is called before <see cref="TextureLayout"/> is set in <see cref="CreateGPUResources(VeldridGraphicsContext)"/></exception>
     protected virtual Pipeline PipelineFactory(IVeldridGraphicsContextResources context)
     {
+        Log.Information("Creating a new Pipeline through the PipelineFactory");
         if (TextureLayout is null)
             throw new InvalidOperationException("Cannot create a Pipeline through this method before TextureLayout is assigned in CreateGPUResources");
 
