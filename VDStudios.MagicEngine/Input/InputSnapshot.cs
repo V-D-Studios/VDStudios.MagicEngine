@@ -32,7 +32,7 @@ public class InputSnapshot
         MouseWheelEvents = new List<MouseWheelEventRecord>(buffer.MouseWheelEvents);
         MousePosition = buffer.MousePosition;
         WheelDelta = buffer.WheelDelta;
-        KeyEventDictionary = new Dictionary<Scancode, KeyEventRecord>(buffer.KeyEventDictionary);
+        KeyEventDictionary = new Dictionary<Scancode, KeyPressRecord>(buffer.KeyEventDictionary);
         PressedMouseButtons = buffer.PressedMouseButtons;
         ActiveModifiers = buffer.ActiveModifiers;
     }
@@ -53,7 +53,7 @@ public class InputSnapshot
     /// <remarks>
     /// Unlike <see cref="KeyEvents"/>, this only maintains the latest state of the key. This property will not reflect if, for example, the key was pressed multiple times in a single frame
     /// </remarks>
-    public IReadOnlyDictionary<Scancode, KeyEventRecord> KeyEventDictionary { get; private set; }
+    public IReadOnlyDictionary<Scancode, KeyPressRecord> KeyEventDictionary { get; private set; }
 
     /// <summary>
     /// The active <see cref="KeyModifier"/>s by the end of the frame

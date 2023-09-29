@@ -1,4 +1,6 @@
-﻿using System.Numerics;
+﻿using System.Collections.Generic;
+using System.Net.Http.Headers;
+using System.Numerics;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Timing;
 
@@ -15,6 +17,16 @@ namespace VDStudios.MagicEngine.Input;
 /// <param name="Unicode">The unicode value of the key</param>
 /// <param name="KeyboardId">The keyboard's ID if applicable</param>
 public readonly record struct KeyEventRecord(uint KeyboardId, Scancode Scancode, Keycode Key, KeyModifier Modifiers, bool IsPressed, bool Repeat, uint Unicode);
+
+/// <summary>
+/// Represents a recording of a key press
+/// </summary>
+/// <param name="Scancode">The Scancode of the key</param>
+/// <param name="Key">The actual value of the key</param>
+/// <param name="KeyboardId">The keyboard's ID if applicable</param>
+/// <param name="FirstPressed">The value <see cref="DateTime.Now"/> held at the moment this key event was first recorded</param>
+/// <param name="FrameSnap">Keeps track of the amount of frames that have elapsed since this key event was first recorded</param>
+public readonly record struct KeyPressRecord(uint KeyboardId, Scancode Scancode, Keycode Key, DateTime FirstPressed, GraphicsManagerFrameSnap FrameSnap);
 
 /// <summary>
 /// Represents a recording of a Mouse Event
@@ -65,8 +77,8 @@ public abstract class InputSnapshotBuffer
     /// <remarks>
     /// Unlike <see cref="KeyEvents"/>, this only maintains the latest state of the key. This property will not reflect if, for example, the key was pressed multiple times in a single frame
     /// </remarks>
-    public IReadOnlyDictionary<Scancode, KeyEventRecord> KeyEventDictionary => kEvDict;
-    internal Dictionary<Scancode, KeyEventRecord> kEvDict = new();
+    public IReadOnlyDictionary<Scancode, KeyPressRecord> KeyEventDictionary => kEvDict;
+    internal Dictionary<Scancode, KeyPressRecord> kEvDict = new();
 
     /// <summary>
     /// The active <see cref="KeyModifier"/>s by the end of the frame
@@ -195,8 +207,7 @@ public abstract class InputSnapshotBuffer
     /// <param name="unicode">The unicode value for key that was released</param>
     protected internal virtual void ReportKeyReleased(uint keyboardId, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
     {
-        var kev = new KeyEventRecord(keyboardId, scancode, key, modifiers, false, repeat, unicode);
-        kEvs.Add(kev);
+        kEvs.Add(new KeyEventRecord(keyboardId, scancode, key, modifiers, false, repeat, unicode));
         kEvDict.Remove(scancode);
         ActiveModifiers = modifiers;
     }
@@ -213,10 +224,9 @@ public abstract class InputSnapshotBuffer
     /// <param name="unicode">The unicode value for key that was pressed</param>
     protected internal virtual void ReportKeyPressed(uint keyboardId, Scancode scancode, Keycode key, KeyModifier modifiers, bool isPressed, bool repeat, uint unicode)
     {
-        var kev = new KeyEventRecord(keyboardId, scancode, key, modifiers, true, repeat, unicode);
-        kEvs.Add(kev);
+        kEvs.Add(new KeyEventRecord(keyboardId, scancode, key, modifiers, true, repeat, unicode));
         kcEvs.Add(unicode);
-        kEvDict[scancode] = kev;
+        kEvDict[scancode] = new KeyPressRecord(keyboardId, scancode, key, DateTime.Now, new GraphicsManagerFrameSnap(Manager));
         ActiveModifiers = modifiers;
     }
 
@@ -227,7 +237,6 @@ public abstract class InputSnapshotBuffer
         kEvs.Clear();
         kcEvs.Clear();
         mEvs.Clear();
-        kEvDict.Clear();
         ActiveModifiers = 0;
     }
 
