@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using VDStudios.MagicEngine.Graphics;
+using VDStudios.MagicEngine.Timing;
 
 namespace VDStudios.MagicEngine.Input;
 

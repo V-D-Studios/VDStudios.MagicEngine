@@ -9,6 +9,7 @@ using VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 using VDStudios.MagicEngine.SDL.Demo.Scenes;
 using VDStudios.MagicEngine.Demo.Common.Services;
 using VDStudios.MagicEngine.Graphics;
+using VDStudios.MagicEngine.Timing;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Nodes;
 

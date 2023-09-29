@@ -11,6 +11,7 @@ using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.Veldrid;
 using VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
 using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
+using VDStudios.MagicEngine.Timing;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Veldrid.Demo.Nodes;

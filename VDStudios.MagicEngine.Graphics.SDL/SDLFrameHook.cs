@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using SDL2.NET;
 using Serilog;
+using VDStudios.MagicEngine.Timing;
 
 namespace VDStudios.MagicEngine.Graphics.SDL;
 
