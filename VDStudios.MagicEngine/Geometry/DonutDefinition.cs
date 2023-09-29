@@ -107,6 +107,18 @@ public class DonutDefinition : ShapeDefinition2D
         CircleDefinition.GenerateVertices(CenterPoint, OuterRadius, OuterSubdivisions, outer);
     }
 
+#if DEBUG
+    /// <inheritdoc/>
+    public override void RegenVertices()
+    {
+        var inner = SliceInnerCircle(___vertexBuffer);
+        var outer = SliceOuterCircle(___vertexBuffer);
+
+        CircleDefinition.GenerateVertices(CenterPoint, InnerRadius, InnerSubdivisions, inner);
+        CircleDefinition.GenerateVertices(CenterPoint, OuterRadius, OuterSubdivisions, outer);
+    }
+#endif
+
     /// <inheritdoc/>
     public override ReadOnlySpan<Vector2> AsSpan(int start, int length)
         => VertexBuffer.Slice(start, length);

@@ -32,6 +32,11 @@ public class ElipseDefinition : ShapeDefinition2D
     /// </summary>
     public int Subdivisions { get; }
 
+    /// <summary>
+    /// The portion of the elipse this definition represents
+    /// </summary>
+    public float Angle { get; }
+
     /// <inheritdoc/>
     public override int Count => Subdivisions;
 
@@ -45,8 +50,10 @@ public class ElipseDefinition : ShapeDefinition2D
     /// <param name="radiusX">The length of each point along the elipse from its center along its x axis</param>
     /// <param name="radiusY">The length of each point along the elipse from its center along its y axis</param>
     /// <param name="subdivisions">The amount of vertices the elipse will have. Must be larger than 3</param>
-    public ElipseDefinition(Vector2 centerPoint, Radius radiusX, Radius radiusY, int subdivisions = 30) : base(true)
+    /// <param name="angle">The portion of the ellipse to generate vertices for. For example: <c>-<see cref="float.Tau"/> / 2</c> would yield a half circle with <paramref name="subdivisions"/> subdivisions</param>
+    public ElipseDefinition(Vector2 centerPoint, Radius radiusX, Radius radiusY, int subdivisions = 30, float angle = -float.Tau) : base(true)
     {
+        Angle = angle;
         CenterPoint = centerPoint;
         RadiusX = radiusX;
         RadiusY = radiusY;
@@ -56,7 +63,23 @@ public class ElipseDefinition : ShapeDefinition2D
             throw new ArgumentException("A Circumference's subdivision count cannot be less than 3", nameof(subdivisions));
 
         ___vertexBuffer = new Vector2[Subdivisions];
-        GenerateVertices(CenterPoint, RadiusX, RadiusY, Subdivisions, ___vertexBuffer.AsSpan(0, Subdivisions));
+        GenerateVertices(CenterPoint, RadiusX, RadiusY, Subdivisions, ___vertexBuffer.AsSpan(0, Subdivisions), angle);
+    }
+
+    /// <summary>
+    /// Gets the starting vertex of the ellipse
+    /// </summary>
+    /// <remarks>
+    /// Used internally by <see cref="GenerateVertices(Vector2, Radius, Radius, int, Span{Vector2}, float)"/> and <see cref="CircleDefinition.GenerateVertices(Vector2, Radius, int, Span{Vector2}, float)"/>
+    /// </remarks>
+    /// <param name="center">The centerpoint of the ellipse</param>
+    /// <param name="radiusX">The radius of the ellipse along the X axis</param>
+    /// <param name="radiusY">The radius of the ellipse along the Y axis</param>
+    public static Vector2 GetStartingPoint(Vector2 center, Radius radiusX, Radius radiusY)
+    {
+        var pbuf = new Vector2(center.X + radiusX, center.Y + radiusY);
+        return new Vector2(float.Min(pbuf.X, radiusX), float.Min(pbuf.Y, radiusY));
+#warning elipses are too large, and no, it's not natural
     }
 
     /// <summary>
@@ -70,15 +93,17 @@ public class ElipseDefinition : ShapeDefinition2D
     /// <param name="radiusY">The radius of the elipse along the y axis</param>
     /// <param name="subdivisions">The amount of vertices to subdivide the elipse into</param>
     /// <param name="buffer">The location in memory into which to store the newly generated vertices</param>
-    public static void GenerateVertices(Vector2 center, Radius radiusX, Radius radiusY, int subdivisions, Span<Vector2> buffer)
+    /// <param name="angle">The portion of the ellipse to generate vertices for. For example: <c>-<see cref="float.Tau"/> / 2</c> would yield a half circle with <paramref name="subdivisions"/> subdivisions</param>
+    public static void GenerateVertices(Vector2 center, Radius radiusX, Radius radiusY, int subdivisions, Span<Vector2> buffer, float angle = -float.Tau)
     {
+#warning These need to start in the lower-left corner, just like rectangles do. How do?
         //(radiusY, radiusX) = (radiusX, radiusY);
-        var pbuf = new Vector2(center.X - radiusX, 0);
-        var trans = Matrix3x2.CreateRotation(-float.Tau / subdivisions, center);
+        var pbuf = GetStartingPoint(center, radiusX, radiusY);
+        var trans = Matrix3x2.CreateRotation(angle / subdivisions, center);
         var scale = radiusX.Diameter.CompareTo(radiusY.Diameter) switch
         {
             < 0 => Matrix3x2.CreateScale(1f, radiusY / radiusX, center),
-            > 0 => Matrix3x2.CreateScale(1f, radiusY / radiusX, center),
+            > 0 => Matrix3x2.CreateScale(radiusX / radiusY, 1f, center),
             _ => Matrix3x2.Identity
         };
 
@@ -88,6 +113,14 @@ public class ElipseDefinition : ShapeDefinition2D
             pbuf = Vector2.Transform(pbuf, trans);
         }
     }
+
+#if DEBUG
+    /// <inheritdoc/>
+    public override void RegenVertices()
+    {
+        GenerateVertices(CenterPoint, RadiusX, RadiusY, Subdivisions, ___vertexBuffer.AsSpan(0, Subdivisions), Angle);
+    }
+#endif
 
     /// <inheritdoc/>
     public override ReadOnlySpan<Vector2> AsSpan(int start, int length)
@@ -139,5 +172,4 @@ public class ElipseDefinition : ShapeDefinition2D
     /// <inheritdoc/>
     public override int Triangulate(Span<ushort> outputIndices, ElementSkip vertexSkip = default)
         => PolygonDefinition.TriangulatePolygon(Count, IsConvex, outputIndices, vertexSkip);
-
 }

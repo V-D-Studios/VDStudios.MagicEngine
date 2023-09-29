@@ -25,15 +25,26 @@ public class SegmentDefinition : ShapeDefinition2D
         PointB = b;
         Width = width;
 
+        GenerateVertices(a, b, ___vertices, width);
+    }
+
+    /// <summary>
+    /// Generates the 4 vertices describing a segment that has a width into <paramref name="output"/>
+    /// </summary>
+    /// <param name="a">The starting point of the segment</param>
+    /// <param name="b">The ending point of the segment</param>
+    /// <param name="width">The width of the segment</param>
+    /// <param name="output">The buffer that will contain the output vertices, must have a length of 4 or more</param>
+    /// <exception cref="ArgumentException">Thrown if output doesn't have a length of at least 4</exception>
+    public static void GenerateVertices(Vector2 a, Vector2 b, Span<Vector2> output, float width = 1)
+    {
         Matrix3x2 rotation = Matrix3x2.CreateRotation(GeometryMath.Angle(a, b), a);
         var clampedB = Vector2.Transform(b, -rotation);
 
-        Span<Vector2> buff = stackalloc Vector2[4];
-
-        RectangleDefinition.GenerateVertices(a, new(Vector2.Distance(a, clampedB), width), buff);
+        RectangleDefinition.GenerateVertices(a, new(Vector2.Distance(a, clampedB), width), output);
 
         for (int i = 0; i < 4; i++)
-            ___vertices[i] = Vector2.Transform(buff[i], rotation);
+            output[i] = Vector2.Transform(output[i], rotation);
     }
 
     /// <summary>
@@ -53,6 +64,14 @@ public class SegmentDefinition : ShapeDefinition2D
 
 #warning Add variable width along the points
 #warning Add the option to add an amount of vertices to the end of the lines for smoothing, where 0 would be a flat line, and one would make the segment end with a triangle
+
+#if DEBUG
+    /// <inheritdoc/>
+    public override void RegenVertices()
+    {
+        GenerateVertices(PointA, PointB, Vertices, Width);
+    }
+#endif
 
     /// <inheritdoc/>
     public override ReadOnlySpan<Vector2> AsSpan(int start, int length)

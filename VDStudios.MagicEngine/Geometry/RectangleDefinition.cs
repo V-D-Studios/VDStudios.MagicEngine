@@ -63,6 +63,14 @@ public class RectangleDefinition : ShapeDefinition2D
         output[3] = new(position.X + size.X, position.Y);
     }
 
+#if DEBUG
+    /// <inheritdoc/>
+    public override void RegenVertices()
+    {
+        GenerateVertices(Position, Size, vertices);
+    }
+#endif
+
     /// <inheritdoc/>
     public override ReadOnlySpan<Vector2> AsSpan(int start, int length)
         => vertices.AsSpan(start, length);

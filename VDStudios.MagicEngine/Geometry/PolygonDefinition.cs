@@ -240,6 +240,14 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     public static int ComputeConvexTriangulatedIndexBufferSize(int vertexCount, out byte added)
         => (vertexCount - (added = vertexCount % 2 == 0 ? (byte)0u : (byte)1u)) * 3;
 
+#if DEBUG
+    /// <inheritdoc/>
+    public override void RegenVertices()
+    {
+        throw new NotImplementedException("Cannot regenerate the vertices of an arbitrary polygon");
+    }
+#endif
+
     /// <summary>
     /// Generates indices for a shape that is to be rendered as a triangle strip
     /// </summary>

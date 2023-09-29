@@ -75,6 +75,13 @@ public abstract class ShapeDefinition2D : IReadOnlyList<Vector2>
     /// <returns>The amount of indices written to <paramref name="outputIndices"/></returns>
     public abstract int Triangulate(Span<ushort> outputIndices, ElementSkip vertexSkip = default);
 
+#if DEBUG
+    /// <summary>
+    /// Regenerates the vertices of this <see cref="ShapeDefinition2D"/>
+    /// </summary>
+    public abstract void RegenVertices();
+#endif
+
     /// <inheritdoc/>
     public abstract IEnumerator<Vector2> GetEnumerator();
 

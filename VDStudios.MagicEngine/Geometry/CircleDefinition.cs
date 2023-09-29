@@ -24,6 +24,11 @@ public class CircleDefinition : ShapeDefinition2D
     /// </summary>
     public int Subdivisions { get; }
 
+    /// <summary>
+    /// The portion of the elipse this definition represents
+    /// </summary>
+    public float Angle { get; }
+
     /// <inheritdoc/>
     public override int Count => Subdivisions;
 
@@ -36,7 +41,8 @@ public class CircleDefinition : ShapeDefinition2D
     /// <param name="centerPoint">The center point of the circle</param>
     /// <param name="radius">The length of each point along the circle from its center, or half its diameter</param>
     /// <param name="subdivisions">The amount of vertices the circle will have. Must be larger than 3</param>
-    public CircleDefinition(Vector2 centerPoint, Radius radius, int subdivisions = 30) : base(true)
+    /// <param name="angle">The portion of the ellipse to generate vertices for. For example: <c>-<see cref="float.Tau"/> / 2</c> would yield a half circle with <paramref name="subdivisions"/> subdivisions</param>
+    public CircleDefinition(Vector2 centerPoint, Radius radius, int subdivisions = 30, float angle = -float.Tau) : base(true)
     {
         if (subdivisions < 3)
             throw new ArgumentException("A Circumference's subdivision count cannot be less than 3", nameof(subdivisions));
@@ -49,7 +55,9 @@ public class CircleDefinition : ShapeDefinition2D
         Subdivisions = subdivisions;
 
         VertexBuffer = new Vector2[Subdivisions];
-        GenerateVertices(CenterPoint, Radius, Subdivisions, VertexBuffer.AsSpan());
+        Angle = angle;
+
+        GenerateVertices(CenterPoint, Radius, Subdivisions, VertexBuffer.AsSpan(), Angle);
     }
 
     /// <summary>
@@ -62,11 +70,11 @@ public class CircleDefinition : ShapeDefinition2D
     /// <param name="radius">The radius of the circle</param>
     /// <param name="subdivisions">The amount of vertices to subdivide the circle into</param>
     /// <param name="buffer">The location in memory into which to store the newly generated vertices</param>
-    /// <param name="angle">The portion of the circle to generate vertices for. For example: <c><see cref="float.Tau"/> / 2</c> would yield a half circle with <paramref name="subdivisions"/> subdivisions</param>
-    public static void GenerateVertices(Vector2 center, Radius radius, int subdivisions, Span<Vector2> buffer, float angle = float.Tau)
+    /// <param name="angle">The portion of the circle to generate vertices for. For example: <c>-<see cref="float.Tau"/> / 2</c> would yield a half circle with <paramref name="subdivisions"/> subdivisions</param>
+    public static void GenerateVertices(Vector2 center, Radius radius, int subdivisions, Span<Vector2> buffer, float angle = -float.Tau)
     {
-        var pbuf = new Vector2(center.X - radius, center.Y);
-        var rot = Matrix3x2.CreateRotation(-angle / subdivisions, center);
+        var pbuf = ElipseDefinition.GetStartingPoint(center, radius, radius);
+        var rot = Matrix3x2.CreateRotation(angle / subdivisions, center);
 
         for (int i = 0; i < subdivisions; i++)
         {
@@ -107,6 +115,14 @@ public class CircleDefinition : ShapeDefinition2D
         VertexBuffer.CopyTo(ret.AsSpan());
         return ret;
     }
+
+#if DEBUG
+    /// <inheritdoc/>
+    public override void RegenVertices()
+    {
+        GenerateVertices(CenterPoint, Radius, Subdivisions, VertexBuffer.AsSpan(0, Subdivisions), Angle);
+    }
+#endif
 
     /// <inheritdoc/>
     public override bool TryCopyTo(Span<Vector2> destination)
