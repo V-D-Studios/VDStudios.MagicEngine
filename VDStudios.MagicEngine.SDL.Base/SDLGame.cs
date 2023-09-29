@@ -1,5 +1,4 @@
 ﻿using SDL2.Bindings;
-using SDL2.NET;
 using VDStudios.MagicEngine.Graphics;
 
 namespace VDStudios.MagicEngine.SDL.Base;
@@ -7,6 +6,9 @@ namespace VDStudios.MagicEngine.SDL.Base;
 /// <summary>
 /// Implements <see cref="Game"/> for usage with SDL
 /// </summary>
+/// <remarks>
+/// If inheriting from this class is not an option, consider using <see cref="SDLGameHelpers"/>
+/// </remarks>
 public class SDLGame : Game
 {
     private readonly Func<SDLGame, GraphicsManager> CreateGraphicsManagerFunc;
@@ -25,13 +27,10 @@ public class SDLGame : Game
     /// Configures the environment surrounding this game
     /// </summary>
     /// <remarks>
-    /// The base implementation of this method sets SDL hints and default window flags
+    /// The base implementation of this method calls <see cref="SDLGameHelpers.ConfigureEnvironment"/>
     /// </remarks>
     protected virtual void ConfigureEnvironment()
-    {
-        if (OperatingSystem.IsWindows())
-            Hints.DisableThreadNaming.IsEnabled = true;
-    }
+        => SDLGameHelpers.ConfigureEnvironment();
 
     /// <inheritdoc/>
     protected override GraphicsManager CreateGraphicsManager()
