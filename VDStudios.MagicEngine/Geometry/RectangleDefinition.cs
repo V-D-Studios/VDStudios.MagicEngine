@@ -41,13 +41,26 @@ public class RectangleDefinition : ShapeDefinition2D
         Position = position;
         Size = size;
 
-        vertices = new Vector2[4]
-        {
-            Position,
-            new(Position.X, Position.Y + Size.Y),
-            Position + Size,
-            new(Position.X + Size.X, Position.Y)
-        };
+        vertices = new Vector2[4];
+        GenerateVertices(position, size, vertices);
+    }
+
+    /// <summary>
+    /// Generates the 4 vertices describing a rectangle into <paramref name="output"/>
+    /// </summary>
+    /// <param name="position">The position of the top-left corner of the rectangle</param>
+    /// <param name="size">The width and height of the rectangle</param>
+    /// <param name="output">The buffer that will contain the output vertices, must have a length of 4 or more</param>
+    /// <exception cref="ArgumentException">Thrown if output doesn't have a length of at least 4</exception>
+    public static void GenerateVertices(Vector2 position, Vector2 size, Span<Vector2> output)
+    {
+        if (output.Length < 4)
+            throw new ArgumentException("output must have a length of at least 4", nameof(output));
+
+        output[0] = position;
+        output[1] = new(position.X, position.Y + size.Y);
+        output[2] = position + size;
+        output[3] = new(position.X + size.X, position.Y);
     }
 
     /// <inheritdoc/>

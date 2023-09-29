@@ -30,7 +30,7 @@ public class SegmentDefinition : ShapeDefinition2D
 
         Span<Vector2> buff = stackalloc Vector2[4];
 
-        PolygonDefinition.Rectangle(a, new(Vector2.Distance(a, clampedB), width), buff);
+        RectangleDefinition.GenerateVertices(a, new(Vector2.Distance(a, clampedB), width), buff);
 
         for (int i = 0; i < 4; i++)
             ___vertices[i] = Vector2.Transform(buff[i], rotation);
