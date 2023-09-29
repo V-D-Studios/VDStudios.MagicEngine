@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using VDStudios.MagicEngine.Graphics.Veldrid.Caching;
+using VDStudios.MagicEngine.Internal;
 using Veldrid;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid;
@@ -8,7 +9,7 @@ namespace VDStudios.MagicEngine.Graphics.Veldrid;
 /// <summary>
 /// Represents a set of shared resources for a <see cref="VeldridGraphicsContext"/>
 /// </summary>
-public interface IVeldridGraphicsContextResources
+public interface IVeldridGraphicsContextResources : IGameObject
 {
     /// <summary>
     /// The <see cref="GraphicsDevice"/> for this context
