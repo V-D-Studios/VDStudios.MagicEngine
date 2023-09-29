@@ -17,9 +17,10 @@ public static class InputActions
     private static void ClearTexturedShape2DRendererGraphicsPipeline(GraphicsManager manager, InputSnapshot inputSnapshot, TimeSpan timestamp)
     {
         if (manager is VeldridGraphicsManager vgc &&
-            (inputSnapshot.ActiveModifiers & Input.KeyModifier.Ctrl) > 0 &&
-            inputSnapshot.KeyEventDictionary.TryGetValue(Input.Scancode.G, out var g) && inputSnapshot.KeyEventDictionary.TryGetValue(Input.Scancode.T, out var t) &&
-            (g.Repeat is false || t.Repeat is false))
+            inputSnapshot.KeyEventDictionary.TryGetValue(Input.Scancode.G, out var g) &&
+            inputSnapshot.KeyEventDictionary.TryGetValue(Input.Scancode.T, out var t) &&
+            inputSnapshot.KeyEventDictionary.TryGetValue(Input.Scancode.LeftCtrl, out var ctrl) &&
+            (g.FrameSnap.Elapsed is <= 1 || t.FrameSnap.Elapsed is <= 1 || ctrl.FrameSnap.Elapsed is <= 1)) 
         {
             var resources = vgc.Resources;
             resources.RemovePipeline<TexturedShape2DRenderer<Vertex2D, TextureCoordinate2D>>(out _);
