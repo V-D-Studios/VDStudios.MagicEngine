@@ -97,7 +97,6 @@ public class ElipseDefinition : ShapeDefinition2D
     /// <param name="angle">The portion of the ellipse to generate vertices for. For example: <c>-<see cref="float.Tau"/> / 2</c> would yield a half circle with <paramref name="subdivisions"/> subdivisions</param>
     public static void GenerateVertices(Vector2 center, Radius radiusX, Radius radiusY, int subdivisions, Span<Vector2> buffer, float angle = -float.Tau)
     {
-#warning These need to start in the lower-left corner, just like rectangles do. How do?
         //(radiusY, radiusX) = (radiusX, radiusY);
         var pbuf = GetStartingPoint(center, radiusX, radiusY, subdivisions, angle);
         var trans = Matrix3x2.CreateRotation(angle / subdivisions, center);
