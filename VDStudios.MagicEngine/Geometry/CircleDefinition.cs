@@ -73,7 +73,7 @@ public class CircleDefinition : ShapeDefinition2D
     /// <param name="angle">The portion of the circle to generate vertices for. For example: <c>-<see cref="float.Tau"/> / 2</c> would yield a half circle with <paramref name="subdivisions"/> subdivisions</param>
     public static void GenerateVertices(Vector2 center, Radius radius, int subdivisions, Span<Vector2> buffer, float angle = -float.Tau)
     {
-        var pbuf = ElipseDefinition.GetStartingPoint(center, radius, radius);
+        var pbuf = ElipseDefinition.GetStartingPoint(center, radius, radius, subdivisions, angle);
         var rot = Matrix3x2.CreateRotation(angle / subdivisions, center);
 
         for (int i = 0; i < subdivisions; i++)

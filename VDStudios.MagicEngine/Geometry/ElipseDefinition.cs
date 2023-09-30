@@ -74,12 +74,22 @@ public class ElipseDefinition : ShapeDefinition2D
     /// </remarks>
     /// <param name="center">The centerpoint of the ellipse</param>
     /// <param name="radiusX">The radius of the ellipse along the X axis</param>
+    /// <param name="subdivisions">The amount of vertices to subdivide the elipse into</param>
     /// <param name="radiusY">The radius of the ellipse along the Y axis</param>
-    public static Vector2 GetStartingPoint(Vector2 center, Radius radiusX, Radius radiusY)
+    /// <param name="angle">The portion of the ellipse to generate vertices for. For example: <c>-<see cref="float.Tau"/> / 2</c> would yield a half circle with <paramref name="subdivisions"/> subdivisions</param>
+    public static Vector2 GetStartingPoint(Vector2 center, Radius radiusX, Radius radiusY, int subdivisions, float angle = -float.Tau)
     {
-        var pbuf = new Vector2(center.X + radiusX, center.Y + radiusY);
-        return new Vector2(float.Min(pbuf.X, radiusX), float.Min(pbuf.Y, radiusY));
-#warning elipses are too large, and no, it's not natural
+        var trans = Matrix3x2.CreateRotation(angle / subdivisions / 2, center);
+        if (radiusY > radiusX)
+            return Vector2.Transform(new Vector2(center.X, center.Y + radiusX), trans);
+        else
+            return Vector2.Transform(new Vector2(center.X + radiusY, center.Y), trans);
+
+        var gr = radiusY > radiusX ? radiusX : radiusY;
+        return new Vector2(center.X, center.Y - gr);
+
+        var pbuf = new Vector2(center.X - radiusY, center.Y - radiusX);
+        return new Vector2(pbuf.X * radiusX, pbuf.Y * radiusY);
     }
 
     /// <summary>
@@ -98,7 +108,7 @@ public class ElipseDefinition : ShapeDefinition2D
     {
 #warning These need to start in the lower-left corner, just like rectangles do. How do?
         //(radiusY, radiusX) = (radiusX, radiusY);
-        var pbuf = GetStartingPoint(center, radiusX, radiusY);
+        var pbuf = GetStartingPoint(center, radiusX, radiusY, subdivisions, angle);
         var trans = Matrix3x2.CreateRotation(angle / subdivisions, center);
         var scale = radiusX.Diameter.CompareTo(radiusY.Diameter) switch
         {
