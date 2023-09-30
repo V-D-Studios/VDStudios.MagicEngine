@@ -10,8 +10,6 @@ namespace VDStudios.MagicEngine.Services;
 public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, IServiceRegistrar
     where TGameObject : GameObject
 {
-    private Dictionary<Type, object> InstantiatedSingletons { get; } = new();
-
     /// <summary>
     /// The <typeparamref name="TGameObject"/> that owns this <see cref="ChildServiceCollection{TGameObject}"/>
     /// </summary>
@@ -66,19 +64,6 @@ public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, ISe
         return Parent.InternalTryGetService(type, out info);
     }
 
-    internal override object FetchSingleton(ServiceInfo info)
-    {
-        lock (InstantiatedSingletons)
-            if (InstantiatedSingletons.TryGetValue(info.Type, out var obj))
-                return obj;
-            else
-            {
-                var o = info.Factory(info.Type, this);
-                InstantiatedSingletons.Add(info.Type, o);
-                return o;
-            }
-    }
-
     #region Registration
 
     internal override bool HasService(Type type)
@@ -125,7 +110,7 @@ public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, ISe
             throw new ArgumentException($"Cannot override a singleton Service. Service type: {type}", nameof(lifetime));
 
         lock (ServiceDictionary)
-            ServiceDictionary[type] = new(type, serviceFactory, lifetime);
+            ServiceDictionary[type] = new(type, serviceFactory, lifetime, this);
     }
 
     void IServiceRegistrar.RegisterService<TService>(Func<Type, ServiceCollection, TService> serviceFactory, ServiceLifetime lifetime)
@@ -136,7 +121,7 @@ public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, ISe
             throw new ArgumentException($"Cannot override a singleton Service. Service type: {typeof(TService)}", nameof(lifetime));
 
         lock (ServiceDictionary)
-            ServiceDictionary[typeof(TService)] = new(typeof(TService), serviceFactory, lifetime);
+            ServiceDictionary[typeof(TService)] = new(typeof(TService), serviceFactory, lifetime, this);
     }
 
     void IServiceRegistrar.RegisterService<TInterface, TService>(Func<Type, ServiceCollection, TService> serviceFactory, ServiceLifetime lifetime)
@@ -147,7 +132,7 @@ public sealed class ChildServiceCollection<TGameObject> : ServiceCollection, ISe
             throw new ArgumentException($"Cannot override a singleton Service. Service type: {typeof(TInterface)}", nameof(lifetime));
 
         lock (ServiceDictionary)
-            ServiceDictionary[typeof(TInterface)] = new(typeof(TInterface), serviceFactory, lifetime);
+            ServiceDictionary[typeof(TInterface)] = new(typeof(TInterface), serviceFactory, lifetime, this);
     }
 
     #endregion

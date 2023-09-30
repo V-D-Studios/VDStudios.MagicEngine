@@ -8,8 +8,6 @@ namespace VDStudios.MagicEngine.Services;
 /// </summary>
 public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
 {
-    private readonly Dictionary<Type, object> InstantiatedSingletons = new();
-
     internal GameServiceCollection(Game game) : base(game) { }
 
     /// <inheritdoc/>
@@ -43,19 +41,6 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
 
         lock (ServiceDictionary)
             return ServiceDictionary.TryGetValue(type, out info);
-    }
-
-    internal override object FetchSingleton(ServiceInfo info)
-    {
-        lock (InstantiatedSingletons)
-            if (InstantiatedSingletons.TryGetValue(info.Type, out var obj))
-                return obj;
-            else
-            {
-                var o = info.Factory(info.Type, this);
-                InstantiatedSingletons.Add(info.Type, o);
-                return o;
-            }
     }
 
     #region Registration
@@ -124,7 +109,7 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
             throw new ArgumentException("type cannot be a ValueType", nameof(type));
 
         lock (ServiceDictionary)
-            ServiceDictionary[type] = new(type, serviceFactory, lifetime);
+            ServiceDictionary[type] = new(type, serviceFactory, lifetime, this);
     }
 
     /// <summary>
@@ -137,7 +122,7 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
     {
         ThrowIfRegistrationDisabled();
         lock (ServiceDictionary)
-            ServiceDictionary[typeof(TService)] = new(typeof(TService), serviceFactory, lifetime);
+            ServiceDictionary[typeof(TService)] = new(typeof(TService), serviceFactory, lifetime, this);
     }
 
     /// <summary>
@@ -151,7 +136,7 @@ public sealed class GameServiceCollection : ServiceCollection, IServiceRegistrar
     {
         ThrowIfRegistrationDisabled();
         lock (ServiceDictionary)
-            ServiceDictionary[typeof(TInterface)] = new(typeof(TInterface), serviceFactory, lifetime);
+            ServiceDictionary[typeof(TInterface)] = new(typeof(TInterface), serviceFactory, lifetime, this);
     }
 
     #endregion

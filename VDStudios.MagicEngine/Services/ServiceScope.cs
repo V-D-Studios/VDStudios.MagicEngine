@@ -70,7 +70,7 @@ public sealed class ServiceScope : ServiceCollection, IDisposable
         object service = info.Lifetime == ServiceLifetime.Scoped
             ? scopeds.GetOrAdd(info.Type, info.Factory, this)
             : info.Lifetime == ServiceLifetime.Singleton
-            ? serviceCollection.FetchSingleton(info)
+            ? FetchSingleton(info)
             : info.Lifetime == ServiceLifetime.Transient
             ? info.Factory(info.Type, this)
             : throw new InvalidOperationException($"Unknown ServiceLifetime {info.Lifetime}");
@@ -87,7 +87,4 @@ public sealed class ServiceScope : ServiceCollection, IDisposable
 
     internal override bool InternalTryGetService(Type type, [MaybeNullWhen(false), NotNullWhen(true)] out ServiceInfo info)
         => serviceCollection.InternalTryGetService(type, out info);
-
-    internal override object FetchSingleton(ServiceInfo info)
-        => serviceCollection.FetchSingleton(info);
 }

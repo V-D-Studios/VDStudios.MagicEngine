@@ -12,7 +12,9 @@ public abstract class ServiceCollection : GameObject
     {
         scopePool = new(pool => new ServiceScope(this), static s => { }, 2);
     }
-    
+
+    internal Dictionary<Type, object> InstantiatedSingletons { get; } = new();
+
     /// <summary>
     /// Creates a new <see cref="ServiceScope"/> for this <see cref="ServiceCollection"/>, through which services with a lifetime of <see cref="ServiceLifetime.Scoped"/> or <see cref="ServiceLifetime.Transient"/> can be created
     /// </summary>
@@ -39,7 +41,19 @@ public abstract class ServiceCollection : GameObject
 
     internal abstract bool InternalTryGetService(Type type, [NotNullWhen(true)][MaybeNullWhen(false)] out ServiceInfo info);
 
-    internal abstract object FetchSingleton(ServiceInfo info);
+    static internal object FetchSingleton(ServiceInfo info)
+    {
+        var singletons = info.Owner.InstantiatedSingletons;
+        lock (singletons)
+            if (singletons.TryGetValue(info.Type, out var obj))
+                return obj;
+            else
+            {
+                var o = info.Factory(info.Type, info.Owner);
+                singletons.Add(info.Type, o);
+                return o;
+            }
+    }
 
     /// <summary>
     /// Tries to fetch the requested service from this collection or from upwards of the tree
