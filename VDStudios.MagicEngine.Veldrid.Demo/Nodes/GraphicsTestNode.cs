@@ -13,7 +13,9 @@ using VDStudios.MagicEngine.Graphics.Veldrid;
 using VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
 using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
 using VDStudios.MagicEngine.Timing;
+using VDStudios.MagicEngine.Veldrid.Demo.Services;
 using Veldrid;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace VDStudios.MagicEngine.Veldrid.Demo.Nodes;
 
@@ -22,11 +24,15 @@ public class GraphicsTestNode : Node
     public readonly ShapeDefinition2D CircleShape;
     public readonly ShapeDefinition2D SquareShape;
     public readonly ShapeDefinition2D ElipseShape;
+    public readonly ShapeDefinition2D VerticalElipseShape;
+    public readonly ShapeDefinition2D PartialElipseShape;
     public readonly ShapeDefinition2D PolygonShape;
 
+    public readonly Shape2DRenderer PartialElipse;
     public readonly Shape2DRenderer Circle;
     public readonly Shape2DRenderer Square;
     public readonly Shape2DRenderer Elipse;
+    public readonly Shape2DRenderer VerticalElipse;
     public readonly Shape2DRenderer Polygon;
 
     public readonly TexturedShape2DRenderer TexturedCircle;
@@ -38,9 +44,11 @@ public class GraphicsTestNode : Node
 
     public GraphicsTestNode(Game game) : base(game)
     {
+        PartialElipse = new Shape2DRenderer(PartialElipseShape = new ElipseDefinition(new Vector2(0, 0), .6f, .3f, 100, -float.Tau / 3f), game);
         Circle = new Shape2DRenderer(CircleShape = new CircleDefinition(new Vector2(0, 0), .6f, 100), game);
         Square = new Shape2DRenderer(SquareShape = new RectangleDefinition(new Vector2(0, 0), new Vector2(.7f, .8f)), game);
         Elipse = new Shape2DRenderer(ElipseShape = new ElipseDefinition(new Vector2(0, 0), .6f, .3f, 100), game);
+        VerticalElipse = new Shape2DRenderer(VerticalElipseShape = new ElipseDefinition(new Vector2(0, 0), .3f, .6f, 100), game);
         Polygon = new Shape2DRenderer(PolygonShape = new PolygonDefinition(stackalloc Vector2[]
         {
             new(330.71074380165294f / 500f, 494.82644628099155f / 500f),
@@ -57,33 +65,22 @@ public class GraphicsTestNode : Node
         var textureCache = res.TextureCache;
         var samplerCache = res.SamplerCache;
 
-        TexturedCircle = new TexturedShape2DRenderer(new CircleDefinition(new Vector2(0, 0), .6f, 100), game,
+        TexturedCircle = new TexturedShape2DRenderer(CircleShape, game,
             textureFactory: textureCache.GetResource("robin").OwnerDelegate,
             samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
             viewFactory: textureCache.GetResource("robin").GetResource("default").ResourceDelegate
         );
-        TexturedSquare = new TexturedShape2DRenderer(new RectangleDefinition(new Vector2(0, 0), new Vector2(.7f, .8f)), game,
+        TexturedSquare = new TexturedShape2DRenderer(SquareShape, game,
             textureFactory: textureCache.GetResource("robin").OwnerDelegate,
             samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
             viewFactory: textureCache.GetResource("robin").GetResource("default").ResourceDelegate
         );
-        TexturedElipse = new TexturedShape2DRenderer(new ElipseDefinition(new Vector2(0, 0), .6f, .3f, 100), game,
+        TexturedElipse = new TexturedShape2DRenderer(ElipseShape, game,
             textureFactory: textureCache.GetResource("robin").OwnerDelegate,
             samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
             viewFactory: textureCache.GetResource("robin").GetResource("default").ResourceDelegate
         );
-        TexturedPolygon = new TexturedShape2DRenderer(new PolygonDefinition(
-            stackalloc Vector2[]
-            {
-                new(330.71074380165294f / 500f, 494.82644628099155f / 500f),
-                new(539.801652892562f / 500f, 439.4545454545454f / 500f),
-                new(626.876207061902f / 500f, 241.4568745545897f / 500f),
-                new(526.365491022952f / 500f, 49.92971818522767f / 500f),
-                new(313.956123998003f / 500f, 9.09693153458295f / 500f),
-                new(149.59669171830413f / 500f, 149.7064357876441f / 500f),
-                new(157.05319901188642f / 500f, 365.87640633068054f / 500f)
-            }, true), 
-            game,
+        TexturedPolygon = new TexturedShape2DRenderer(PolygonShape, game,
             textureFactory: textureCache.GetResource("baum").OwnerDelegate,
             samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
             viewFactory: textureCache.GetResource("baum").GetResource("default").ResourceDelegate
@@ -100,6 +97,8 @@ public class GraphicsTestNode : Node
             Square.PipelineIndex = Square.PipelineIndex > 0u ? 0u : 1u;
             Elipse.PipelineIndex = Elipse.PipelineIndex > 0u ? 0u : 1u;
             Polygon.PipelineIndex = Polygon.PipelineIndex > 0u ? 0u : 1u;
+            VerticalElipse.PipelineIndex = VerticalElipse.PipelineIndex > 0u ? 0u : 1u;
+            PartialElipse.PipelineIndex = PartialElipse.PipelineIndex > 0u ? 0u : 1u; 
 
             PipelineTimer.Restart();
 
@@ -110,9 +109,13 @@ public class GraphicsTestNode : Node
 
         //TexturedSquare.TransformationState.Transform(new Vector3(.4f, -.4f, 1));
         Elipse.TransformationState.Transform(new Vector3(-.3f, -.5f, 0));
+        //Elipse.TransformationState.Transform(new Vector3(0, 0, 0));
+        //TexturedElipse.TransformationState.Transform(new Vector3(0, 0, 0));
         Polygon.TransformationState.Transform(new Vector3(-.7f, -.1f, 0));
+        //TexturedCircle.TransformationState.Transform(new Vector3(0, 0, 0));
 
         TexturedPolygon.TransformationState.Transform(new Vector3(-.7f, 0f, 0f));
+        PartialElipse.TransformationState.Transform(new Vector3(-.7f, .4f, 0));
 
         return base.Updating(delta);
     }
@@ -120,12 +123,6 @@ public class GraphicsTestNode : Node
     protected override async ValueTask Attaching(Scene scene)
     {
         await base.Attaching(scene);
-
-        var shps = scene.Services.GetService<GameState>().Shapes;
-        shps.Add(CircleShape);
-        shps.Add(ElipseShape);
-        shps.Add(SquareShape);
-        shps.Add(PolygonShape);
 
         if (scene.GetDrawOperationManager<VeldridGraphicsContext>(out var drawOperationManager) is false)
             Debug.Fail("Could not find a DrawOperationManager for VeldridGraphicsContext");
@@ -139,6 +136,9 @@ public class GraphicsTestNode : Node
         await drawOperationManager.AddDrawOperation(TexturedSquare);
         await drawOperationManager.AddDrawOperation(TexturedElipse);
         await drawOperationManager.AddDrawOperation(TexturedPolygon);
+
+        await drawOperationManager.AddDrawOperation(VerticalElipse);
+        await drawOperationManager.AddDrawOperation(PartialElipse);
 
         var vgc = (VeldridGraphicsManager)Game.MainGraphicsManager;
         var res = vgc.Resources;
@@ -183,6 +183,8 @@ public class GraphicsTestNode : Node
         await Square.WaitUntilReady();
         await Elipse.WaitUntilReady();
         await Polygon.WaitUntilReady();
+        await VerticalElipse.WaitUntilReady();
+        await PartialElipse.WaitUntilReady();
 
         await TexturedCircle.WaitUntilReady();
         await TexturedSquare.WaitUntilReady();
@@ -201,5 +203,55 @@ public class GraphicsTestNode : Node
         Elipse.ColorTransformation = ColorTransformation.CreateTint(RgbaVector.Yellow);
 
         Polygon.ColorTransformation = ColorTransformation.CreateTint(RgbaVector.Red);
+
+        VerticalElipse.ColorTransformation = ColorTransformation.CreateTint(RgbaVector.Green);
+
+        PartialElipse.ColorTransformation = ColorTransformation.CreateTint(RgbaVector.Cyan);
+
+        var vgs = scene.Services.GetService<VeldridGameState>();
+
+        vgs.Shapes.Add(VerticalElipseShape);
+        vgs.Shapes.Add(CircleShape);
+        vgs.Shapes.Add(ElipseShape);
+        vgs.Shapes.Add(SquareShape);
+        vgs.Shapes.Add(PartialElipseShape);
+
+        vgs.DrawOperations.Add(Circle);
+        vgs.DrawOperations.Add(Square);
+        vgs.DrawOperations.Add(Elipse);
+        vgs.DrawOperations.Add(VerticalElipse);
+        vgs.DrawOperations.Add(PartialElipse);
+
+        vgs.DrawOperations.Add(TexturedCircle);
+        vgs.DrawOperations.Add(TexturedSquare);
+        vgs.DrawOperations.Add(TexturedElipse);
+    }
+
+    protected override ValueTask Detaching()
+    {
+        Debug.Assert(ParentScene is not null, "ParentScene was unexpectedly null when detaching");
+
+        var vgs = ParentScene.Services.GetService<VeldridGameState>();
+
+        vgs.Shapes.Remove(VerticalElipseShape);
+        vgs.Shapes.Remove(CircleShape);
+        vgs.Shapes.Remove(ElipseShape);
+        vgs.Shapes.Remove(SquareShape);
+        vgs.Shapes.Remove(PolygonShape);
+        vgs.Shapes.Remove(PartialElipseShape);
+
+        vgs.DrawOperations.Remove(Circle);
+        vgs.DrawOperations.Remove(Square);
+        vgs.DrawOperations.Remove(Elipse);
+        vgs.DrawOperations.Remove(Polygon);
+        vgs.DrawOperations.Remove(VerticalElipse);
+        vgs.DrawOperations.Remove(PartialElipse);
+
+        vgs.DrawOperations.Remove(TexturedCircle);
+        vgs.DrawOperations.Remove(TexturedSquare);
+        vgs.DrawOperations.Remove(TexturedElipse);
+        vgs.DrawOperations.Remove(TexturedPolygon);
+
+        return base.Detaching();
     }
 }

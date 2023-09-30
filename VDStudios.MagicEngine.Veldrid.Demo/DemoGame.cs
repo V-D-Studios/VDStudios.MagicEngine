@@ -11,6 +11,7 @@ using VDStudios.MagicEngine.Graphics.Veldrid;
 using VDStudios.MagicEngine.SDL.Base;
 using VDStudios.MagicEngine.Services;
 using VDStudios.MagicEngine.Veldrid.Demo.Scenes;
+using VDStudios.MagicEngine.Veldrid.Demo.Services;
 
 namespace VDStudios.MagicEngine.Veldrid.Demo;
 
@@ -37,6 +38,7 @@ public class DemoGame : SDLGame
     protected override void RegisteringServices(IServiceRegistrar registrar)
     {
         base.RegisteringServices(registrar);
+        registrar.RegisterService((g, s) => new VeldridGameState(s), ServiceLifetime.Singleton);
     }
 
     protected override void Start(Scene firstScene)
@@ -54,6 +56,8 @@ public class DemoGame : SDLGame
     private static Task Main(string[] args)
     {
         var game = new DemoGame();
-        return game.StartGame(g => new TestScene(g));
+        var x = game.StartGame(g => new TestScene(g));
+        Serilog.Log.Logger = game.GetLogger("Program", "Gameless Log", typeof(DemoGame), "Global");
+        return x;
     }
 }

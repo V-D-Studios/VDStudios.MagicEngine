@@ -8,8 +8,6 @@ namespace VDStudios.MagicEngine.Demo.Common.Services;
 
 public class GameState : GameObject
 {
-    public List<ShapeDefinition2D> Shapes { get; } = new();
-
     public GameState(ServiceCollection services) : base(services.Game, "Global", "State")
     {
         var inman = services.GetService<InputManagerService>();

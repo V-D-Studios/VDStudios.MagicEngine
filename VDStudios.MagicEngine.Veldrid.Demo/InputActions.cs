@@ -1,10 +1,12 @@
-﻿using Serilog;
+﻿using System.Reflection;
+using Serilog;
 using VDStudios.MagicEngine.Demo.Common.Services;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.Veldrid;
 using VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
 using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
 using VDStudios.MagicEngine.Input;
+using VDStudios.MagicEngine.Veldrid.Demo.Services;
 
 namespace VDStudios.MagicEngine.Veldrid.Demo;
 
@@ -25,9 +27,17 @@ public static class InputActions
             snapshot.KeyEventDictionary.TryGetValue(Input.Scancode.LeftCtrl, out var ctrl) &&
             (g.FrameSnap.Elapsed is <= 1 || t.FrameSnap.Elapsed is <= 1 || ctrl.FrameSnap.Elapsed is <= 1))
         {
-            foreach (var x in manager.Game.GameServices.GetService<GameState>().Shapes)
+            var vgs = manager.Game.GameServices.GetService<VeldridGameState>();
+            foreach (var x in vgs.Shapes)
                 x.RegenVertices();
-            Log.Information("Regenerated vertices of all registered shapes");
+
+            foreach (var x in vgs.DrawOperations)
+            {
+                if (x.GetType().GetMethod("NotifyPendingVertexRegeneration") is MethodInfo mthd)
+                    mthd.Invoke(x, null);
+            }
+
+            manager.Game.GetLogger("Debug", "Input", typeof(InputActions)).Information("Regenerated vertices of all registered shapes");
         }
 #endif
     }
@@ -43,7 +53,7 @@ public static class InputActions
             var resources = vgc.Resources;
             resources.RemovePipeline<TexturedShape2DRenderer<Vertex2D, TextureCoordinate2D>>(out _);
             resources.ShaderCache.RemoveResource<TexturedShape2DRenderer<Vertex2D, TextureCoordinate2D>>(out _);
-            Log.Information("Cleared Default Pipeline and ShaderSet for TexturedShape2DRenderer<Vertex2D, TextureCoordinate2D>");
+            manager.Game.GetLogger("Debug", "Input", typeof(InputActions)).Information("Cleared Default Pipeline and ShaderSet for TexturedShape2DRenderer<Vertex2D, TextureCoordinate2D>");
         }
     }
 }
