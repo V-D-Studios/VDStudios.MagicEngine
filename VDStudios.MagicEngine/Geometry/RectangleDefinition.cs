@@ -57,10 +57,10 @@ public class RectangleDefinition : ShapeDefinition2D
         if (output.Length < 4)
             throw new ArgumentException("output must have a length of at least 4", nameof(output));
 
-        output[0] = position;
-        output[1] = new(position.X, position.Y + size.Y);
-        output[2] = position + size;
-        output[3] = new(position.X + size.X, position.Y);
+        output[0] = new(position.X - size.X / 2, position.Y + size.Y / 2);
+        output[1] = position + size / 2;
+        output[2] = new(position.X + size.X / 2, position.Y - size.Y / 2);
+        output[3] = position - size / 2;
     }
 
 #if DEBUG
