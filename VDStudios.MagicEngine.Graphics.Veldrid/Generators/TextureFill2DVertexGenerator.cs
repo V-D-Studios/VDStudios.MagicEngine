@@ -24,13 +24,18 @@ public class TextureFill2DVertexGenerator : IVertexGenerator<Vector2, TextureCoo
         if (input.Length != output.Length)
             throw new ArgumentException("input and output spans length mismatch", nameof(input));
 
+        Vector2 offset = default;
+        for (int i = 0; i < output.Length; i++)
+            offset = Vector2.Min(input[i], offset);
+        offset *= -1; // default is 0,0; leaving either 0 (resulting in 0) or only negative numbers to invert
+
         Vector2 distant = default;
         for (int i = 0; i < output.Length; i++)
-            distant = Vector2.Max(distant, Vector2.Abs(input[i]));
+            distant = Vector2.Max(distant, offset + input[i]);
         Matrix3x2 trans = Matrix3x2.CreateScale(1 / distant.X, 1 / distant.Y);
 
         for (int i = 0; i < output.Length; i++)
-            output[i] = new(Vector2.Transform(input[output.Length - 1 - i], trans));
+            output[i] = new(Vector2.Transform((offset - input[output.Length - 1 - i]) * -1, trans));
     }
 
     /// <inheritdoc/>
