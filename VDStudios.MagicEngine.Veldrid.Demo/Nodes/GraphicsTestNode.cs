@@ -114,6 +114,7 @@ public class GraphicsTestNode : Node
         Polygon.TransformationState.Transform(new Vector3(-.7f, -.1f, 0));
         //TexturedCircle.TransformationState.Transform(new Vector3(0, 0, 0));
 
+        TexturedSquare.TransformationState.Transform(new(.8f, .6f, 0f));
         TexturedPolygon.TransformationState.Transform(new Vector3(-.7f, 0f, 0f));
         PartialElipse.TransformationState.Transform(new Vector3(-.7f, .4f, 0));
 
