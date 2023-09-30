@@ -81,9 +81,9 @@ public class ElipseDefinition : ShapeDefinition2D
     {
         var trans = Matrix3x2.CreateRotation(angle / subdivisions / 2, center);
         if (radiusY > radiusX)
-            return Vector2.Transform(new Vector2(center.X, center.Y + radiusX), trans);
+            return Vector2.Transform(new Vector2(center.X, center.Y - radiusX), trans);
         else
-            return Vector2.Transform(new Vector2(center.X + radiusY, center.Y), trans);
+            return Vector2.Transform(new Vector2(center.X - radiusY, center.Y), trans);
 
         var gr = radiusY > radiusX ? radiusX : radiusY;
         return new Vector2(center.X, center.Y - gr);
