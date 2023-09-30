@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Reflection;
+using Serilog;
 
 namespace VDStudios.MagicEngine.Geometry;
 
@@ -244,7 +245,7 @@ public class PolygonDefinition : ShapeDefinition2D, IStructuralEquatable
     /// <inheritdoc/>
     public override void RegenVertices()
     {
-        throw new NotImplementedException("Cannot regenerate the vertices of an arbitrary polygon");
+        Log.Error("PolygonDefinition: Cannot regenerate the vertices of an arbitrary polygon");
     }
 #endif
 
