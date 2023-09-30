@@ -31,7 +31,7 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
     /// <param name="manager">The <see cref="VeldridGraphicsManager"/> that owns this <see cref="VeldridGraphicsContext"/></param>
     /// <param name="device">The <see cref="GraphicsDevice"/> tied to the manager</param>
     /// <exception cref="ArgumentNullException"></exception>
-    public VeldridGraphicsContext(GraphicsManager<VeldridGraphicsContext> manager, GraphicsDevice device) : base(manager)
+    public VeldridGraphicsContext(VeldridGraphicsManager manager, GraphicsDevice device) : base(manager)
     {
         GraphicsDevice = device;
         commandListPool = new(p => ResourceFactory.CreateCommandList(), _ => { });
@@ -385,13 +385,18 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
 
     /// <inheritdoc/>
     public VeldridFrameReport FrameReport { get; private set; }
-
-    internal void AssignCommandList(VeldridRenderTarget target)
+    
+    internal CommandList RentCommandList()
     {
         var cl = commandListPool.Rent().Item;
         cl.Begin();
         commands.Add(cl);
-        target.cl = cl;
+        return cl;
+    }
+
+    internal void AssignCommandList(VeldridRenderTarget target)
+    {
+        target.cl = RentCommandList();
     }
 
     internal void RemoveCommandList(VeldridRenderTarget target)
