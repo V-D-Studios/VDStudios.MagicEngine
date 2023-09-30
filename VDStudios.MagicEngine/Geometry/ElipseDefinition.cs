@@ -80,16 +80,7 @@ public class ElipseDefinition : ShapeDefinition2D
     public static Vector2 GetStartingPoint(Vector2 center, Radius radiusX, Radius radiusY, int subdivisions, float angle = -float.Tau)
     {
         var trans = Matrix3x2.CreateRotation(angle / subdivisions / 2, center);
-        if (radiusY > radiusX)
-            return Vector2.Transform(new Vector2(center.X, center.Y - radiusX), trans);
-        else
-            return Vector2.Transform(new Vector2(center.X - radiusY, center.Y), trans);
-
-        var gr = radiusY > radiusX ? radiusX : radiusY;
-        return new Vector2(center.X, center.Y - gr);
-
-        var pbuf = new Vector2(center.X - radiusY, center.Y - radiusX);
-        return new Vector2(pbuf.X * radiusX, pbuf.Y * radiusY);
+        return Vector2.Transform(radiusY > radiusX ? new Vector2(center.X, center.Y - radiusX) : new Vector2(center.X - radiusY, center.Y), trans);
     }
 
     /// <summary>
