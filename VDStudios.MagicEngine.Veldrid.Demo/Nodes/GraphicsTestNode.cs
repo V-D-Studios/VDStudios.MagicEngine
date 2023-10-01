@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using SDL2.NET;
 using VDStudios.MagicEngine.Demo.Common.Services;
+using VDStudios.MagicEngine.Extensions.ImGuiExtension;
+using VDStudios.MagicEngine.Extensions.ImGuiExtension.Elements;
 using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.Veldrid;
@@ -64,6 +66,8 @@ public class GraphicsTestNode : Node
         var res = vgc.Resources;
         var textureCache = res.TextureCache;
         var samplerCache = res.SamplerCache;
+
+        vgc.ImGUIElements.Add(new FPSWatch(game));
 
         TexturedCircle = new TexturedShape2DRenderer(CircleShape, game,
             textureFactory: textureCache.GetResource("robin").OwnerDelegate,
