@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using VDStudios.MagicEngine.Exceptions;
 
 namespace VDStudios.MagicEngine.Graphics.Veldrid.GUI;
 
@@ -13,9 +14,11 @@ public sealed class ImGUIElementList : IReadOnlyCollection<ImGUIElement>
     internal readonly object sync = new();
 
     private readonly HashSet<ImGUIElement> elements;
+    private readonly GraphicsManager Manager;
 
-    internal ImGUIElementList()
+    internal ImGUIElementList(GraphicsManager manager)
     {
+        Manager = manager ?? throw new ArgumentNullException(nameof(manager));
         elements = new();
     }
 
@@ -42,7 +45,10 @@ public sealed class ImGUIElementList : IReadOnlyCollection<ImGUIElement>
     public bool Remove(ImGUIElement el)
     {
         lock (sync)
+        {
+            GameMismatchException.ThrowIfMismatch(el, Manager);
             return elements.Remove(el);
+        }
     }
 
     /// <summary>
@@ -53,7 +59,10 @@ public sealed class ImGUIElementList : IReadOnlyCollection<ImGUIElement>
     public bool Add(ImGUIElement item)
     {
         lock (sync)
+        {
+            GameMismatchException.ThrowIfMismatch(item, Manager);
             return elements.Add(item);
+        }
     }
 
     /// <summary>
