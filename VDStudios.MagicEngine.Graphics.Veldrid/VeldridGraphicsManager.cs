@@ -399,42 +399,6 @@ public class VeldridGraphicsManager : SDLGraphicsManagerBase<VeldridGraphicsCont
                         context.Update(delta);
                         context.BeginFrame();
 
-                        Task? imguiTask = null;
-
-                        if (ImGUIElements.Count > 0) // There's no need to lock neither glock nor ImGUI lock if there are no elements to render. And if it does change between this check and the second one, then tough luck and it'll have to wait until the next frame
-                        {
-                            if (!WaitOn(guilock, condition: isRunning, out var guilockwaiter)) break; // Frame Render Stage 1: (Background Thread) ImGUI drawing
-                            if (ImGUIElements.Count > 0) // We check twice, as it may have changed between the first check and the lock being adquired
-                            {
-                                using (guilockwaiter)
-                                {
-                                    var snapshot = FetchSnapshot();
-                                    lock (ImGUIElements.sync)
-                                    {
-                                        imGUIElementBuffer.Clear();
-                                        foreach (var el in ImGUIElements)
-                                            if (el.IsActive)
-                                                imGUIElementBuffer.Add(el);
-                                    }
-
-                                    lock (ImGuiSync)
-                                    {
-                                        ImGuiRenderer.Update((float)delta.TotalSeconds, snapshot);
-                                        ImGui.NewFrame();
-
-                                        for (int i = 0; i < imGUIElementBuffer.Count; i++)
-                                            imGUIElementBuffer[i].SubmitUI(delta, this);
-
-                                        ImGui.EndFrame();
-                                        var cl = context.RentCommandList();
-                                        context.ImGuiCommandList = cl;
-                                        ImGuiRenderer.Render(context.GraphicsDevice, cl);
-                                        cl.End();
-                                    }
-                                }
-                            }
-                        }
-
                         if (!WaitOn(drawlock, condition: isRunning, out var drawlockwaiter)) break; // Frame Render Stage 2: General Drawing
                         using (drawlockwaiter)
                         {
@@ -497,8 +461,39 @@ public class VeldridGraphicsManager : SDLGraphicsManagerBase<VeldridGraphicsCont
                             }
                         }
 
-                        imguiTask?.ConfigureAwait(false).GetAwaiter().GetResult();
-                        imguiTask = null;
+                        if (ImGUIElements.Count > 0) // There's no need to lock neither glock nor ImGUI lock if there are no elements to render. And if it does change between this check and the second one, then tough luck and it'll have to wait until the next frame
+                        {
+                            if (!WaitOn(guilock, condition: isRunning, out var guilockwaiter)) break; // Frame Render Stage 1: (Background Thread) ImGUI drawing
+                            if (ImGUIElements.Count > 0) // We check twice, as it may have changed between the first check and the lock being adquired
+                            {
+                                using (guilockwaiter)
+                                {
+                                    var snapshot = FetchSnapshot();
+                                    lock (ImGUIElements.sync)
+                                    {
+                                        imGUIElementBuffer.Clear();
+                                        foreach (var el in ImGUIElements)
+                                            if (el.IsActive)
+                                                imGUIElementBuffer.Add(el);
+                                    }
+
+                                    lock (ImGuiSync)
+                                    {
+                                        ImGuiRenderer.Update((float)delta.TotalSeconds, snapshot);
+
+                                        for (int i = 0; i < imGUIElementBuffer.Count; i++)
+                                            imGUIElementBuffer[i].SubmitUI(delta, this);
+                                        imGUIElementBuffer.Clear();
+
+                                        var cl = context.RentCommandList();
+                                        cl.SetFramebuffer(context.GraphicsDevice.SwapchainFramebuffer);
+                                        context.ImGuiCommandList = cl;
+                                        ImGuiRenderer.Render(context.GraphicsDevice, cl);
+                                        cl.End();
+                                    }
+                                }
+                            }
+                        }
 
                         BeforeSubmitFrame();
 
