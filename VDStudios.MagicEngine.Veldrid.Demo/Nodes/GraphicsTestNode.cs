@@ -15,6 +15,7 @@ using VDStudios.MagicEngine.Graphics.Veldrid;
 using VDStudios.MagicEngine.Graphics.Veldrid.DrawOperations;
 using VDStudios.MagicEngine.Graphics.Veldrid.GPUTypes;
 using VDStudios.MagicEngine.Timing;
+using VDStudios.MagicEngine.Veldrid.Demo.ImGuiElements;
 using VDStudios.MagicEngine.Veldrid.Demo.Services;
 using Veldrid;
 using static System.Formats.Asn1.AsnWriter;
@@ -66,8 +67,6 @@ public class GraphicsTestNode : Node
         var res = vgc.Resources;
         var textureCache = res.TextureCache;
         var samplerCache = res.SamplerCache;
-
-        vgc.ImGUIElements.Add(new FPSWatch(game));
 
         TexturedCircle = new TexturedShape2DRenderer(CircleShape, game,
             textureFactory: textureCache.GetResource("robin").OwnerDelegate,

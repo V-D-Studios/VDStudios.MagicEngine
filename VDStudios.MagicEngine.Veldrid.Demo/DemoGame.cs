@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using SDL2.NET;
@@ -7,9 +8,11 @@ using SDL2.NET.Utilities;
 using Serilog;
 using VDStudios.MagicEngine.Demo.Common.Services;
 using VDStudios.MagicEngine.DemoResources;
+using VDStudios.MagicEngine.Extensions.ImGuiExtension.Elements;
 using VDStudios.MagicEngine.Graphics.Veldrid;
 using VDStudios.MagicEngine.SDL.Base;
 using VDStudios.MagicEngine.Services;
+using VDStudios.MagicEngine.Veldrid.Demo.ImGuiElements;
 using VDStudios.MagicEngine.Veldrid.Demo.Scenes;
 using VDStudios.MagicEngine.Veldrid.Demo.Services;
 
@@ -44,6 +47,9 @@ public class DemoGame : SDLGame
     protected override void Start(Scene firstScene)
     {
         MainGraphicsManager.InputReady += InputActions.Check;
+        var vgc = (VeldridGraphicsManager)MainGraphicsManager;
+        vgc.ImGUIElements.Add(new FPSWatch(this));
+        vgc.ImGUIElements.Add(new DebugActionsButtonPane(this));
     }
 
     //protected override void RegisteringServices(IServiceRegistrar registrar)
