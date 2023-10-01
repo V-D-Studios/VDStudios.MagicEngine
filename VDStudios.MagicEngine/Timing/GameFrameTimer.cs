@@ -1,4 +1,6 @@
-﻿namespace VDStudios.MagicEngine.Timing;
+﻿using VDStudios.MagicEngine.Graphics;
+
+namespace VDStudios.MagicEngine.Timing;
 
 /// <summary>
 /// Represents a timer that can be used to time events using a <see cref="Game"/>'s frames as reference for time
@@ -41,4 +43,9 @@ public readonly record struct GameFrameTimer(Game Game, uint Lapse)
     /// </remarks>
     public GameFrameTimer RestartNew()
         => new(Game, Lapse);
+
+    /// <summary>
+    /// <see langword="true"/> if this timer is not attached to a <see cref="Game"/>
+    /// </summary>
+    public bool IsDefault => Game is null;
 }

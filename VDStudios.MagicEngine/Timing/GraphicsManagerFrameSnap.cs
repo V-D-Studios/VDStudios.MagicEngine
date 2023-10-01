@@ -14,4 +14,9 @@ public readonly record struct GraphicsManagerFrameSnap(GraphicsManager GraphicsM
     /// The current offset between <see cref="GraphicsManager"/>'s current frame and the one snapped by this object
     /// </summary>
     public uint Elapsed => (uint)(GraphicsManager.FrameCount - Start);
+
+    /// <summary>
+    /// <see langword="true"/> if this snap is not attached to a <see cref="GraphicsManager"/>
+    /// </summary>
+    public bool IsDefault => GraphicsManager is null;
 }

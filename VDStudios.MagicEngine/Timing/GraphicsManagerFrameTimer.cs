@@ -51,6 +51,11 @@ public readonly record struct GraphicsManagerFrameTimer(GraphicsManager Graphics
     public bool HasClocked => Clocks > 0;
 
     /// <summary>
+    /// <see langword="true"/> if this timer is not attached to a <see cref="GraphicsManager"/>
+    /// </summary>
+    public bool IsDefault => GraphicsManager is null;
+
+    /// <summary>
     /// Creates a new <see cref="GraphicsManagerFrameTimer"/> that contains the same parameters as this one, but begins counting from the moment this call completes
     /// </summary>
     /// <remarks>
