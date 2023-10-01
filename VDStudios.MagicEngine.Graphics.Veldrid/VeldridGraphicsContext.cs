@@ -394,13 +394,14 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
     {
         var cl = commandListPool.Rent().Item;
         cl.Begin();
-        CommandLists.Add(cl);
         return cl;
     }
 
     internal void AssignCommandList(VeldridRenderTarget target)
     {
-        target.cl = RentCommandList();
+        var cl = RentCommandList();
+        CommandLists.Add(cl);
+        target.cl = cl;
     }
 
     internal void RemoveCommandList(VeldridRenderTarget target)
