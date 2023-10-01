@@ -56,8 +56,6 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
         SamplerCache = new(this);
 }
 
-    private readonly ObjectPool<CommandList> commandListPool;
-
     /// <inheritdoc/>
     public GraphicsDevice GraphicsDevice { get; }
 
@@ -373,7 +371,10 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
     /// </summary>
     public ResourceSet FrameReportSet { get; }
 
-    private readonly List<CommandList> commands = new();
+    /// <inheritdoc/>
+    public VeldridFrameReport FrameReport { get; private set; }
+
+    #region Command Lists
 
     /// <summary>
     /// The primary <see cref="CommandList"/> for this <see cref="VeldridGraphicsContext"/>
@@ -383,14 +384,17 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
     /// </remarks>
     public CommandList CommandList { get; }
 
-    /// <inheritdoc/>
-    public VeldridFrameReport FrameReport { get; private set; }
-    
+    private readonly ObjectPool<CommandList> commandListPool;
+
+    private readonly List<CommandList> CommandLists = new();
+
+    internal CommandList? ImGuiCommandList;
+
     internal CommandList RentCommandList()
     {
         var cl = commandListPool.Rent().Item;
         cl.Begin();
-        commands.Add(cl);
+        CommandLists.Add(cl);
         return cl;
     }
 
@@ -405,6 +409,8 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
         target.cl.End();
         target.cl = null;
     }
+
+    #endregion
 
     /// <inheritdoc/>
     public override void Update(TimeSpan delta)
@@ -437,7 +443,7 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
         CommandList.End();
         GraphicsDevice.SubmitCommands(CommandList);
 
-        var cmds = CollectionsMarshal.AsSpan(commands);
+        var cmds = CollectionsMarshal.AsSpan(CommandLists);
         for (int i = 0; i < cmds.Length; i++)
         {
             var cmd = cmds[i];
@@ -445,9 +451,16 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
             commandListPool.Return(cmd);
         }
 
+        if (ImGuiCommandList is CommandList igcl)
+        {
+            GraphicsDevice.SubmitCommands(igcl);
+            commandListPool.Return(igcl);
+            ImGuiCommandList = null;
+        }
+
         GraphicsDevice.WaitForIdle();
         GraphicsDevice.SwapBuffers();
 
-        commands.Clear();
+        CommandLists.Clear();
     }
 }
