@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using VDStudios.MagicEngine.Graphics;
 
-namespace VDStudios.MagicEngine.Extensions.ImGui;
+namespace VDStudios.MagicEngine.Extensions.ImGuiExtension;
 
 /// <summary>
 /// Represents an operation that is ready to be drawn into the GUI.

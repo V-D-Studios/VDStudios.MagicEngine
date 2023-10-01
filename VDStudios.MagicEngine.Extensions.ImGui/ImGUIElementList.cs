@@ -2,7 +2,7 @@
 using VDStudios.MagicEngine.Exceptions;
 using VDStudios.MagicEngine.Graphics;
 
-namespace VDStudios.MagicEngine.Extensions.ImGui;
+namespace VDStudios.MagicEngine.Extensions.ImGuiExtension;
 
 /// <summary>
 /// Represents a list of elements in a <see cref="GraphicsManager{TGraphicsContext}"/>
