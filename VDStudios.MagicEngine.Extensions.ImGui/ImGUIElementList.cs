@@ -1,7 +1,8 @@
 ﻿using System.Collections;
 using VDStudios.MagicEngine.Exceptions;
+using VDStudios.MagicEngine.Graphics;
 
-namespace VDStudios.MagicEngine.Graphics.Veldrid.GUI;
+namespace VDStudios.MagicEngine.Extensions.ImGui;
 
 /// <summary>
 /// Represents a list of elements in a <see cref="GraphicsManager{TGraphicsContext}"/>

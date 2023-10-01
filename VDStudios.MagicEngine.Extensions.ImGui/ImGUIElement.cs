@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
+using VDStudios.MagicEngine.Graphics;
 
-namespace VDStudios.MagicEngine.Graphics.Veldrid.GUI;
+namespace VDStudios.MagicEngine.Extensions.ImGui;
 
 /// <summary>
 /// Represents an operation that is ready to be drawn into the GUI.
