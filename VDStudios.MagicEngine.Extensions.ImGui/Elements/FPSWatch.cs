@@ -26,14 +26,16 @@ public class FPSWatch : ImGUIElement
         if (timer.IsDefault)
             timer = new GraphicsManagerFrameTimer(graphicsManager, 10);
 
-        if (timer.HasClocked)
+        if (ImGui.Begin("FPS Watch"))
         {
-            fpsstring = graphicsManager.FramesPerSecond.ToString("0.00");
-            timer.Restart();
+            if (timer.HasClocked)
+            {
+                fpsstring = graphicsManager.FramesPerSecond.ToString("0.00");
+                timer.Restart();
+            }
+            ImGui.Text(fpsstring);
         }
 
-        ImGui.Begin("FPS Watch");
-        ImGui.Text(fpsstring);
         ImGui.End();
     }
 }
