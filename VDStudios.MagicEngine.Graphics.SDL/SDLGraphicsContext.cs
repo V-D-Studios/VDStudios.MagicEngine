@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using SDL2.NET;
 using VDStudios.MagicEngine.Graphics;
+using VDStudios.MagicEngine.SDL.Base;
 
 namespace VDStudios.MagicEngine.Graphics.SDL;
 
