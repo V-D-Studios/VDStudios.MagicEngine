@@ -176,12 +176,73 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
     private Sampler? Sampler;
     private TextureView? TextureView;
 
-    private readonly GraphicsResourceFactory<Texture> TextureFactory;
-    private readonly GraphicsResourceFactory<Sampler> SamplerFactory;
-    private readonly GraphicsResourceFactory<Texture, TextureView> ViewFactory;
+    private GraphicsResourceFactory<Texture> TextureFactory;
+    private GraphicsResourceFactory<Sampler> SamplerFactory;
+    private GraphicsResourceFactory<Texture, TextureView> ViewFactory;
 
     private ResourceLayout? TextureLayout;
     private ResourceSet? TextureSet;
+
+    /// <summary>
+    /// Replaces the texture, sampler and/or texture view of this <see cref="TexturedShape2DRenderer"/>
+    /// </summary>
+    /// <param name="textureFactory"></param>
+    /// <param name="samplerFactory"></param>
+    /// <param name="viewFactory"></param>
+    public void SetTexture(
+        GraphicsResourceFactory<Texture>? textureFactory,
+        GraphicsResourceFactory<Sampler>? samplerFactory,
+        GraphicsResourceFactory<Texture, TextureView>? viewFactory
+    )
+    {
+        Debug.Assert(SamplerFactory is not null, "SamplerFactory was unexpectedly null");
+        Debug.Assert(ViewFactory is not null, "ViewFactory was unexpectedly null");
+        Debug.Assert(TextureFactory is not null, "TextureFactory was unexpectedly null");
+
+        if (samplerFactory is not null && samplerFactory != SamplerFactory)
+        {
+            SamplerFactory = samplerFactory;
+            Sampler?.Dispose();
+            Sampler = null;
+            TextureSet = null;
+        }
+
+        if (textureFactory is not null && textureFactory != TextureFactory)
+        {
+            TextureFactory = textureFactory;
+
+            TextureView?.Dispose();
+            Texture?.Dispose();
+
+            TextureView = null;
+            Texture = null;
+
+            TextureSet = null;
+        }
+
+        if (viewFactory is not null && viewFactory != ViewFactory)
+        {
+            ViewFactory = viewFactory;
+            TextureView?.Dispose();
+            TextureView = null;
+            TextureSet = null;
+        }
+    }
+
+    private ResourceSet GetTextureResourceSet(VeldridGraphicsContext context)
+    {
+        Debug.Assert(TextureLayout is not null, "The TextureLayout was unexpectedly null when creating Texture related resources");
+        if (TextureSet is not ResourceSet set)
+        {
+            Texture ??= TextureFactory(context) ?? throw new InvalidOperationException("TextureFactory unexpectedly produced a null result");
+            Sampler ??= SamplerFactory(context) ?? throw new InvalidOperationException("SamplerFactory unexpectedly produced a null result");
+            TextureView ??= ViewFactory(context, Texture) ?? throw new InvalidOperationException("ViewFactory unexpectedly produced a null result");
+
+            TextureSet = set = context.ResourceFactory.CreateResourceSet(new ResourceSetDescription(TextureLayout, TextureView, Sampler));
+        }
+
+        return set;
+    }
 
     /// <inheritdoc/>
     protected override void VerticesRegenerated(VeldridGraphicsContext context)
@@ -241,10 +302,6 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
     {
         base.CreateGPUResources(context); // The base class was constructed with SkipResourceCreation set to true, this is for the grandbase's (VeldridDrawOperation) resources
 
-        Texture = TextureFactory(context) ?? throw new InvalidOperationException("TextureFactory unexpectedly produced a null result");
-        Sampler = SamplerFactory(context) ?? throw new InvalidOperationException("SamplerFactory unexpectedly produced a null result");
-        TextureView = ViewFactory(context, Texture) ?? throw new InvalidOperationException("ViewFactory unexpectedly produced a null result");
-
         if (context.TryGetResourceLayout(typeof(TexturedShape2DRenderer<,>), out TextureLayout) is false)
             context.RegisterResourceLayout(typeof(TexturedShape2DRenderer<,>), 
                 TextureLayout = context.ResourceFactory.CreateResourceLayout(
@@ -255,19 +312,19 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
                 )
             , out _);
 
-        TextureSet = context.ResourceFactory.CreateResourceSet(new ResourceSetDescription(TextureLayout, TextureView, Sampler));
         context.GetOrAddPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(pipelinefactory);
     }
 
     /// <inheritdoc/>
     protected override void Draw(TimeSpan delta, VeldridGraphicsContext context, RenderTarget<VeldridGraphicsContext> t)
     {
+        var textureSet = GetTextureResourceSet(context);
+
         Debug.Assert(VertexBuffer is not null, "VertexBuffer was unexpectedly null at the time of drawing");
         Debug.Assert(TextureCoordinateBuffer is not null, "TextureCoordinateBuffer was unexpectedly null at the time of drawing");
         Debug.Assert(IndexBuffer is not null, "IndexBuffer was unexpectedly null at the time of drawing");
         Debug.Assert(t is VeldridRenderTarget, "target is not of type VeldridRenderTarget");
         Debug.Assert(DrawOperationResourceSet is not null, "DrawOperationResourceSet was unexpectedly null at the time of drawing");
-        Debug.Assert(TextureSet is not null, "TextureSet was unexpectedly null at the time of drawing");
 
         var target = (VeldridRenderTarget)t;
         var cl = target.CommandList;
@@ -277,7 +334,7 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
         Pipeline pipe = PipelineIndex == 0
             ? context.GetOrAddPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(pipelinefactory)
             : context.GetPipeline<TexturedShape2DRenderer<TVertex, TTextureCoordinate>>(PipelineIndex);
-
+         
         cl.SetPipeline(pipe);
 
         cl.SetVertexBuffer(0, VertexBuffer, VertexSetOffset);
@@ -288,7 +345,7 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
         cl.SetGraphicsResourceSet(0, context.FrameReportSet);
         cl.SetGraphicsResourceSet(1, target.TransformationSet);
         cl.SetGraphicsResourceSet(2, DrawOperationResourceSet);
-        cl.SetGraphicsResourceSet(3, TextureSet);
+        cl.SetGraphicsResourceSet(3, textureSet);
 
         cl.DrawIndexed(IndexCount, 2, 0, 0, 0);
     }
