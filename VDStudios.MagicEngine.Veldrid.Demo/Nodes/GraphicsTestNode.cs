@@ -127,7 +127,20 @@ public class GraphicsTestNode : Node
         var vgc = (VeldridGraphicsManager)Game.MainGraphicsManager;
         var res = vgc.Resources;
 
-        var shaders = Shape2DRenderer.GetDefaultShaders(res);
+        var shape2Dshaders = Shape2DRenderer.GetDefaultShaders(res);
+        var texturedShape2Dshaders = TexturedShape2DRenderer.GetDefaultShaders(res);
+
+        await Circle.WaitUntilReady();
+        await Square.WaitUntilReady();
+        await Elipse.WaitUntilReady();
+        await Polygon.WaitUntilReady();
+        await VerticalElipse.WaitUntilReady();
+        await PartialElipse.WaitUntilReady();
+
+        await TexturedCircle.WaitUntilReady();
+        await TexturedSquare.WaitUntilReady();
+        await TexturedElipse.WaitUntilReady();
+        await TexturedPolygon.WaitUntilReady();
 
         if (res.ContainsPipeline<Shape2DRenderer<VertexColor2D>>(1) is false)
             res.RegisterPipeline<Shape2DRenderer<VertexColor2D>>(res.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription(
@@ -151,7 +164,7 @@ public class GraphicsTestNode : Node
                     {
                         VertexColor2D.GetDescription(),
                     },
-                    shaders
+                    shape2Dshaders
                 ),
                 resourceLayouts: new ResourceLayout[]
                 {
@@ -163,17 +176,41 @@ public class GraphicsTestNode : Node
                 resourceBindingModel: ResourceBindingModel.Improved
             )), out _, 1);
 
-        await Circle.WaitUntilReady();
-        await Square.WaitUntilReady();
-        await Elipse.WaitUntilReady();
-        await Polygon.WaitUntilReady();
-        await VerticalElipse.WaitUntilReady();
-        await PartialElipse.WaitUntilReady();
-
-        await TexturedCircle.WaitUntilReady();
-        await TexturedSquare.WaitUntilReady();
-        await TexturedElipse.WaitUntilReady();
-        await TexturedPolygon.WaitUntilReady();
+        if (res.ContainsPipeline<TexturedShape2DRenderer<Vertex2D, TextureCoordinate2D>>(1) is false)
+            res.RegisterPipeline<TexturedShape2DRenderer<Vertex2D, TextureCoordinate2D>>(res.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription(
+                blendState: BlendStateDescription.SingleAlphaBlend,
+                depthStencilStateDescription: new DepthStencilStateDescription(
+                    depthTestEnabled: true,
+                    depthWriteEnabled: true,
+                    comparisonKind: ComparisonKind.LessEqual
+                ),
+                rasterizerState: new RasterizerStateDescription
+                (
+                    cullMode: FaceCullMode.Back,
+                    fillMode: PolygonFillMode.Wireframe,
+                    frontFace: FrontFace.Clockwise,
+                    depthClipEnabled: true,
+                    scissorTestEnabled: false
+                ),
+                primitiveTopology: PrimitiveTopology.TriangleList,
+                shaderSet: new ShaderSetDescription(
+                    new VertexLayoutDescription[]
+                    {
+                        VertexColor2D.GetDescription(),
+                        TextureCoordinate2D.GetDescription(),
+                    },
+                    texturedShape2Dshaders
+                ),
+                resourceLayouts: new ResourceLayout[]
+                {
+                    res.FrameReportLayout,
+                    res.GetResourceLayout<VeldridRenderTarget>(),
+                    res.GetResourceLayout<VeldridDrawOperation>(),
+                    res.GetResourceLayout(typeof(TexturedShape2DRenderer<,>))
+                },
+                outputs: res.GraphicsDevice.SwapchainFramebuffer.OutputDescription,
+                resourceBindingModel: ResourceBindingModel.Improved
+            )), out _, 1);
 
         TexturedCircle.TransformationState.Transform(new Vector3(-.8f, -.8f, 0));
         TexturedSquare.TransformationState.Transform(new Vector3(0, 0, 0));
