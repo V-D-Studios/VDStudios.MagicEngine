@@ -119,6 +119,8 @@ public class TexturedShape2DRenderer<TVertex, TTextureCoordinate> : Shape2DRende
         SamplerFactory = samplerFactory;
 
         pipelinefactory = PipelineFactory;
+
+        PipelineCategory = typeof(TexturedShape2DRenderer<TVertex, TTextureCoordinate>);
     }
 
     /// <summary>

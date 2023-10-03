@@ -180,6 +180,11 @@ public class Shape2DRenderer<TVertex> : VeldridDrawOperation
     public uint AvailableVertexSets { get; private set; }
 
     /// <summary>
+    /// The pipeline category of this type
+    /// </summary>
+    public Type PipelineCategory { get; protected init; } = typeof(Shape2DRenderer<TVertex>);
+
+    /// <summary>
     /// The index of the vertex set to use
     /// </summary>
     public uint VertexSet
