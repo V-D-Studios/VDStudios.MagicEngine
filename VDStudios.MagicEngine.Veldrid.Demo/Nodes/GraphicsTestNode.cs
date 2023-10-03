@@ -43,8 +43,6 @@ public class GraphicsTestNode : Node
     public readonly TexturedShape2DRenderer TexturedElipse;
     public readonly TexturedShape2DRenderer TexturedPolygon;
 
-    public GraphicsManagerFrameTimer PipelineTimer;
-
     public GraphicsTestNode(Game game) : base(game)
     {
         PartialElipse = new Shape2DRenderer(PartialElipseShape = new ElipseDefinition(new Vector2(0, 0), .6f, .3f, 100, -float.Tau / 3f), game);
@@ -88,28 +86,10 @@ public class GraphicsTestNode : Node
             samplerFactory: samplerCache.GetResource("default").ResourceDelegate,
             viewFactory: textureCache.GetResource("baum").GetResource("default").ResourceDelegate
         );
-
-        PipelineTimer = new GraphicsManagerFrameTimer(Game.MainGraphicsManager, 60);
     }
 
     protected override ValueTask<bool> Updating(TimeSpan delta)
     {
-        if (PipelineTimer.HasClocked)
-        {
-            Circle.PipelineIndex = Circle.PipelineIndex > 0u ? 0u : 1u;
-            Square.PipelineIndex = Square.PipelineIndex > 0u ? 0u : 1u;
-            Elipse.PipelineIndex = Elipse.PipelineIndex > 0u ? 0u : 1u;
-            Polygon.PipelineIndex = Polygon.PipelineIndex > 0u ? 0u : 1u;
-            VerticalElipse.PipelineIndex = VerticalElipse.PipelineIndex > 0u ? 0u : 1u;
-            PartialElipse.PipelineIndex = PartialElipse.PipelineIndex > 0u ? 0u : 1u; 
-
-            PipelineTimer.Restart();
-
-            Square.IsActive = false;
-            Circle.IsActive = false;
-            Polygon.IsActive = false;
-        }
-
         //TexturedSquare.TransformationState.Transform(new Vector3(.4f, -.4f, 1));
         Elipse.TransformationState.Transform(new Vector3(-.3f, -.5f, 0));
         //Elipse.TransformationState.Transform(new Vector3(0, 0, 0));
@@ -117,8 +97,8 @@ public class GraphicsTestNode : Node
         Polygon.TransformationState.Transform(new Vector3(-.7f, -.1f, 0));
         //TexturedCircle.TransformationState.Transform(new Vector3(0, 0, 0));
 
-        TexturedSquare.TransformationState.Transform(new(.8f, .6f, 0f));
-        TexturedPolygon.TransformationState.Transform(new Vector3(-.7f, 0f, 0f));
+        TexturedSquare.TransformationState.Transform(new(.8f, .6f, 0.1f));
+        TexturedPolygon.TransformationState.Transform(new Vector3(-.7f, 0f, 1f));
         PartialElipse.TransformationState.Transform(new Vector3(-.7f, .4f, 0));
 
         return base.Updating(delta);

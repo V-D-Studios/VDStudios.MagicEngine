@@ -50,6 +50,7 @@ public class DemoGame : SDLGame
         var vgc = (VeldridGraphicsManager)MainGraphicsManager;
         vgc.ImGUIElements.Add(new FPSWatch(this));
         vgc.ImGUIElements.Add(new DebugActionsButtonPane(this));
+        vgc.ImGUIElements.Add(new PipelineSwitchPane(this));
     }
 
     //protected override void RegisteringServices(IServiceRegistrar registrar)
