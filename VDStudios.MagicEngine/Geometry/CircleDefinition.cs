@@ -64,10 +64,10 @@ public class CircleDefinition : ShapeDefinition2D
         Radius = radius;
         Subdivisions = subdivisions;
 
-        VertexBuffer = new Vector2[Count];
         Angle = angle;
+        VertexBuffer = new Vector2[Count];
 
-        GenerateVertices(CenterPoint, Radius, Subdivisions, VertexBuffer.AsSpan(), Angle);
+        GenerateVertices(CenterPoint, Radius, Subdivisions, VertexBuffer.AsSpan(0, Count), Angle);
     }
 
     /// <summary>
@@ -137,7 +137,7 @@ public class CircleDefinition : ShapeDefinition2D
     /// <inheritdoc/>
     public override void RegenVertices()
     {
-        GenerateVertices(CenterPoint, Radius, Subdivisions, VertexBuffer.AsSpan(0, Subdivisions), Angle);
+        GenerateVertices(CenterPoint, Radius, Subdivisions, VertexBuffer.AsSpan(0, Count), Angle);
     }
 #endif
 
