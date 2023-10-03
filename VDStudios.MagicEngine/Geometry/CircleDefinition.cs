@@ -25,12 +25,22 @@ public class CircleDefinition : ShapeDefinition2D
     public int Subdivisions { get; }
 
     /// <summary>
-    /// The portion of the elipse this definition represents
+    /// The portion of the circle this definition represents
     /// </summary>
     public float Angle { get; }
 
+    /// <summary>
+    /// Whether this is a full circle
+    /// </summary>
+    public bool IsFull => float.Abs(Angle) == float.Tau;
+
+    /// <summary>
+    /// Whether or not this circle's vertices are ordered clockwise
+    /// </summary>
+    public bool IsClockwise => Angle < 0;
+
     /// <inheritdoc/>
-    public override int Count => Subdivisions;
+    public override int Count => IsFull ? Subdivisions : Subdivisions + 1;
 
     /// <inheritdoc/>
     public override Vector2 this[int index] => VertexBuffer[index];
@@ -54,7 +64,7 @@ public class CircleDefinition : ShapeDefinition2D
         Radius = radius;
         Subdivisions = subdivisions;
 
-        VertexBuffer = new Vector2[Subdivisions];
+        VertexBuffer = new Vector2[Count];
         Angle = angle;
 
         GenerateVertices(CenterPoint, Radius, Subdivisions, VertexBuffer.AsSpan(), Angle);
@@ -73,10 +83,17 @@ public class CircleDefinition : ShapeDefinition2D
     /// <param name="angle">The portion of the circle to generate vertices for. For example: <c>-<see cref="float.Tau"/> / 2</c> would yield a half circle with <paramref name="subdivisions"/> subdivisions</param>
     public static void GenerateVertices(Vector2 center, Radius radius, int subdivisions, Span<Vector2> buffer, float angle = -float.Tau)
     {
+        int i = 0;
+        if (float.Abs(angle) != float.Tau)
+        {
+            subdivisions += 1;
+            buffer[i++] = center;
+        }
+
         var pbuf = ElipseDefinition.GetStartingPoint(center, radius, radius, subdivisions, angle);
         var rot = Matrix3x2.CreateRotation(angle / subdivisions, center);
 
-        for (int i = 0; i < subdivisions; i++)
+        for (; i < subdivisions; i++)
         {
             buffer[i] = pbuf;
             pbuf = Vector2.Transform(pbuf, rot);

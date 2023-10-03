@@ -36,9 +36,19 @@ public class ElipseDefinition : ShapeDefinition2D
     /// The portion of the elipse this definition represents
     /// </summary>
     public float Angle { get; }
+    
+    /// <summary>
+    /// Whether this is a full elipse
+    /// </summary>
+    public bool IsFull => float.Abs(Angle) == float.Tau;
+
+    /// <summary>
+    /// Whether or not this elipse's vertices are ordered clockwise
+    /// </summary>
+    public bool IsClockwise => Angle < 0;
 
     /// <inheritdoc/>
-    public override int Count => Subdivisions;
+    public override int Count => IsFull ? Subdivisions : Subdivisions + 1;
 
     /// <inheritdoc/>
     public override Vector2 this[int index] => VertexBuffer[index];
@@ -62,8 +72,8 @@ public class ElipseDefinition : ShapeDefinition2D
         if (subdivisions < 3)
             throw new ArgumentException("A Circumference's subdivision count cannot be less than 3", nameof(subdivisions));
 
-        ___vertexBuffer = new Vector2[Subdivisions];
-        GenerateVertices(CenterPoint, RadiusX, RadiusY, Subdivisions, ___vertexBuffer.AsSpan(0, Subdivisions), angle);
+        ___vertexBuffer = new Vector2[Count];
+        GenerateVertices(CenterPoint, RadiusX, RadiusY, Subdivisions, ___vertexBuffer.AsSpan(0, Count), angle);
     }
 
     /// <summary>
@@ -97,7 +107,13 @@ public class ElipseDefinition : ShapeDefinition2D
     /// <param name="angle">The portion of the ellipse to generate vertices for. For example: <c>-<see cref="float.Tau"/> / 2</c> would yield a half circle with <paramref name="subdivisions"/> subdivisions</param>
     public static void GenerateVertices(Vector2 center, Radius radiusX, Radius radiusY, int subdivisions, Span<Vector2> buffer, float angle = -float.Tau)
     {
-        //(radiusY, radiusX) = (radiusX, radiusY);
+        int i = 0;
+        if (float.Abs(angle) != float.Tau)
+        {
+            subdivisions += 1;
+            buffer[i++] = center;
+        }
+
         var pbuf = GetStartingPoint(center, radiusX, radiusY, subdivisions, angle);
         var trans = Matrix3x2.CreateRotation(angle / subdivisions, center);
         var scale = radiusX.Diameter.CompareTo(radiusY.Diameter) switch
@@ -107,7 +123,7 @@ public class ElipseDefinition : ShapeDefinition2D
             _ => Matrix3x2.Identity
         };
 
-        for (int i = 0; i < subdivisions; i++)
+        for (; i < subdivisions; i++)
         {
             buffer[i] = Vector2.Transform(pbuf, scale);
             pbuf = Vector2.Transform(pbuf, trans);
@@ -118,7 +134,7 @@ public class ElipseDefinition : ShapeDefinition2D
     /// <inheritdoc/>
     public override void RegenVertices()
     {
-        GenerateVertices(CenterPoint, RadiusX, RadiusY, Subdivisions, ___vertexBuffer.AsSpan(0, Subdivisions), Angle);
+        GenerateVertices(CenterPoint, RadiusX, RadiusY, Subdivisions, ___vertexBuffer.AsSpan(0, Count), Angle);
     }
 #endif
 
