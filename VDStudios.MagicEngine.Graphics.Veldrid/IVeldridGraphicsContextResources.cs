@@ -147,6 +147,16 @@ public interface IVeldridGraphicsContextResources : IGameObject
     /// <param name="indexA">The original index of the pipeline to move to <paramref name="indexB"/></param>
     /// <param name="indexB">The original index of the pipeline to move to <paramref name="indexA"/></param>
     public void ExchangePipelines(Type type, uint indexA, uint indexB);
+    
+    /// <summary>
+    /// Gets whether or not there are pipelines registered for <paramref name="type"/>
+    /// </summary>
+    public bool HasPipelinesFor(Type type);
+
+    /// <summary>
+    /// Gets whether or not there are pipelines registered for <typeparamref name="T"/>
+    /// </summary>
+    public bool HasPipelinesFor<T>();
 
     /// <summary>
     /// Gets a list of all the currently registered pipeline categories

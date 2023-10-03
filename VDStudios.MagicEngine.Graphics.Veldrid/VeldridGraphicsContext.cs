@@ -102,6 +102,14 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
         => RemovePipeline(typeof(T), out pipeline, index);
 
     /// <inheritdoc/>
+    public bool HasPipelinesFor(Type type)
+        => pipelines.ContainsKey(type);
+
+    /// <inheritdoc/>
+    public bool HasPipelinesFor<T>()
+        => HasPipelinesFor(typeof(T));
+
+    /// <inheritdoc/>
     public IEnumerable<Type> GetPipelineCategories()
         => pipelines.Keys;
 
