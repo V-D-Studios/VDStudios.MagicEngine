@@ -65,11 +65,16 @@ public class PipelineSwitchPane : ImGUIElement
                     {
                         var (_, indexProp, indices) = dat;
                         var cind = (uint)indexProp.GetValue(dop)!;
+
+                        bool state = dop.IsActive;
+                        ImGui.Checkbox("Is Active", ref state);
+                        dop.IsActive = state;
+
                         for (int i = 0; i < indices.Count; i++)
                         {
                             var index = indices[i];
                             var active = indices[i] == cind;
-                            if (ImGui.RadioButton($"Index {index}", active) && active is false)
+                            if (ImGui.RadioButton($"Pipeline index: {index}", active) && active is false)
                                 indexProp.SetValue(dop, index);
                         }
                         ImGui.EndMenu();
