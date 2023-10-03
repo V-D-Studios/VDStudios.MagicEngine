@@ -148,6 +148,23 @@ public interface IVeldridGraphicsContextResources : IGameObject
     /// <param name="indexB">The original index of the pipeline to move to <paramref name="indexA"/></param>
     public void ExchangePipelines(Type type, uint indexA, uint indexB);
 
+    /// <summary>
+    /// Gets a list of all the currently registered pipeline categories
+    /// </summary>
+    public IEnumerable<Type> GetPipelineCategories();
+
+    /// <summary>
+    /// Gets a list of the indices of the available pipelines under <paramref name="type"/>
+    /// </summary>
+    /// <param name="type">The type that the pipeline's indices are under</param>
+    public IEnumerable<uint> GetPipelineIndicesFor(Type type);
+
+    /// <summary>
+    /// Gets a list of the indices of the available pipelines under <typeparamref name="T"/>
+    /// </summary>
+    /// <typeparam name="T">The type that the pipeline's indices are under</typeparam>
+    public IEnumerable<uint> GetPipelineIndicesFor<T>();
+
     #endregion
 
     #region Resource Layouts

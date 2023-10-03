@@ -102,6 +102,24 @@ public class VeldridGraphicsContext : GraphicsContext<VeldridGraphicsContext>, I
         => RemovePipeline(typeof(T), out pipeline, index);
 
     /// <inheritdoc/>
+    public IEnumerable<Type> GetPipelineCategories()
+        => pipelines.Keys;
+
+    /// <inheritdoc/>
+    public IEnumerable<uint> GetPipelineIndicesFor(Type type)
+    {
+        Dictionary<uint, Pipeline>? pd;
+        lock (pipelines)
+            if (pipelines.TryGetValue(type, out pd) is false)
+                throw new ArgumentException($"Could not find a pipeline set for type {type}", nameof(type));
+        return pd.Keys;
+    }
+
+    /// <inheritdoc/>
+    public IEnumerable<uint> GetPipelineIndicesFor<T>()
+        => GetPipelineIndicesFor(typeof(T));
+
+    /// <inheritdoc/>
     public Pipeline GetPipeline(Type type, uint index = 0)
     {
         Dictionary<uint, Pipeline>? pd;
