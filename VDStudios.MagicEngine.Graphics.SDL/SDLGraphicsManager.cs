@@ -7,59 +7,17 @@ using ImGuiNET;
 using SDL2.NET;
 using SDL2.NET.SDLImage;
 using VDStudios.MagicEngine.Graphics;
-using VDStudios.MagicEngine.Graphics.SDL.GUI;
-using VDStudios.MagicEngine.Graphics.SDL.Internal;
 using VDStudios.MagicEngine.Input;
-using static SDL2.Bindings.SDL;
+using VDStudios.MagicEngine.SDL.Base;
 
 namespace VDStudios.MagicEngine.Graphics.SDL;
 
 /// <summary>
 /// A <see cref="GraphicsManager{TGraphicsContext}"/> for SDL
 /// </summary>
-public class SDLGraphicsManager : MagicEngine.SDL.Base.SDLGraphicsManagerBase<SDLGraphicsContext>
+/// <inheritdoc/>
+public class SDLGraphicsManager(Game game, WindowConfig? windowConfig = null) : SDLGraphicsManagerBase<SDLGraphicsContext>(game, windowConfig)
 {
-    /// <summary>
-    /// The list of ImGUI Elements
-    /// </summary>
-    public ImGUIElementList ImGUIElements { get; } = new();
-    private readonly List<ImGUIElement> imGUIElementBuffer = new();
-    private readonly ImGuiController imGuiController;
-
-    private readonly static object ImGuiSync = new();
-
-    private void UpdateImGuiInput(InputSnapshot snapshot)
-    {
-        imGuiController.UpdateImGuiInput(snapshot);
-    }
-
-    private void RenderImGuiElements(TimeSpan delta)
-    {
-        lock (ImGUIElements.sync)
-        {
-            imGUIElementBuffer.Clear();
-            foreach (var el in ImGUIElements)
-                if (el.IsActive)
-                    imGUIElementBuffer.Add(el);
-        }
-
-        lock (ImGuiSync)
-        {
-            imGuiController.InitializeSDLRenderer(Renderer);
-            ImGui.NewFrame();
-            imGuiController.NewFrame();
-
-            for (int i = 0; i < imGUIElementBuffer.Count; i++)
-                imGUIElementBuffer[i].SubmitUI(delta);
-
-            ImGui.EndFrame();
-            imGuiController.RenderDrawData();
-        }
-    }
-
-    /// <inheritdoc/>
-    public override IntVector2 WindowSize { get; protected set; }
-
     private SDLGraphicsContext? context;
 
     /// <summary>
@@ -67,19 +25,6 @@ public class SDLGraphicsManager : MagicEngine.SDL.Base.SDLGraphicsManagerBase<SD
     /// </summary>
     public Renderer Renderer { get => renderer ?? throw new InvalidOperationException("Cannot get the Renderer of an SDLGraphicsManager that has not been launched"); private set => renderer = value; }
     private Renderer? renderer;
-
-    /// <summary>
-    /// <see cref="Window"/>'s configuration
-    /// </summary>
-    public WindowConfig WindowConfig { get; }
-
-    /// <inheritdoc/>
-    public SDLGraphicsManager(Game game, WindowConfig? windowConfig = null) : base(game) 
-    {
-        WindowConfig = windowConfig ?? WindowConfig.Default;
-        imGuiController = new(this);
-        WindowView = Matrix4x4.Identity;
-    }
 
     /// <inheritdoc/>
     protected override SDLGraphicsContext FetchGraphicsContext()
@@ -90,15 +35,7 @@ public class SDLGraphicsManager : MagicEngine.SDL.Base.SDLGraphicsManagerBase<SD
     }
 
     /// <inheritdoc/>
-    protected override void FramelockedDispose(bool disposing)
-    {
-        DisposeSDLResources();
-    }
-
-    /// <summary>
-    /// Disposes of SDL's resources by unsubscribing from events and disposing of <see cref="Renderer"/> and <see cref="Window"/>
-    /// </summary>
-    protected void DisposeSDLResources()
+    protected override void DisposeSDLResources()
     {
         if (renderer is not null)
             Renderer.Dispose();
@@ -110,100 +47,12 @@ public class SDLGraphicsManager : MagicEngine.SDL.Base.SDLGraphicsManagerBase<SD
     }
 
     /// <inheritdoc/>
-    protected override InputSnapshotBuffer CreateNewEmptyInputSnapshotBuffer()
-        => new SDLInputSnapshotBuffer(this);
-
-    /// <inheritdoc/>
-    protected override void SetupGraphicsManager() { }
-
-    /// <inheritdoc/>
-    protected override async ValueTask AwaitIfFaulted()
-    {
-        if (WindowThread is null)
-            throw new InvalidOperationException();
-
-        if (WindowThread.IsCompleted)
-        {
-            try
-            {
-                await WindowThread;
-            }
-            finally
-            {
-                IsRunning = false;
-            }
-        }
-    }
-
-    #region Window Thread
-
-    private Task? WindowThread;
-
-    /// <inheritdoc/>
     protected override void BeforeRun()
     {
         Window.CreateWindowAndRenderer(Game.GameTitle, 800, 600, out var win, out var ren, configuration: WindowConfig);
         Window = win;
         Renderer = ren;
         ConfigureWindow();
-    }
-
-    /// <inheritdoc/>
-    protected override void DisposeRunningResources()
-    {
-        DisposeSDLResources();
-    }
-
-    /// <inheritdoc/>
-    protected override void RunningWindowLocked(TimeSpan delta)
-    {
-        while (WindowActionQueue.TryDequeue(out var action))
-            action(Window);
-    }
-
-    /// <inheritdoc/>
-    protected override void UpdateWhileWaitingOnWindow()
-    {
-        Events.Update();
-        Thread.Sleep(100);
-    }
-
-    /// <inheritdoc/>
-    protected override void BeforeFrameRelease()
-    {
-        //RenderImGuiElements(delta);
-    }
-
-    /// <inheritdoc/>
-    protected override void BeforeWindowRelease()
-    {
-        Events.Update();
-    }
-
-    /// <inheritdoc/>
-    protected override void AtFrameEnd()
-    {
-        UpdateImGuiInput(FetchSnapshot());
-    }
-
-    /// <inheritdoc/>
-    protected override void Launch()
-    {
-        FrameLock.Wait();
-        WindowThread = Task.Run(Run);
-        FrameLock.Wait();
-        FrameLock.Release();
-    }
-
-    #endregion
-
-    /// <inheritdoc/>
-    protected override void Dispose(bool disposing)
-    {
-        base.Dispose(disposing);
-
-        lock (ImGuiSync)
-            imGuiController.Shutdown();
     }
 
     internal record class ScreenshotRequest(Stream Output, ScreenshotImageFormat Format, int JpegQuality)
@@ -240,7 +89,7 @@ public class SDLGraphicsManager : MagicEngine.SDL.Base.SDLGraphicsManagerBase<SD
     {
         var winsize = WindowSize;
         var srf = new Surface(winsize.X, winsize.Y, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-        Renderer.ReadPixels(PixelFormat.Unknown, srf.GetPixels(out _), srf.Pitch);
+        Renderer.ReadPixels(SDL2.NET.PixelFormat.Unknown, srf.GetPixels(out _), srf.Pitch);
         return srf;
     }
 
@@ -310,4 +159,7 @@ public class SDLGraphicsManager : MagicEngine.SDL.Base.SDLGraphicsManagerBase<SD
                         }
                 }
     }
+
+    /// <inheritdoc/>
+    protected override void SetupGraphicsManager() { }
 }

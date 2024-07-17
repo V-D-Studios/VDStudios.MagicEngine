@@ -234,9 +234,19 @@ public abstract class Game : IGameObject
     }
     private Scene? nextScene;
 
-#endregion
+    #endregion
 
     #region Methods
+
+    /// <summary>
+    /// This method is called automatically right before <see cref="SceneChanged"/> is fired
+    /// </summary>
+    protected virtual ValueTask SceneChangingAsync(TimeSpan totalTime, Scene currentScene, Scene previousScene) => ValueTask.CompletedTask;
+
+    /// <summary>
+    /// This method is called automatically right before <see cref="SceneChanged"/> is fired
+    /// </summary>
+    protected virtual void SceneChanging(TimeSpan totalTime, Scene currentScene, Scene previousScene) { }
 
     /// <summary>
     /// This method is called automatically when <see cref="UpdateFrameThrottle"/> changes
@@ -557,6 +567,8 @@ public abstract class Game : IGameObject
 
                 currentScene = nextScene;
                 nextScene = null;
+                SceneChanging(TotalTime, currentScene, prev!);
+                await SceneChangingAsync(TotalTime, currentScene, prev!);
                 SceneChanged?.Invoke(this, TotalTime, currentScene, prev!);
             }
 

@@ -6,6 +6,7 @@ using SharpAvi;
 using SharpAvi.Output;
 using VDStudios.MagicEngine.Graphics;
 using VDStudios.MagicEngine.Graphics.SDL;
+using VDStudios.MagicEngine.SDL.Base;
 
 namespace VDStudios.MagicEngine.Extensions.VideoRecording.SDL;
 

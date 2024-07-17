@@ -7,6 +7,12 @@ using VDStudios.MagicEngine.Timing;
 namespace VDStudios.MagicEngine.Input;
 
 /// <summary>
+/// Represents a recording of a Text Input Event
+/// </summary>
+/// <param name="Text">The text of the event</param>
+public readonly record struct TextInputEventRecord(string Text);
+
+/// <summary>
 /// Represents a recording of a Key Event
 /// </summary>
 /// <param name="Scancode">The Scancode of the key</param>
@@ -98,6 +104,12 @@ public abstract class InputSnapshotBuffer
     internal List<uint> kcEvs = new();
 
     /// <summary>
+    /// The text inputs recorded at the time of this snapshot
+    /// </summary>
+    public IReadOnlyList<TextInputEventRecord> TextInputEvents => tiEvs;
+    internal List<TextInputEventRecord> tiEvs = new();
+
+    /// <summary>
     /// The mouse events that happened at the time of this snapshot
     /// </summary>
     public IReadOnlyList<MouseEventRecord> MouseEvents => mEvs;
@@ -157,6 +169,15 @@ public abstract class InputSnapshotBuffer
     {
         WheelDelta += delta;
         mwEvs.Add(new MouseWheelEventRecord(mouseId, delta));
+    }
+
+    /// <summary>
+    /// Reports a text input event
+    /// </summary>
+    /// <param name="textInput">The text inputted</param>
+    protected internal virtual void ReportTextInput(string textInput)
+    {
+        tiEvs.Add(new TextInputEventRecord(textInput));
     }
 
     /// <summary>

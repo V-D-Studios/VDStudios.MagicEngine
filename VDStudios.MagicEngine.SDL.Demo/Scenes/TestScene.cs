@@ -14,12 +14,8 @@ using VDStudios.MagicEngine.Demo.Common.Utilities;
 
 namespace VDStudios.MagicEngine.SDL.Demo.Scenes;
 
-public class TestScene : DemoSceneBase
+public class TestScene(Game game) : DemoSceneBase(game)
 {
-    public TestScene(Game game) : base(game)
-    {
-    }
-
     protected override async ValueTask Beginning()
     {
         await base.Beginning();

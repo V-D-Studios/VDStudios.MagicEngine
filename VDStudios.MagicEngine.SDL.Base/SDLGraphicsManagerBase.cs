@@ -7,7 +7,11 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using SDL2.NET;
+using SDL2.NET.Exceptions;
 using VDStudios.MagicEngine.Graphics;
+using VDStudios.MagicEngine.Input;
+using static OpenGL.GL;
+using static SDL2.Bindings.SDL;
 
 namespace VDStudios.MagicEngine.SDL.Base;
 
@@ -18,7 +22,19 @@ public abstract class SDLGraphicsManagerBase<TGraphicsContext> : GraphicsManager
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     /// <inheritdoc/>
-    protected SDLGraphicsManagerBase(Game game) : base(game) { }
+    protected SDLGraphicsManagerBase(Game game, WindowConfig? windowConfig = null) : base(game)
+    {
+        WindowConfig = windowConfig ?? WindowConfig.Default;
+        WindowView = Matrix4x4.Identity;
+    }
+
+    /// <inheritdoc/>
+    public override IntVector2 WindowSize { get; protected set; }
+
+    /// <summary>
+    /// <see cref="Window"/>'s configuration
+    /// </summary>
+    public WindowConfig WindowConfig { get; }
 
     /// <summary>
     /// The SDL Window managed by this <see cref="SDLGraphicsManagerBase{TGraphicsContext}"/>
@@ -68,6 +84,81 @@ public abstract class SDLGraphicsManagerBase<TGraphicsContext> : GraphicsManager
         return true;
     }
 
+    /// <inheritdoc/>
+    protected override InputSnapshotBuffer CreateNewEmptyInputSnapshotBuffer()
+        => new SDLInputSnapshotBuffer<TGraphicsContext>(this);
+
+    /// <inheritdoc/>
+    protected override async ValueTask AwaitIfFaulted()
+    {
+        if (WindowThread is null)
+            throw new InvalidOperationException();
+
+        if (WindowThread.IsCompleted)
+        {
+            try
+            {
+                await WindowThread;
+            }
+            finally
+            {
+                IsRunning = false;
+            }
+        }
+    }
+
+    #region Window Thread
+
+    private Task? WindowThread;
+
+    /// <summary>
+    /// Disposes of SDL's resources by unsubscribing from events and disposing of <see cref="Renderer"/> and <see cref="Window"/>
+    /// </summary>
+    protected abstract void DisposeSDLResources();
+
+    /// <inheritdoc/>
+    protected override void DisposeRunningResources()
+    {
+        DisposeSDLResources();
+    }
+
+    /// <inheritdoc/>
+    protected override void FramelockedDispose(bool disposing)
+    {
+        DisposeSDLResources();
+    }
+
+    /// <inheritdoc/>
+    protected override void RunningWindowLocked(TimeSpan delta)
+    {
+        while (WindowActionQueue.TryDequeue(out var action))
+            action(Window);
+    }
+
+    /// <inheritdoc/>
+    protected override void UpdateWhileWaitingOnWindow()
+    {
+        Events.Update();
+        Thread.Sleep(100);
+    }
+
+    /// <inheritdoc/>
+    protected override void BeforeWindowRelease()
+    {
+        Events.Update();
+    }
+
+    /// <inheritdoc/>
+    protected override void Launch()
+    {
+        FrameLock.Wait();
+        WindowThread = Task.Run(Run);
+        FrameLock.Wait();
+        FrameLock.Release();
+    }
+
+    #endregion
+
     /// <summary>
     /// Detaches event listeners from <see cref="Window"/> and disposes of it, setting it to <see langword="null"/> and setting <see cref="GraphicsManager{TGraphicsContext}.IsWindowAvailable"/> to <see langword="false"/>
     /// </summary>
@@ -87,6 +178,7 @@ public abstract class SDLGraphicsManagerBase<TGraphicsContext> : GraphicsManager
             win.MouseButtonPressed -= Window_MouseButtonPressed;
             win.MouseButtonReleased -= Window_MouseButtonReleased;
             win.MouseMoved -= Window_MouseMoved;
+            win.TextInput -= Win_TextInput;
             win.Dispose();
         }
 
@@ -112,6 +204,7 @@ public abstract class SDLGraphicsManagerBase<TGraphicsContext> : GraphicsManager
         Window.MouseButtonReleased += Window_MouseButtonReleased;
         Window.MouseMoved += Window_MouseMoved;
         Window.MouseWheelScrolled += Window_MouseWheelScrolled;
+        Window.TextInput += Win_TextInput;
 
         Log?.Debug("Querying WindowFlags");
         var flags = Window.Flags;
@@ -168,6 +261,11 @@ public abstract class SDLGraphicsManagerBase<TGraphicsContext> : GraphicsManager
         HasFocus = false;
     }
 
+    protected void Win_TextInput(Window sender, TimeSpan timestamp, ReadOnlySpan<char> text)
+    {
+        ReportTextInput(new string(text));
+    }
+
     protected void Window_FocusGained(Window sender, TimeSpan timestamp)
     {
         HasFocus = true;
@@ -210,4 +308,5 @@ public abstract class SDLGraphicsManagerBase<TGraphicsContext> : GraphicsManager
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
     #endregion
+
 }

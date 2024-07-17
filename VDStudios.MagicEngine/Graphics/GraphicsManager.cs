@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
@@ -56,7 +57,26 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     #endregion
     #region Public Properties
 
-    private readonly List<uint> renderTargetLevels = new();
+    private Dictionary<Type, IGraphicsManagerFeature<TGraphicsContext>>? unitializedFeatures = [];
+
+    /// <summary>
+    /// Adds a feature to this <see cref="GraphicsManager{TGraphicsContext}"/>
+    /// </summary>
+    /// <remarks>
+    /// This method cannot be called after this <see cref="GraphicsManager{TGraphicsContext}"/> starts running
+    /// </remarks>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="feature"></param>
+    public void AddFeature<T>(T feature)
+        where T : IGraphicsManagerFeature<TGraphicsContext>
+    {
+        if (unitializedFeatures is null)
+            throw new InvalidOperationException("This method cannot be called after the GraphicsManager starts running");
+        unitializedFeatures.Add(typeof(T), feature);
+        feature.FeatureAdded(this);
+    }
+
+    private readonly List<uint> renderTargetLevels = [];
     private readonly Dictionary<uint, RenderTargetList<TGraphicsContext>> renderTargets;
 
     /// <summary>
@@ -415,10 +435,14 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
     /// </summary>
     protected void Run()
     {
+        FrozenDictionary<Type, IGraphicsManagerFeature<TGraphicsContext>> features;
         try
         {
             BeforeRun();
             IsRunning = true;
+            features = (unitializedFeatures ?? []).ToFrozenDictionary();
+            unitializedFeatures = null;
+            for (int i = 0; i < features.Values.Length; i++) features.Values[i].ManagerStarting(this);
         }
         finally
         {
@@ -526,30 +550,10 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
                             }
                         }
 
-                        //if (GUIElements.Count > 0) // There's no need to lock neither glock nor ImGUI lock if there are no elements to render. And if it does change between this check and the second one, then tough luck and it'll have to wait until the next frame
-                        //{
-                        //    if (!await WaitOn(guilock, condition: isRunning, out var guilockwaiter)) break; // Frame Render Stage 2: GUI Drawing
-                        //    using (guilockwaiter)
-                        //    {
-                        //        if (GUIElements.Count > 0) // We check twice, as it may have changed between the first check and the lock being adquired
-                        //        {
-                        //            managercl.Begin();
-                        //            managercl.SetFramebuffer(gd.SwapchainFramebuffer); // Prepare for ImGUI
-                        //            using (ImGuiController.Begin()) // Lock ImGUI from other GraphicsManagers
-                        //            {
-                        //                foreach (var element in GUIElements)
-                        //                    element.InternalSubmitUI(delta); // Submit UIs
-                        //                using (var snapshot = FetchSnapshot())
-                        //                    ImGuiController.Update(1 / 60f, snapshot);
-                        //                ImGuiController.Render(gd, managercl); // Render
-                        //            }
-                        //            managercl.End();
-                        //            gd.SubmitCommands(managercl);
-                        //        }
-                        //    }
-                        //}
-
                         BeforeSubmitFrame();
+
+                        for (int i = 0; i < features.Values.Length; i++) 
+                            features.Values[i].Rendering(delta);
 
                         context.EndAndSubmitFrame();
 
@@ -559,7 +563,12 @@ public abstract class GraphicsManager<TGraphicsContext> : GraphicsManager, IDisp
                     BeforeWindowRelease();
                 }
 
-                SubmitInput(FetchSnapshot());
+                var snapshot = FetchSnapshot();
+
+                for (int i = 0; i < features.Values.Length; i++)
+                    features.Values[i].Input(snapshot);
+
+                SubmitInput(snapshot);
 
                 AtFrameEnd();
 

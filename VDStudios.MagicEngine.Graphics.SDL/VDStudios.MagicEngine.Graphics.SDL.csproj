@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	<TargetFramework>net7.0</TargetFramework>
+	<TargetFramework>net8.0</TargetFramework>
 	<ImplicitUsings>enable</ImplicitUsings>
 	<Nullable>enable</Nullable>
 	<GenerateDocumentationFile>True</GenerateDocumentationFile>
@@ -42,7 +42,7 @@
 		<None Include="lib\*.txt" />
 	</ItemGroup>
 	<ItemGroup>
-	  <PackageReference Include="ImGui.NET" Version="1.89.7.1" />
+	  <PackageReference Include="ImGui.NET" Version="1.90.9.1" />
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\dependencies\SDL2.NET\SDL2.Bindings\SDL2.Bindings.csproj" />

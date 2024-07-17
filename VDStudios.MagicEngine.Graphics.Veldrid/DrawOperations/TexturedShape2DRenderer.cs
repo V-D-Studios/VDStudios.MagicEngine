@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using SDL2.NET;
 using Serilog;
 using VDStudios.MagicEngine.Geometry;
 using VDStudios.MagicEngine.Graphics.Veldrid.Generators;
@@ -40,15 +41,16 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<Vertex2D, Texture
         IVertexGenerator<Vector2, TextureCoordinate2D>? textureCoordinateGenerator = null,
         ElementSkip vertexSkip = default
     ) : base(
-        shape, 
-        game, 
-        textureFactory, 
-        samplerFactory, 
-        viewFactory, 
-        vertexGenerator ?? Vertex2D.DefaultGenerator, 
-        textureCoordinateGenerator ?? TextureCoordinate2D.DefaultGenerator, 
+        shape,
+        game,
+        textureFactory,
+        samplerFactory,
+        viewFactory,
+        vertexGenerator ?? Vertex2D.DefaultGenerator,
+        textureCoordinateGenerator ?? TextureCoordinate2D.DefaultGenerator,
         vertexSkip
-    ) { }
+    )
+    { }
 
     /// <summary>
     /// Fetches or registers (and then fetches) the default shader set for <see cref="Shape2DRenderer"/>
@@ -74,6 +76,42 @@ public class TexturedShape2DRenderer : TexturedShape2DRenderer<Vertex2D, Texture
                             );
             });
 }
+
+//public class SquareShapeTextureRenderer : DrawOperation<VeldridGraphicsContext>
+//{
+//    private DeviceBuffer? TextureCoordinateBuffer;
+
+//    private Texture? Texture;
+//    private Sampler? Sampler;
+//    private TextureView? TextureView;
+
+//    private GraphicsResourceFactory<Texture> TextureFactory;
+//    private GraphicsResourceFactory<Sampler> SamplerFactory;
+//    private GraphicsResourceFactory<Texture, TextureView> ViewFactory;
+
+//    private ResourceLayout? TextureLayout;
+//    private ResourceSet? TextureSet;
+
+//    public SquareShapeTextureRenderer(
+//        Game game,
+//        GraphicsResourceFactory<Texture> textureFactory,
+//        GraphicsResourceFactory<Sampler> samplerFactory,
+//        GraphicsResourceFactory<Texture, TextureView> viewFactory
+//    ) : base(game)
+//    {
+//        ArgumentNullException.ThrowIfNull(textureFactory);
+//        ArgumentNullException.ThrowIfNull(samplerFactory);
+//        ArgumentNullException.ThrowIfNull(viewFactory);
+
+//        ViewFactory = viewFactory;
+//        TextureFactory = textureFactory;
+//        SamplerFactory = samplerFactory;
+
+//        pipelinefactory = PipelineFactory;
+
+//        PipelineCategory = typeof(TexturedShape2DRenderer<TVertex, TTextureCoordinate>);
+//    }
+//}
 
 /// <summary>
 /// An operation that renders a texture on top of a <see cref="ShapeDefinition2D"/>

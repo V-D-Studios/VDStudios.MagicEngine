@@ -123,7 +123,7 @@ public abstract class ImGUIElement : DisposableGameObject, IDisposable
     /// </remarks>
     /// <param name="delta">The amount of time that has passed since the last draw sequence</param>
     /// <param name="graphicsManager">The graphics manager that is currently calling ImGuiElement</param>
-    protected internal abstract void SubmitUI(TimeSpan delta, GraphicsManager graphicsManager);
+    public abstract void SubmitUI(TimeSpan delta, GraphicsManager graphicsManager);
 
     #endregion
 

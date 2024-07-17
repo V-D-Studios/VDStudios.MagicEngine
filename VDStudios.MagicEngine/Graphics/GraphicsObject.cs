@@ -9,7 +9,8 @@ namespace VDStudios.MagicEngine.Graphics;
 /// <remarks>
 /// This class cannot be instanced or inherited by user code
 /// </remarks>
-public abstract class GraphicsObject<TGraphicsContext> : DisposableGameObject
+public abstract class GraphicsObject<TGraphicsContext> 
+    : DisposableGameObject, IGraphicsObject<TGraphicsContext> 
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
 
@@ -20,12 +21,7 @@ public abstract class GraphicsObject<TGraphicsContext> : DisposableGameObject
     {
     }
 
-    /// <summary>
-    /// The <see cref="GraphicsManager{TGraphicsContext}"/> this operation is registered onto
-    /// </summary>
-    /// <remarks>
-    /// Will be null if this operation is not registered
-    /// </remarks>
+    /// <inheritdoc/>
     public GraphicsManager<TGraphicsContext>? Manager { get; private set; }
 
     private List<Exception>? exceptions;

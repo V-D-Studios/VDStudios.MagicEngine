@@ -21,7 +21,7 @@ public class FPSWatch : ImGUIElement
     private GraphicsManagerFrameTimer timer;
 
     /// <inheritdoc/>
-    protected internal override void SubmitUI(TimeSpan delta, GraphicsManager graphicsManager)
+    public override void SubmitUI(TimeSpan delta, GraphicsManager graphicsManager)
     {
         if (timer.IsDefault)
             timer = new GraphicsManagerFrameTimer(graphicsManager, 10);

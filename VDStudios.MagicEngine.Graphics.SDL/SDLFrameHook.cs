@@ -10,18 +10,12 @@ namespace VDStudios.MagicEngine.Graphics.SDL;
 /// <summary>
 /// A <see cref="FrameHook"/> that queues up <see cref="Surface"/>s with an <see cref="SDLGraphicsManager"/>'s frame data every frame
 /// </summary>
-public class SDLFrameHook : FrameHook
+/// <remarks>
+/// Creates a new <see cref="SDLFrameHook"/> hooked to <paramref name="owner"/>
+/// </remarks>
+public class SDLFrameHook(SDLGraphicsManager owner, ILogger log) : FrameHook(owner)
 {
-    private readonly ILogger ManagerLog;
-
-    /// <summary>
-    /// Creates a new <see cref="SDLFrameHook"/> hooked to <paramref name="owner"/>
-    /// </summary>
-    public SDLFrameHook(SDLGraphicsManager owner, ILogger log) : base(owner) 
-    {
-        FrameSkipTimer = new(owner, 0);
-        ManagerLog = log;
-    }
+    private readonly ILogger ManagerLog = log;
 
     /// <summary>
     /// The amount of frames to skip
@@ -44,7 +38,7 @@ public class SDLFrameHook : FrameHook
         }
     }
 
-    internal GraphicsManagerFrameTimer FrameSkipTimer;
+    internal GraphicsManagerFrameTimer FrameSkipTimer = new(owner, 0);
 
     internal readonly ConcurrentQueue<Surface> frameQueue = new();
 
@@ -64,7 +58,7 @@ public class SDLFrameHook : FrameHook
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)
     {
-        var owner = ((SDLGraphicsManager)Owner);
+        var owner = (SDLGraphicsManager)Owner;
         lock (owner)
             owner.framehooks.Remove(this);
         ManagerLog.Information("Removed Framehook {hook}", this);

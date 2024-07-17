@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	<TargetFramework>net7.0</TargetFramework>
+	<TargetFramework>net8.0</TargetFramework>
 	<ImplicitUsings>enable</ImplicitUsings>
 	<Nullable>enable</Nullable>
 	<GenerateDocumentationFile>True</GenerateDocumentationFile>
@@ -61,7 +61,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="ImGui.NET" Version="1.89.9.2" />
+	  <PackageReference Include="ImGui.NET" Version="1.90.9.1" />
 	</ItemGroup>
 
 	<ItemGroup>

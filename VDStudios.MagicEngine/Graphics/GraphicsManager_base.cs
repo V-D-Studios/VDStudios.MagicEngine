@@ -250,6 +250,16 @@ public abstract class GraphicsManager : DisposableGameObject
             snapshotBuffer.ReportKeyPressed(keyboardId, scancode, key, modifiers, false, repeat, unicode);
     }
 
+    /// <summary>
+    /// Reports a text input event to the current staging snapshot
+    /// </summary>
+    /// <param name="text">The text inputted</param>
+    protected void ReportTextInput(string text)
+    {
+        lock (snapshotBuffer)
+            snapshotBuffer.ReportTextInput(text);
+    }
+
     #endregion
 
     /// <summary>

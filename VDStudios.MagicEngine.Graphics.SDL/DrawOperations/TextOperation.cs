@@ -15,7 +15,7 @@ namespace VDStudios.MagicEngine.Graphics.SDL.DrawOperations;
 /// <summary>
 /// An operation that renders text 
 /// </summary>
-public class TextOperation : DrawOperation<SDLGraphicsContext>
+public class TextOperation : DrawOperation<SDLGraphicsContext>, ITextOperation<SDLGraphicsContext>
 {
     private readonly record struct TextRenderCacheKey(byte Mode, int Size, string Text, RGBAColor Color, RGBAColor Foreground);
     private Texture? texture;
@@ -50,7 +50,22 @@ public class TextOperation : DrawOperation<SDLGraphicsContext>
     /// <summary>
     /// The Text that is currently set to be rendered by this <see cref="TextOperation"/>
     /// </summary>
-    public string Text => CurrentKey.Text;
+    public string? Text
+    {
+        get => CurrentKey.Text;
+        set
+        {
+            TextRenderCacheKey nk = string.IsNullOrWhiteSpace(value)
+                ? default
+                : new TextRenderCacheKey(CurrentKey.Mode, CurrentKey.Size, value, CurrentKey.Color, CurrentKey.Foreground);
+
+            if (nk != CurrentKey)
+            {
+                CurrentKey = nk;
+                NotifyPendingGPUUpdate();
+            }
+        }
+    }
 
     private TextRenderCacheKey CurrentKey;
 

@@ -11,14 +11,13 @@ namespace VDStudios.MagicEngine.Graphics;
 /// <remarks>
 /// Try to keep an object created from this class cached somewhere in a node, as they incur a number of allocations that should be avoided in a HotPath like the rendering sequence
 /// </remarks>
-public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphicsContext>
+public abstract class DrawOperation<TGraphicsContext> 
+    : GraphicsObject<TGraphicsContext>, IDrawOperation<TGraphicsContext> 
     where TGraphicsContext : GraphicsContext<TGraphicsContext>
 {
     #region Transformation
 
-    /// <summary>
-    /// This <see cref="DrawOperation{TGraphicsContext}"/>'s current transformation state
-    /// </summary>
+    /// <inheritdoc/>
     public TransformationState TransformationState
     {
         get
@@ -43,9 +42,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     protected virtual TransformationState CreateTransformationState(TGraphicsContext context)
         => new();
 
-    /// <summary>
-    /// The transformation matrix that represents the current transformation properties in this <see cref="DrawOperation{TGraphicsContext}"/>
-    /// </summary>
+    /// <inheritdoc/>
     public ColorTransformation ColorTransformation
     {
         get => colTrans;
@@ -58,33 +55,16 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     }
     private ColorTransformation colTrans;
 
-    /// <summary>
-    /// Fired when <see cref="ColorTransformation"/> changes
-    /// </summary>
+    /// <inheritdoc/>
     public event DrawOperationEvent<TGraphicsContext>? ColorTransformationChanged;
 
-    /// <summary>
-    /// Fired when <see cref="TransformationState"/> <see cref="TransformationState.VertexTransformation"/> changes
-    /// </summary>
-    /// <remarks>
-    /// Unlike <see cref="TransformationState.VertexTransformation"/>, this event belongs specifically to <see cref="DrawOperation{TGraphicsContext}"/>
-    /// </remarks>
+    /// <inheritdoc/>
     public event DrawOperationEvent<TGraphicsContext>? VertexTransformationChanged;
 
-    /// <summary>
-    /// Fired when <see cref="TransformationState"/> <see cref="TransformationState.ScaleTransformation"/> changes
-    /// </summary>
-    /// <remarks>
-    /// Unlike <see cref="TransformationState.ScaleTransformation"/>, this event belongs specifically to <see cref="DrawOperation{TGraphicsContext}"/>
-    /// </remarks>
+    /// <inheritdoc/>
     public event DrawOperationEvent<TGraphicsContext>? ScaleTransformationChanged;
 
-    /// <summary>
-    /// Fired when <see cref="TransformationState"/> <see cref="TransformationState.TranslationTransformation"/> changes
-    /// </summary>
-    /// <remarks>
-    /// Unlike <see cref="TransformationState.TranslationTransformation"/>, this event belongs specifically to <see cref="DrawOperation{TGraphicsContext}"/>
-    /// </remarks>
+    /// <inheritdoc/>
     public event DrawOperationEvent<TGraphicsContext>? TranslationTransformationChanged;
 
     #endregion
@@ -100,12 +80,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
     {
     }
 
-    /// <summary>
-    /// The owner <see cref="DrawOperationManager{TGraphicsContext}"/> of this <see cref="DrawOperation{TGraphicsContext}"/>
-    /// </summary>
-    /// <remarks>
-    /// Will throw if this <see cref="DrawOperation{TGraphicsContext}"/> is not registered
-    /// </remarks>
+    /// <inheritdoc/>
     public DrawOperationManager<TGraphicsContext> Owner => _owner ?? throw new InvalidOperationException("Cannot query the Owner of an unregistered DrawOperation{TGraphicsContext}");
     private DrawOperationManager<TGraphicsContext>? _owner;
     internal void SetOwner(DrawOperationManager<TGraphicsContext> owner)
@@ -157,9 +132,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
 
     private SemaphoreSlim? readySem = new(0, 1);
 
-    /// <summary>
-    /// Waits until this <see cref="DrawOperation{TGraphicsContext}"/> is ready for use
-    /// </summary>
+    /// <inheritdoc/>
     public async ValueTask WaitUntilReady(CancellationToken ct = default)
     {
         if (_owner is null) throw new InvalidOperationException("Cannot wait for a DrawOperation that has not been registered");
@@ -184,12 +157,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
         }
     }
 
-    /// <summary>
-    /// Waits until this <see cref="DrawOperation{TGraphicsContext}"/> is ready for use
-    /// </summary>
-    /// <remarks>
-    /// <see langword="true"/> If the <see cref="DrawOperation{TGraphicsContext}"/> is now ready, <see langword="false"/> otherwise
-    /// </remarks>
+    /// <inheritdoc/>
     public async ValueTask<bool> WaitUntilReady(TimeSpan timeout, CancellationToken ct = default)
     {
         if (_owner is null) throw new InvalidOperationException("Cannot wait for a DrawOperation that has not been registered");
@@ -243,29 +211,19 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
         return false;
     }
 
-    /// <summary>
-    /// <see langword="true"/> if this <see cref="DrawOperation{TGraphicsContext}"/>'s Resources have been created and is ready for use
-    /// </summary>
+
+    /// <inheritdoc/>
     [MemberNotNullWhen(false, nameof(readySem))]
     public bool IsReady => readySem == null;
 
-    /// <summary>
-    /// Whether or not this <see cref="DrawOperation{TGraphicsContext}"/> is active 
-    /// </summary>
-    /// <remarks>
-    /// If <see langword="false"/>, then Drawing and resource updating for this operation is skipped
-    /// </remarks>
+    /// <inheritdoc/>
     public bool IsActive { get; set; } = true;
 
-    /// <summary>
-    /// Fired when <see cref="IsActive"/> changes
-    /// </summary>
 
+    /// <inheritdoc/>
     public event DrawOperationEvent<TGraphicsContext>? IsActiveChanged;
 
-    /// <summary>
-    /// Represents this <see cref="DrawOperation{TGraphicsContext}"/>'s preferred priority. May or may not be honored depending on the <see cref="DrawOperationManager{TGraphicsContext}"/>
-    /// </summary>
+    /// <inheritdoc/>
     public float PreferredPriority { get; set; }
 
     #region Internal
@@ -333,7 +291,7 @@ public abstract class DrawOperation<TGraphicsContext> : GraphicsObject<TGraphics
                 Log.Verbose("Releasing ready semaphore");
                 readySem.Release();
                 readySem = null;
-            } 
+            }
 
             if (pendingGpuUpdate)
                 ForceGPUUpdate(context);

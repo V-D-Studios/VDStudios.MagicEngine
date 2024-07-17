@@ -23,9 +23,10 @@ public class InputSnapshot
     /// Copies data from <paramref name="buffer"/> into this <see cref="InputSnapshot"/>
     /// </summary>
     /// <param name="buffer"></param>
-    [MemberNotNull(nameof(KeyEvents), nameof(KeyCharPresses), nameof(KeyEventDictionary), nameof(MouseEvents), nameof(MouseWheelEvents), nameof(MousePosition), nameof(WheelDelta), nameof(PressedMouseButtons))]
+    [MemberNotNull(nameof(KeyEvents), nameof(KeyCharPresses), nameof(KeyEventDictionary), nameof(MouseEvents), nameof(MouseWheelEvents), nameof(MousePosition), nameof(WheelDelta), nameof(PressedMouseButtons), nameof(TextInputEvents))]
     protected virtual void CopyFrom(InputSnapshotBuffer buffer)
     {
+        TextInputEvents = new List<TextInputEventRecord>(buffer.TextInputEvents);
         KeyEvents = new List<KeyEventRecord>(buffer.KeyEvents);
         KeyCharPresses = new List<uint>(buffer.KeyCharPresses);
         MouseEvents = new List<MouseEventRecord>(buffer.MouseEvents);
@@ -59,6 +60,11 @@ public class InputSnapshot
     /// The active <see cref="KeyModifier"/>s by the end of the frame
     /// </summary>
     public KeyModifier ActiveModifiers { get; private set; }
+
+    /// <summary>
+    /// The text input events that happened at the time of this snapshot
+    /// </summary>
+    public IReadOnlyList<TextInputEventRecord> TextInputEvents { get; private set; }
 
     /// <summary>
     /// The key events that happened at the time of this snapshot

@@ -124,7 +124,7 @@ public static class AssortedExtensions
     /// This method must not be used when <paramref name="vector"/> is a <c>ref</c> to a <c>field</c>, as it's not pinned by the GC and may be moved; leading to potential problems such as no changes being presented in the Vector, or corrupting memory elsewhere in the program. For such cases, pin the vector using the <c>fixed</c> keyword taking its reference with the <c>&amp;</c> operator, and pass it to <see cref="AsSpan(Vector2*)"/>. <c>ref</c>s to local variables are acceptable, and intended.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe Span<float> AsSpan(this ref Vector2 vector)
+    public static unsafe Span<float> AsSpan(this scoped ref Vector2 vector)
     {
         fixed (void* ptr = &vector)
             return new((float*)ptr, 2);
@@ -144,7 +144,7 @@ public static class AssortedExtensions
     /// This method must not be used when <paramref name="vector"/> is a <c>ref</c> to a <c>field</c>, as it's not pinned by the GC and may be moved; leading to potential problems such as no changes being presented in the Vector, or corrupting memory elsewhere in the program. For such cases, pin the vector using the <c>fixed</c> keyword taking its reference with the <c>&amp;</c> operator, and pass it to <see cref="AsSpan(Vector3*)"/>. <c>ref</c>s to local variables are acceptable, and intended.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe Span<float> AsSpan(this ref Vector3 vector)
+    public static unsafe Span<float> AsSpan(this scoped ref Vector3 vector)
     {
         fixed (void* ptr = &vector)
             return new((float*)ptr, 2);
@@ -164,7 +164,7 @@ public static class AssortedExtensions
     /// This method must not be used when <paramref name="vector"/> is a <c>ref</c> to a <c>field</c>, as it's not pinned by the GC and may be moved; leading to potential problems such as no changes being presented in the Vector, or corrupting memory elsewhere in the program. For such cases, pin the vector using the <c>fixed</c> keyword taking its reference with the <c>&amp;</c> operator, and pass it to <see cref="AsSpan(Vector4*)"/>. <c>ref</c>s to local variables are acceptable, and intended.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe Span<float> AsSpan(this ref Vector4 vector)
+    public static unsafe Span<float> AsSpan(this scoped ref Vector4 vector)
     {
         fixed (void* ptr = &vector)
             return new((float*)ptr, 2);

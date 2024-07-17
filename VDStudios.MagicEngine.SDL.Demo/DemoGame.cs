@@ -25,6 +25,7 @@ public class DemoGame : SDLGame
     protected override void RegisteringServices(IServiceRegistrar registrar)
     {
         base.RegisteringServices(registrar);
+
         registrar.RegisterService((t, c) => new GameState(c), ServiceLifetime.Singleton);
         registrar.RegisterService(new GameSettings());
         registrar.RegisterService((t, c) =>

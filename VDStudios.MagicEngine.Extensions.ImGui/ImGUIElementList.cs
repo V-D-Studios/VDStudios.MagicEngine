@@ -8,20 +8,16 @@ namespace VDStudios.MagicEngine.Extensions.ImGuiExtension;
 /// Represents a list of elements in a <see cref="GraphicsManager{TGraphicsContext}"/>
 /// </summary>
 /// <remarks>
-/// This class cannot be inherited. This class cannot be instanced by user code. ALL reads into this <see cref="ImGUIElementList"/> are locked and thread safe.
+/// This class cannot be inherited. ALL reads into this <see cref="ImGUIElementList"/> are locked and thread safe.
 /// </remarks>
-public sealed class ImGUIElementList : IReadOnlyCollection<ImGUIElement>
+/// <param name="manager"></param>
+/// <exception cref="ArgumentNullException"></exception>
+public sealed class ImGUIElementList(GraphicsManager manager) : IReadOnlyCollection<ImGUIElement>
 {
-    internal readonly object sync = new();
+    public readonly object sync = new();
 
-    private readonly HashSet<ImGUIElement> elements;
-    private readonly GraphicsManager Manager;
-
-    internal ImGUIElementList(GraphicsManager manager)
-    {
-        Manager = manager ?? throw new ArgumentNullException(nameof(manager));
-        elements = new();
-    }
+    private readonly HashSet<ImGUIElement> elements = new();
+    private readonly GraphicsManager Manager = manager ?? throw new ArgumentNullException(nameof(manager));
 
     /// <summary>
     /// The amount of <see cref="ImGUIElement"/>s currently registered in this <see cref="ImGUIElementList"/>
